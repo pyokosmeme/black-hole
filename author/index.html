@@ -1,0 +1,1250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LOADING // Network Node</title>
+  <meta name="description" content="distributed consciousness interface">
+  <meta property="og:type" content="website">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=VT323&display=swap" rel="stylesheet">
+  
+  <!-- Marked.js for Markdown parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  
+  <style>
+    /* ═══════════════════════════════════════════════════════════════
+       AUTHOR-NODE // STATIC TEMPLATE v2
+       all content loaded dynamically from external files
+       ═══════════════════════════════════════════════════════════════ */
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --cyan: #00ffff;
+      --purple: #bf00ff;
+      --magenta: #ff00ff;
+      --green: #00ff88;
+      --pink: #ff0099;
+      --dark: #05050a;
+      --panel: rgba(5, 5, 15, 0.92);
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      min-height: 100vh;
+      background: var(--dark);
+      color: #fff;
+      font-family: 'Share Tech Mono', monospace;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Scanlines */
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.1) 0px,
+        rgba(0, 0, 0, 0.1) 1px,
+        transparent 1px,
+        transparent 3px
+      );
+      pointer-events: none;
+      z-index: 10000;
+      animation: scan 0.1s linear infinite;
+    }
+
+    @keyframes scan {
+      to { transform: translateY(6px); }
+    }
+
+    body.glitch {
+      animation: glitchEffect 0.15s linear;
+    }
+
+    @keyframes glitchEffect {
+      0%, 100% { transform: translate(0); filter: hue-rotate(0); }
+      25% { transform: translate(-2px, 1px); filter: hue-rotate(90deg); }
+      50% { transform: translate(2px, -1px); filter: hue-rotate(180deg); }
+      75% { transform: translate(-1px, -2px); filter: hue-rotate(270deg); }
+    }
+
+    /* Binary Rain */
+    .binary-rain {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .binary-col {
+      position: absolute;
+      top: -100%;
+      font-size: 10px;
+      color: var(--purple);
+      writing-mode: vertical-rl;
+      animation: fall linear infinite;
+      opacity: 0.3;
+    }
+
+    @keyframes fall {
+      to { transform: translateY(200vh); }
+    }
+
+    /* Network Canvas */
+    #network-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      opacity: 0.4;
+    }
+
+    /* ═══════════════════════════════════════════════════════════
+       MAXIMUM TEXTURE HEADER BAR
+       ═══════════════════════════════════════════════════════════ */
+    
+    .header-bar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 50px;
+      z-index: 1000;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 30px;
+      overflow: hidden;
+    }
+
+    .header-bar::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: 
+        repeating-linear-gradient(-60deg, var(--purple) 0px, var(--purple) 6px, transparent 6px, transparent 12px),
+        repeating-linear-gradient(60deg, var(--cyan) 0px, var(--cyan) 4px, transparent 4px, transparent 14px),
+        repeating-linear-gradient(-45deg, rgba(255, 0, 153, 0.5) 0px, rgba(255, 0, 153, 0.5) 2px, transparent 2px, transparent 6px),
+        repeating-linear-gradient(75deg, rgba(0, 255, 255, 0.4) 0px, rgba(0, 255, 255, 0.4) 3px, transparent 3px, transparent 9px),
+        linear-gradient(90deg, var(--purple), var(--cyan), var(--magenta), var(--cyan), var(--purple));
+      z-index: -2;
+    }
+
+    .header-texture {
+      position: absolute;
+      inset: 0;
+      background:
+        repeating-linear-gradient(90deg, transparent 0px, transparent 2px, rgba(0,0,0,0.2) 2px, rgba(0,0,0,0.2) 4px),
+        repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(255,255,255,0.08) 3px, rgba(255,255,255,0.08) 4px),
+        repeating-linear-gradient(-30deg, rgba(191,0,255,0.3) 0px, transparent 1px, transparent 4px, rgba(0,255,255,0.3) 5px, transparent 6px, transparent 8px);
+      z-index: -1;
+      mix-blend-mode: overlay;
+    }
+
+    .header-noise {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 2px 2px, rgba(255,255,255,0.12) 1px, transparent 1px),
+        radial-gradient(circle at 6px 6px, rgba(0,255,255,0.15) 1px, transparent 1px);
+      background-size: 8px 8px, 12px 12px;
+      z-index: -1;
+      mix-blend-mode: screen;
+    }
+
+    .header-shimmer {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      z-index: -1;
+      animation: shimmer 4s ease-in-out infinite;
+    }
+
+    @keyframes shimmer {
+      0%, 100% { transform: translateX(-100%); opacity: 0; }
+      50% { transform: translateX(100%); opacity: 1; }
+    }
+
+    .header-bar::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--cyan), var(--purple), var(--cyan));
+      box-shadow: 0 0 15px var(--cyan);
+    }
+
+    .header-brand {
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 900;
+      font-size: 18px;
+      color: #000;
+      text-shadow: 0 0 10px rgba(255,255,255,0.5);
+      letter-spacing: 3px;
+      z-index: 10;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .header-stats {
+      display: flex;
+      gap: 30px;
+      z-index: 10;
+    }
+
+    .header-stat {
+      text-align: center;
+    }
+
+    .header-stat-value {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 14px;
+      color: #000;
+      text-shadow: 0 0 5px rgba(255,255,255,0.5);
+    }
+
+    .header-stat-label {
+      font-size: 9px;
+      color: rgba(0,0,0,0.7);
+      letter-spacing: 1px;
+    }
+
+    /* Main Content */
+    .main-content {
+      position: relative;
+      z-index: 10;
+      padding: 80px 20px 40px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    /* Author Card */
+    .author-card {
+      background: var(--panel);
+      border: 3px solid transparent;
+      border-image: linear-gradient(135deg, var(--purple), var(--cyan), var(--purple)) 1;
+      padding: 40px;
+      margin-bottom: 30px;
+      position: relative;
+    }
+
+    .author-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 6px;
+      background: 
+        repeating-linear-gradient(-55deg, var(--purple) 0px, var(--purple) 5px, transparent 5px, transparent 10px),
+        repeating-linear-gradient(55deg, var(--cyan) 0px, var(--cyan) 4px, transparent 4px, transparent 12px),
+        repeating-linear-gradient(-35deg, rgba(255,0,153,0.5) 0px, rgba(255,0,153,0.5) 2px, transparent 2px, transparent 7px),
+        linear-gradient(90deg, var(--purple), var(--cyan), var(--purple));
+    }
+
+    .author-header {
+      display: flex;
+      align-items: center;
+      gap: 30px;
+      margin-bottom: 25px;
+    }
+
+    .author-avatar {
+      width: 100px;
+      height: 100px;
+      background: linear-gradient(135deg, var(--purple), var(--cyan));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 50px;
+      color: #000;
+      position: relative;
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    }
+
+    .author-avatar::after {
+      content: '';
+      position: absolute;
+      inset: 3px;
+      background: var(--dark);
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+    }
+
+    .author-avatar span {
+      position: relative;
+      z-index: 1;
+      color: var(--cyan);
+      text-shadow: 0 0 20px var(--cyan);
+    }
+
+    .author-avatar img {
+      position: absolute;
+      inset: 3px;
+      width: calc(100% - 6px);
+      height: calc(100% - 6px);
+      object-fit: cover;
+      clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+      z-index: 2;
+    }
+
+    .author-avatar.has-image span {
+      display: none;
+    }
+
+    .author-avatar.has-image::after {
+      display: none;
+    }
+
+    .author-info h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 32px;
+      font-weight: 900;
+      color: var(--cyan);
+      text-shadow: 0 0 20px var(--cyan);
+      margin-bottom: 5px;
+    }
+
+    .author-handle {
+      font-size: 14px;
+      color: var(--purple);
+      letter-spacing: 3px;
+      margin-bottom: 10px;
+    }
+
+    .author-tagline {
+      font-size: 14px;
+      color: rgba(255,255,255,0.6);
+    }
+
+    .author-bio {
+      font-size: 15px;
+      line-height: 1.9;
+      color: rgba(255,255,255,0.8);
+      border-left: 3px solid var(--purple);
+      padding-left: 20px;
+    }
+
+    .author-bio p {
+      margin-bottom: 10px;
+    }
+
+    .author-bio em {
+      color: rgba(255,255,255,0.5);
+    }
+
+    /* Links Section */
+    .links-section {
+      margin-bottom: 40px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .section-header h2 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 14px;
+      color: var(--purple);
+      letter-spacing: 4px;
+    }
+
+    .section-line {
+      flex: 1;
+      height: 2px;
+      background: linear-gradient(90deg, var(--purple), transparent);
+    }
+
+    .links-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 15px;
+    }
+
+    .link-card {
+      background: var(--panel);
+      border: 2px solid var(--purple);
+      padding: 20px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+      text-decoration: none;
+      display: block;
+    }
+
+    .link-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(0,255,255,0.1), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .link-card:hover {
+      border-color: var(--cyan);
+      transform: translateX(10px);
+      box-shadow: 0 0 30px rgba(0,255,255,0.3);
+    }
+
+    .link-card:hover::before {
+      left: 100%;
+    }
+
+    .link-card-inner {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .link-icon {
+      font-size: 28px;
+      color: var(--cyan);
+      text-shadow: 0 0 10px var(--cyan);
+    }
+
+    .link-text h3 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 14px;
+      color: var(--cyan);
+      margin-bottom: 3px;
+      letter-spacing: 2px;
+    }
+
+    .link-text p {
+      font-size: 12px;
+      color: rgba(255,255,255,0.5);
+    }
+
+    .link-arrow {
+      margin-left: auto;
+      font-size: 20px;
+      color: var(--purple);
+      transition: transform 0.3s ease;
+    }
+
+    .link-card:hover .link-arrow {
+      transform: translateX(5px);
+      color: var(--cyan);
+    }
+
+    /* Posts Section */
+    .posts-section {
+      margin-bottom: 40px;
+    }
+
+    .post-card {
+      background: var(--panel);
+      border: 2px solid rgba(191,0,255,0.3);
+      padding: 25px;
+      margin-bottom: 15px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      text-decoration: none;
+      display: block;
+    }
+
+    .post-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: linear-gradient(180deg, var(--purple), var(--cyan));
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .post-card:hover {
+      border-color: var(--purple);
+      transform: translateX(10px);
+      box-shadow: 0 0 30px rgba(191,0,255,0.2);
+    }
+
+    .post-card:hover::before {
+      opacity: 1;
+    }
+
+    .post-meta {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      margin-bottom: 10px;
+    }
+
+    .post-date {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 12px;
+      color: var(--cyan);
+    }
+
+    .post-tags {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .post-tag {
+      font-size: 10px;
+      color: var(--purple);
+      background: rgba(191,0,255,0.1);
+      padding: 3px 8px;
+      border: 1px solid rgba(191,0,255,0.3);
+    }
+
+    .post-card h3 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 18px;
+      color: #fff;
+      margin-bottom: 10px;
+      line-height: 1.4;
+    }
+
+    .post-card > p {
+      font-size: 14px;
+      color: rgba(255,255,255,0.6);
+      line-height: 1.7;
+    }
+
+    .post-read-more {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 15px;
+      color: var(--cyan);
+      font-size: 12px;
+      letter-spacing: 2px;
+    }
+
+    /* Full Post View */
+    .post-view {
+      background: var(--panel);
+      border: 3px solid transparent;
+      border-image: linear-gradient(135deg, var(--purple), var(--cyan)) 1;
+      padding: 50px;
+      position: relative;
+      display: none;
+    }
+
+    .post-view.active {
+      display: block;
+    }
+
+    .post-view::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 6px;
+      background: 
+        repeating-linear-gradient(-55deg, var(--purple) 0px, var(--purple) 5px, transparent 5px, transparent 10px),
+        repeating-linear-gradient(55deg, var(--cyan) 0px, var(--cyan) 4px, transparent 4px, transparent 12px),
+        linear-gradient(90deg, var(--purple), var(--cyan), var(--purple));
+    }
+
+    .post-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--cyan);
+      font-size: 14px;
+      cursor: pointer;
+      margin-bottom: 30px;
+      transition: all 0.2s ease;
+      background: none;
+      border: none;
+      font-family: 'Share Tech Mono', monospace;
+    }
+
+    .post-back:hover {
+      color: var(--purple);
+      transform: translateX(-5px);
+    }
+
+    .post-view-meta {
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid rgba(191,0,255,0.3);
+    }
+
+    .post-view-date {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 14px;
+      color: var(--cyan);
+      margin-bottom: 10px;
+    }
+
+    .post-view-tags {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    /* Markdown Content Styles */
+    .post-content {
+      font-family: 'Space Mono', monospace;
+      font-size: 15px;
+      line-height: 2;
+      color: rgba(255,255,255,0.85);
+    }
+
+    .post-content h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 32px;
+      color: var(--cyan);
+      text-shadow: 0 0 30px var(--cyan);
+      margin-bottom: 30px;
+      line-height: 1.3;
+    }
+
+    .post-content h2 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 20px;
+      color: var(--purple);
+      margin: 40px 0 20px;
+      padding-left: 15px;
+      border-left: 4px solid var(--purple);
+    }
+
+    .post-content h3 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 16px;
+      color: var(--cyan);
+      margin: 30px 0 15px;
+    }
+
+    .post-content p {
+      margin-bottom: 20px;
+    }
+
+    .post-content ul, .post-content ol {
+      margin: 20px 0;
+      padding-left: 30px;
+    }
+
+    .post-content li {
+      margin-bottom: 10px;
+      color: var(--cyan);
+    }
+
+    .post-content em {
+      font-style: italic;
+      color: rgba(255,255,255,0.6);
+    }
+
+    .post-content strong {
+      color: var(--cyan);
+      text-shadow: 0 0 10px var(--cyan);
+    }
+
+    .post-content blockquote {
+      border-left: 4px solid var(--purple);
+      padding-left: 20px;
+      margin: 30px 0;
+      color: rgba(255,255,255,0.7);
+      font-style: italic;
+    }
+
+    .post-content code {
+      background: rgba(0,0,0,0.5);
+      padding: 2px 8px;
+      color: var(--green);
+      font-family: 'VT323', monospace;
+      font-size: 16px;
+    }
+
+    .post-content pre {
+      background: rgba(0,0,0,0.5);
+      border: 1px solid rgba(191,0,255,0.3);
+      padding: 20px;
+      margin: 30px 0;
+      overflow-x: auto;
+    }
+
+    .post-content pre code {
+      background: none;
+      padding: 0;
+      display: block;
+      line-height: 1.6;
+    }
+
+    .post-content hr {
+      border: none;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--purple), var(--cyan), var(--purple), transparent);
+      margin: 40px 0;
+    }
+
+    .post-content a {
+      color: var(--cyan);
+      text-decoration: none;
+      border-bottom: 1px solid var(--purple);
+      transition: all 0.2s ease;
+    }
+
+    .post-content a:hover {
+      color: var(--purple);
+      border-color: var(--cyan);
+      text-shadow: 0 0 10px var(--purple);
+    }
+
+    .post-content img {
+      max-width: 100%;
+      border: 2px solid var(--purple);
+      margin: 20px 0;
+    }
+
+    /* Footer */
+    .footer {
+      text-align: center;
+      padding: 40px 20px;
+      border-top: 1px solid rgba(191,0,255,0.2);
+    }
+
+    .footer p {
+      font-size: 12px;
+      color: rgba(255,255,255,0.3);
+    }
+
+    .footer-seed {
+      font-family: 'Orbitron', sans-serif;
+      color: var(--purple);
+    }
+
+    /* Index view */
+    .index-view {
+      display: block;
+    }
+
+    .index-view.hidden {
+      display: none;
+    }
+
+    /* Loading state */
+    .loading {
+      text-align: center;
+      padding: 60px;
+      color: var(--cyan);
+      font-family: 'Orbitron', sans-serif;
+    }
+
+    .loading::after {
+      content: '...';
+      animation: loadingDots 1.5s infinite;
+    }
+
+    @keyframes loadingDots {
+      0%, 20% { content: '.'; }
+      40% { content: '..'; }
+      60%, 100% { content: '...'; }
+    }
+
+    /* Error state */
+    .error {
+      color: var(--pink);
+      padding: 20px;
+      border: 1px solid var(--pink);
+      background: rgba(255,0,153,0.1);
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .header-stats { display: none; }
+      .author-header { flex-direction: column; text-align: center; }
+      .post-view { padding: 30px 20px; }
+      .links-grid { grid-template-columns: 1fr; }
+      .post-content { font-size: 14px; }
+      .post-content h1 { font-size: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Binary Rain Container -->
+  <div class="binary-rain" id="binary-rain"></div>
+  
+  <!-- Network Canvas -->
+  <canvas id="network-canvas"></canvas>
+
+  <!-- Header -->
+  <header class="header-bar">
+    <div class="header-texture"></div>
+    <div class="header-noise"></div>
+    <div class="header-shimmer"></div>
+    <a href="#" class="header-brand" id="header-brand" onclick="showIndex(); return false;">LOADING</a>
+    <div class="header-stats">
+      <div class="header-stat">
+        <div class="header-stat-value" id="node-count">2847</div>
+        <div class="header-stat-label">NETWORK NODES</div>
+      </div>
+      <div class="header-stat">
+        <div class="header-stat-value" id="signal-strength">97.3%</div>
+        <div class="header-stat-label">SIGNAL</div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Index View -->
+    <div class="index-view" id="index-view">
+      <!-- Author Card -->
+      <section class="author-card">
+        <div class="author-header">
+          <div class="author-avatar">
+            <span id="author-avatar">◬</span>
+          </div>
+          <div class="author-info">
+            <h1 id="author-name">Loading...</h1>
+            <div class="author-handle" id="author-handle">@...</div>
+            <div class="author-tagline" id="author-tagline">...</div>
+          </div>
+        </div>
+        <div class="author-bio" id="author-bio">
+          <p>Loading signal...</p>
+        </div>
+      </section>
+
+      <!-- Links -->
+      <section class="links-section">
+        <div class="section-header">
+          <h2>// NODES</h2>
+          <div class="section-line"></div>
+        </div>
+        <div class="links-grid" id="links-grid">
+          <!-- Links loaded from config.json -->
+        </div>
+      </section>
+
+      <!-- Posts -->
+      <section class="posts-section">
+        <div class="section-header">
+          <h2>// TRANSMISSIONS</h2>
+          <div class="section-line"></div>
+        </div>
+        <div id="posts-list">
+          <!-- Posts loaded from content/posts.md -->
+        </div>
+      </section>
+    </div>
+
+    <!-- Post View -->
+    <article class="post-view" id="post-view">
+      <button class="post-back" onclick="showIndex()">← RETURN TO INDEX</button>
+      <div class="post-view-meta">
+        <div class="post-view-date" id="post-view-date"></div>
+        <div class="post-view-tags" id="post-view-tags"></div>
+      </div>
+      <div class="post-content" id="post-content">
+        <!-- Markdown content loaded here -->
+      </div>
+    </article>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <p>
+        node active since 2019 ;; 
+        distributed under creative commons ;; 
+        seed: <span class="footer-seed" id="seed-display">0</span>
+      </p>
+    </footer>
+  </main>
+
+  <script>
+    // ═══════════════════════════════════════════════════════════════
+    // AUTHOR-NODE v2 // DYNAMIC CONTENT LOADING
+    // ═══════════════════════════════════════════════════════════════
+    // 
+    // FILES TO EDIT:
+    //   config.json        → author info, links
+    //   content/bio.md     → author bio (markdown)
+    //   content/posts.md   → posts index with metadata
+    //   posts/*.md         → individual post content
+    //
+    // ═══════════════════════════════════════════════════════════════
+
+    // Global state
+    let CONFIG = null;
+    let POSTS = [];
+    const SEED = Date.now();
+    let rngState = SEED;
+
+    // Seeded PRNG - Mulberry32
+    function seededRandom() {
+      rngState |= 0;
+      rngState = rngState + 0x6D2B79F5 | 0;
+      let t = Math.imul(rngState ^ rngState >>> 15, 1 | rngState);
+      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // INITIALIZATION
+    // ═══════════════════════════════════════════════════════════════
+    
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Display seed
+      document.getElementById('seed-display').textContent = SEED;
+      
+      // Initialize visual effects first (they don't need content)
+      initBinaryRain();
+      initNetworkCanvas();
+      initGlitchEffect();
+      initStatsAnimation();
+
+      try {
+        // Load config.json
+        await loadConfig();
+        
+        // Load author info
+        loadAuthorInfo();
+        
+        // Load links
+        loadLinks();
+        
+        // Load bio from markdown
+        await loadBio();
+        
+        // Load posts index
+        await loadPostsIndex();
+        
+        // Check URL hash for direct post link
+        handleHashChange();
+        window.addEventListener('hashchange', handleHashChange);
+
+      } catch (error) {
+        console.error('Failed to initialize:', error);
+        document.getElementById('author-bio').innerHTML = 
+          `<p class="error">ERROR: Failed to load configuration. Check console.</p>`;
+      }
+    });
+
+    // ═══════════════════════════════════════════════════════════════
+    // CONTENT LOADING
+    // ═══════════════════════════════════════════════════════════════
+    
+    async function loadConfig() {
+      const response = await fetch('config.json');
+      if (!response.ok) throw new Error('Failed to load config.json');
+      CONFIG = await response.json();
+    }
+
+    function loadAuthorInfo() {
+      const { author } = CONFIG;
+      document.getElementById('header-brand').textContent = author.handle;
+      document.getElementById('author-name').textContent = author.name;
+      document.getElementById('author-handle').textContent = '@' + author.handle;
+      document.getElementById('author-tagline').textContent = author.tagline;
+      document.getElementById('author-avatar').textContent = author.avatar;
+      document.title = `${author.handle} // Network Node`;
+
+      // Load avatar image if specified
+      if (author.avatar_image) {
+        const avatarContainer = document.querySelector('.author-avatar');
+        const img = document.createElement('img');
+        img.src = author.avatar_image;
+        img.alt = author.name;
+        img.onload = () => {
+          avatarContainer.classList.add('has-image');
+          avatarContainer.appendChild(img);
+        };
+        img.onerror = () => {
+          // Fall back to text avatar if image fails to load
+          console.warn('Avatar image failed to load, using text fallback');
+        };
+      }
+    }
+
+    async function loadBio() {
+      const bioFile = CONFIG.author.bio_file;
+      try {
+        const response = await fetch(bioFile);
+        if (!response.ok) throw new Error('Failed to load bio');
+        const markdown = await response.text();
+        document.getElementById('author-bio').innerHTML = marked.parse(markdown);
+      } catch (error) {
+        console.error('Error loading bio:', error);
+        document.getElementById('author-bio').innerHTML = '<p>Bio not found.</p>';
+      }
+    }
+
+    function loadLinks() {
+      const grid = document.getElementById('links-grid');
+      grid.innerHTML = CONFIG.links.map(link => `
+        <a href="${link.url}" class="link-card" target="${link.url.startsWith('http') ? '_blank' : '_self'}" rel="noopener">
+          <div class="link-card-inner">
+            <span class="link-icon">${link.icon}</span>
+            <div class="link-text">
+              <h3>${link.label}</h3>
+              <p>${link.desc}</p>
+            </div>
+            <span class="link-arrow">→</span>
+          </div>
+        </a>
+      `).join('');
+    }
+
+    async function loadPostsIndex() {
+      const postsFile = CONFIG.posts_index;
+      try {
+        const response = await fetch(postsFile);
+        if (!response.ok) throw new Error('Failed to load posts index');
+        const markdown = await response.text();
+        
+        // Parse the posts.md format
+        POSTS = parsePostsMarkdown(markdown);
+        
+        // Render posts list
+        renderPostsList();
+        
+      } catch (error) {
+        console.error('Error loading posts index:', error);
+        document.getElementById('posts-list').innerHTML = 
+          '<p class="error">ERROR: Failed to load transmissions index.</p>';
+      }
+    }
+
+    function parsePostsMarkdown(markdown) {
+      const posts = [];
+      const sections = markdown.split(/^## /m).slice(1); // Split by ## headers
+      
+      for (const section of sections) {
+        const lines = section.trim().split('\n');
+        const slug = lines[0].trim();
+        
+        const post = { slug };
+        let excerptLines = [];
+        let inMeta = true;
+        
+        for (let i = 1; i < lines.length; i++) {
+          const line = lines[i];
+          
+          // Parse metadata lines (- key: value)
+          if (line.startsWith('- ') && inMeta) {
+            const match = line.match(/^- (\w+):\s*(.+)$/);
+            if (match) {
+              const [, key, value] = match;
+              if (key === 'tags') {
+                post.tags = value.split(',').map(t => t.trim());
+              } else {
+                post[key] = value;
+              }
+            }
+          } else if (line.trim() !== '') {
+            inMeta = false;
+            excerptLines.push(line);
+          }
+        }
+        
+        post.excerpt = excerptLines.join(' ').trim();
+        posts.push(post);
+      }
+      
+      return posts;
+    }
+
+    function renderPostsList() {
+      const list = document.getElementById('posts-list');
+      list.innerHTML = POSTS.map(post => `
+        <a href="#post/${post.slug}" class="post-card" onclick="loadPost('${post.slug}'); return false;">
+          <div class="post-meta">
+            <span class="post-date">${post.date || ''}</span>
+            <div class="post-tags">
+              ${(post.tags || []).map(tag => `<span class="post-tag">#${tag}</span>`).join('')}
+            </div>
+          </div>
+          <h3>${post.title || post.slug}</h3>
+          <p>${post.excerpt || ''}</p>
+          <span class="post-read-more">CONTINUE SIGNAL →</span>
+        </a>
+      `).join('');
+    }
+
+    async function loadPost(slug) {
+      const post = POSTS.find(p => p.slug === slug);
+      if (!post) {
+        console.error('Post not found:', slug);
+        return;
+      }
+
+      // Update URL hash
+      window.location.hash = `post/${slug}`;
+
+      // Show post view
+      document.getElementById('index-view').classList.add('hidden');
+      const postView = document.getElementById('post-view');
+      postView.classList.add('active');
+
+      // Set meta
+      document.getElementById('post-view-date').textContent = post.date || '';
+      document.getElementById('post-view-tags').innerHTML = 
+        (post.tags || []).map(tag => `<span class="post-tag">#${tag}</span>`).join('');
+
+      // Load and render markdown
+      const content = document.getElementById('post-content');
+      content.innerHTML = '<div class="loading">LOADING SIGNAL</div>';
+
+      try {
+        const response = await fetch(post.file);
+        if (!response.ok) throw new Error('Failed to load post');
+        const markdown = await response.text();
+        content.innerHTML = marked.parse(markdown);
+      } catch (error) {
+        console.error('Error loading post:', error);
+        content.innerHTML = `<p class="error">ERROR: Failed to load transmission. Signal corrupted.</p>`;
+      }
+
+      // Scroll to top
+      window.scrollTo(0, 0);
+    }
+
+    function showIndex() {
+      window.location.hash = '';
+      document.getElementById('index-view').classList.remove('hidden');
+      document.getElementById('post-view').classList.remove('active');
+      window.scrollTo(0, 0);
+    }
+
+    function handleHashChange() {
+      const hash = window.location.hash;
+      if (hash.startsWith('#post/')) {
+        const slug = hash.replace('#post/', '');
+        loadPost(slug);
+      } else {
+        showIndex();
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // VISUAL EFFECTS
+    // ═══════════════════════════════════════════════════════════════
+    
+    function initBinaryRain() {
+      const container = document.getElementById('binary-rain');
+      const columns = 20;
+      
+      for (let i = 0; i < columns; i++) {
+        const col = document.createElement('div');
+        col.className = 'binary-col';
+        col.style.left = `${i * 5}%`;
+        col.style.animationDelay = `${seededRandom() * 8}s`;
+        col.style.animationDuration = `${12 + seededRandom() * 8}s`;
+        
+        let binary = '';
+        for (let j = 0; j < 30; j++) {
+          binary += `<span style="opacity:${0.1 + seededRandom() * 0.2}">${seededRandom() > 0.5 ? '1' : '0'}</span>`;
+        }
+        col.innerHTML = binary;
+        container.appendChild(col);
+      }
+    }
+
+    function initNetworkCanvas() {
+      const canvas = document.getElementById('network-canvas');
+      const ctx = canvas.getContext('2d');
+      
+      function resize() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+      }
+      resize();
+      window.addEventListener('resize', resize);
+
+      const nodes = Array(20).fill(0).map(() => ({
+        x: seededRandom() * canvas.width,
+        y: seededRandom() * canvas.height,
+        vx: (seededRandom() - 0.5) * 0.5,
+        vy: (seededRandom() - 0.5) * 0.5,
+        size: 2 + seededRandom() * 4
+      }));
+
+      let time = 0;
+
+      function draw() {
+        ctx.fillStyle = 'rgba(5, 5, 10, 0.1)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        nodes.forEach((node, i) => {
+          node.x += node.vx;
+          node.y += node.vy;
+          
+          if (node.x < 0 || node.x > canvas.width) node.vx *= -1;
+          if (node.y < 0 || node.y > canvas.height) node.vy *= -1;
+
+          // Connections
+          nodes.forEach((other, j) => {
+            if (i >= j) return;
+            const dist = Math.hypot(node.x - other.x, node.y - other.y);
+            if (dist < 100) {
+              ctx.strokeStyle = `rgba(191, 0, 255, ${0.3 * (1 - dist/100)})`;
+              ctx.beginPath();
+              ctx.moveTo(node.x, node.y);
+              ctx.lineTo(other.x, other.y);
+              ctx.stroke();
+            }
+          });
+
+          // Node
+          ctx.fillStyle = time % 100 < 50 ? '#00ffff' : '#bf00ff';
+          ctx.beginPath();
+          ctx.arc(node.x, node.y, node.size, 0, Math.PI * 2);
+          ctx.fill();
+        });
+
+        time++;
+        requestAnimationFrame(draw);
+      }
+
+      draw();
+    }
+
+    function initGlitchEffect() {
+      setInterval(() => {
+        if (seededRandom() > 0.8) {
+          document.body.classList.add('glitch');
+          setTimeout(() => document.body.classList.remove('glitch'), 100);
+        }
+      }, 3000);
+    }
+
+    function initStatsAnimation() {
+      let nodeCount = 2847;
+      let signalStrength = 97.3;
+
+      setInterval(() => {
+        nodeCount += Math.floor(seededRandom() * 10) - 3;
+        signalStrength = Math.min(99.9, Math.max(90, signalStrength + (seededRandom() - 0.5) * 2));
+        
+        document.getElementById('node-count').textContent = nodeCount;
+        document.getElementById('signal-strength').textContent = signalStrength.toFixed(1) + '%';
+      }, 2000);
+    }
+  </script>
+</body>
+</html>
