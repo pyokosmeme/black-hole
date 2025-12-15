@@ -20,6 +20,9 @@
   
   <!-- Marked.js for Markdown parsing -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <!-- Black hole lens effect -->
+  <script src="effects/blackhole.js"></script>
   
   <style>
     /* ═══════════════════════════════════════════════════════════════
@@ -61,11 +64,42 @@
       inset: 0;
       width: 100%;
       height: 100%;
-      z-index: 0;
+      z-index: 3;
       pointer-events: none;
       filter: saturate(1.25) contrast(1.05);
       mix-blend-mode: screen;
-      background: radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 0.8) 0%, rgba(5, 5, 10, 0.2) 35%, transparent 60%);
+      opacity: 0.25;
+      transition: opacity 0.6s ease;
+    }
+
+    #blackhole-canvas.background-mode {
+      position: fixed;
+      inset: 0;
+    }
+
+    #blackhole-canvas.hero-portal {
+      position: absolute;
+      top: 80px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(1100px, 90vw);
+      height: 70vh;
+      border-radius: 50%;
+      box-shadow: 0 0 50px rgba(0, 255, 255, 0.2), 0 0 90px rgba(191, 0, 255, 0.15);
+      overflow: hidden;
+      z-index: 4;
+      mask-image: radial-gradient(ellipse at center, black 55%, transparent 100%);
+      -webkit-mask-image: radial-gradient(ellipse at center, black 55%, transparent 100%);
+    }
+
+    #blackhole-canvas.blackhole-fallback {
+      background: radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.85) 0%, rgba(5, 5, 10, 0.6) 30%, transparent 60%),
+        radial-gradient(circle at 50% 50%, rgba(0, 255, 255, 0.12) 0%, rgba(191, 0, 255, 0.08) 45%, transparent 65%);
+      mix-blend-mode: screen;
+    }
+
+    #blackhole-canvas.blackhole-hidden {
+      display: none;
     }
 
     /* Scanlines */
@@ -927,7 +961,6 @@
     let POSTS = [];
     const SEED = Date.now();
     let rngState = SEED;
-    let blackHoleInitialized = false;
 
     // Seeded PRNG - Mulberry32
     function seededRandom() {
@@ -989,7 +1022,7 @@
       if (!response.ok) throw new Error('Failed to load config.json');
       CONFIG = await response.json();
 
-      const blackHoleOptions = CONFIG.blackhole || {};
+      const blackHoleOptions = (CONFIG.effects && CONFIG.effects.blackhole) || CONFIG.blackhole || {};
       initBlackHole(blackHoleOptions, blackHoleOptions.prompt);
     }
 
@@ -1182,315 +1215,6 @@
     // ═══════════════════════════════════════════════════════════════
     // VISUAL EFFECTS
     // ═══════════════════════════════════════════════════════════════
-
-    function withAlpha(hex, alpha) {
-      if (!hex) return `rgba(255, 255, 255, ${alpha})`;
-      const raw = hex.replace('#', '');
-      const normalized = raw.length === 3
-        ? raw.split('').map(char => char + char).join('')
-        : raw;
-      const r = parseInt(normalized.substring(0, 2), 16) || 255;
-      const g = parseInt(normalized.substring(2, 4), 16) || 255;
-      const b = parseInt(normalized.substring(4, 6), 16) || 255;
-      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-    }
-
-    function initBlackHole(options = {}, promptMessage) {
-      const canvas = document.getElementById('blackhole-canvas');
-      if (!canvas || blackHoleInitialized || !window.THREE) return;
-
-      blackHoleInitialized = true;
-
-      if (promptMessage) {
-        console.info('Black hole prompt:', promptMessage);
-      }
-
-      const simOptions = {
-        quality: options.quality || 'medium',
-        timeScale: options.baseSpeed ? options.baseSpeed * 120 : 1,
-        orbitalInclination: options.orbitalInclination ?? -15,
-        distance: options.distance || 11,
-        showPlanet: options.showPlanet ?? false
-      };
-
-      class Observer {
-        constructor() {
-          this.position = new THREE.Vector3(10, 0, 0);
-          this.velocity = new THREE.Vector3(0, 1, 0);
-          this.orientation = new THREE.Matrix3();
-          this.time = 0;
-        }
-
-        orbitalFrame() {
-          const orbitalY = new THREE.Vector3()
-            .subVectors(
-              this.velocity.clone().normalize().multiplyScalar(4),
-              this.position
-            )
-            .normalize();
-
-          const orbitalZ = new THREE.Vector3().crossVectors(this.position, orbitalY).normalize();
-          const orbitalX = new THREE.Vector3().crossVectors(orbitalY, orbitalZ);
-
-          return new THREE.Matrix4().makeBasis(orbitalX, orbitalY, orbitalZ).linearPart();
-        }
-
-        move(dt, params) {
-          const scaledDt = dt * params.time_scale;
-          let r;
-          let v = 0;
-
-          if (params.observer.motion) {
-            r = params.observer.distance;
-            v = 1 / Math.sqrt(2 * (r - 1));
-            const angVel = v / r;
-            const angle = this.time * angVel;
-            const s = Math.sin(angle);
-            const c = Math.cos(angle);
-            this.position.set(c * r, s * r, 0);
-            this.velocity.set(-s * v, c * v, 0);
-
-            const alpha = THREE.MathUtils.degToRad(params.observer.orbital_inclination);
-            const orbitCoords = new THREE.Matrix4().makeRotationY(alpha);
-            this.position.applyMatrix4(orbitCoords);
-            this.velocity.applyMatrix4(orbitCoords);
-          } else {
-            r = this.position.length();
-          }
-
-          let dtToUse = scaledDt;
-          if (params.gravitational_time_dilation) {
-            dtToUse = Math.sqrt((dtToUse * dtToUse * (1 - v * v)) / (1 - 1 / r));
-          }
-
-          this.time += dtToUse;
-        }
-      }
-
-      class Shader {
-        constructor(template) {
-          this.parameters = {
-            n_steps: simOptions.quality === 'high' ? 200 : simOptions.quality === 'fast' ? 40 : 120,
-            quality: simOptions.quality,
-            accretion_disk: true,
-            planet: {
-              enabled: simOptions.showPlanet,
-              distance: 7.0,
-              radius: 0.4
-            },
-            lorentz_contraction: true,
-            gravitational_time_dilation: true,
-            aberration: true,
-            beaming: true,
-            doppler_shift: true,
-            light_travel_time: true,
-            time_scale: simOptions.timeScale,
-            observer: {
-              motion: true,
-              distance: simOptions.distance,
-              orbital_inclination: simOptions.orbitalInclination
-            },
-            planetEnabled() {
-              return this.planet.enabled && this.quality !== 'fast';
-            },
-            observerMotion() {
-              return this.observer.motion;
-            }
-          };
-          this.template = template;
-          this.needsUpdate = false;
-        }
-
-        hasMovingParts() {
-          return this.parameters.observer.motion || this.parameters.planet.enabled;
-        }
-
-        compile() {
-          return Mustache.render(this.template, this.parameters);
-        }
-      }
-
-      const observer = new Observer();
-      let shader = null;
-      let scene;
-      let renderer;
-      let camera;
-      let uniforms;
-      let lastCameraMat = new THREE.Matrix4().identity();
-      let lastTimestamp = performance.now();
-
-      function getFrameDuration() {
-        const now = performance.now();
-        const diff = (now - lastTimestamp) / 1000;
-        lastTimestamp = now;
-        return diff;
-      }
-
-      function updateCamera() {
-        const m = camera.matrixWorldInverse.elements;
-        const cameraMatrix = new THREE.Matrix3();
-
-        cameraMatrix.set(
-          m[0], m[1], m[2],
-          m[8], m[9], m[10],
-          m[4], m[5], m[6]
-        );
-
-        if (shader.parameters.observer.motion) {
-          observer.orientation = observer.orbitalFrame().multiply(cameraMatrix);
-        } else {
-          const p = new THREE.Vector3(
-            cameraMatrix.elements[6],
-            cameraMatrix.elements[7],
-            cameraMatrix.elements[8]
-          );
-          observer.position.set(
-            -p.x * shader.parameters.observer.distance,
-            -p.y * shader.parameters.observer.distance,
-            -p.z * shader.parameters.observer.distance
-          );
-          observer.velocity.set(0, 0, 0);
-          observer.orientation = cameraMatrix;
-        }
-      }
-
-      function updateUniforms() {
-        uniforms.planet_distance.value = shader.parameters.planet.distance;
-        uniforms.planet_radius.value = shader.parameters.planet.radius;
-        uniforms.resolution.value.x = renderer.domElement.width;
-        uniforms.resolution.value.y = renderer.domElement.height;
-        uniforms.time.value = observer.time;
-        uniforms.cam_pos.value = observer.position;
-
-        const e = observer.orientation.elements;
-        uniforms.cam_x.value.set(e[0], e[1], e[2]);
-        uniforms.cam_y.value.set(e[3], e[4], e[5]);
-        uniforms.cam_z.value.set(e[6], e[7], e[8]);
-        uniforms.cam_vel.value.set(observer.velocity.x, observer.velocity.y, observer.velocity.z);
-      }
-
-      function onWindowResize() {
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        updateUniforms();
-      }
-
-      function animate() {
-        requestAnimationFrame(animate);
-        camera.updateMatrixWorld();
-        camera.matrixWorldInverse.copy(camera.matrixWorld).invert();
-
-        if (
-          shader.needsUpdate ||
-          shader.hasMovingParts() ||
-          lastCameraMat.clone().sub(camera.matrixWorldInverse).toArray().some(Math.abs)
-        ) {
-          shader.needsUpdate = false;
-          renderFrame();
-          lastCameraMat = camera.matrixWorldInverse.clone();
-        }
-      }
-
-      function renderFrame() {
-        observer.move(getFrameDuration(), shader.parameters);
-        if (shader.parameters.observer.motion) updateCamera();
-        updateUniforms();
-        renderer.render(scene, camera);
-      }
-
-      function initializeCamera() {
-        const pitchAngle = 3.0;
-        const yawAngle = 0.0;
-        camera.matrixWorldInverse.makeRotationX(THREE.MathUtils.degToRad(-pitchAngle));
-        camera.matrixWorldInverse.multiply(new THREE.Matrix4().makeRotationY(THREE.MathUtils.degToRad(-yawAngle)));
-        const m = camera.matrixWorldInverse.elements;
-        camera.position.set(m[2], m[6], m[10]);
-      }
-
-      function buildScene(shaderTemplate, textures) {
-        scene = new THREE.Scene();
-        const geometry = new THREE.PlaneBufferGeometry(2, 2);
-        uniforms = {
-          time: { type: 'f', value: 0 },
-          resolution: { type: 'v2', value: new THREE.Vector2() },
-          cam_pos: { type: 'v3', value: new THREE.Vector3() },
-          cam_x: { type: 'v3', value: new THREE.Vector3() },
-          cam_y: { type: 'v3', value: new THREE.Vector3() },
-          cam_z: { type: 'v3', value: new THREE.Vector3() },
-          cam_vel: { type: 'v3', value: new THREE.Vector3() },
-          planet_distance: { type: 'f' },
-          planet_radius: { type: 'f' },
-          star_texture: { type: 't', value: textures.stars },
-          accretion_disk_texture: { type: 't', value: textures.accretion_disk },
-          galaxy_texture: { type: 't', value: textures.galaxy },
-          planet_texture: { type: 't', value: textures.moon },
-          spectrum_texture: { type: 't', value: textures.spectra }
-        };
-
-        shader = new Shader(shaderTemplate);
-        const material = new THREE.ShaderMaterial({
-          uniforms,
-          vertexShader: document.getElementById('bh-vertex-shader').textContent,
-          fragmentShader: shader.compile(),
-          depthWrite: false
-        });
-
-        const mesh = new THREE.Mesh(geometry, material);
-        scene.add(mesh);
-
-        renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
-        renderer.setSize(window.innerWidth, window.innerHeight);
-
-        camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 80000);
-        initializeCamera();
-        updateCamera();
-        updateUniforms();
-        animate();
-        window.addEventListener('resize', onWindowResize);
-      }
-
-      function loadTextures() {
-        const texLoader = new THREE.TextureLoader();
-        const manifest = {
-          galaxy: { path: '../img/milkyway.jpg', filter: THREE.NearestFilter },
-          spectra: { path: '../img/spectra.png', filter: THREE.LinearFilter },
-          moon: { path: '../img/beach-ball.png', filter: THREE.LinearFilter },
-          stars: { path: '../img/stars.png', filter: THREE.LinearFilter },
-          accretion_disk: { path: '../img/accretion-disk.png', filter: THREE.LinearFilter }
-        };
-
-        return Promise.all(
-          Object.entries(manifest).map(([key, { path, filter }]) => (
-            new Promise((resolve, reject) => {
-              texLoader.load(
-                path,
-                (tex) => {
-                  tex.magFilter = filter;
-                  tex.minFilter = filter;
-                  resolve([key, tex]);
-                },
-                undefined,
-                reject
-              );
-            })
-          ))
-        ).then((entries) => Object.fromEntries(entries));
-      }
-
-      async function bootstrap() {
-        try {
-          const shaderTemplate = await fetch('../raytracer.glsl').then((r) => r.text());
-          const textures = await loadTextures();
-          buildScene(shaderTemplate, textures);
-        } catch (err) {
-          console.error('Failed to start black hole renderer', err);
-        }
-      }
-
-      bootstrap();
-    }
 
     function initBinaryRain() {
       const container = document.getElementById('binary-rain');

@@ -8,15 +8,17 @@
     "bio_file": "content/bio.md"
   },
 
-  "blackhole": {
-    "prompt": "Render a neon, acid-burn styled black hole with a vivid accretion disk, particle sparks, and gravitational lensing shimmer—no planets or orbiting bodies—keeping the palette in cyan, magenta, and electric green.",
-    "particleCount": 1200,
-    "baseSpeed": 0.0085,
-    "swirlStrength": 0.18,
-    "accretionColor": "#ff00ff",
-    "horizonColor": "#00ffff",
-    "backgroundFade": 0.08,
-    "sparkChance": 0.006
+  "effects": {
+    "blackhole": {
+      "enabled": true,
+      "mode": "background",
+      "opacity": 0.28,
+      "quality": 0.85,
+      "center": [0.52, 0.42],
+      "rs": 0.95,
+      "disk": false,
+      "animate": true
+    }
   },
   
   "links": [
