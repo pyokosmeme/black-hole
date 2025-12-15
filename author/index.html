@@ -50,6 +50,20 @@
       position: relative;
     }
 
+    #blackhole-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(ellipse at 50% 50%, rgba(0, 0, 0, 0.8) 0%, rgba(5, 5, 10, 0.3) 40%, transparent 70%),
+        radial-gradient(ellipse at 20% 20%, rgba(191, 0, 255, 0.08) 0%, transparent 45%),
+        radial-gradient(ellipse at 80% 80%, rgba(0, 255, 255, 0.08) 0%, transparent 45%);
+      filter: saturate(1.2);
+    }
+
     /* Scanlines */
     body::after {
       content: '';
@@ -88,7 +102,7 @@
       inset: 0;
       overflow: hidden;
       pointer-events: none;
-      z-index: 0;
+      z-index: 1;
     }
 
     .binary-col {
@@ -112,8 +126,13 @@
       left: 0;
       width: 100%;
       height: 100%;
-      z-index: 1;
+      z-index: 2;
       opacity: 0.4;
+    }
+
+    .main-content {
+      position: relative;
+      z-index: 5;
     }
 
     /* ═══════════════════════════════════════════════════════════
@@ -786,9 +805,12 @@
   </style>
 </head>
 <body>
+  <!-- Black Hole Simulation -->
+  <canvas id="blackhole-canvas"></canvas>
+
   <!-- Binary Rain Container -->
   <div class="binary-rain" id="binary-rain"></div>
-  
+
   <!-- Network Canvas -->
   <canvas id="network-canvas"></canvas>
 
@@ -894,6 +916,7 @@
     let POSTS = [];
     const SEED = Date.now();
     let rngState = SEED;
+    let blackHoleInitialized = false;
 
     // Seeded PRNG - Mulberry32
     function seededRandom() {
@@ -940,7 +963,8 @@
 
       } catch (error) {
         console.error('Failed to initialize:', error);
-        document.getElementById('author-bio').innerHTML = 
+        initBlackHole({}, null);
+        document.getElementById('author-bio').innerHTML =
           `<p class="error">ERROR: Failed to load configuration. Check console.</p>`;
       }
     });
@@ -953,6 +977,9 @@
       const response = await fetch('config.json');
       if (!response.ok) throw new Error('Failed to load config.json');
       CONFIG = await response.json();
+
+      const blackHoleOptions = CONFIG.blackhole || {};
+      initBlackHole(blackHoleOptions, blackHoleOptions.prompt);
     }
 
     function loadAuthorInfo() {
@@ -1144,7 +1171,137 @@
     // ═══════════════════════════════════════════════════════════════
     // VISUAL EFFECTS
     // ═══════════════════════════════════════════════════════════════
-    
+
+    function withAlpha(hex, alpha) {
+      if (!hex) return `rgba(255, 255, 255, ${alpha})`;
+      const raw = hex.replace('#', '');
+      const normalized = raw.length === 3
+        ? raw.split('').map(char => char + char).join('')
+        : raw;
+      const r = parseInt(normalized.substring(0, 2), 16) || 255;
+      const g = parseInt(normalized.substring(2, 4), 16) || 255;
+      const b = parseInt(normalized.substring(4, 6), 16) || 255;
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    }
+
+    function initBlackHole(options = {}, promptMessage) {
+      const canvas = document.getElementById('blackhole-canvas');
+      if (!canvas || blackHoleInitialized) return;
+
+      blackHoleInitialized = true;
+
+      if (promptMessage) {
+        console.info('Black hole prompt:', promptMessage);
+      }
+
+      const settings = {
+        particleCount: options.particleCount || 900,
+        baseSpeed: options.baseSpeed || 0.006,
+        swirlStrength: options.swirlStrength || 0.14,
+        accretionColor: options.accretionColor || '#ff00ff',
+        horizonColor: options.horizonColor || '#00ffff',
+        backgroundFade: options.backgroundFade ?? 0.1,
+        sparkChance: options.sparkChance ?? 0.004
+      };
+
+      const ctx = canvas.getContext('2d');
+      let width = 0;
+      let height = 0;
+      let centerX = 0;
+      let centerY = 0;
+      let maxRadius = 0;
+
+      const particles = [];
+
+      function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+        centerX = width / 2;
+        centerY = height / 2;
+        maxRadius = Math.min(width, height) * 0.45;
+      }
+
+      function createParticle() {
+        const radius = Math.pow(seededRandom(), 0.7) * maxRadius;
+        const angle = seededRandom() * Math.PI * 2;
+        const speed = settings.baseSpeed * (0.6 + seededRandom() * 1.1);
+        return { radius, angle, speed, noise: seededRandom() * Math.PI * 2 };
+      }
+
+      function populateParticles() {
+        while (particles.length < settings.particleCount) {
+          particles.push(createParticle());
+        }
+      }
+
+      function drawEventHorizon() {
+        const gradient = ctx.createRadialGradient(
+          centerX,
+          centerY,
+          maxRadius * 0.05,
+          centerX,
+          centerY,
+          maxRadius
+        );
+        gradient.addColorStop(0, withAlpha(settings.horizonColor, 0.35));
+        gradient.addColorStop(0.4, withAlpha(settings.horizonColor, 0.1));
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
+      }
+
+      function draw() {
+        ctx.fillStyle = `rgba(5, 5, 10, ${settings.backgroundFade})`;
+        ctx.fillRect(0, 0, width, height);
+
+        drawEventHorizon();
+
+        particles.forEach((particle, i) => {
+          const swirl = 1 + settings.swirlStrength * (1 - (particle.radius / maxRadius));
+          particle.angle += particle.speed * swirl;
+          particle.noise += 0.002;
+          particle.radius -= settings.baseSpeed * (0.8 + seededRandom() * 0.6);
+
+          if (particle.radius < maxRadius * 0.06 || particle.radius > maxRadius) {
+            particles[i] = createParticle();
+            return;
+          }
+
+          const wobble = Math.sin(particle.noise + particle.angle * 2) * maxRadius * 0.002;
+          const radius = particle.radius + wobble;
+          const x = centerX + Math.cos(particle.angle) * radius;
+          const y = centerY + Math.sin(particle.angle) * radius * 0.82;
+          const alpha = 0.25 + (1 - radius / maxRadius) * 0.7;
+
+          ctx.fillStyle = withAlpha(settings.accretionColor, alpha);
+          ctx.beginPath();
+          ctx.arc(x, y, 1.5 + (1 - radius / maxRadius) * 2.4, 0, Math.PI * 2);
+          ctx.fill();
+
+          if (seededRandom() < settings.sparkChance) {
+            const length = 6 + seededRandom() * 12;
+            ctx.strokeStyle = withAlpha(settings.accretionColor, Math.min(1, alpha + 0.2));
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(
+              x - Math.cos(particle.angle) * length,
+              y - Math.sin(particle.angle) * length * 0.82
+            );
+            ctx.stroke();
+          }
+        });
+
+        requestAnimationFrame(draw);
+      }
+
+      resize();
+      populateParticles();
+      window.addEventListener('resize', resize);
+      draw();
+    }
+
     function initBinaryRain() {
       const container = document.getElementById('binary-rain');
       const columns = 20;

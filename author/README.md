@@ -51,7 +51,18 @@ author-node/
     }
   ],
 
-  "posts_index": "content/posts.md"
+  "posts_index": "content/posts.md",
+
+  "blackhole": {
+    "prompt": "a short instruction for the LLM / artist",
+    "particleCount": 900,
+    "baseSpeed": 0.006,
+    "swirlStrength": 0.14,
+    "accretionColor": "#ff00ff",
+    "horizonColor": "#00ffff",
+    "backgroundFade": 0.1,
+    "sparkChance": 0.004
+  }
 }
 ```
 
@@ -165,6 +176,18 @@ Excerpt paragraph shown on index.
 - `## slug` becomes the URL: `yoursite.com/#post/slug`
 - `file:` path is relative to root
 - Excerpt is everything after metadata until next `##`
+
+### ;;; BLACKHOLE SIMULATION (`config.json`)
+
+The `blackhole` block tunes the neon background. Keep values modest for performance:
+
+- `prompt` → guiding text for the LLM/artist producing the effect
+- `particleCount` → total swirling particles in the disk
+- `baseSpeed` → core orbital speed (lower = slower swirl)
+- `swirlStrength` → how tightly the disk coils toward the horizon
+- `accretionColor` / `horizonColor` → primary neon hues
+- `backgroundFade` → trail persistence (higher = more motion blur)
+- `sparkChance` → frequency of streaking sparks
 
 ### ;;; POST CONTENT (`posts/*.md`)
 
