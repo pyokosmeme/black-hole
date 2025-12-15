@@ -55,13 +55,11 @@ author-node/
 
   "blackhole": {
     "prompt": "a short instruction for the LLM / artist",
-    "particleCount": 900,
-    "baseSpeed": 0.006,
-    "swirlStrength": 0.14,
-    "accretionColor": "#ff00ff",
-    "horizonColor": "#00ffff",
-    "backgroundFade": 0.1,
-    "sparkChance": 0.004
+    "quality": "medium",
+    "baseSpeed": 1,
+    "distance": 11,
+    "orbitalInclination": -15,
+    "showPlanet": false
   }
 }
 ```
@@ -179,15 +177,14 @@ Excerpt paragraph shown on index.
 
 ### ;;; BLACKHOLE SIMULATION (`config.json`)
 
-The `blackhole` block tunes the neon background. Keep values modest for performance:
+The `blackhole` block now drives the physically-accurate WebGL raytracer that powers the background:
 
 - `prompt` → guiding text for the LLM/artist producing the effect
-- `particleCount` → total swirling particles in the disk
-- `baseSpeed` → core orbital speed (lower = slower swirl)
-- `swirlStrength` → how tightly the disk coils toward the horizon
-- `accretionColor` / `horizonColor` → primary neon hues
-- `backgroundFade` → trail persistence (higher = more motion blur)
-- `sparkChance` → frequency of streaking sparks
+- `quality` → `fast`, `medium`, or `high` for ray-march step counts
+- `baseSpeed` → multiplier for simulation time (1 = normal orbit speed)
+- `distance` → observer distance from the singularity
+- `orbitalInclination` → tilt of the orbital plane in degrees
+- `showPlanet` → toggle the lensing planet
 
 ### ;;; POST CONTENT (`posts/*.md`)
 
