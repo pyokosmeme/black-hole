@@ -30,45 +30,35 @@
       pink: '#ff0099',
     },
     
-    // Tiger stripes - matching header bar aesthetic
-    stripes: {
-      enabled: true,
-      sets: [
-        { angle: -55, spacing: 40, width: 3, color: 'purple', opacity: 0.15 },
-        { angle: 55, spacing: 50, width: 2, color: 'cyan', opacity: 0.12 },
-        { angle: -35, spacing: 70, width: 2, color: 'magenta', opacity: 0.08 },
-        { angle: 75, spacing: 60, width: 1, color: 'cyan', opacity: 0.1 },
-      ]
-    },
-    
-    // Subtle grid
+    // Grid - original style, color matched
     grid: {
       enabled: true,
-      latLines: 18,
-      lonLines: 36,
-      opacity: 0.15
+      latLines: 24,
+      lonLines: 48,
+      lineWidth: 1,
+      opacity: 0.25
     },
     
-    // Floating nodes (no connections - cleaner)
+    // Floating nodes
     nodes: {
       enabled: true,
-      count: 80,
-      maxSize: 2.5,
-      opacity: 0.6,
-      speed: 0.3
+      count: 60,
+      maxSize: 2,
+      opacity: 0.5,
+      speed: 0.2
     },
     
     // Glow regions
     glows: {
       enabled: true,
-      count: 5
+      count: 4
     },
     
-    // Noise particles
+    // Noise particles (stars)
     noise: {
       enabled: true,
-      count: 300,
-      opacity: 0.4
+      count: 400,
+      opacity: 0.5
     }
   };
 
@@ -179,11 +169,6 @@
       drawGlows();
     }
     
-    // Tiger stripes
-    if (CONFIG.stripes.enabled) {
-      drawStripes();
-    }
-    
     // Grid
     if (CONFIG.grid.enabled) {
       drawGrid();
@@ -243,44 +228,12 @@
     }
   }
   
-  function drawStripes() {
-    const { width, height } = CONFIG;
-    
-    for (const stripe of CONFIG.stripes.sets) {
-      ctx.save();
-      ctx.globalAlpha = stripe.opacity;
-      
-      const color = CONFIG.colors[stripe.color];
-      ctx.strokeStyle = color;
-      ctx.lineWidth = stripe.width;
-      
-      const angleRad = stripe.angle * Math.PI / 180;
-      
-      // Calculate how many lines we need to cover the canvas
-      const diagonal = Math.sqrt(width * width + height * height);
-      const numLines = Math.ceil(diagonal / stripe.spacing) * 2;
-      
-      ctx.translate(width / 2, height / 2);
-      ctx.rotate(angleRad);
-      
-      for (let i = -numLines; i <= numLines; i++) {
-        const offset = i * stripe.spacing;
-        ctx.beginPath();
-        ctx.moveTo(-diagonal, offset);
-        ctx.lineTo(diagonal, offset);
-        ctx.stroke();
-      }
-      
-      ctx.restore();
-    }
-  }
-  
   function drawGrid() {
     const { width, height } = CONFIG;
-    const { latLines, lonLines, opacity } = CONFIG.grid;
+    const { latLines, lonLines, opacity, lineWidth } = CONFIG.grid;
     
     ctx.globalAlpha = opacity;
-    ctx.lineWidth = 1;
+    ctx.lineWidth = lineWidth || 1;
     
     // Latitude lines (cyan)
     ctx.strokeStyle = CONFIG.colors.cyan;
@@ -300,6 +253,17 @@
       ctx.moveTo(x, 0);
       ctx.lineTo(x, height);
       ctx.stroke();
+    }
+    
+    // Accent points at intersections
+    ctx.fillStyle = '#ffffff';
+    ctx.globalAlpha = opacity * 0.8;
+    for (let i = 0; i <= lonLines; i += 4) {
+      for (let j = 0; j <= latLines; j += 4) {
+        const x = (i / lonLines) * width;
+        const y = (j / latLines) * height;
+        ctx.fillRect(x - 1, y - 1, 3, 3);
+      }
     }
     
     ctx.globalAlpha = 1;
