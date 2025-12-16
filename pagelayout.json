@@ -14,16 +14,3 @@
     }
   ]
 }
-```
-
----
-
-## ;;; STRUCTURE
-```
-your-site/
-├── pagelayout.json      ← nav config (root level)
-├── nav-menu.js          ← drop-in script
-├── index.html           ← author page
-└── maps/
-    └── transit/
-        └── index.html   ← transit map
