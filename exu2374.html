@@ -248,6 +248,7 @@
             stroke-width: 3;
             opacity: 0.4;
             transition: all 0.3s ease;
+            pointer-events: none;
         }
 
         .route-line.active {
@@ -263,25 +264,42 @@
 
         .station-group {
             cursor: pointer;
-            transition: transform 0.2s ease;
         }
 
-        .station-group:hover {
-            transform: scale(1.15);
+        .station-group:hover .station-circle {
+            filter: drop-shadow(0 0 15px currentColor);
+            stroke-width: 4;
+        }
+
+        .station-group:hover .station-label {
+            fill: var(--cyan);
+        }
+
+        .station-hit-area {
+            fill: transparent;
+            cursor: pointer;
         }
 
         .station-circle {
-            transition: all 0.3s ease;
+            transition: all 0.15s ease;
+            pointer-events: none;
+            fill: #0a0a1a;
+            stroke-width: 3;
         }
+
+        .station-circle.faction-uplb { stroke: var(--uplb); }
+        .station-circle.faction-swi { stroke: var(--swi); }
+        .station-circle.faction-hw { stroke: var(--hw); }
 
         .station-circle.selected {
             fill: var(--cyan) !important;
+            stroke: var(--cyan) !important;
             filter: drop-shadow(0 0 15px var(--cyan));
-            r: 12;
         }
 
         .station-circle.in-route {
             fill: var(--purple) !important;
+            stroke: var(--purple) !important;
             filter: drop-shadow(0 0 10px var(--purple));
         }
 
@@ -290,7 +308,8 @@
             font-size: 13px;
             font-weight: 700;
             fill: #fff;
-            text-shadow: 0 0 10px rgba(0,0,0,0.8);
+            pointer-events: none;
+            transition: fill 0.15s ease;
         }
 
         .station-sublabel {
@@ -298,6 +317,7 @@
             font-size: 12px;
             fill: var(--cyan);
             opacity: 0.8;
+            pointer-events: none;
         }
 
         /* Legend */
@@ -482,36 +502,37 @@
         /* Totals */
         .totals-section {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-            gap: 10px;
-            margin-bottom: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 12px;
+            margin-bottom: 25px;
         }
 
         .total-box {
             background: rgba(191, 0, 255, 0.1);
             border: 1px solid var(--purple);
-            padding: 15px;
+            padding: 18px 12px;
             text-align: center;
         }
 
         .total-label {
-            font-size: 9px;
+            font-size: 10px;
             color: rgba(255,255,255,0.6);
             letter-spacing: 1px;
-            margin-bottom: 5px;
+            margin-bottom: 8px;
+            line-height: 1.3;
         }
 
         .total-value {
             font-family: 'Orbitron', sans-serif;
-            font-size: 20px;
+            font-size: 22px;
             color: var(--cyan);
             text-shadow: 0 0 10px var(--cyan);
         }
 
         .total-unit {
-            font-size: 10px;
+            font-size: 11px;
             color: rgba(255,255,255,0.5);
-            margin-left: 3px;
+            margin-left: 4px;
         }
 
         /* Leg Details */
@@ -653,7 +674,7 @@
                 
                 <div id="route-content">
                     <div class="empty-state">
-                        <div class="empty-state-icon">◇</div>
+                        <div class="empty-state-icon">✧</div>
                         <div class="empty-state-text">Click stations on the map to plan your route</div>
                     </div>
                 </div>
@@ -1058,16 +1079,24 @@
             const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
             g.classList.add('station-group');
             
+            // Large invisible hit area for easier clicking
+            const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            hitArea.classList.add('station-hit-area');
+            // Calculate hit area to cover station and label
+            const hitX = data.x - 30 + Math.min(0, data.labelOffset.x);
+            const hitY = data.y - 30 + Math.min(0, data.labelOffset.y);
+            const hitW = 60 + Math.abs(data.labelOffset.x);
+            const hitH = 60 + Math.abs(data.labelOffset.y);
+            hitArea.setAttribute('x', hitX);
+            hitArea.setAttribute('y', hitY);
+            hitArea.setAttribute('width', hitW);
+            hitArea.setAttribute('height', hitH);
+            
             const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            circle.classList.add('station-circle');
+            circle.classList.add('station-circle', `faction-${data.faction.toLowerCase()}`);
             circle.setAttribute('cx', data.x);
             circle.setAttribute('cy', data.y);
             circle.setAttribute('r', 9);
-            circle.setAttribute('fill', '#0a0a1a');
-            circle.setAttribute('stroke', 
-                data.faction === 'UPLB' ? '#4a9eff' : 
-                data.faction === 'SWI' ? '#51cf66' : '#a78bfa');
-            circle.setAttribute('stroke-width', 3);
             
             routeCircles[name] = circle;
             
@@ -1089,6 +1118,7 @@
             sublabel.setAttribute('text-anchor', data.labelOffset.x > 0 ? 'start' : data.labelOffset.x < 0 ? 'end' : 'middle');
             sublabel.textContent = `${data.pop}M`;
             
+            g.appendChild(hitArea);
             g.appendChild(circle);
             g.appendChild(label);
             g.appendChild(sublabel);
@@ -1326,6 +1356,6 @@
     </script>
     
     <!-- Optional: Replace milkyway with procedural acidburn background -->
-    <!-- <script src="acidburn-galaxy.js"></script> -->
+    <script src="acidburn-galaxy.js"></script>
 </body>
 </html>
