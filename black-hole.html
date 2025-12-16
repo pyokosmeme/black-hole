@@ -30,9 +30,74 @@
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   
   <style>
+
     /* ═══════════════════════════════════════════════════════════════
        BLACK HOLE SIMULATION BASE STYLES
        ═══════════════════════════════════════════════════════════════ */
+    .bh-ui-toggle {
+  z-index: 2001;
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(0,255,255,0.6);
+  color: var(--cyan);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  letter-spacing: 2px;
+  padding: 8px 10px;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+}
+
+.bh-ui {
+  position: fixed;
+  top: 60px;
+  right: 20px;
+  width: 290px;
+  z-index: 2000;
+  background: rgba(0,0,0,0.70);
+  border: 1px solid rgba(191,0,255,0.55);
+  box-shadow: 0 0 25px rgba(0,255,255,0.15);
+  padding: 14px;
+  backdrop-filter: blur(10px);
+}
+
+.bh-ui.hidden { display: none; }
+
+.bh-ui-title {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: var(--purple);
+  margin-bottom: 10px;
+}
+
+.bh-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 8px 0;
+  font-size: 12px;
+}
+
+.bh-row input[type="range"] { width: 150px; }
+.bh-row select {
+  width: 150px;
+  background: rgba(0,0,0,0.55);
+  border: 1px solid rgba(0,255,255,0.35);
+  color: #fff;
+  padding: 4px;
+}
+
+.bh-check { justify-content: flex-start; }
+.bh-check span { margin-left: 8px; }
+
+.bh-hr {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0,255,255,0.4), transparent);
+  margin: 10px 0;
+}
+
     
     body {
       background-color: #000;
@@ -740,6 +805,87 @@
   <header class="header-bar">
     <div class="header-texture"></div>
     <div id="nav-menu"></div> 
+    <button id="bh-ui-toggle" class="bh-ui-toggle" type="button" aria-expanded="false">
+  BLACKHOLE
+</button>
+
+<div id="bh-ui" class="bh-ui hidden">
+  <div class="bh-ui-title">BLACKHOLE CONTROLS</div>
+
+  <label class="bh-row">
+    <span>Quality</span>
+    <select id="bh-quality">
+      <option value="fast">fast</option>
+      <option value="medium" selected>medium</option>
+      <option value="high">high</option>
+    </select>
+  </label>
+
+  <label class="bh-row">
+    <span>Steps <b id="bh-steps-val"></b></span>
+    <input id="bh-steps" type="range" min="20" max="300" step="1">
+  </label>
+
+  <label class="bh-row">
+    <span>Time scale <b id="bh-timescale-val"></b></span>
+    <input id="bh-timescale" type="range" min="0" max="3" step="0.01">
+  </label>
+
+  <hr class="bh-hr">
+
+  <label class="bh-row bh-check">
+    <input id="bh-motion" type="checkbox">
+    <span>Observer motion</span>
+  </label>
+
+  <label class="bh-row">
+    <span>Distance <b id="bh-distance-val"></b></span>
+    <input id="bh-distance" type="range" min="2" max="20" step="0.1">
+  </label>
+
+  <label class="bh-row">
+    <span>Inclination <b id="bh-inclination-val"></b>°</span>
+    <input id="bh-inclination" type="range" min="-90" max="90" step="1">
+  </label>
+
+  <hr class="bh-hr">
+
+  <label class="bh-row bh-check">
+    <input id="bh-accretion" type="checkbox">
+    <span>Accretion disk</span>
+  </label>
+
+  <label class="bh-row bh-check">
+    <input id="bh-lorentz" type="checkbox">
+    <span>Lorentz contraction</span>
+  </label>
+
+  <label class="bh-row bh-check">
+    <input id="bh-gtd" type="checkbox">
+    <span>Gravitational time dilation</span>
+  </label>
+
+  <label class="bh-row bh-check">
+    <input id="bh-aberration" type="checkbox">
+    <span>Aberration</span>
+  </label>
+
+  <label class="bh-row bh-check">
+    <input id="bh-beaming" type="checkbox">
+    <span>Beaming</span>
+  </label>
+
+  <label class="bh-row bh-check">
+    <input id="bh-doppler" type="checkbox">
+    <span>Doppler shift</span>
+  </label>
+
+  <label class="bh-row bh-check">
+    <input id="bh-ltt" type="checkbox">
+    <span>Light travel time</span>
+  </label>
+</div>
+
     <div class="header-noise"></div>
     <div class="header-shimmer"></div>
     <a href="#" class="header-brand" id="header-brand" onclick="showIndex(); return false;">LOADING</a>
@@ -875,6 +1021,7 @@
 
       function whenLoaded() {
         init(textures);
+        initBlackholeUI();
         $("#loader").hide();
         animate();
       }
@@ -1281,6 +1428,134 @@
         document.getElementById("signal-strength").textContent = signalStrength.toFixed(1) + "%";
       }, 2000);
     }
+    function initBlackholeUI() {
+  const ui = document.getElementById("bh-ui");
+  const toggle = document.getElementById("bh-ui-toggle");
+
+  // If you removed the UI markup, just bail.
+  if (!ui || !toggle) return;
+
+  const els = {
+    quality: document.getElementById("bh-quality"),
+    steps: document.getElementById("bh-steps"),
+    stepsVal: document.getElementById("bh-steps-val"),
+    timeScale: document.getElementById("bh-timescale"),
+    timeScaleVal: document.getElementById("bh-timescale-val"),
+    motion: document.getElementById("bh-motion"),
+    distance: document.getElementById("bh-distance"),
+    distanceVal: document.getElementById("bh-distance-val"),
+    incl: document.getElementById("bh-inclination"),
+    inclVal: document.getElementById("bh-inclination-val"),
+
+    accretion: document.getElementById("bh-accretion"),
+    lorentz: document.getElementById("bh-lorentz"),
+    gtd: document.getElementById("bh-gtd"),
+    aberration: document.getElementById("bh-aberration"),
+    beaming: document.getElementById("bh-beaming"),
+    doppler: document.getElementById("bh-doppler"),
+    ltt: document.getElementById("bh-ltt"),
+  };
+
+  function setExpanded(isOpen) {
+    ui.classList.toggle("hidden", !isOpen);
+    toggle.setAttribute("aria-expanded", String(isOpen));
+  }
+
+  toggle.addEventListener("click", () => {
+    const open = ui.classList.contains("hidden");
+    setExpanded(open);
+  });
+
+  // Start hidden
+  setExpanded(false);
+
+  // Helper: update labels
+  function syncLabels() {
+    els.stepsVal.textContent = shader.parameters.n_steps;
+    els.timeScaleVal.textContent = Number(shader.parameters.time_scale).toFixed(2);
+    els.distanceVal.textContent = Number(shader.parameters.observer.distance).toFixed(1);
+    els.inclVal.textContent = Number(shader.parameters.observer.orbital_inclination).toFixed(0);
+  }
+
+  // Helper: recompiles fragment shader + triggers redraw
+  function recompile() {
+    if (scene && scene.updateShader) scene.updateShader();
+    shader.needsUpdate = true;
+  }
+
+  // Initialize input values from current shader parameters
+  els.quality.value = shader.parameters.quality;
+  els.steps.value = shader.parameters.n_steps;
+
+  els.timeScale.value = shader.parameters.time_scale;
+  els.motion.checked = !!shader.parameters.observer.motion;
+  els.distance.value = shader.parameters.observer.distance;
+  els.incl.value = shader.parameters.observer.orbital_inclination;
+
+  els.accretion.checked = !!shader.parameters.accretion_disk;
+  els.lorentz.checked = !!shader.parameters.lorentz_contraction;
+  els.gtd.checked = !!shader.parameters.gravitational_time_dilation;
+  els.aberration.checked = !!shader.parameters.aberration;
+  els.beaming.checked = !!shader.parameters.beaming;
+  els.doppler.checked = !!shader.parameters.doppler_shift;
+  els.ltt.checked = !!shader.parameters.light_travel_time;
+
+  syncLabels();
+
+  // Wire up events (recompile on anything that affects shader compile)
+  els.quality.addEventListener("change", () => {
+    shader.parameters.quality = els.quality.value;
+    recompile();
+  });
+
+  els.steps.addEventListener("input", () => {
+    shader.parameters.n_steps = parseInt(els.steps.value, 10);
+    syncLabels();
+    recompile();
+  });
+
+  els.timeScale.addEventListener("input", () => {
+    shader.parameters.time_scale = parseFloat(els.timeScale.value);
+    syncLabels();
+    // no recompile needed, but fine either way; keep it light:
+    shader.needsUpdate = true;
+  });
+
+  els.motion.addEventListener("change", () => {
+    shader.parameters.observer.motion = els.motion.checked;
+    recompile();
+  });
+
+  els.distance.addEventListener("input", () => {
+    shader.parameters.observer.distance = parseFloat(els.distance.value);
+    syncLabels();
+    recompile();
+  });
+
+  els.incl.addEventListener("input", () => {
+    shader.parameters.observer.orbital_inclination = parseFloat(els.incl.value);
+    syncLabels();
+    recompile();
+  });
+
+  const toggles = [
+    ["accretion_disk", els.accretion],
+    ["lorentz_contraction", els.lorentz],
+    ["gravitational_time_dilation", els.gtd],
+    ["aberration", els.aberration],
+    ["beaming", els.beaming],
+    ["doppler_shift", els.doppler],
+    ["light_travel_time", els.ltt],
+  ];
+
+  toggles.forEach(([key, el]) => {
+    el.addEventListener("change", () => {
+      shader.parameters[key] = el.checked;
+      recompile();
+    });
+  });
+}
+
   </script>
   <script src="nav-menu.js"></script>
 </body>
