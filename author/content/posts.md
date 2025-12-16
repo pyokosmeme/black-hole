@@ -11,6 +11,8 @@
   Excerpt text goes here as regular paragraph.
 -->
 
+<!--  examples:
+
 ## vectoralism-signal
 - title: VECTORALISM AND THE DISSOLUTION OF SIGNAL
 - date: 2025.03.14
@@ -34,3 +36,4 @@ the cloud is not ethereal;;; it is submarine cables and rare earth minerals and 
 - file: posts/memes-theory-objects.md
 
 the meme is not a joke;;; it is a compressed theoretical intervention that bypasses critical defenses through humor...
+-->
