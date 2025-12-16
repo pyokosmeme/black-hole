@@ -8,19 +8,7 @@
     "bio_file": "content/bio.md"
   },
 
-  "effects": {
-    "blackhole": {
-      "enabled": true,
-      "mode": "background",
-      "opacity": 0.25,
-      "quality": 0.75,
-      "center": [0.5, 0.3],
-      "rs": 1.0,
-      "disk": false,
-      "animate": true,
-      "debug": false
-    }
-  },
+
   
   "links": [
 
