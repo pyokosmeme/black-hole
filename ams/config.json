@@ -23,14 +23,14 @@
         {
       "id": "bn",
       "label": "Gumroad",
-      "url": "https://www.barnesandnoble.com/w?ean=2940185881507",
+      "url": "https://lastnpcalex.gumroad.com/l/AMoteInShadow",
       "icon": "◇",
       "desc": "Gumroad: PDF, EPUB"
     },
     {
       "id": "signal",
       "label": "Barnes and Noble",
-      "url": "https://signal.me/#eu/bVpg4VupNe9Q0tRJ0SG9xRengy3KtBCee4-z6WkydnrZ6Z7xQuRMVLHEep9dWXHm",
+      "url": "https://www.barnesandnoble.com/w?ean=2940185881507",
       "icon": "◈",
       "desc": "Barnes & Noble: Nook"
     },
