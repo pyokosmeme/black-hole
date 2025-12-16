@@ -73,9 +73,9 @@
 
     /* Dropdown Panel */
     .nav-dropdown {
-      position: absolute;
-      top: calc(100% + 8px);
-      left: 0;
+      position: fixed;
+      top: 60px;
+      left: 20px;
       min-width: 220px;
       background: rgba(5, 5, 15, 0.95);
       border: 2px solid #bf00ff;
@@ -84,6 +84,7 @@
       visibility: hidden;
       transform: translateY(-10px);
       transition: all 0.2s ease;
+      z-index: 9999;
     }
 
     .nav-menu.open .nav-dropdown {
@@ -203,8 +204,6 @@
     /* Mobile adjustments */
     @media (max-width: 768px) {
       .nav-dropdown {
-        position: fixed;
-        top: 60px;
         left: 10px;
         right: 10px;
         min-width: auto;
@@ -303,10 +302,19 @@
   function attachEventListeners(container) {
     // Toggle main menu
     const toggle = container.querySelector('.nav-toggle');
+    const dropdown = container.querySelector('.nav-dropdown');
+    
     toggle.addEventListener('click', (e) => {
       e.stopPropagation();
       container.classList.toggle('open');
       toggle.setAttribute('aria-expanded', container.classList.contains('open'));
+      
+      // Position dropdown below toggle button
+      if (container.classList.contains('open')) {
+        const rect = toggle.getBoundingClientRect();
+        dropdown.style.top = (rect.bottom + 8) + 'px';
+        dropdown.style.left = rect.left + 'px';
+      }
     });
 
     // Toggle submenus
