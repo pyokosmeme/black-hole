@@ -1,1 +1,82 @@
+{
+  "author": {
+    "handle": "lastnpcalex.agency",
+    "name": "Author NPC Alex",
+    "tagline": "⛅ i am the Demiurge now, so be nice ⛅",
+    "avatar": "◬",
+    "avatar_image": "content/avatar.png",
+    "bio_file": "content/bio.md"
+  },
 
+
+  
+  "links": [
+
+    {
+      "id": "blueky",
+      "label": "ATProto",
+      "url": "https://bsky.app/profile/lastnpcalex.agency",
+      "icon": "◬",
+      "desc": "@lastnpcalex.agency"
+    },
+
+        {
+      "id": "email",
+      "label": "EMAIL",
+      "url": "mailto:ex.astris.umbra@gmail.com",
+      "icon": "◇",
+      "desc": "unencrypted contact"
+    },
+    {
+      "id": "signal",
+      "label": "SIGNAL ME",
+      "url": "https://signal.me/#eu/bVpg4VupNe9Q0tRJ0SG9xRengy3KtBCee4-z6WkydnrZ6Z7xQuRMVLHEep9dWXHm",
+      "icon": "◈",
+      "desc": "encrypted contact"
+    },
+        {
+      "id": "author",
+      "label": "A Mote in Shadow",
+      "url": "https://lastnpcalex.agency",
+      "icon": "🕮",
+      "desc": "Links for Book 1 in EXU Series"
+    },
+        {
+      "id": "future",
+      "label": "SPECULATIVE FUTURES",
+      "url": "https://example.com/archive",
+      "icon": "⌥",
+      "desc": "collected transmissions"
+    },
+       {
+      "id": "maps",
+      "label": "SPECULATIVE MAPS",
+      "url": "https://maps.lastnpcalex.agency/",
+      "icon": "✧",
+      "desc": "maps from fictional worlds"
+    },
+           {
+      "id": "author",
+      "label": "A Mote in Shadow",
+      "url": "https://lastnpcalex.agency",
+      "icon": "🕮",
+      "desc": "Links for Book 1 in EXU Series"
+    },
+        {
+      "id": "future",
+      "label": "SPECULATIVE FUTURES",
+      "url": "https://example.com/archive",
+      "icon": "⌥",
+      "desc": "collected transmissions"
+    },
+       {
+      "id": "maps",
+      "label": "SPECULATIVE MAPS",
+      "url": "https://maps.lastnpcalex.agency/",
+      "icon": "✧",
+      "desc": "maps from fictional worlds"
+    }
+  ],
+
+  "posts_index": "content/posts.md"
+}
