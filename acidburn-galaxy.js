@@ -36,7 +36,7 @@
       latLines: 24,
       lonLines: 48,
       lineWidth: 1,
-      opacity: 0.25
+      opacity: 0.5
     },
     
     // Floating nodes
@@ -51,7 +51,7 @@
     // Glow regions
     glows: {
       enabled: true,
-      count: 4
+      count: 40
     },
     
     // Noise particles (stars)
