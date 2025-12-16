@@ -1,1 +1,25 @@
+{
+  "author": {
+    "handle": "SPECULATIVE MAPS",
+    "name": "SPECULATIVE MAPS",
+    "tagline": "maps from fictional worlds",
+    "avatar": "✧",
+    "avatar_image": "",
+    "bio_file": "content/bio.md"
+  },
 
+
+  
+  "links": [
+
+    {
+      "id": "exu2374",
+      "label": "EXU Transmit Map (2374)",
+      "url": "",
+      "icon": "",
+      "desc": "@lastnpcalex.agency"
+    }
+  ],
+
+  "posts_index": ""
+}
