@@ -12,12 +12,13 @@
     "blackhole": {
       "enabled": true,
       "mode": "background",
-      "opacity": 0.28,
-      "quality": 0.85,
-      "center": [0.52, 0.42],
-      "rs": 0.95,
+      "opacity": 0.25,
+      "quality": 0.75,
+      "center": [0.5, 0.3],
+      "rs": 1.0,
       "disk": false,
-      "animate": true
+      "animate": true,
+      "debug": false
     }
   },
   
