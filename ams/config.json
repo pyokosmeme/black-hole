@@ -43,38 +43,31 @@
     },
         {
       "id": "future",
-      "label": "SPECULATIVE FUTURES",
-      "url": "https://example.com/archive",
+      "label": "A Mote in Shadow (Google)",
+      "url": "https://play.google.com/store/books/details/A_N_Alex_A_Mote_in_Shadow?id=JXgKEQAAQBAJ",
       "icon": "⌥",
-      "desc": "collected transmissions"
+      "desc": "Google Books: EPUB"
     },
        {
       "id": "maps",
-      "label": "SPECULATIVE MAPS",
-      "url": "https://maps.lastnpcalex.agency/",
+      "label": "A Mote in Shadow (Kobo)",
+      "url": "https://www.kobo.com/us/en/ebook/a-mote-in-shadow",
       "icon": "✧",
-      "desc": "maps from fictional worlds"
+      "desc": "Kobo: EPUB"
     },
            {
       "id": "author",
-      "label": "A Mote in Shadow",
-      "url": "https://lastnpcalex.agency",
+      "label": "A Mote in Shadow (Smashwords)",
+      "url": "https://www.smashwords.com/books/view/1580515",
       "icon": "🕮",
-      "desc": "Links for Book 1 in EXU Series"
+      "desc": "Smashwords: EPUB"
     },
         {
       "id": "future",
-      "label": "SPECULATIVE FUTURES",
-      "url": "https://example.com/archive",
+      "label": "A Mote in Shadow (Everand)",
+      "url": "https://www.everand.com/book/743986453/A-Mote-in-Shadow-Ex-Astris-Umbra-1",
       "icon": "⌥",
-      "desc": "collected transmissions"
-    },
-       {
-      "id": "maps",
-      "label": "SPECULATIVE MAPS",
-      "url": "https://maps.lastnpcalex.agency/",
-      "icon": "✧",
-      "desc": "maps from fictional worlds"
+      "desc": "Everand: EPUB"
     }
   ],
   "posts_index": ""
