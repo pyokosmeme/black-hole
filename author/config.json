@@ -37,7 +37,7 @@
         {
       "id": "author",
       "label": "A Mote in Shadow",
-      "url": "https://lastnpcalex.agency",
+      "url": "https://ams.lastnpcalex.agency",
       "icon": "🕮",
       "desc": "Links for Book 1 in EXU Series"
     },
@@ -51,7 +51,7 @@
        {
       "id": "maps",
       "label": "SPECULATIVE MAPS",
-      "url": "https://maps.lastnpcalex.agency/",
+      "url": "https://maps.lastnpcalex.agency",
       "icon": "✧",
       "desc": "maps from fictional worlds"
     }
