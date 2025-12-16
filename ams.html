@@ -1154,7 +1154,7 @@
       if (author.avatar_image) {
         const avatarContainer = document.querySelector(".author-avatar");
         const img = document.createElement("img");
-        img.src = "author/" + author.avatar_image;
+        img.src = "ams/" + author.avatar_image;
         img.alt = author.name;
         img.onload = () => {
           avatarContainer.classList.add("has-image");
@@ -1165,7 +1165,7 @@
 
     async function loadBio() {
       try {
-        const response = await fetch("author/" + CONFIG.author.bio_file);
+        const response = await fetch("ams/" + CONFIG.author.bio_file);
         if (!response.ok) throw new Error("Failed to load bio");
         const markdown = await response.text();
         document.getElementById("author-bio").innerHTML = marked.parse(markdown);
@@ -1196,7 +1196,7 @@
 
     async function loadPostsIndex() {
       try {
-        const response = await fetch("author/" + CONFIG.posts_index);
+        const response = await fetch("ams/" + CONFIG.posts_index);
         if (!response.ok) throw new Error("Failed to load posts index");
         const markdown = await response.text();
         POSTS = parsePostsMarkdown(markdown);
@@ -1275,7 +1275,7 @@
       content.innerHTML = '<div class="loading">LOADING SIGNAL</div>';
 
       try {
-        const response = await fetch("author/" + post.file);
+        const response = await fetch("ams/" + post.file);
         if (!response.ok) throw new Error("Failed to load post");
         const markdown = await response.text();
         content.innerHTML = marked.parse(markdown);
