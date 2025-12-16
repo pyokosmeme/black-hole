@@ -8,8 +8,8 @@
       "label": "MAPS",
       "icon": "⬡",
       "children": [
-        { "label": "Maps Hub", "url": "maps.html", "icon": "✦" },
-        { "label": "Transit Network", "url": "exu2374.html", "icon": "→" }
+        { "label": "Maps Hub", "url": "/maps.html", "icon": "✦" },
+        { "label": "Transit Network", "url": "/exu2374.html", "icon": "→" }
       ]
     }
   ]
