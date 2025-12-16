@@ -1,0 +1,29 @@
+{
+  "siteName": "lastnpcalex.agency",
+  "menuIcon": "☰",
+  "pages": [
+    { "label": "HOME", "url": "/", "icon": "⌂" },
+    { "label": "A MOTE IN SHADOW", "url": "/ams.html", "icon": "◬" },
+    {
+      "label": "MAPS",
+      "icon": "⬡",
+      "children": [
+        { "label": "Maps Hub", "url": "maps.html", "icon": "✦" },
+        { "label": "Transit Network", "url": "exu2374.html", "icon": "→" }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+## ;;; STRUCTURE
+```
+your-site/
+├── pagelayout.json      ← nav config (root level)
+├── nav-menu.js          ← drop-in script
+├── index.html           ← author page
+└── maps/
+    └── transit/
+        └── index.html   ← transit map
