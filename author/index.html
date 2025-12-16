@@ -1,40 +1,70 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>LOADING // Network Node</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="distributed consciousness interface">
-  <meta property="og:type" content="website">
-
-  <!-- Core shader stack from the main black hole simulation -->
-  <script src="../js-libs/three.min.js"></script>
-  <script src="../js-libs/ShaderLoader.min.js"></script>
-  <script src="../js-libs/mustache.min.js"></script>
-  <script src="../three-js-monkey-patch.js"></script>
   
-  <!-- Fonts -->
+  <!-- Fonts for author overlay -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=VT323&display=swap" rel="stylesheet">
   
-  <!-- Marked.js for Markdown parsing -->
+  <!-- Black hole sim dependencies -->
+  <script src="js-libs/jquery-2.1.4.min.js"></script>
+  <script src="js-libs/three.min.js"></script>
+  <script src="js-libs/OrbitControls.js"></script>
+  <script src="js-libs/Detector.js"></script>
+  <script src="js-libs/stats.min.js"></script>
+  <script src="js-libs/ShaderLoader.min.js"></script>
+  <script src="js-libs/mustache.min.js"></script>
+  <script src="js-libs/dat.gui.min.js"></script>
+  <script src="three-js-monkey-patch.js"></script>
+  
+  <!-- Marked.js for author content -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-
-  <!-- Black hole lens effect -->
-  <script src="effects/blackhole.js" defer></script>
   
   <style>
     /* ═══════════════════════════════════════════════════════════════
-       AUTHOR-NODE // STATIC TEMPLATE v2
-       all content loaded dynamically from external files
+       BLACK HOLE SIMULATION BASE STYLES
        ═══════════════════════════════════════════════════════════════ */
-
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    
+    body {
+      background-color: #000;
+      margin: 0px;
+      overflow-x: hidden;
+      color: #fff;
+      font-family: 'Share Tech Mono', monospace;
     }
+
+    /* Hide the original black hole UI elements */
+    .info, .link-bar, #hint-text, .dg.ac {
+      display: none !important;
+    }
+
+    /* Stats panel - hide or show in corner */
+    #stats {
+      display: none !important;
+    }
+
+    /* Black hole canvas container - fixed background */
+    #blackhole-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+    }
+
+    #blackhole-container canvas {
+      display: block;
+    }
+
+    /* ═══════════════════════════════════════════════════════════════
+       AUTHOR OVERLAY STYLES  
+       ═══════════════════════════════════════════════════════════════ */
 
     :root {
       --cyan: #00ffff;
@@ -42,33 +72,11 @@
       --magenta: #ff00ff;
       --green: #00ff88;
       --pink: #ff0099;
-      --dark: #05050a;
-      --panel: rgba(5, 5, 15, 0.92);
+      --dark: #000000;
+      --panel: rgba(5, 5, 15, 0.85);
     }
 
-    html {
-      scroll-behavior: smooth;
-    }
-
-    body {
-      min-height: 100vh;
-      background: var(--dark);
-      color: #fff;
-      font-family: 'Share Tech Mono', monospace;
-      overflow-x: hidden;
-      position: relative;
-    }
-
-    #blackhole-canvas {
-      position: fixed;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 0;
-    }
-
-    /* Scanlines */
+    /* Scanlines over everything */
     body::after {
       content: '';
       position: fixed;
@@ -98,45 +106,6 @@
       25% { transform: translate(-2px, 1px); filter: hue-rotate(90deg); }
       50% { transform: translate(2px, -1px); filter: hue-rotate(180deg); }
       75% { transform: translate(-1px, -2px); filter: hue-rotate(270deg); }
-    }
-
-    /* Binary Rain */
-    .binary-rain {
-      position: fixed;
-      inset: 0;
-      overflow: hidden;
-      pointer-events: none;
-      z-index: 1;
-    }
-
-    .binary-col {
-      position: absolute;
-      top: -100%;
-      font-size: 10px;
-      color: var(--purple);
-      writing-mode: vertical-rl;
-      animation: fall linear infinite;
-      opacity: 0.3;
-    }
-
-    @keyframes fall {
-      to { transform: translateY(200vh); }
-    }
-
-    /* Network Canvas */
-    #network-canvas {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 2;
-      opacity: 0.4;
-    }
-
-    .main-content {
-      position: relative;
-      z-index: 10;
     }
 
     /* ═══════════════════════════════════════════════════════════
@@ -268,6 +237,7 @@
       padding: 40px;
       margin-bottom: 30px;
       position: relative;
+      backdrop-filter: blur(10px);
     }
 
     .author-card::before {
@@ -329,10 +299,7 @@
       z-index: 2;
     }
 
-    .author-avatar.has-image span {
-      display: none;
-    }
-
+    .author-avatar.has-image span,
     .author-avatar.has-image::after {
       display: none;
     }
@@ -366,13 +333,8 @@
       padding-left: 20px;
     }
 
-    .author-bio p {
-      margin-bottom: 10px;
-    }
-
-    .author-bio em {
-      color: rgba(255,255,255,0.5);
-    }
+    .author-bio p { margin-bottom: 10px; }
+    .author-bio em { color: rgba(255,255,255,0.5); }
 
     /* Links Section */
     .links-section {
@@ -415,6 +377,7 @@
       overflow: hidden;
       text-decoration: none;
       display: block;
+      backdrop-filter: blur(5px);
     }
 
     .link-card::before {
@@ -490,6 +453,7 @@
       position: relative;
       text-decoration: none;
       display: block;
+      backdrop-filter: blur(5px);
     }
 
     .post-card::before {
@@ -573,6 +537,7 @@
       padding: 50px;
       position: relative;
       display: none;
+      backdrop-filter: blur(10px);
     }
 
     .post-view.active {
@@ -630,7 +595,7 @@
       flex-wrap: wrap;
     }
 
-    /* Markdown Content Styles */
+    /* Markdown Content */
     .post-content {
       font-family: 'Space Mono', monospace;
       font-size: 15px;
@@ -644,7 +609,6 @@
       color: var(--cyan);
       text-shadow: 0 0 30px var(--cyan);
       margin-bottom: 30px;
-      line-height: 1.3;
     }
 
     .post-content h2 {
@@ -663,30 +627,12 @@
       margin: 30px 0 15px;
     }
 
-    .post-content p {
-      margin-bottom: 20px;
-    }
-
-    .post-content ul, .post-content ol {
-      margin: 20px 0;
-      padding-left: 30px;
-    }
-
-    .post-content li {
-      margin-bottom: 10px;
-      color: var(--cyan);
-    }
-
-    .post-content em {
-      font-style: italic;
-      color: rgba(255,255,255,0.6);
-    }
-
-    .post-content strong {
-      color: var(--cyan);
-      text-shadow: 0 0 10px var(--cyan);
-    }
-
+    .post-content p { margin-bottom: 20px; }
+    .post-content ul, .post-content ol { margin: 20px 0; padding-left: 30px; }
+    .post-content li { margin-bottom: 10px; color: var(--cyan); }
+    .post-content em { font-style: italic; color: rgba(255,255,255,0.6); }
+    .post-content strong { color: var(--cyan); text-shadow: 0 0 10px var(--cyan); }
+    
     .post-content blockquote {
       border-left: 4px solid var(--purple);
       padding-left: 20px;
@@ -715,7 +661,6 @@
       background: none;
       padding: 0;
       display: block;
-      line-height: 1.6;
     }
 
     .post-content hr {
@@ -729,19 +674,11 @@
       color: var(--cyan);
       text-decoration: none;
       border-bottom: 1px solid var(--purple);
-      transition: all 0.2s ease;
     }
 
     .post-content a:hover {
       color: var(--purple);
       border-color: var(--cyan);
-      text-shadow: 0 0 10px var(--purple);
-    }
-
-    .post-content img {
-      max-width: 100%;
-      border: 2px solid var(--purple);
-      margin: 20px 0;
     }
 
     /* Footer */
@@ -761,16 +698,9 @@
       color: var(--purple);
     }
 
-    /* Index view */
-    .index-view {
-      display: block;
-    }
+    .index-view { display: block; }
+    .index-view.hidden { display: none; }
 
-    .index-view.hidden {
-      display: none;
-    }
-
-    /* Loading state */
     .loading {
       text-align: center;
       padding: 60px;
@@ -778,18 +708,6 @@
       font-family: 'Orbitron', sans-serif;
     }
 
-    .loading::after {
-      content: '...';
-      animation: loadingDots 1.5s infinite;
-    }
-
-    @keyframes loadingDots {
-      0%, 20% { content: '.'; }
-      40% { content: '..'; }
-      60%, 100% { content: '...'; }
-    }
-
-    /* Error state */
     .error {
       color: var(--pink);
       padding: 20px;
@@ -797,35 +715,24 @@
       background: rgba(255,0,153,0.1);
     }
 
-    /* Responsive */
     @media (max-width: 768px) {
       .header-stats { display: none; }
       .author-header { flex-direction: column; text-align: center; }
       .post-view { padding: 30px 20px; }
       .links-grid { grid-template-columns: 1fr; }
-      .post-content { font-size: 14px; }
-      .post-content h1 { font-size: 24px; }
     }
   </style>
 </head>
 <body>
-  <!-- Black Hole Simulation -->
-  <canvas id="blackhole-canvas"></canvas>
+  <!-- Black hole container - simulation renders here -->
+  <div id="blackhole-container"></div>
 
-  <!-- Minimal vertex shader for the ray-marched background -->
-  <script id="bh-vertex-shader" type="x-shader/x-vertex">
-    void main() {
-      gl_Position = vec4(position, 1.0);
-    }
-  </script>
+  <!-- Original black hole UI elements (hidden by CSS) -->
+  <div id="hint-text" class="hidden-phone initially-hidden"></div>
+  <div class="info"><div id="loader">Loading...</div></div>
+  <div class="link-bar"></div>
 
-  <!-- Binary Rain Container -->
-  <div class="binary-rain" id="binary-rain"></div>
-
-  <!-- Network Canvas -->
-  <canvas id="network-canvas"></canvas>
-
-  <!-- Header -->
+  <!-- Author overlay -->
   <header class="header-bar">
     <div class="header-texture"></div>
     <div class="header-noise"></div>
@@ -843,11 +750,8 @@
     </div>
   </header>
 
-  <!-- Main Content -->
   <main class="main-content">
-    <!-- Index View -->
     <div class="index-view" id="index-view">
-      <!-- Author Card -->
       <section class="author-card">
         <div class="author-header">
           <div class="author-avatar">
@@ -859,47 +763,35 @@
             <div class="author-tagline" id="author-tagline">...</div>
           </div>
         </div>
-        <div class="author-bio" id="author-bio">
-          <p>Loading signal...</p>
-        </div>
+        <div class="author-bio" id="author-bio"><p>Loading signal...</p></div>
       </section>
 
-      <!-- Links -->
       <section class="links-section">
         <div class="section-header">
           <h2>// NODES</h2>
           <div class="section-line"></div>
         </div>
-        <div class="links-grid" id="links-grid">
-          <!-- Links loaded from config.json -->
-        </div>
+        <div class="links-grid" id="links-grid"></div>
       </section>
 
-      <!-- Posts -->
       <section class="posts-section">
         <div class="section-header">
           <h2>// TRANSMISSIONS</h2>
           <div class="section-line"></div>
         </div>
-        <div id="posts-list">
-          <!-- Posts loaded from content/posts.md -->
-        </div>
+        <div id="posts-list"></div>
       </section>
     </div>
 
-    <!-- Post View -->
     <article class="post-view" id="post-view">
       <button class="post-back" onclick="showIndex()">← RETURN TO INDEX</button>
       <div class="post-view-meta">
         <div class="post-view-date" id="post-view-date"></div>
         <div class="post-view-tags" id="post-view-tags"></div>
       </div>
-      <div class="post-content" id="post-content">
-        <!-- Markdown content loaded here -->
-      </div>
+      <div class="post-content" id="post-content"></div>
     </article>
 
-    <!-- Footer -->
     <footer class="footer">
       <p>
         node active since 2019 ;; 
@@ -909,136 +801,381 @@
     </footer>
   </main>
 
-  <script>
-    // ═══════════════════════════════════════════════════════════════
-    // AUTHOR-NODE v2 // DYNAMIC CONTENT LOADING
-    // ═══════════════════════════════════════════════════════════════
-    // 
-    // FILES TO EDIT:
-    //   config.json        → author info, links
-    //   content/bio.md     → author bio (markdown)
-    //   content/posts.md   → posts index with metadata
-    //   posts/*.md         → individual post content
-    //
-    // ═══════════════════════════════════════════════════════════════
+  <!-- Black hole shader -->
+  <script id="vertex-shader" type="x-shader/x-vertex">
+    void main() {
+      gl_Position = vec4(position, 1.0);
+    }
+  </script>
+  <script data-src="raytracer.glsl" data-name="raytracer" type="x-shader/x-fragment"></script>
 
+  <!-- Modified main.js inline to use blackhole-container -->
+  <script>
+    "use strict";
+
+    if (!Detector.webgl) Detector.addGetWebGLMessage();
+
+    function Observer() {
+      this.position = new THREE.Vector3(10, 0, 0);
+      this.velocity = new THREE.Vector3(0, 1, 0);
+      this.orientation = new THREE.Matrix3();
+      this.time = 0.0;
+    }
+
+    Observer.prototype.orbitalFrame = function () {
+      var orbital_y = new THREE.Vector3()
+        .subVectors(
+          this.velocity.clone().normalize().multiplyScalar(4.0),
+          this.position
+        )
+        .normalize();
+      var orbital_z = new THREE.Vector3()
+        .crossVectors(this.position, orbital_y)
+        .normalize();
+      var orbital_x = new THREE.Vector3().crossVectors(orbital_y, orbital_z);
+      return new THREE.Matrix4()
+        .makeBasis(orbital_x, orbital_y, orbital_z)
+        .linearPart();
+    };
+
+    Observer.prototype.move = function (dt) {
+      dt *= shader.parameters.time_scale;
+      var r, v = 0;
+
+      if (shader.parameters.observer.motion) {
+        r = shader.parameters.observer.distance;
+        v = 1.0 / Math.sqrt(2.0 * (r - 1.0));
+        var ang_vel = v / r;
+        var angle = this.time * ang_vel;
+        var s = Math.sin(angle), c = Math.cos(angle);
+
+        this.position.set(c * r, s * r, 0);
+        this.velocity.set(-s * v, c * v, 0);
+
+        var alpha = degToRad(shader.parameters.observer.orbital_inclination);
+        var orbit_coords = new THREE.Matrix4().makeRotationY(alpha);
+        this.position.applyMatrix4(orbit_coords);
+        this.velocity.applyMatrix4(orbit_coords);
+      } else {
+        r = this.position.length();
+      }
+
+      if (shader.parameters.gravitational_time_dilation) {
+        dt = Math.sqrt((dt * dt * (1.0 - v * v)) / (1 - 1.0 / r));
+      }
+      this.time += dt;
+    };
+
+    var container, stats;
+    var camera, scene, renderer, cameraControls, shader = null;
+    var observer = new Observer();
+
+    function Shader(mustacheTemplate) {
+      this.parameters = {
+        n_steps: 100,
+        quality: "medium",
+        accretion_disk: true,
+        planet: { enabled: false, distance: 7.0, radius: 0.4 },
+        lorentz_contraction: true,
+        gravitational_time_dilation: true,
+        aberration: true,
+        beaming: true,
+        doppler_shift: true,
+        light_travel_time: true,
+        time_scale: 0.5, // Slowed down for background
+        observer: { motion: true, distance: 15.0, orbital_inclination: -15 },
+        planetEnabled: function () {
+          return this.planet.enabled && this.quality !== "fast";
+        },
+        observerMotion: function () {
+          return this.observer.motion;
+        },
+      };
+      var that = this;
+      this.needsUpdate = false;
+      this.hasMovingParts = function () {
+        return this.parameters.planet.enabled || this.parameters.observer.motion;
+      };
+      this.compile = function () {
+        return Mustache.render(mustacheTemplate, that.parameters);
+      };
+    }
+
+    function degToRad(a) {
+      return (Math.PI * a) / 180.0;
+    }
+
+    (function () {
+      var textures = {};
+
+      function whenLoaded() {
+        init(textures);
+        $("#loader").hide();
+        animate();
+      }
+
+      function checkLoaded() {
+        if (shader === null) return;
+        for (var key in textures) if (textures[key] === null) return;
+        whenLoaded();
+      }
+
+      SHADER_LOADER.load(function (shaders) {
+        shader = new Shader(shaders.raytracer.fragment);
+        checkLoaded();
+      });
+
+      var texLoader = new THREE.TextureLoader();
+      function loadTexture(symbol, filename, interpolation) {
+        textures[symbol] = null;
+        texLoader.load(filename, function (tex) {
+          tex.magFilter = interpolation;
+          tex.minFilter = interpolation;
+          textures[symbol] = tex;
+          checkLoaded();
+        });
+      }
+
+      loadTexture("galaxy", "img/milkyway.jpg", THREE.NearestFilter);
+      loadTexture("spectra", "img/spectra.png", THREE.LinearFilter);
+      loadTexture("moon", "img/beach-ball.png", THREE.LinearFilter);
+      loadTexture("stars", "img/stars.png", THREE.LinearFilter);
+      loadTexture("accretion_disk", "img/accretion-disk.png", THREE.LinearFilter);
+    })();
+
+    var updateUniforms;
+
+    function init(textures) {
+      // Use the blackhole-container instead of creating new div
+      container = document.getElementById("blackhole-container");
+
+      scene = new THREE.Scene();
+      var geometry = new THREE.PlaneBufferGeometry(2, 2);
+
+      var uniforms = {
+        time: { type: "f", value: 0 },
+        resolution: { type: "v2", value: new THREE.Vector2() },
+        cam_pos: { type: "v3", value: new THREE.Vector3() },
+        cam_x: { type: "v3", value: new THREE.Vector3() },
+        cam_y: { type: "v3", value: new THREE.Vector3() },
+        cam_z: { type: "v3", value: new THREE.Vector3() },
+        cam_vel: { type: "v3", value: new THREE.Vector3() },
+        planet_distance: { type: "f" },
+        planet_radius: { type: "f" },
+        star_texture: { type: "t", value: textures.stars },
+        accretion_disk_texture: { type: "t", value: textures.accretion_disk },
+        galaxy_texture: { type: "t", value: textures.galaxy },
+        planet_texture: { type: "t", value: textures.moon },
+        spectrum_texture: { type: "t", value: textures.spectra },
+      };
+
+      updateUniforms = function () {
+        uniforms.planet_distance.value = shader.parameters.planet.distance;
+        uniforms.planet_radius.value = shader.parameters.planet.radius;
+        uniforms.resolution.value.x = renderer.domElement.width;
+        uniforms.resolution.value.y = renderer.domElement.height;
+        uniforms.time.value = observer.time;
+        uniforms.cam_pos.value = observer.position;
+
+        var e = observer.orientation.elements;
+        uniforms.cam_x.value.set(e[0], e[1], e[2]);
+        uniforms.cam_y.value.set(e[3], e[4], e[5]);
+        uniforms.cam_z.value.set(e[6], e[7], e[8]);
+
+        function setVec(target, value) {
+          uniforms[target].value.set(value.x, value.y, value.z);
+        }
+        setVec("cam_pos", observer.position);
+        setVec("cam_vel", observer.velocity);
+      };
+
+      var material = new THREE.ShaderMaterial({
+        uniforms: uniforms,
+        vertexShader: $("#vertex-shader").text(),
+      });
+
+      scene.updateShader = function () {
+        material.fragmentShader = shader.compile();
+        material.needsUpdate = true;
+        shader.needsUpdate = true;
+      };
+      scene.updateShader();
+
+      var mesh = new THREE.Mesh(geometry, material);
+      scene.add(mesh);
+
+      renderer = new THREE.WebGLRenderer();
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 80000);
+      initializeCamera(camera);
+
+      // No orbit controls for background - auto-rotate only
+      updateCamera();
+      onWindowResize();
+      window.addEventListener("resize", onWindowResize, false);
+    }
+
+    function onWindowResize() {
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      if (updateUniforms) updateUniforms();
+    }
+
+    function initializeCamera(camera) {
+      var pitchAngle = 3.0, yawAngle = 0.0;
+      camera.matrixWorldInverse.makeRotationX(degToRad(-pitchAngle));
+      camera.matrixWorldInverse.multiply(new THREE.Matrix4().makeRotationY(degToRad(-yawAngle)));
+      var m = camera.matrixWorldInverse.elements;
+      camera.position.set(m[2], m[6], m[10]);
+    }
+
+    function updateCamera() {
+      var m = camera.matrixWorldInverse.elements;
+      var camera_matrix;
+
+      if (shader.parameters.observer.motion) {
+        camera_matrix = new THREE.Matrix3();
+      } else {
+        camera_matrix = observer.orientation;
+      }
+
+      camera_matrix.set(m[0], m[1], m[2], m[8], m[9], m[10], m[4], m[5], m[6]);
+
+      if (shader.parameters.observer.motion) {
+        observer.orientation = observer.orbitalFrame().multiply(camera_matrix);
+      } else {
+        var p = new THREE.Vector3(
+          camera_matrix.elements[6],
+          camera_matrix.elements[7],
+          camera_matrix.elements[8]
+        );
+        var dist = shader.parameters.observer.distance;
+        observer.position.set(-p.x * dist, -p.y * dist, -p.z * dist);
+        observer.velocity.set(0, 0, 0);
+      }
+    }
+
+    function frobeniusDistance(matrix1, matrix2) {
+      var sum = 0.0;
+      for (var i in matrix1.elements) {
+        var diff = matrix1.elements[i] - matrix2.elements[i];
+        sum += diff * diff;
+      }
+      return Math.sqrt(sum);
+    }
+
+    function animate() {
+      requestAnimationFrame(animate);
+      camera.updateMatrixWorld();
+      camera.matrixWorldInverse.getInverse(camera.matrixWorld);
+
+      if (shader.needsUpdate || shader.hasMovingParts() ||
+          frobeniusDistance(camera.matrixWorldInverse, lastCameraMat) > 1e-10) {
+        shader.needsUpdate = false;
+        render();
+        lastCameraMat = camera.matrixWorldInverse.clone();
+      }
+    }
+
+    var lastCameraMat = new THREE.Matrix4().identity();
+
+    var getFrameDuration = (function () {
+      var lastTimestamp = new Date().getTime();
+      return function () {
+        var timestamp = new Date().getTime();
+        var diff = (timestamp - lastTimestamp) / 1000.0;
+        lastTimestamp = timestamp;
+        return diff;
+      };
+    })();
+
+    function render() {
+      observer.move(getFrameDuration());
+      if (shader.parameters.observer.motion) updateCamera();
+      updateUniforms();
+      renderer.render(scene, camera);
+    }
+  </script>
+
+  <!-- Author content system -->
+  <script>
     // Global state
     let CONFIG = null;
     let POSTS = [];
     const SEED = Date.now();
     let rngState = SEED;
 
-    // Seeded PRNG - Mulberry32
     function seededRandom() {
       rngState |= 0;
-      rngState = rngState + 0x6D2B79F5 | 0;
-      let t = Math.imul(rngState ^ rngState >>> 15, 1 | rngState);
-      t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
-      return ((t ^ t >>> 14) >>> 0) / 4294967296;
+      rngState = rngState + 0x6d2b79f5 | 0;
+      let t = Math.imul(rngState ^ (rngState >>> 15), 1 | rngState);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // INITIALIZATION
-    // ═══════════════════════════════════════════════════════════════
-    
-    document.addEventListener('DOMContentLoaded', async () => {
-      // Display seed
-      document.getElementById('seed-display').textContent = SEED;
-      
-      // Initialize visual effects first (they don't need content)
-      initBinaryRain();
-      initNetworkCanvas();
+    document.addEventListener("DOMContentLoaded", async () => {
+      document.getElementById("seed-display").textContent = SEED;
       initGlitchEffect();
       initStatsAnimation();
 
       try {
-        // Load config.json
         await loadConfig();
-
-        // Initialize black hole background once config is ready
-        if (window.initBlackHoleEffect) {
-          initBlackHoleEffect(CONFIG);
-        }
-
-        // Load author info
         loadAuthorInfo();
-        
-        // Load links
         loadLinks();
-        
-        // Load bio from markdown
         await loadBio();
-        
-        // Load posts index
         await loadPostsIndex();
-        
-        // Check URL hash for direct post link
         handleHashChange();
-        window.addEventListener('hashchange', handleHashChange);
-
+        window.addEventListener("hashchange", handleHashChange);
       } catch (error) {
-        console.error('Failed to initialize:', error);
-        if (window.initBlackHoleEffect) {
-          initBlackHoleEffect({});
-        }
-        document.getElementById('author-bio').innerHTML =
-          `<p class="error">ERROR: Failed to load configuration. Check console.</p>`;
+        console.error("Failed to initialize:", error);
       }
     });
 
-    // ═══════════════════════════════════════════════════════════════
-    // CONTENT LOADING
-    // ═══════════════════════════════════════════════════════════════
-    
     async function loadConfig() {
-      const response = await fetch('config.json');
-      if (!response.ok) throw new Error('Failed to load config.json');
+      const response = await fetch("author/config.json");
+      if (!response.ok) throw new Error("Failed to load config.json");
       CONFIG = await response.json();
     }
 
     function loadAuthorInfo() {
       const { author } = CONFIG;
-      document.getElementById('header-brand').textContent = author.handle;
-      document.getElementById('author-name').textContent = author.name;
-      document.getElementById('author-handle').textContent = '@' + author.handle;
-      document.getElementById('author-tagline').textContent = author.tagline;
-      document.getElementById('author-avatar').textContent = author.avatar;
+      document.getElementById("header-brand").textContent = author.handle;
+      document.getElementById("author-name").textContent = author.name;
+      document.getElementById("author-handle").textContent = "@" + author.handle;
+      document.getElementById("author-tagline").textContent = author.tagline;
+      document.getElementById("author-avatar").textContent = author.avatar;
       document.title = `${author.handle} // Network Node`;
 
-      // Load avatar image if specified
       if (author.avatar_image) {
-        const avatarContainer = document.querySelector('.author-avatar');
-        const img = document.createElement('img');
-        img.src = author.avatar_image;
+        const avatarContainer = document.querySelector(".author-avatar");
+        const img = document.createElement("img");
+        img.src = "author/" + author.avatar_image;
         img.alt = author.name;
         img.onload = () => {
-          avatarContainer.classList.add('has-image');
+          avatarContainer.classList.add("has-image");
           avatarContainer.appendChild(img);
-        };
-        img.onerror = () => {
-          // Fall back to text avatar if image fails to load
-          console.warn('Avatar image failed to load, using text fallback');
         };
       }
     }
 
     async function loadBio() {
-      const bioFile = CONFIG.author.bio_file;
       try {
-        const response = await fetch(bioFile);
-        if (!response.ok) throw new Error('Failed to load bio');
+        const response = await fetch("author/" + CONFIG.author.bio_file);
+        if (!response.ok) throw new Error("Failed to load bio");
         const markdown = await response.text();
-        document.getElementById('author-bio').innerHTML = marked.parse(markdown);
+        document.getElementById("author-bio").innerHTML = marked.parse(markdown);
       } catch (error) {
-        console.error('Error loading bio:', error);
-        document.getElementById('author-bio').innerHTML = '<p>Bio not found.</p>';
+        console.error("Error loading bio:", error);
       }
     }
 
     function loadLinks() {
-      const grid = document.getElementById('links-grid');
-      grid.innerHTML = CONFIG.links.map(link => `
-        <a href="${link.url}" class="link-card" target="${link.url.startsWith('http') ? '_blank' : '_self'}" rel="noopener">
+      const grid = document.getElementById("links-grid");
+      grid.innerHTML = CONFIG.links
+        .map(
+          (link) => `
+        <a href="${link.url}" class="link-card" target="${link.url.startsWith("http") ? "_blank" : "_self"}" rel="noopener">
           <div class="link-card-inner">
             <span class="link-icon">${link.icon}</span>
             <div class="link-text">
@@ -1048,228 +1185,123 @@
             <span class="link-arrow">→</span>
           </div>
         </a>
-      `).join('');
+      `
+        )
+        .join("");
     }
 
     async function loadPostsIndex() {
-      const postsFile = CONFIG.posts_index;
       try {
-        const response = await fetch(postsFile);
-        if (!response.ok) throw new Error('Failed to load posts index');
+        const response = await fetch("author/" + CONFIG.posts_index);
+        if (!response.ok) throw new Error("Failed to load posts index");
         const markdown = await response.text();
-        
-        // Parse the posts.md format
         POSTS = parsePostsMarkdown(markdown);
-        
-        // Render posts list
         renderPostsList();
-        
       } catch (error) {
-        console.error('Error loading posts index:', error);
-        document.getElementById('posts-list').innerHTML = 
-          '<p class="error">ERROR: Failed to load transmissions index.</p>';
+        console.error("Error loading posts index:", error);
       }
     }
 
     function parsePostsMarkdown(markdown) {
       const posts = [];
-      const sections = markdown.split(/^## /m).slice(1); // Split by ## headers
-      
+      const sections = markdown.split(/^## /m).slice(1);
+
       for (const section of sections) {
-        const lines = section.trim().split('\n');
+        const lines = section.trim().split("\n");
         const slug = lines[0].trim();
-        
         const post = { slug };
         let excerptLines = [];
         let inMeta = true;
-        
+
         for (let i = 1; i < lines.length; i++) {
           const line = lines[i];
-          
-          // Parse metadata lines (- key: value)
-          if (line.startsWith('- ') && inMeta) {
+          if (line.startsWith("- ") && inMeta) {
             const match = line.match(/^- (\w+):\s*(.+)$/);
             if (match) {
               const [, key, value] = match;
-              if (key === 'tags') {
-                post.tags = value.split(',').map(t => t.trim());
+              if (key === "tags") {
+                post.tags = value.split(",").map((t) => t.trim());
               } else {
                 post[key] = value;
               }
             }
-          } else if (line.trim() !== '') {
+          } else if (line.trim() !== "") {
             inMeta = false;
             excerptLines.push(line);
           }
         }
-        
-        post.excerpt = excerptLines.join(' ').trim();
+        post.excerpt = excerptLines.join(" ").trim();
         posts.push(post);
       }
-      
       return posts;
     }
 
     function renderPostsList() {
-      const list = document.getElementById('posts-list');
-      list.innerHTML = POSTS.map(post => `
+      const list = document.getElementById("posts-list");
+      list.innerHTML = POSTS.map(
+        (post) => `
         <a href="#post/${post.slug}" class="post-card" onclick="loadPost('${post.slug}'); return false;">
           <div class="post-meta">
-            <span class="post-date">${post.date || ''}</span>
+            <span class="post-date">${post.date || ""}</span>
             <div class="post-tags">
-              ${(post.tags || []).map(tag => `<span class="post-tag">#${tag}</span>`).join('')}
+              ${(post.tags || []).map((tag) => `<span class="post-tag">#${tag}</span>`).join("")}
             </div>
           </div>
           <h3>${post.title || post.slug}</h3>
-          <p>${post.excerpt || ''}</p>
+          <p>${post.excerpt || ""}</p>
           <span class="post-read-more">CONTINUE SIGNAL →</span>
         </a>
-      `).join('');
+      `
+      ).join("");
     }
 
     async function loadPost(slug) {
-      const post = POSTS.find(p => p.slug === slug);
-      if (!post) {
-        console.error('Post not found:', slug);
-        return;
-      }
+      const post = POSTS.find((p) => p.slug === slug);
+      if (!post) return;
 
-      // Update URL hash
       window.location.hash = `post/${slug}`;
+      document.getElementById("index-view").classList.add("hidden");
+      document.getElementById("post-view").classList.add("active");
+      document.getElementById("post-view-date").textContent = post.date || "";
+      document.getElementById("post-view-tags").innerHTML = (post.tags || [])
+        .map((tag) => `<span class="post-tag">#${tag}</span>`)
+        .join("");
 
-      // Show post view
-      document.getElementById('index-view').classList.add('hidden');
-      const postView = document.getElementById('post-view');
-      postView.classList.add('active');
-
-      // Set meta
-      document.getElementById('post-view-date').textContent = post.date || '';
-      document.getElementById('post-view-tags').innerHTML = 
-        (post.tags || []).map(tag => `<span class="post-tag">#${tag}</span>`).join('');
-
-      // Load and render markdown
-      const content = document.getElementById('post-content');
+      const content = document.getElementById("post-content");
       content.innerHTML = '<div class="loading">LOADING SIGNAL</div>';
 
       try {
-        const response = await fetch(post.file);
-        if (!response.ok) throw new Error('Failed to load post');
+        const response = await fetch("author/" + post.file);
+        if (!response.ok) throw new Error("Failed to load post");
         const markdown = await response.text();
         content.innerHTML = marked.parse(markdown);
       } catch (error) {
-        console.error('Error loading post:', error);
-        content.innerHTML = `<p class="error">ERROR: Failed to load transmission. Signal corrupted.</p>`;
+        content.innerHTML = '<p class="error">ERROR: Signal corrupted.</p>';
       }
-
-      // Scroll to top
       window.scrollTo(0, 0);
     }
 
     function showIndex() {
-      window.location.hash = '';
-      document.getElementById('index-view').classList.remove('hidden');
-      document.getElementById('post-view').classList.remove('active');
+      window.location.hash = "";
+      document.getElementById("index-view").classList.remove("hidden");
+      document.getElementById("post-view").classList.remove("active");
       window.scrollTo(0, 0);
     }
 
     function handleHashChange() {
       const hash = window.location.hash;
-      if (hash.startsWith('#post/')) {
-        const slug = hash.replace('#post/', '');
-        loadPost(slug);
+      if (hash.startsWith("#post/")) {
+        loadPost(hash.replace("#post/", ""));
       } else {
         showIndex();
       }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // VISUAL EFFECTS
-    // ═══════════════════════════════════════════════════════════════
-
-    function initBinaryRain() {
-      const container = document.getElementById('binary-rain');
-      const columns = 20;
-      
-      for (let i = 0; i < columns; i++) {
-        const col = document.createElement('div');
-        col.className = 'binary-col';
-        col.style.left = `${i * 5}%`;
-        col.style.animationDelay = `${seededRandom() * 8}s`;
-        col.style.animationDuration = `${12 + seededRandom() * 8}s`;
-        
-        let binary = '';
-        for (let j = 0; j < 30; j++) {
-          binary += `<span style="opacity:${0.1 + seededRandom() * 0.2}">${seededRandom() > 0.5 ? '1' : '0'}</span>`;
-        }
-        col.innerHTML = binary;
-        container.appendChild(col);
-      }
-    }
-
-    function initNetworkCanvas() {
-      const canvas = document.getElementById('network-canvas');
-      const ctx = canvas.getContext('2d');
-      
-      function resize() {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-      }
-      resize();
-      window.addEventListener('resize', resize);
-
-      const nodes = Array(20).fill(0).map(() => ({
-        x: seededRandom() * canvas.width,
-        y: seededRandom() * canvas.height,
-        vx: (seededRandom() - 0.5) * 0.5,
-        vy: (seededRandom() - 0.5) * 0.5,
-        size: 2 + seededRandom() * 4
-      }));
-
-      let time = 0;
-
-      function draw() {
-        ctx.fillStyle = 'rgba(5, 5, 10, 0.1)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        nodes.forEach((node, i) => {
-          node.x += node.vx;
-          node.y += node.vy;
-          
-          if (node.x < 0 || node.x > canvas.width) node.vx *= -1;
-          if (node.y < 0 || node.y > canvas.height) node.vy *= -1;
-
-          // Connections
-          nodes.forEach((other, j) => {
-            if (i >= j) return;
-            const dist = Math.hypot(node.x - other.x, node.y - other.y);
-            if (dist < 100) {
-              ctx.strokeStyle = `rgba(191, 0, 255, ${0.3 * (1 - dist/100)})`;
-              ctx.beginPath();
-              ctx.moveTo(node.x, node.y);
-              ctx.lineTo(other.x, other.y);
-              ctx.stroke();
-            }
-          });
-
-          // Node
-          ctx.fillStyle = time % 100 < 50 ? '#00ffff' : '#bf00ff';
-          ctx.beginPath();
-          ctx.arc(node.x, node.y, node.size, 0, Math.PI * 2);
-          ctx.fill();
-        });
-
-        time++;
-        requestAnimationFrame(draw);
-      }
-
-      draw();
-    }
-
     function initGlitchEffect() {
       setInterval(() => {
-        if (seededRandom() > 0.8) {
-          document.body.classList.add('glitch');
-          setTimeout(() => document.body.classList.remove('glitch'), 100);
+        if (seededRandom() > 0.85) {
+          document.body.classList.add("glitch");
+          setTimeout(() => document.body.classList.remove("glitch"), 100);
         }
       }, 3000);
     }
@@ -1277,13 +1309,11 @@
     function initStatsAnimation() {
       let nodeCount = 2847;
       let signalStrength = 97.3;
-
       setInterval(() => {
         nodeCount += Math.floor(seededRandom() * 10) - 3;
         signalStrength = Math.min(99.9, Math.max(90, signalStrength + (seededRandom() - 0.5) * 2));
-        
-        document.getElementById('node-count').textContent = nodeCount;
-        document.getElementById('signal-strength').textContent = signalStrength.toFixed(1) + '%';
+        document.getElementById("node-count").textContent = nodeCount;
+        document.getElementById("signal-strength").textContent = signalStrength.toFixed(1) + "%";
       }, 2000);
     }
   </script>
