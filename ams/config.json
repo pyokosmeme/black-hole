@@ -14,57 +14,57 @@
 
     {
       "id": "amzn",
-      "label": "A Mote in Shadow (Amazon)",
+      "label": "Amazon",
       "url": "https://a.co/d/d4eV40z",
       "icon": "◬",
-      "desc": "Kindle, Paperback"
+      "desc": "Amazon: Kindle, Paperback, Hardcover"
     },
 
         {
       "id": "bn",
-      "label": "A Mote in Shadow (Gumroad)",
+      "label": "Gumroad",
       "url": "https://www.barnesandnoble.com/w?ean=2940185881507",
       "icon": "◇",
       "desc": "Gumroad: PDF, EPUB"
     },
     {
       "id": "signal",
-      "label": "A Mote in Shadow (Barnes and Noble)",
+      "label": "Barnes and Noble",
       "url": "https://signal.me/#eu/bVpg4VupNe9Q0tRJ0SG9xRengy3KtBCee4-z6WkydnrZ6Z7xQuRMVLHEep9dWXHm",
       "icon": "◈",
       "desc": "Barnes & Noble: Nook"
     },
         {
       "id": "author",
-      "label": "A Mote in Shadow (Apple)",
+      "label": "Apple",
       "url": "https://books.apple.com/us/book/a-mote-in-shadow/id6504643594",
       "icon": "🕮",
       "desc": "Apple: EPUB"
     },
         {
       "id": "future",
-      "label": "A Mote in Shadow (Google)",
+      "label": "Google",
       "url": "https://play.google.com/store/books/details/A_N_Alex_A_Mote_in_Shadow?id=JXgKEQAAQBAJ",
       "icon": "⌥",
       "desc": "Google Books: EPUB"
     },
        {
       "id": "maps",
-      "label": "A Mote in Shadow (Kobo)",
+      "label": "Kobo",
       "url": "https://www.kobo.com/us/en/ebook/a-mote-in-shadow",
       "icon": "✧",
       "desc": "Kobo: EPUB"
     },
            {
       "id": "author",
-      "label": "A Mote in Shadow (Smashwords)",
+      "label": "Smashwords",
       "url": "https://www.smashwords.com/books/view/1580515",
       "icon": "🕮",
       "desc": "Smashwords: EPUB"
     },
         {
       "id": "future",
-      "label": "A Mote in Shadow (Everand)",
+      "label": "Everand",
       "url": "https://www.everand.com/book/743986453/A-Mote-in-Shadow-Ex-Astris-Umbra-1",
       "icon": "⌥",
       "desc": "Everand: EPUB"
