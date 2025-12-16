@@ -13,33 +13,33 @@
   "links": [
 
     {
-      "id": "blueky",
-      "label": "ATProto",
-      "url": "https://bsky.app/profile/lastnpcalex.agency",
+      "id": "amzn",
+      "label": "A Mote in Shadow (Amazon)",
+      "url": "https://a.co/d/d4eV40z",
       "icon": "◬",
-      "desc": "@lastnpcalex.agency"
+      "desc": "Kindle, Paperback"
     },
 
         {
-      "id": "email",
-      "label": "EMAIL",
-      "url": "mailto:ex.astris.umbra@gmail.com",
+      "id": "bn",
+      "label": "A Mote in Shadow (Gumroad)",
+      "url": "https://www.barnesandnoble.com/w?ean=2940185881507",
       "icon": "◇",
-      "desc": "unencrypted contact"
+      "desc": "Gumroad: PDF, EPUB"
     },
     {
       "id": "signal",
-      "label": "SIGNAL ME",
+      "label": "A Mote in Shadow (Barnes and Noble)",
       "url": "https://signal.me/#eu/bVpg4VupNe9Q0tRJ0SG9xRengy3KtBCee4-z6WkydnrZ6Z7xQuRMVLHEep9dWXHm",
       "icon": "◈",
-      "desc": "encrypted contact"
+      "desc": "Barnes & Noble: Nook"
     },
         {
       "id": "author",
-      "label": "A Mote in Shadow",
-      "url": "https://lastnpcalex.agency",
+      "label": "A Mote in Shadow (Apple)",
+      "url": "https://books.apple.com/us/book/a-mote-in-shadow/id6504643594",
       "icon": "🕮",
-      "desc": "Links for Book 1 in EXU Series"
+      "desc": "Apple: EPUB"
     },
         {
       "id": "future",
