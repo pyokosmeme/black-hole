@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACIDBURN Template</title>
+    
+    <!--
+    ╔═══════════════════════════════════════════════════════════════════════════╗
+    ║                         ACIDBURN AESTHETIC TEMPLATE                        ║
+    ╠═══════════════════════════════════════════════════════════════════════════╣
+    ║                                                                            ║
+    ║  A cyberpunk/90s hacker aesthetic featuring:                              ║
+    ║  - Schwarzschild black hole raytracer background (oseiskar/black-hole)    ║
+    ║  - Tiger stripe header bar (chromatic interference pattern)               ║
+    ║  - Cyan (#00ffff) / Purple (#bf00ff) / Magenta (#ff00ff) color scheme    ║
+    ║  - CRT scanline overlay                                                   ║
+    ║  - Random glitch effects                                                  ║
+    ║                                                                            ║
+    ║  SETUP:                                                                   ║
+    ║  1. Clone https://github.com/oseiskar/black-hole                          ║
+    ║  2. Replace index.html with this file                                     ║
+    ║  3. Keep: raytracer.glsl, js-libs/, img/, three-js-monkey-patch.js       ║
+    ║                                                                            ║
+    ║  COLORS:                                                                  ║
+    ║  --cyan:    #00ffff  (primary accent)                                     ║
+    ║  --purple:  #bf00ff  (secondary accent)                                   ║
+    ║  --magenta: #ff00ff  (tertiary)                                           ║
+    ║  --pink:    #ff0099  (highlight)                                          ║
+    ║  --green:   #00ff88  (success/data)                                       ║
+    ║  --dark:    #000000  (background)                                         ║
+    ║  --panel:   rgba(5, 5, 15, 0.85) (content panels)                         ║
+    ║                                                                            ║
+    ║  Created with love by Claude (Anthropic) for lastnpcalex.agency           ║
+    ║                                                                            ║
+    ╚═══════════════════════════════════════════════════════════════════════════╝
+    -->
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
+    
+    <!-- Black hole dependencies (from oseiskar/black-hole repo) -->
+    <script src="js-libs/jquery-2.1.4.min.js"></script>
+    <script src="js-libs/three.min.js"></script>
+    <script src="js-libs/OrbitControls.js"></script>
+    <script src="js-libs/Detector.js"></script>
+    <script src="js-libs/stats.min.js"></script>
+    <script src="js-libs/ShaderLoader.min.js"></script>
+    <script src="js-libs/mustache.min.js"></script>
+    <script src="js-libs/dat.gui.min.js"></script>
+    <script src="three-js-monkey-patch.js"></script>
+    
+    <style>
+        /* ═══════════════════════════════════════════════════════════════
+           CSS VARIABLES
+           ═══════════════════════════════════════════════════════════════ */
+        
+        :root {
+            --cyan: #00ffff;
+            --purple: #bf00ff;
+            --magenta: #ff00ff;
+            --pink: #ff0099;
+            --green: #00ff88;
+            --dark: #000000;
+            --panel: rgba(5, 5, 15, 0.85);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           RESET & BASE
+           ═══════════════════════════════════════════════════════════════ */
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            min-height: 100vh;
+            background: var(--dark);
+            color: #fff;
+            font-family: 'Share Tech Mono', monospace;
+            overflow-x: hidden;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           BLACK HOLE BACKGROUND
+           ═══════════════════════════════════════════════════════════════ */
+        
+        #blackhole-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        #blackhole-container canvas {
+            display: block;
+        }
+
+        /* Hide original black hole UI elements */
+        .info, .link-bar, #hint-text, .dg.ac, #stats {
+            display: none !important;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           SCANLINES OVERLAY
+           ═══════════════════════════════════════════════════════════════ */
+        
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                rgba(0, 0, 0, 0.1) 0px,
+                rgba(0, 0, 0, 0.1) 1px,
+                transparent 1px,
+                transparent 3px
+            );
+            pointer-events: none;
+            z-index: 10000;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           HEADER BAR - TIGER STRIPE AESTHETIC
+           
+           The signature element: 4-layer chromatic interference pattern
+           created with overlapping diagonal stripe gradients at different
+           angles (-55°, +55°, -45°, +75°) in purple, cyan, and magenta.
+           ═══════════════════════════════════════════════════════════════ */
+        
+        .header-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 50px;
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 30px;
+            overflow: hidden;
+        }
+
+        /* Layer 1: Base gradient + primary stripes */
+        .header-bar::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: 
+                /* Stripe layer 1: -55deg purple */
+                repeating-linear-gradient(
+                    -55deg,
+                    var(--purple) 0px,
+                    var(--purple) 6px,
+                    transparent 6px,
+                    transparent 12px
+                ),
+                /* Stripe layer 2: +55deg cyan */
+                repeating-linear-gradient(
+                    55deg,
+                    var(--cyan) 0px,
+                    var(--cyan) 4px,
+                    transparent 4px,
+                    transparent 14px
+                ),
+                /* Stripe layer 3: -45deg pink */
+                repeating-linear-gradient(
+                    -45deg,
+                    rgba(255, 0, 153, 0.5) 0px,
+                    rgba(255, 0, 153, 0.5) 2px,
+                    transparent 2px,
+                    transparent 6px
+                ),
+                /* Stripe layer 4: +75deg cyan */
+                repeating-linear-gradient(
+                    75deg,
+                    rgba(0, 255, 255, 0.4) 0px,
+                    rgba(0, 255, 255, 0.4) 3px,
+                    transparent 3px,
+                    transparent 9px
+                ),
+                /* Base gradient: purple -> cyan -> magenta -> cyan -> purple */
+                linear-gradient(
+                    90deg,
+                    var(--purple),
+                    var(--cyan),
+                    var(--magenta),
+                    var(--cyan),
+                    var(--purple)
+                );
+            z-index: -2;
+        }
+
+        /* Layer 2: Texture overlay (CRT-like) */
+        .header-texture {
+            position: absolute;
+            inset: 0;
+            background:
+                /* Vertical scanlines */
+                repeating-linear-gradient(
+                    90deg,
+                    transparent 0px,
+                    transparent 2px,
+                    rgba(0, 0, 0, 0.2) 2px,
+                    rgba(0, 0, 0, 0.2) 4px
+                ),
+                /* Horizontal highlight lines */
+                repeating-linear-gradient(
+                    0deg,
+                    transparent 0px,
+                    transparent 3px,
+                    rgba(255, 255, 255, 0.08) 3px,
+                    rgba(255, 255, 255, 0.08) 4px
+                );
+            z-index: -1;
+            mix-blend-mode: overlay;
+        }
+
+        /* Layer 3: Bottom glow line */
+        .header-bar::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--cyan), var(--purple), var(--cyan));
+            box-shadow: 0 0 15px var(--cyan), 0 0 30px var(--purple);
+        }
+
+        /* Header text */
+        .header-title {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            font-size: 18px;
+            color: #000;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            letter-spacing: 3px;
+            z-index: 10;
+        }
+
+        .header-subtitle {
+            font-family: 'VT323', monospace;
+            font-size: 14px;
+            color: rgba(0, 0, 0, 0.8);
+            letter-spacing: 2px;
+            z-index: 10;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           MAIN CONTENT AREA
+           ═══════════════════════════════════════════════════════════════ */
+        
+        .main-content {
+            position: relative;
+            z-index: 10;
+            padding: 80px 30px 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+            min-height: 100vh;
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           CONTENT PANELS
+           ═══════════════════════════════════════════════════════════════ */
+        
+        .panel {
+            background: var(--panel);
+            border: 2px solid transparent;
+            border-image: linear-gradient(135deg, var(--purple), var(--cyan)) 1;
+            padding: 30px;
+            margin-bottom: 30px;
+            backdrop-filter: blur(10px);
+            position: relative;
+        }
+
+        /* Panel tiger stripe top accent */
+        .panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: 
+                repeating-linear-gradient(-55deg, var(--purple) 0px, var(--purple) 4px, transparent 4px, transparent 8px),
+                repeating-linear-gradient(55deg, var(--cyan) 0px, var(--cyan) 3px, transparent 3px, transparent 9px),
+                linear-gradient(90deg, var(--purple), var(--cyan), var(--purple));
+        }
+
+        .panel h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 24px;
+            color: var(--cyan);
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px var(--cyan);
+        }
+
+        .panel p {
+            line-height: 1.8;
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           GLITCH EFFECT
+           ═══════════════════════════════════════════════════════════════ */
+        
+        .glitch {
+            animation: glitchEffect 0.15s linear;
+        }
+
+        @keyframes glitchEffect {
+            0%, 100% { transform: translate(0); filter: hue-rotate(0deg); }
+            25% { transform: translate(-2px, 1px); filter: hue-rotate(90deg); }
+            50% { transform: translate(2px, -1px); filter: hue-rotate(180deg); }
+            75% { transform: translate(-1px, -2px); filter: hue-rotate(270deg); }
+        }
+
+        /* ═══════════════════════════════════════════════════════════════
+           UTILITY CLASSES
+           ═══════════════════════════════════════════════════════════════ */
+        
+        .text-cyan { color: var(--cyan); }
+        .text-purple { color: var(--purple); }
+        .text-pink { color: var(--pink); }
+        .text-green { color: var(--green); }
+        
+        .glow-cyan { text-shadow: 0 0 10px var(--cyan); }
+        .glow-purple { text-shadow: 0 0 10px var(--purple); }
+
+        /* ═══════════════════════════════════════════════════════════════
+           FOOTER
+           ═══════════════════════════════════════════════════════════════ */
+        
+        .footer {
+            text-align: center;
+            padding: 20px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .footer a {
+            color: var(--cyan);
+            text-decoration: none;
+            border-bottom: 1px solid var(--purple);
+        }
+
+        .footer a:hover {
+            color: var(--purple);
+            text-shadow: 0 0 10px var(--purple);
+        }
+    </style>
+</head>
+<body>
+    <!-- Black Hole Background Container -->
+    <div id="blackhole-container"></div>
+    
+    <!-- Hidden elements required by black hole renderer -->
+    <div id="hint-text" class="hidden-phone initially-hidden"></div>
+    <div class="info"><div id="loader">Loading...</div></div>
+    <div class="link-bar"></div>
+
+    <!-- Header Bar -->
+    <header class="header-bar">
+        <div class="header-texture"></div>
+        <div class="header-title">YOUR TITLE HERE</div>
+        <div class="header-subtitle">subtitle text</div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        
+        <div class="panel">
+            <h2>ACIDBURN TEMPLATE</h2>
+            <p>
+                This is a blank template featuring the <span class="text-cyan glow-cyan">ACIDBURN</span> 
+                aesthetic. It includes a physically accurate Schwarzschild black hole raytracer as the 
+                background, with gravitational lensing, an accretion disk, and Doppler-shifted colors.
+            </p>
+            <p style="margin-top: 15px;">
+                The header bar uses a <span class="text-purple">chromatic interference pattern</span> 
+                created by overlapping diagonal stripes at angles of -55°, +55°, -45°, and +75° in 
+                purple, cyan, and magenta.
+            </p>
+        </div>
+
+        <div class="panel">
+            <h2>SETUP INSTRUCTIONS</h2>
+            <p>1. Clone the black hole repo: <span class="text-green">git clone https://github.com/oseiskar/black-hole</span></p>
+            <p style="margin-top: 10px;">2. Replace index.html with this file</p>
+            <p style="margin-top: 10px;">3. Keep these files from the original repo:</p>
+            <p style="margin-top: 5px; padding-left: 20px;" class="text-cyan">
+                - raytracer.glsl<br>
+                - three-js-monkey-patch.js<br>
+                - js-libs/ (all 8 files)<br>
+                - img/ (all 5 textures)
+            </p>
+        </div>
+
+        <footer class="footer">
+            <p>
+                black hole simulation by <a href="https://github.com/oseiskar/black-hole">oseiskar</a> ;; 
+                aesthetic by Claude (Anthropic)
+            </p>
+        </footer>
+    </main>
+
+    <!-- Black Hole Shaders -->
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        void main() {
+            gl_Position = vec4(position, 1.0);
+        }
+    </script>
+    <script data-src="raytracer.glsl" data-name="raytracer" type="x-shader/x-fragment"></script>
+
+    <!-- Black Hole Renderer -->
+    <script>
+        "use strict";
+
+        if (!Detector.webgl) Detector.addGetWebGLMessage();
+
+        // ═══════════════════════════════════════════════════════════════
+        // OBSERVER CLASS
+        // ═══════════════════════════════════════════════════════════════
+
+        function Observer() {
+            this.position = new THREE.Vector3(10, 0, 0);
+            this.velocity = new THREE.Vector3(0, 1, 0);
+            this.orientation = new THREE.Matrix3();
+            this.time = 0.0;
+        }
+
+        Observer.prototype.orbitalFrame = function () {
+            var orbital_y = new THREE.Vector3()
+                .subVectors(
+                    this.velocity.clone().normalize().multiplyScalar(4.0),
+                    this.position
+                )
+                .normalize();
+            var orbital_z = new THREE.Vector3()
+                .crossVectors(this.position, orbital_y)
+                .normalize();
+            var orbital_x = new THREE.Vector3().crossVectors(orbital_y, orbital_z);
+            return new THREE.Matrix4()
+                .makeBasis(orbital_x, orbital_y, orbital_z)
+                .linearPart();
+        };
+
+        Observer.prototype.move = function (dt) {
+            dt *= shader.parameters.time_scale;
+            var r, v = 0;
+
+            if (shader.parameters.observer.motion) {
+                r = shader.parameters.observer.distance;
+                v = 1.0 / Math.sqrt(2.0 * (r - 1.0));
+                var ang_vel = v / r;
+                var angle = this.time * ang_vel;
+                var s = Math.sin(angle), c = Math.cos(angle);
+
+                this.position.set(c * r, s * r, 0);
+                this.velocity.set(-s * v, c * v, 0);
+
+                var alpha = degToRad(shader.parameters.observer.orbital_inclination);
+                var orbit_coords = new THREE.Matrix4().makeRotationY(alpha);
+                this.position.applyMatrix4(orbit_coords);
+                this.velocity.applyMatrix4(orbit_coords);
+            } else {
+                r = this.position.length();
+            }
+
+            if (shader.parameters.gravitational_time_dilation) {
+                dt = Math.sqrt((dt * dt * (1.0 - v * v)) / (1 - 1.0 / r));
+            }
+            this.time += dt;
+        };
+
+        // ═══════════════════════════════════════════════════════════════
+        // SHADER CLASS
+        // ═══════════════════════════════════════════════════════════════
+
+        var container, camera, scene, renderer, shader = null;
+        var observer = new Observer();
+
+        function Shader(mustacheTemplate) {
+            this.parameters = {
+                n_steps: 100,
+                quality: "medium",
+                accretion_disk: true,
+                planet: { enabled: false, distance: 7.0, radius: 0.4 },
+                lorentz_contraction: true,
+                gravitational_time_dilation: true,
+                aberration: true,
+                beaming: true,
+                doppler_shift: true,
+                light_travel_time: true,
+                time_scale: 0.5,
+                // Camera settings - adjust these to change black hole size/position
+                observer: { 
+                    motion: true, 
+                    distance: 15.0,        // Increase for smaller hole, decrease for larger
+                    orbital_inclination: -15 
+                },
+                planetEnabled: function () {
+                    return this.planet.enabled && this.quality !== "fast";
+                },
+                observerMotion: function () {
+                    return this.observer.motion;
+                },
+            };
+            var that = this;
+            this.needsUpdate = false;
+            this.hasMovingParts = function () {
+                return this.parameters.planet.enabled || this.parameters.observer.motion;
+            };
+            this.compile = function () {
+                return Mustache.render(mustacheTemplate, that.parameters);
+            };
+        }
+
+        function degToRad(a) {
+            return (Math.PI * a) / 180.0;
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // TEXTURE LOADING
+        // ═══════════════════════════════════════════════════════════════
+
+        (function () {
+            var textures = {};
+
+            function whenLoaded() {
+                init(textures);
+                $("#loader").hide();
+                animate();
+            }
+
+            function checkLoaded() {
+                if (shader === null) return;
+                for (var key in textures) if (textures[key] === null) return;
+                whenLoaded();
+            }
+
+            SHADER_LOADER.load(function (shaders) {
+                shader = new Shader(shaders.raytracer.fragment);
+                checkLoaded();
+            });
+
+            var texLoader = new THREE.TextureLoader();
+            function loadTexture(symbol, filename, interpolation) {
+                textures[symbol] = null;
+                texLoader.load(filename, function (tex) {
+                    tex.magFilter = interpolation;
+                    tex.minFilter = interpolation;
+                    textures[symbol] = tex;
+                    checkLoaded();
+                });
+            }
+
+            loadTexture("galaxy", "img/milkyway.jpg", THREE.NearestFilter);
+            loadTexture("spectra", "img/spectra.png", THREE.LinearFilter);
+            loadTexture("moon", "img/beach-ball.png", THREE.LinearFilter);
+            loadTexture("stars", "img/stars.png", THREE.LinearFilter);
+            loadTexture("accretion_disk", "img/accretion-disk.png", THREE.LinearFilter);
+        })();
+
+        // ═══════════════════════════════════════════════════════════════
+        // INITIALIZATION
+        // ═══════════════════════════════════════════════════════════════
+
+        var updateUniforms;
+
+        function init(textures) {
+            container = document.getElementById("blackhole-container");
+
+            scene = new THREE.Scene();
+            var geometry = new THREE.PlaneBufferGeometry(2, 2);
+
+            var uniforms = {
+                time: { type: "f", value: 0 },
+                resolution: { type: "v2", value: new THREE.Vector2() },
+                cam_pos: { type: "v3", value: new THREE.Vector3() },
+                cam_x: { type: "v3", value: new THREE.Vector3() },
+                cam_y: { type: "v3", value: new THREE.Vector3() },
+                cam_z: { type: "v3", value: new THREE.Vector3() },
+                cam_vel: { type: "v3", value: new THREE.Vector3() },
+                planet_distance: { type: "f" },
+                planet_radius: { type: "f" },
+                star_texture: { type: "t", value: textures.stars },
+                accretion_disk_texture: { type: "t", value: textures.accretion_disk },
+                galaxy_texture: { type: "t", value: textures.galaxy },
+                planet_texture: { type: "t", value: textures.moon },
+                spectrum_texture: { type: "t", value: textures.spectra },
+            };
+
+            updateUniforms = function () {
+                uniforms.planet_distance.value = shader.parameters.planet.distance;
+                uniforms.planet_radius.value = shader.parameters.planet.radius;
+                uniforms.resolution.value.x = renderer.domElement.width;
+                uniforms.resolution.value.y = renderer.domElement.height;
+                uniforms.time.value = observer.time;
+                uniforms.cam_pos.value = observer.position;
+
+                var e = observer.orientation.elements;
+                uniforms.cam_x.value.set(e[0], e[1], e[2]);
+                uniforms.cam_y.value.set(e[3], e[4], e[5]);
+                uniforms.cam_z.value.set(e[6], e[7], e[8]);
+
+                function setVec(target, value) {
+                    uniforms[target].value.set(value.x, value.y, value.z);
+                }
+                setVec("cam_pos", observer.position);
+                setVec("cam_vel", observer.velocity);
+            };
+
+            var material = new THREE.ShaderMaterial({
+                uniforms: uniforms,
+                vertexShader: $("#vertex-shader").text(),
+            });
+
+            scene.updateShader = function () {
+                material.fragmentShader = shader.compile();
+                material.needsUpdate = true;
+                shader.needsUpdate = true;
+            };
+            scene.updateShader();
+
+            var mesh = new THREE.Mesh(geometry, material);
+            scene.add(mesh);
+
+            renderer = new THREE.WebGLRenderer();
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 80000);
+            initializeCamera(camera);
+
+            updateCamera();
+            onWindowResize();
+            window.addEventListener("resize", onWindowResize, false);
+        }
+
+        function onWindowResize() {
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            if (updateUniforms) updateUniforms();
+        }
+
+        function initializeCamera(camera) {
+            var pitchAngle = 3.0, yawAngle = 0.0;
+            camera.matrixWorldInverse.makeRotationX(degToRad(-pitchAngle));
+            camera.matrixWorldInverse.multiply(new THREE.Matrix4().makeRotationY(degToRad(-yawAngle)));
+            var m = camera.matrixWorldInverse.elements;
+            camera.position.set(m[2], m[6], m[10]);
+        }
+
+        function updateCamera() {
+            var m = camera.matrixWorldInverse.elements;
+            var camera_matrix;
+
+            if (shader.parameters.observer.motion) {
+                camera_matrix = new THREE.Matrix3();
+            } else {
+                camera_matrix = observer.orientation;
+            }
+
+            camera_matrix.set(m[0], m[1], m[2], m[8], m[9], m[10], m[4], m[5], m[6]);
+
+            if (shader.parameters.observer.motion) {
+                observer.orientation = observer.orbitalFrame().multiply(camera_matrix);
+            } else {
+                var p = new THREE.Vector3(
+                    camera_matrix.elements[6],
+                    camera_matrix.elements[7],
+                    camera_matrix.elements[8]
+                );
+                var dist = shader.parameters.observer.distance;
+                observer.position.set(-p.x * dist, -p.y * dist, -p.z * dist);
+                observer.velocity.set(0, 0, 0);
+            }
+        }
+
+        function frobeniusDistance(matrix1, matrix2) {
+            var sum = 0.0;
+            for (var i in matrix1.elements) {
+                var diff = matrix1.elements[i] - matrix2.elements[i];
+                sum += diff * diff;
+            }
+            return Math.sqrt(sum);
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // ANIMATION LOOP
+        // ═══════════════════════════════════════════════════════════════
+
+        function animate() {
+            requestAnimationFrame(animate);
+            camera.updateMatrixWorld();
+            camera.matrixWorldInverse.getInverse(camera.matrixWorld);
+
+            if (shader.needsUpdate || shader.hasMovingParts() ||
+                frobeniusDistance(camera.matrixWorldInverse, lastCameraMat) > 1e-10) {
+                shader.needsUpdate = false;
+                render();
+                lastCameraMat = camera.matrixWorldInverse.clone();
+            }
+        }
+
+        var lastCameraMat = new THREE.Matrix4().identity();
+
+        var getFrameDuration = (function () {
+            var lastTimestamp = new Date().getTime();
+            return function () {
+                var timestamp = new Date().getTime();
+                var diff = (timestamp - lastTimestamp) / 1000.0;
+                lastTimestamp = timestamp;
+                return diff;
+            };
+        })();
+
+        function render() {
+            observer.move(getFrameDuration());
+            if (shader.parameters.observer.motion) updateCamera();
+            updateUniforms();
+            renderer.render(scene, camera);
+        }
+    </script>
+
+    <!-- Random Glitch Effect -->
+    <script>
+        setInterval(() => {
+            if (Math.random() > 0.95) {
+                document.body.classList.add('glitch');
+                setTimeout(() => document.body.classList.remove('glitch'), 150);
+            }
+        }, 4000);
+    </script>
+</body>
+</html>
