@@ -278,68 +278,72 @@
             }
         }
 
-        .header-subtitle {
-            font-family: 'VT323', monospace;
-            font-size: var(--text-sm);
-            color: rgba(0, 0, 0, 0.8);
-            letter-spacing: 2px;
-            z-index: 10;
-        }
-        
-        @media (max-width: 600px) {
-            .header-subtitle {
-                display: none;
-            }
-        }
-
         /* ═══════════════════════════════════════════════════════════════
-           MODE TOGGLE
+           MODE TOGGLE (in header)
            ═══════════════════════════════════════════════════════════════ */
         
         .mode-toggle {
-            position: fixed;
-            bottom: var(--space-md);
-            right: var(--space-md);
-            z-index: 9999;
             display: flex;
-            gap: var(--space-xs);
-            background: var(--panel);
-            border: 1px solid var(--purple);
-            padding: var(--space-xs);
-            backdrop-filter: blur(10px);
+            gap: 0;
+            background: #000;
+            border: 2px solid #000;
+            z-index: 10;
+            margin-left: auto;
         }
         
         .mode-btn {
-            font-family: 'VT323', monospace;
-            font-size: var(--text-sm);
-            padding: var(--space-xs) var(--space-sm);
-            background: transparent;
-            border: 1px solid transparent;
-            color: rgba(255, 255, 255, 0.6);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 12px;
+            font-weight: bold;
+            padding: 8px 12px;
+            background: #000;
+            border: none;
+            border-right: 1px solid #333;
+            color: #888;
             cursor: pointer;
-            transition: all 0.2s ease;
-            min-width: 44px; /* touch target */
-            min-height: 44px;
+            transition: all 0.15s ease;
+            min-height: 34px;
             display: flex;
             align-items: center;
             justify-content: center;
+            letter-spacing: 1px;
+        }
+        
+        .mode-btn:last-child {
+            border-right: none;
         }
         
         .mode-btn:hover {
-            color: var(--cyan);
-            border-color: var(--cyan);
+            color: #fff;
+            background: #111;
         }
         
         .mode-btn.active {
-            color: var(--cyan);
-            border-color: var(--cyan);
-            background: rgba(0, 255, 255, 0.1);
-            text-shadow: 0 0 10px var(--cyan);
+            color: #000;
+            background: var(--cyan);
+        }
+        
+        .mode-btn[data-mode="lite"].active {
+            background: var(--purple);
+            color: #fff;
+        }
+        
+        .mode-btn[data-mode="auto"].active {
+            background: var(--green);
+            color: #000;
         }
         
         .mode-btn:focus {
-            outline: 2px solid var(--cyan);
-            outline-offset: 2px;
+            outline: 2px solid #fff;
+            outline-offset: -2px;
+            z-index: 1;
+        }
+        
+        @media (max-width: 480px) {
+            .mode-btn {
+                font-size: 11px;
+                padding: 8px 10px;
+            }
         }
 
         /* ═══════════════════════════════════════════════════════════════
@@ -557,7 +561,19 @@
     <header class="header-bar" role="banner">
         <div class="header-texture" aria-hidden="true"></div>
         <div class="header-title">ACIDBURN</div>
-        <div class="header-subtitle">template v2.0</div>
+        
+        <!-- Mode Toggle (in header) -->
+        <div class="mode-toggle" role="group" aria-label="Display mode">
+            <button class="mode-btn active" data-mode="full" aria-pressed="true" title="Full effects mode">
+                FULL
+            </button>
+            <button class="mode-btn" data-mode="lite" aria-pressed="false" title="Lite mode (reduced motion)">
+                LITE
+            </button>
+            <button class="mode-btn" data-mode="auto" aria-pressed="false" title="Auto (system preference)">
+                AUTO
+            </button>
+        </div>
     </header>
 
     <!-- Main Content -->
@@ -567,12 +583,12 @@
             <h2>ACCESSIBILITY FEATURES</h2>
             <p>
                 This template now includes mobile-responsive design, accessibility support, 
-                and performance options. Use the toggle in the bottom-right corner to switch modes.
+                and performance options. Use the toggle in the header to switch modes.
             </p>
             <p>
-                <strong class="text-cyan">FULL</strong> — All effects, WebGL black hole, animations<br>
-                <strong class="text-purple">LITE</strong> — Static background, reduced motion, lower GPU usage<br>
-                <strong class="text-pink">AUTO</strong> — Respects your system's motion preferences
+                <strong class="text-cyan">FULL</strong> — WebGL black hole, all animations, glitch effects<br>
+                <strong class="text-purple">LITE</strong> — Static CSS background, no motion, saves battery<br>
+                <strong class="text-green">AUTO</strong> — Detects mobile, reduced-motion preference, battery level
             </p>
         </div>
 
@@ -606,19 +622,6 @@
         </footer>
     </main>
 
-    <!-- Mode Toggle -->
-    <div class="mode-toggle" role="group" aria-label="Display mode">
-        <button class="mode-btn active" data-mode="full" aria-pressed="true" title="Full effects mode">
-            FULL
-        </button>
-        <button class="mode-btn" data-mode="lite" aria-pressed="false" title="Lite mode (reduced motion)">
-            LITE
-        </button>
-        <button class="mode-btn" data-mode="auto" aria-pressed="false" title="Auto (system preference)">
-            AUTO
-        </button>
-    </div>
-
     <!-- Mode Toggle Script -->
     <script>
     (function() {
@@ -637,13 +640,33 @@
             webglSupported = false;
         }
         
-        // Check if mobile
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        // Check if mobile/tablet
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) 
+            || window.innerWidth < 768
+            || ('ontouchstart' in window && navigator.maxTouchPoints > 0);
         
         // Check reduced motion preference
         const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         
+        // Check if on battery (if available)
+        let onBattery = false;
+        if ('getBattery' in navigator) {
+            navigator.getBattery().then(battery => {
+                onBattery = !battery.charging && battery.level < 0.3;
+            }).catch(() => {});
+        }
+        
+        function shouldUseLiteMode() {
+            // AUTO uses lite mode if:
+            // - User prefers reduced motion
+            // - On mobile/tablet device
+            // - WebGL not supported
+            // - On low battery
+            return prefersReducedMotion || isMobile || !webglSupported || onBattery;
+        }
+        
         function setMode(mode) {
+            const previousMode = currentMode;
             currentMode = mode;
             localStorage.setItem('acidburn-mode', mode);
             
@@ -654,22 +677,40 @@
                 btn.setAttribute('aria-pressed', isActive);
             });
             
+            // If switching TO full mode and WebGL wasn't loaded, reload page
+            if (mode === 'full' && previousMode !== 'full' && typeof THREE === 'undefined') {
+                console.log('[ACIDBURN] Reloading to enable WebGL...');
+                location.reload();
+                return;
+            }
+            
             // Apply mode
             body.classList.remove('lite-mode', 'no-webgl');
             
-            if (mode === 'lite' || (mode === 'auto' && prefersReducedMotion)) {
+            if (mode === 'lite') {
+                // Lite: always use static background, no animations
                 body.classList.add('lite-mode');
                 stopGlitch();
             } else if (mode === 'full') {
-                if (!webglSupported || isMobile) {
+                // Full: force all effects (user explicitly chose this)
+                if (!webglSupported) {
                     body.classList.add('no-webgl');
                 }
                 startGlitch();
-            } else { // auto
-                if (!webglSupported || isMobile) {
-                    body.classList.add('no-webgl');
+            } else {
+                // Auto: detect and decide
+                if (shouldUseLiteMode()) {
+                    body.classList.add('lite-mode');
+                    stopGlitch();
+                    console.log('[ACIDBURN] AUTO → Lite mode (detected: ' + 
+                        (prefersReducedMotion ? 'reduced-motion ' : '') +
+                        (isMobile ? 'mobile ' : '') +
+                        (!webglSupported ? 'no-webgl ' : '') +
+                        (onBattery ? 'low-battery' : '') + ')');
+                } else {
+                    startGlitch();
+                    console.log('[ACIDBURN] AUTO → Full mode');
                 }
-                startGlitch();
             }
         }
         
@@ -703,12 +744,16 @@
             }
         });
         
-        // If no WebGL or mobile, default to lite for first-time visitors
-        if (!localStorage.getItem('acidburn-mode')) {
-            if (!webglSupported || isMobile) {
-                currentMode = 'lite';
+        // Listen for resize (in case of orientation change)
+        window.addEventListener('resize', () => {
+            if (currentMode === 'auto') {
+                // Re-evaluate on significant size change
+                const nowMobile = window.innerWidth < 768;
+                if (nowMobile !== isMobile) {
+                    setMode('auto');
+                }
             }
-        }
+        });
         
         // Initialize
         setMode(currentMode);
@@ -727,56 +772,393 @@
     <script>
     // Only load heavy WebGL dependencies if not in lite mode
     (function() {
-        const isLiteMode = document.body.classList.contains('lite-mode');
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        
-        if (isLiteMode || isMobile) {
-            console.log('[ACIDBURN] Lite mode: skipping WebGL dependencies');
-            return;
+        function shouldLoadWebGL() {
+            const mode = localStorage.getItem('acidburn-mode') || 'auto';
+            const isLiteMode = document.body.classList.contains('lite-mode');
+            
+            // Load WebGL if:
+            // - Mode is explicitly FULL, OR
+            // - Mode is AUTO and not determined to be lite
+            return mode === 'full' || (mode === 'auto' && !isLiteMode);
         }
         
-        // Load scripts dynamically
-        const scripts = [
-            'js-libs/jquery-2.1.4.min.js',
-            'js-libs/three.min.js',
-            'js-libs/OrbitControls.js',
-            'js-libs/Detector.js',
-            'js-libs/stats.min.js',
-            'js-libs/ShaderLoader.min.js',
-            'js-libs/mustache.min.js',
-            'js-libs/dat.gui.min.js',
-            'three-js-monkey-patch.js'
-        ];
-        
-        let loadIndex = 0;
-        
-        function loadNext() {
-            if (loadIndex >= scripts.length) {
-                // All loaded, init black hole
-                initBlackHole();
+        // Wait a tick for mode detection to run first
+        setTimeout(() => {
+            if (!shouldLoadWebGL()) {
+                console.log('[ACIDBURN] Skipping WebGL dependencies (lite mode)');
                 return;
             }
             
-            const script = document.createElement('script');
-            script.src = scripts[loadIndex];
-            script.onload = () => {
-                loadIndex++;
-                loadNext();
-            };
-            script.onerror = () => {
-                console.warn('[ACIDBURN] Failed to load:', scripts[loadIndex]);
-                document.body.classList.add('no-webgl');
-            };
-            document.body.appendChild(script);
-        }
-        
-        loadNext();
+            console.log('[ACIDBURN] Loading WebGL dependencies...');
+            
+            // Load scripts dynamically
+            const scripts = [
+                'js-libs/jquery-2.1.4.min.js',
+                'js-libs/three.min.js',
+                'js-libs/OrbitControls.js',
+                'js-libs/Detector.js',
+                'js-libs/stats.min.js',
+                'js-libs/ShaderLoader.min.js',
+                'js-libs/mustache.min.js',
+                'js-libs/dat.gui.min.js',
+                'three-js-monkey-patch.js'
+            ];
+            
+            let loadIndex = 0;
+            
+            function loadNext() {
+                if (loadIndex >= scripts.length) {
+                    // All loaded, init black hole
+                    console.log('[ACIDBURN] All dependencies loaded, initializing black hole...');
+                    initBlackHole();
+                    return;
+                }
+                
+                const script = document.createElement('script');
+                script.src = scripts[loadIndex];
+                script.onload = () => {
+                    loadIndex++;
+                    loadNext();
+                };
+                script.onerror = () => {
+                    console.warn('[ACIDBURN] Failed to load:', scripts[loadIndex]);
+                    document.body.classList.add('no-webgl');
+                };
+                document.body.appendChild(script);
+            }
+            
+            loadNext();
+        }, 50);
     })();
     
+    // ═══════════════════════════════════════════════════════════════
+    // BLACK HOLE RENDERER
+    // ═══════════════════════════════════════════════════════════════
+    
     function initBlackHole() {
-        // ... black hole initialization code goes here
-        // (same as before, but wrapped in this function)
-        console.log('[ACIDBURN] Black hole renderer initialized');
+        "use strict";
+
+        if (typeof THREE === 'undefined') {
+            console.error('[ACIDBURN] THREE.js not loaded');
+            document.body.classList.add('no-webgl');
+            return;
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // OBSERVER CLASS
+        // ═══════════════════════════════════════════════════════════════
+
+        function Observer() {
+            this.position = new THREE.Vector3(10, 0, 0);
+            this.velocity = new THREE.Vector3(0, 1, 0);
+            this.orientation = new THREE.Matrix3();
+            this.time = 0.0;
+        }
+
+        Observer.prototype.orbitalFrame = function () {
+            var orbital_y = new THREE.Vector3()
+                .subVectors(
+                    this.velocity.clone().normalize().multiplyScalar(4.0),
+                    this.position
+                )
+                .normalize();
+            var orbital_z = new THREE.Vector3()
+                .crossVectors(this.position, orbital_y)
+                .normalize();
+            var orbital_x = new THREE.Vector3().crossVectors(orbital_y, orbital_z);
+            return new THREE.Matrix4()
+                .makeBasis(orbital_x, orbital_y, orbital_z)
+                .linearPart();
+        };
+
+        Observer.prototype.move = function (dt) {
+            dt *= shader.parameters.time_scale;
+            var r, v = 0;
+
+            if (shader.parameters.observer.motion) {
+                r = shader.parameters.observer.distance;
+                v = 1.0 / Math.sqrt(2.0 * (r - 1.0));
+                var ang_vel = v / r;
+                var angle = this.time * ang_vel;
+                var s = Math.sin(angle), c = Math.cos(angle);
+
+                this.position.set(c * r, s * r, 0);
+                this.velocity.set(-s * v, c * v, 0);
+
+                var alpha = degToRad(shader.parameters.observer.orbital_inclination);
+                var orbit_coords = new THREE.Matrix4().makeRotationY(alpha);
+                this.position.applyMatrix4(orbit_coords);
+                this.velocity.applyMatrix4(orbit_coords);
+            } else {
+                r = this.position.length();
+            }
+
+            if (shader.parameters.gravitational_time_dilation) {
+                dt = Math.sqrt((dt * dt * (1.0 - v * v)) / (1 - 1.0 / r));
+            }
+            this.time += dt;
+        };
+
+        // ═══════════════════════════════════════════════════════════════
+        // SHADER CLASS
+        // ═══════════════════════════════════════════════════════════════
+
+        var container, camera, scene, renderer, shader = null;
+        var observer = new Observer();
+
+        function Shader(mustacheTemplate) {
+            this.parameters = {
+                n_steps: 100,
+                quality: "medium",
+                accretion_disk: true,
+                planet: { enabled: false, distance: 7.0, radius: 0.4 },
+                lorentz_contraction: true,
+                gravitational_time_dilation: true,
+                aberration: true,
+                beaming: true,
+                doppler_shift: true,
+                light_travel_time: true,
+                time_scale: 0.5,
+                observer: { 
+                    motion: true, 
+                    distance: 15.0,
+                    orbital_inclination: -15 
+                },
+                planetEnabled: function () {
+                    return this.planet.enabled && this.quality !== "fast";
+                },
+                observerMotion: function () {
+                    return this.observer.motion;
+                },
+            };
+            var that = this;
+            this.needsUpdate = false;
+            this.hasMovingParts = function () {
+                return this.parameters.planet.enabled || this.parameters.observer.motion;
+            };
+            this.compile = function () {
+                return Mustache.render(mustacheTemplate, that.parameters);
+            };
+        }
+
+        function degToRad(a) {
+            return (Math.PI * a) / 180.0;
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // TEXTURE LOADING
+        // ═══════════════════════════════════════════════════════════════
+
+        var textures = {};
+
+        function whenLoaded() {
+            init(textures);
+            var loader = document.getElementById('loader');
+            if (loader) loader.style.display = 'none';
+            animate();
+        }
+
+        function checkLoaded() {
+            if (shader === null) return;
+            for (var key in textures) if (textures[key] === null) return;
+            whenLoaded();
+        }
+
+        SHADER_LOADER.load(function (shaders) {
+            shader = new Shader(shaders.raytracer.fragment);
+            checkLoaded();
+        });
+
+        var texLoader = new THREE.TextureLoader();
+        function loadTexture(symbol, filename, interpolation) {
+            textures[symbol] = null;
+            texLoader.load(filename, function (tex) {
+                tex.magFilter = interpolation;
+                tex.minFilter = interpolation;
+                textures[symbol] = tex;
+                checkLoaded();
+            });
+        }
+
+        loadTexture("galaxy", "img/milkyway.jpg", THREE.NearestFilter);
+        loadTexture("spectra", "img/spectra.png", THREE.LinearFilter);
+        loadTexture("moon", "img/beach-ball.png", THREE.LinearFilter);
+        loadTexture("stars", "img/stars.png", THREE.LinearFilter);
+        loadTexture("accretion_disk", "img/accretion-disk.png", THREE.LinearFilter);
+
+        // ═══════════════════════════════════════════════════════════════
+        // INITIALIZATION
+        // ═══════════════════════════════════════════════════════════════
+
+        var updateUniforms;
+
+        function init(textures) {
+            container = document.getElementById("blackhole-container");
+            if (!container) {
+                console.error('[ACIDBURN] Black hole container not found');
+                return;
+            }
+
+            scene = new THREE.Scene();
+            var geometry = new THREE.PlaneBufferGeometry(2, 2);
+
+            var uniforms = {
+                time: { type: "f", value: 0 },
+                resolution: { type: "v2", value: new THREE.Vector2() },
+                cam_pos: { type: "v3", value: new THREE.Vector3() },
+                cam_x: { type: "v3", value: new THREE.Vector3() },
+                cam_y: { type: "v3", value: new THREE.Vector3() },
+                cam_z: { type: "v3", value: new THREE.Vector3() },
+                cam_vel: { type: "v3", value: new THREE.Vector3() },
+                planet_distance: { type: "f" },
+                planet_radius: { type: "f" },
+                star_texture: { type: "t", value: textures.stars },
+                accretion_disk_texture: { type: "t", value: textures.accretion_disk },
+                galaxy_texture: { type: "t", value: textures.galaxy },
+                planet_texture: { type: "t", value: textures.moon },
+                spectrum_texture: { type: "t", value: textures.spectra },
+            };
+
+            updateUniforms = function () {
+                uniforms.planet_distance.value = shader.parameters.planet.distance;
+                uniforms.planet_radius.value = shader.parameters.planet.radius;
+                uniforms.resolution.value.x = renderer.domElement.width;
+                uniforms.resolution.value.y = renderer.domElement.height;
+                uniforms.time.value = observer.time;
+                uniforms.cam_pos.value = observer.position;
+
+                var e = observer.orientation.elements;
+                uniforms.cam_x.value.set(e[0], e[1], e[2]);
+                uniforms.cam_y.value.set(e[3], e[4], e[5]);
+                uniforms.cam_z.value.set(e[6], e[7], e[8]);
+
+                function setVec(target, value) {
+                    uniforms[target].value.set(value.x, value.y, value.z);
+                }
+                setVec("cam_pos", observer.position);
+                setVec("cam_vel", observer.velocity);
+            };
+
+            var material = new THREE.ShaderMaterial({
+                uniforms: uniforms,
+                vertexShader: document.getElementById("vertex-shader").textContent,
+            });
+
+            scene.updateShader = function () {
+                material.fragmentShader = shader.compile();
+                material.needsUpdate = true;
+                shader.needsUpdate = true;
+            };
+            scene.updateShader();
+
+            var mesh = new THREE.Mesh(geometry, material);
+            scene.add(mesh);
+
+            renderer = new THREE.WebGLRenderer();
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 80000);
+            initializeCamera(camera);
+
+            updateCamera();
+            onWindowResize();
+            window.addEventListener("resize", onWindowResize, false);
+            
+            console.log('[ACIDBURN] Black hole renderer initialized');
+        }
+
+        function onWindowResize() {
+            if (renderer) {
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                if (updateUniforms) updateUniforms();
+            }
+        }
+
+        function initializeCamera(camera) {
+            var pitchAngle = 3.0, yawAngle = 0.0;
+            camera.matrixWorldInverse.makeRotationX(degToRad(-pitchAngle));
+            camera.matrixWorldInverse.multiply(new THREE.Matrix4().makeRotationY(degToRad(-yawAngle)));
+            var m = camera.matrixWorldInverse.elements;
+            camera.position.set(m[2], m[6], m[10]);
+        }
+
+        function updateCamera() {
+            var m = camera.matrixWorldInverse.elements;
+            var camera_matrix;
+
+            if (shader.parameters.observer.motion) {
+                camera_matrix = new THREE.Matrix3();
+            } else {
+                camera_matrix = observer.orientation;
+            }
+
+            camera_matrix.set(m[0], m[1], m[2], m[8], m[9], m[10], m[4], m[5], m[6]);
+
+            if (shader.parameters.observer.motion) {
+                observer.orientation = observer.orbitalFrame().multiply(camera_matrix);
+            } else {
+                var p = new THREE.Vector3(
+                    camera_matrix.elements[6],
+                    camera_matrix.elements[7],
+                    camera_matrix.elements[8]
+                );
+                var dist = shader.parameters.observer.distance;
+                observer.position.set(-p.x * dist, -p.y * dist, -p.z * dist);
+                observer.velocity.set(0, 0, 0);
+            }
+        }
+
+        function frobeniusDistance(matrix1, matrix2) {
+            var sum = 0.0;
+            for (var i in matrix1.elements) {
+                var diff = matrix1.elements[i] - matrix2.elements[i];
+                sum += diff * diff;
+            }
+            return Math.sqrt(sum);
+        }
+
+        // ═══════════════════════════════════════════════════════════════
+        // ANIMATION LOOP
+        // ═══════════════════════════════════════════════════════════════
+
+        var lastCameraMat = new THREE.Matrix4().identity();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Stop rendering if switched to lite mode
+            if (document.body.classList.contains('lite-mode')) {
+                return;
+            }
+            
+            camera.updateMatrixWorld();
+            camera.matrixWorldInverse.getInverse(camera.matrixWorld);
+
+            if (shader.needsUpdate || shader.hasMovingParts() ||
+                frobeniusDistance(camera.matrixWorldInverse, lastCameraMat) > 1e-10) {
+                shader.needsUpdate = false;
+                render();
+                lastCameraMat = camera.matrixWorldInverse.clone();
+            }
+        }
+
+        var getFrameDuration = (function () {
+            var lastTimestamp = new Date().getTime();
+            return function () {
+                var timestamp = new Date().getTime();
+                var diff = (timestamp - lastTimestamp) / 1000.0;
+                lastTimestamp = timestamp;
+                return diff;
+            };
+        })();
+
+        function render() {
+            observer.move(getFrameDuration());
+            if (shader.parameters.observer.motion) updateCamera();
+            updateUniforms();
+            renderer.render(scene, camera);
+        }
     }
     </script>
 </body>
