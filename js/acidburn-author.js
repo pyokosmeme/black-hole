@@ -3,10 +3,31 @@
  * 
  * Handles loading and displaying author info, links, and posts
  * from JSON config and markdown files.
+ * 
+ * USAGE:
+ * Set window.PAGE_CONFIG before loading this script:
+ * 
+ *   <script>
+ *     window.PAGE_CONFIG = {
+ *       configPath: 'maps/config.json',  // path to config.json
+ *       contentDir: 'maps/',              // base path for content files
+ *       titleSuffix: 'SPECULATIVE MAPS'   // appended to page title
+ *     };
+ *   </script>
+ *   <script src="js/acidburn-author.js"></script>
  */
 
 (function() {
     'use strict';
+
+    // ═══════════════════════════════════════════════════════════════
+    // PAGE CONFIG (can be overridden per-page)
+    // ═══════════════════════════════════════════════════════════════
+    
+    const PAGE = window.PAGE_CONFIG || {};
+    const CONFIG_PATH = PAGE.configPath || 'author/config.json';
+    const CONTENT_DIR = PAGE.contentDir || 'author/';
+    const TITLE_SUFFIX = PAGE.titleSuffix || 'transmissions';
 
     // ═══════════════════════════════════════════════════════════════
     // STATE
@@ -34,8 +55,9 @@
     // ═══════════════════════════════════════════════════════════════
 
     async function loadConfig() {
-        const response = await fetch('author/config.json');
-        if (!response.ok) throw new Error('Failed to load config.json');
+        console.log('[ACIDBURN Author] Loading config from:', CONFIG_PATH);
+        const response = await fetch(CONFIG_PATH);
+        if (!response.ok) throw new Error('Failed to load ' + CONFIG_PATH);
         CONFIG = await response.json();
         return CONFIG;
     }
@@ -61,14 +83,14 @@
         if (authorTagline) authorTagline.textContent = author.tagline;
         if (authorAvatar) authorAvatar.textContent = author.avatar;
         
-        document.title = `${author.handle} // hard SF transmissions`;
+        document.title = `${author.handle} // ${TITLE_SUFFIX}`;
 
         // Load avatar image if specified
         if (author.avatar_image) {
             const avatarContainer = document.querySelector('.author-avatar');
             if (avatarContainer) {
                 const img = document.createElement('img');
-                img.src = 'author/' + author.avatar_image;
+                img.src = CONTENT_DIR + author.avatar_image;
                 img.alt = author.name;
                 img.onload = () => {
                     avatarContainer.classList.add('has-image');
@@ -86,7 +108,7 @@
         if (!CONFIG) return;
         
         try {
-            const response = await fetch('author/' + CONFIG.author.bio_file);
+            const response = await fetch(CONTENT_DIR + CONFIG.author.bio_file);
             if (!response.ok) throw new Error('Failed to load bio');
             const markdown = await response.text();
             const bioEl = document.getElementById('author-bio');
@@ -130,7 +152,7 @@
         if (!CONFIG) return;
         
         try {
-            const response = await fetch('author/' + CONFIG.posts_index);
+            const response = await fetch(CONTENT_DIR + CONFIG.posts_index);
             if (!response.ok) throw new Error('Failed to load posts index');
             const markdown = await response.text();
             POSTS = parsePostsMarkdown(markdown);
@@ -226,7 +248,7 @@
             postContent.innerHTML = '<div class="loading">LOADING SIGNAL</div>';
 
             try {
-                const response = await fetch('author/' + post.file);
+                const response = await fetch(CONTENT_DIR + post.file);
                 if (!response.ok) throw new Error('Failed to load post');
                 const markdown = await response.text();
                 if (typeof marked !== 'undefined') {
