@@ -29,7 +29,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
-    <script src="acidburn-galaxy.js"></script>
+    
     <style>
         /* ═══════════════════════════════════════════════════════════════
            CSS VARIABLES
@@ -730,6 +730,11 @@
                 glitchInterval = null;
             }
             body.classList.remove('glitch');
+            
+            // Also stop galaxy animation
+            if (typeof AcidburnGalaxy !== 'undefined' && AcidburnGalaxy.stop) {
+                AcidburnGalaxy.stop();
+            }
         }
         
         // Event listeners
@@ -801,7 +806,8 @@
                 'js-libs/ShaderLoader.min.js',
                 'js-libs/mustache.min.js',
                 'js-libs/dat.gui.min.js',
-                'three-js-monkey-patch.js'
+                'three-js-monkey-patch.js',
+                'acidburn-galaxy.js'
             ];
             
             let loadIndex = 0;
@@ -822,7 +828,9 @@
                 };
                 script.onerror = () => {
                     console.warn('[ACIDBURN] Failed to load:', scripts[loadIndex]);
-                    document.body.classList.add('no-webgl');
+                    // Continue anyway for non-critical scripts
+                    loadIndex++;
+                    loadNext();
                 };
                 document.body.appendChild(script);
             }
@@ -980,7 +988,44 @@
             });
         }
 
-        loadTexture("galaxy", "img/milkyway.jpg", THREE.NearestFilter);
+        // Use acidburn-galaxy.js procedural texture instead of milkyway.jpg
+        var galaxyTexture = null;
+        
+        function loadAcidburnGalaxy() {
+            textures["galaxy"] = null;
+            
+            if (typeof AcidburnGalaxy !== 'undefined') {
+                console.log('[ACIDBURN] Generating procedural galaxy texture...');
+                var galaxyCanvas = AcidburnGalaxy.generate({
+                    width: 2048,
+                    height: 1024,
+                    animated: true
+                });
+                
+                galaxyTexture = new THREE.CanvasTexture(galaxyCanvas);
+                galaxyTexture.magFilter = THREE.LinearFilter;
+                galaxyTexture.minFilter = THREE.LinearFilter;
+                galaxyTexture.wrapS = THREE.RepeatWrapping;
+                galaxyTexture.wrapT = THREE.RepeatWrapping;
+                textures["galaxy"] = galaxyTexture;
+                
+                // Start animation with texture update callback
+                AcidburnGalaxy.start(function() {
+                    if (galaxyTexture) {
+                        galaxyTexture.needsUpdate = true;
+                    }
+                });
+                
+                console.log('[ACIDBURN] Procedural galaxy texture ready (animated)');
+                checkLoaded();
+            } else {
+                // Fallback to milkyway.jpg if acidburn-galaxy.js not loaded
+                console.log('[ACIDBURN] Falling back to milkyway.jpg');
+                loadTexture("galaxy", "img/milkyway.jpg", THREE.NearestFilter);
+            }
+        }
+        
+        loadAcidburnGalaxy();
         loadTexture("spectra", "img/spectra.png", THREE.LinearFilter);
         loadTexture("moon", "img/beach-ball.png", THREE.LinearFilter);
         loadTexture("stars", "img/stars.png", THREE.LinearFilter);
