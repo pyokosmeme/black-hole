@@ -232,10 +232,10 @@ body.glitch {
     height: 50px;
     z-index: 1000;
     display: flex;
-    justify-content: space-between;
     align-items: center;
     padding: 0 var(--space-md);
     overflow: visible;
+    gap: var(--space-sm);
 }
 
 @media (max-width: 600px) {
@@ -317,6 +317,7 @@ body.glitch {
     z-index: 10;
     text-decoration: none;
     cursor: pointer;
+    flex-shrink: 0;
 }
 
 @media (max-width: 600px) {
@@ -351,6 +352,16 @@ body.glitch {
     font-size: var(--text-xs);
     color: rgba(0,0,0,0.7);
     letter-spacing: 1px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   NAV MENU CONTAINER (styles from nav-menu.js are supplemental)
+   ═══════════════════════════════════════════════════════════════ */
+
+#nav-menu {
+    z-index: 100;
+    position: relative;
+    margin-right: var(--space-md);
 }
 
 /* ═══════════════════════════════════════════════════════════════
