@@ -1,25 +1,31 @@
 /**
- * ACIDBURN GALAXY v2
+ * ACIDBURN GALAXY v2.1
  * 
  * Tiger stripe aesthetic matching the page design
  * Replaces milkyway.jpg with procedural cyberpunk texture
  * 
- * Add AFTER main.js:
- *   <script src="acidburn-galaxy.js"></script>
+ * USAGE:
+ *   // Generate a static canvas texture
+ *   const canvas = AcidburnGalaxy.generate({ width: 2048, height: 1024 });
+ *   
+ *   // Or with animation
+ *   const canvas = AcidburnGalaxy.generate({ animated: true });
+ *   AcidburnGalaxy.start(); // start animation loop
+ *   AcidburnGalaxy.stop();  // stop animation
  */
 
-(function() {
+var AcidburnGalaxy = (function() {
   'use strict';
 
   // ═══════════════════════════════════════════════════════════════
-  // CONFIGURATION
+  // DEFAULT CONFIGURATION
   // ═══════════════════════════════════════════════════════════════
   
-  const CONFIG = {
+  const DEFAULTS = {
     width: 2048,
     height: 1024,
     
-    animated: true,
+    animated: false,
     frameRate: 20,
     
     colors: {
@@ -30,13 +36,13 @@
       pink: '#ff0099',
     },
     
-    // Grid - original style, color matched
+    // Grid
     grid: {
       enabled: true,
       latLines: 24,
       lonLines: 48,
       lineWidth: 1,
-      opacity: 0.5
+      opacity: 0.25
     },
     
     // Floating nodes
@@ -51,7 +57,7 @@
     // Glow regions
     glows: {
       enabled: true,
-      count: 40
+      count: 4
     },
     
     // Noise particles (stars)
@@ -66,10 +72,10 @@
   // STATE
   // ═══════════════════════════════════════════════════════════════
   
-  let canvas, ctx;
-  let texture = null;
+  let canvas, ctx, config;
   let animationId = null;
   let time = 0;
+  let onUpdate = null;
   
   const nodes = [];
   const glows = [];
@@ -88,22 +94,29 @@
   // INITIALIZATION
   // ═══════════════════════════════════════════════════════════════
   
-  function init() {
+  function generate(options) {
+    config = Object.assign({}, DEFAULTS, options);
+    
     canvas = document.createElement('canvas');
-    canvas.width = CONFIG.width;
-    canvas.height = CONFIG.height;
+    canvas.width = config.width;
+    canvas.height = config.height;
     ctx = canvas.getContext('2d');
+    
+    // Clear arrays
+    nodes.length = 0;
+    glows.length = 0;
+    time = 0;
     
     // Initialize nodes
     resetSeed();
-    if (CONFIG.nodes.enabled) {
-      for (let i = 0; i < CONFIG.nodes.count; i++) {
+    if (config.nodes.enabled) {
+      for (let i = 0; i < config.nodes.count; i++) {
         nodes.push({
-          x: seededRandom() * CONFIG.width,
-          y: seededRandom() * CONFIG.height,
-          vx: (seededRandom() - 0.5) * CONFIG.nodes.speed,
-          vy: (seededRandom() - 0.5) * CONFIG.nodes.speed,
-          size: 0.5 + seededRandom() * CONFIG.nodes.maxSize,
+          x: seededRandom() * config.width,
+          y: seededRandom() * config.height,
+          vx: (seededRandom() - 0.5) * config.nodes.speed,
+          vy: (seededRandom() - 0.5) * config.nodes.speed,
+          size: 0.5 + seededRandom() * config.nodes.maxSize,
           color: seededRandom() > 0.5 ? 'cyan' : 'purple',
           pulse: seededRandom() * Math.PI * 2
         });
@@ -111,11 +124,11 @@
     }
     
     // Initialize glow regions
-    if (CONFIG.glows.enabled) {
-      for (let i = 0; i < CONFIG.glows.count; i++) {
+    if (config.glows.enabled) {
+      for (let i = 0; i < config.glows.count; i++) {
         glows.push({
-          x: seededRandom() * CONFIG.width,
-          y: seededRandom() * CONFIG.height,
+          x: seededRandom() * config.width,
+          y: seededRandom() * config.height,
           radius: 100 + seededRandom() * 200,
           color: seededRandom() > 0.5 ? 'purple' : 'cyan',
           phase: seededRandom() * Math.PI * 2
@@ -125,29 +138,9 @@
     
     draw();
     
-    texture = new THREE.CanvasTexture(canvas);
-    texture.magFilter = THREE.LinearFilter;
-    texture.minFilter = THREE.LinearFilter;
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.ClampToEdgeWrapping;
+    console.log('[AcidburnGalaxy] Generated ' + config.width + 'x' + config.height + ' texture');
     
-    waitForBlackHole();
-  }
-  
-  function waitForBlackHole() {
-    if (typeof scene !== 'undefined' && scene.children && scene.children.length > 0) {
-      const mesh = scene.children[0];
-      if (mesh && mesh.material && mesh.material.uniforms && mesh.material.uniforms.galaxy_texture) {
-        mesh.material.uniforms.galaxy_texture.value = texture;
-        console.log('[acidburn-galaxy] Texture replaced');
-        
-        if (CONFIG.animated) {
-          startAnimation();
-        }
-        return;
-      }
-    }
-    setTimeout(waitForBlackHole, 100);
+    return canvas;
   }
 
   // ═══════════════════════════════════════════════════════════════
@@ -155,42 +148,45 @@
   // ═══════════════════════════════════════════════════════════════
   
   function draw() {
-    const { width, height } = CONFIG;
+    if (!ctx || !config) return;
+    
+    const { width, height } = config;
     
     // Clear with dark background
-    ctx.fillStyle = CONFIG.colors.background;
+    ctx.fillStyle = config.colors.background;
     ctx.fillRect(0, 0, width, height);
     
     // Base gradient (subtle)
     drawBaseGradient();
     
     // Glow regions
-    if (CONFIG.glows.enabled) {
+    if (config.glows.enabled) {
       drawGlows();
     }
     
     // Grid
-    if (CONFIG.grid.enabled) {
+    if (config.grid.enabled) {
       drawGrid();
     }
     
     // Noise
-    if (CONFIG.noise.enabled) {
+    if (config.noise.enabled) {
       drawNoise();
     }
     
     // Nodes
-    if (CONFIG.nodes.enabled) {
+    if (config.nodes.enabled) {
       drawNodes();
     }
     
-    if (texture) {
-      texture.needsUpdate = true;
+    // Callback for texture update
+    if (onUpdate) {
+      onUpdate(canvas);
     }
   }
   
   function drawBaseGradient() {
-    const { width, height, colors } = CONFIG;
+    const { width, height, colors } = config;
     
     // Vertical gradient - purple at poles, darker in middle
     const vGrad = ctx.createLinearGradient(0, 0, 0, height);
@@ -207,7 +203,7 @@
   function drawGlows() {
     for (const glow of glows) {
       const pulse = Math.sin(time * 0.02 + glow.phase) * 0.3 + 0.7;
-      const color = CONFIG.colors[glow.color];
+      const color = config.colors[glow.color];
       
       const grad = ctx.createRadialGradient(
         glow.x, glow.y, 0,
@@ -224,19 +220,19 @@
       grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
       
       ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, CONFIG.width, CONFIG.height);
+      ctx.fillRect(0, 0, config.width, config.height);
     }
   }
   
   function drawGrid() {
-    const { width, height } = CONFIG;
-    const { latLines, lonLines, opacity, lineWidth } = CONFIG.grid;
+    const { width, height } = config;
+    const { latLines, lonLines, opacity, lineWidth } = config.grid;
     
     ctx.globalAlpha = opacity;
     ctx.lineWidth = lineWidth || 1;
     
     // Latitude lines (cyan)
-    ctx.strokeStyle = CONFIG.colors.cyan;
+    ctx.strokeStyle = config.colors.cyan;
     for (let i = 0; i <= latLines; i++) {
       const y = (i / latLines) * height;
       ctx.beginPath();
@@ -246,7 +242,7 @@
     }
     
     // Longitude lines (purple)
-    ctx.strokeStyle = CONFIG.colors.purple;
+    ctx.strokeStyle = config.colors.purple;
     for (let i = 0; i <= lonLines; i++) {
       const x = (i / lonLines) * width;
       ctx.beginPath();
@@ -272,22 +268,22 @@
   function drawNoise() {
     resetSeed();
     
-    for (let i = 0; i < CONFIG.noise.count; i++) {
-      const x = seededRandom() * CONFIG.width;
-      const y = seededRandom() * CONFIG.height;
+    for (let i = 0; i < config.noise.count; i++) {
+      const x = seededRandom() * config.width;
+      const y = seededRandom() * config.height;
       const size = seededRandom() * 2;
       
       // Vary color
       const colorChoice = seededRandom();
       if (colorChoice > 0.7) {
-        ctx.fillStyle = CONFIG.colors.cyan;
+        ctx.fillStyle = config.colors.cyan;
       } else if (colorChoice > 0.4) {
-        ctx.fillStyle = CONFIG.colors.purple;
+        ctx.fillStyle = config.colors.purple;
       } else {
         ctx.fillStyle = '#ffffff';
       }
       
-      ctx.globalAlpha = CONFIG.noise.opacity * (0.3 + seededRandom() * 0.7);
+      ctx.globalAlpha = config.noise.opacity * (0.3 + seededRandom() * 0.7);
       ctx.fillRect(x, y, size, size);
     }
     
@@ -297,31 +293,31 @@
   function drawNodes() {
     for (const node of nodes) {
       // Update position
-      if (CONFIG.animated) {
+      if (config.animated) {
         node.x += node.vx;
         node.y += node.vy;
         node.pulse += 0.05;
         
         // Wrap
-        if (node.x < 0) node.x += CONFIG.width;
-        if (node.x > CONFIG.width) node.x -= CONFIG.width;
-        if (node.y < 0) node.y += CONFIG.height;
-        if (node.y > CONFIG.height) node.y -= CONFIG.height;
+        if (node.x < 0) node.x += config.width;
+        if (node.x > config.width) node.x -= config.width;
+        if (node.y < 0) node.y += config.height;
+        if (node.y > config.height) node.y -= config.height;
       }
       
       // Pulse effect
       const pulse = Math.sin(node.pulse) * 0.3 + 0.7;
       const size = node.size * pulse;
       
-      ctx.globalAlpha = CONFIG.nodes.opacity * pulse;
-      ctx.fillStyle = CONFIG.colors[node.color];
+      ctx.globalAlpha = config.nodes.opacity * pulse;
+      ctx.fillStyle = config.colors[node.color];
       
       ctx.beginPath();
       ctx.arc(node.x, node.y, size, 0, Math.PI * 2);
       ctx.fill();
       
       // Glow
-      ctx.globalAlpha = CONFIG.nodes.opacity * 0.3 * pulse;
+      ctx.globalAlpha = config.nodes.opacity * 0.3 * pulse;
       ctx.beginPath();
       ctx.arc(node.x, node.y, size * 3, 0, Math.PI * 2);
       ctx.fill();
@@ -334,8 +330,16 @@
   // ANIMATION
   // ═══════════════════════════════════════════════════════════════
   
-  function startAnimation() {
-    const frameInterval = 1000 / CONFIG.frameRate;
+  function start(updateCallback) {
+    if (!config) {
+      console.warn('[AcidburnGalaxy] Call generate() first');
+      return;
+    }
+    
+    config.animated = true;
+    onUpdate = updateCallback || null;
+    
+    const frameInterval = 1000 / config.frameRate;
     let lastFrame = 0;
     
     function animate(timestamp) {
@@ -348,12 +352,14 @@
     }
     
     animationId = requestAnimationFrame(animate);
+    console.log('[AcidburnGalaxy] Animation started');
   }
   
-  function stopAnimation() {
+  function stop() {
     if (animationId) {
       cancelAnimationFrame(animationId);
       animationId = null;
+      console.log('[AcidburnGalaxy] Animation stopped');
     }
   }
 
@@ -361,22 +367,13 @@
   // PUBLIC API
   // ═══════════════════════════════════════════════════════════════
   
-  window.acidburnGalaxy = {
-    config: CONFIG,
+  return {
+    generate: generate,
+    start: start,
+    stop: stop,
     redraw: draw,
-    start: startAnimation,
-    stop: stopAnimation,
-    getCanvas: () => canvas
+    getCanvas: function() { return canvas; },
+    getConfig: function() { return config; }
   };
-
-  // ═══════════════════════════════════════════════════════════════
-  // INIT
-  // ═══════════════════════════════════════════════════════════════
-  
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
   
 })();
