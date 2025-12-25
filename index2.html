@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>hard SF transmissions from A.N. Alex</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- ═══════════════════════════════════════════════════════════════
+         META TAGS
+         ═══════════════════════════════════════════════════════════════ -->
+    <meta name="description" content="hard SF transmissions from A.N. Alex ;; A Mote in Shadow. physics as constraint. humanity as nodes pulsing in the dark, transmitting into the UNKNOWN.">
+    <meta name="author" content="Author NPC Alex">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="lastnpcalex.agency">
+    <meta property="og:title" content="lastnpcalex.agency">
+    <meta property="og:description" content="hard SF transmissions from A.N. Alex ;; A Mote in Shadow. physics as constraint. humanity as nodes pulsing in the dark, transmitting into the UNKNOWN.">
+    <meta property="og:url" content="https://lastnpcalex.agency">
+    <meta property="og:image" content="https://lastnpcalex.agency/img/banner.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Retro-futuristic space scene with black hole and neon grid">
+    <meta property="og:locale" content="en_US">
+
+    <!-- Theme -->
+    <meta name="theme-color" content="#0a0a1a">
+    <meta name="msapplication-TileColor" content="#bf00ff">
+    
+    <!-- ═══════════════════════════════════════════════════════════════
+         FONTS
+         ═══════════════════════════════════════════════════════════════ -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=VT323&display=swap" rel="stylesheet">
+    
+    <!-- ═══════════════════════════════════════════════════════════════
+         STYLES
+         ═══════════════════════════════════════════════════════════════ -->
+    <link rel="stylesheet" href="css/acidburn.css">
+    
+    <!-- ═══════════════════════════════════════════════════════════════
+         WEBGL DEPENDENCIES (loaded conditionally by acidburn-mode.js)
+         Only load if not in lite mode
+         ═══════════════════════════════════════════════════════════════ -->
+    <script>
+        // Quick check before loading heavy scripts
+        (function() {
+            var mode = localStorage.getItem('acidburn-mode') || 'auto';
+            var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+            var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            
+            // Skip WebGL deps if definitely in lite mode
+            if (mode === 'lite' || (mode === 'auto' && (isMobile || reducedMotion))) {
+                document.documentElement.classList.add('skip-webgl');
+                console.log('[ACIDBURN] Skipping WebGL dependencies (lite mode detected)');
+            }
+        })();
+    </script>
+    
+    <!-- WebGL scripts - only loaded if not skipping -->
+    <script>
+        if (!document.documentElement.classList.contains('skip-webgl')) {
+            document.write('<script src="js-libs/jquery-2.1.4.min.js"><\/script>');
+            document.write('<script src="js-libs/three.min.js"><\/script>');
+            document.write('<script src="js-libs/OrbitControls.js"><\/script>');
+            document.write('<script src="js-libs/Detector.js"><\/script>');
+            document.write('<script src="js-libs/stats.min.js"><\/script>');
+            document.write('<script src="js-libs/ShaderLoader.min.js"><\/script>');
+            document.write('<script src="js-libs/mustache.min.js"><\/script>');
+            document.write('<script src="js-libs/dat.gui.min.js"><\/script>');
+            document.write('<script src="three-js-monkey-patch.js"><\/script>');
+            document.write('<script src="js/acidburn-galaxy.js"><\/script>');
+        }
+    </script>
+    
+    <!-- Marked.js for markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <!-- Skip to main content (accessibility) -->
+    <a href="#main" class="skip-link">Skip to main content</a>
+    
+    <!-- Static Background (lite mode fallback) -->
+    <div class="static-bg" aria-hidden="true"></div>
+    
+    <!-- Black hole container - simulation renders here -->
+    <div id="blackhole-container" aria-hidden="true"></div>
+
+    <!-- Original black hole UI elements (hidden by CSS) -->
+    <div id="hint-text" class="hidden-phone initially-hidden"></div>
+    <div class="info"><div id="loader">Loading...</div></div>
+    <div class="link-bar"></div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         HEADER
+         ═══════════════════════════════════════════════════════════════ -->
+    <header class="header-bar" role="banner">
+        <div class="header-texture" aria-hidden="true"></div>
+        <div class="header-noise" aria-hidden="true"></div>
+        <div class="header-shimmer" aria-hidden="true"></div>
+        
+        <a href="#" class="header-brand" id="header-brand" onclick="showIndex(); return false;">LOADING</a>
+        
+        <!-- Mode Toggle (inserted by acidburn-mode.js) -->
+        
+        <div class="header-stats">
+            <div class="header-stat">
+                <div class="header-stat-value" id="node-count">2847</div>
+                <div class="header-stat-label">NETWORK NODES</div>
+            </div>
+            <div class="header-stat">
+                <div class="header-stat-value" id="signal-strength">97.3%</div>
+                <div class="header-stat-label">SIGNAL</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         MAIN CONTENT
+         ═══════════════════════════════════════════════════════════════ -->
+    <main id="main" class="main-content" role="main">
+        
+        <!-- Index View -->
+        <div class="index-view" id="index-view">
+            
+            <!-- Author Card -->
+            <section class="author-card">
+                <div class="author-header">
+                    <div class="author-avatar">
+                        <span id="author-avatar">◬</span>
+                    </div>
+                    <div class="author-info">
+                        <h1 id="author-name">Loading...</h1>
+                        <div class="author-handle" id="author-handle">@...</div>
+                        <div class="author-tagline" id="author-tagline">...</div>
+                    </div>
+                </div>
+                <div class="author-bio" id="author-bio">
+                    <p>Loading signal...</p>
+                </div>
+            </section>
+
+            <!-- Links Section -->
+            <section class="links-section">
+                <div class="section-header">
+                    <h2>// NODES</h2>
+                    <div class="section-line"></div>
+                </div>
+                <div class="links-grid" id="links-grid"></div>
+            </section>
+
+            <!-- Posts Section -->
+            <section class="posts-section">
+                <div class="section-header">
+                    <h2>// TRANSMISSIONS</h2>
+                    <div class="section-line"></div>
+                </div>
+                <div id="posts-list"></div>
+            </section>
+            
+        </div>
+
+        <!-- Post View -->
+        <article class="post-view" id="post-view">
+            <button class="post-back" onclick="showIndex()">← RETURN TO INDEX</button>
+            <div class="post-view-meta">
+                <div class="post-view-date" id="post-view-date"></div>
+                <div class="post-view-tags" id="post-view-tags"></div>
+            </div>
+            <div class="post-content" id="post-content"></div>
+        </article>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>
+                node active since 2025 ;; 
+                blackhole simulation by <a href="https://github.com/oseiskar/black-hole/">Oseiskar</a> ;; 
+                seed: <span class="footer-seed" id="seed-display">0</span>
+            </p>
+        </footer>
+        
+    </main>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         BLACK HOLE SHADERS
+         ═══════════════════════════════════════════════════════════════ -->
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        void main() {
+            gl_Position = vec4(position, 1.0);
+        }
+    </script>
+    <script data-src="raytracer.glsl" data-name="raytracer" type="x-shader/x-fragment"></script>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         APPLICATION SCRIPTS
+         ═══════════════════════════════════════════════════════════════ -->
+    
+    <!-- Mode Toggle (FULL/LITE/AUTO) -->
+    <script src="js/acidburn-mode.js"></script>
+    
+    <!-- Black Hole Renderer (only runs if not in lite mode) -->
+    <script src="js/acidburn-blackhole.js"></script>
+    
+    <!-- Author Content System -->
+    <script src="js/acidburn-author.js"></script>
+    
+    <!-- Navigation Menu (optional) -->
+    <script src="nav-menu.js"></script>
+
+</body>
+</html>
