@@ -38,14 +38,14 @@
       "id": "apl",
       "label": "Apple",
       "url": "https://books.apple.com/us/book/a-mote-in-shadow/id6504643594",
-      "icon": "▢",
+      "icon": "▷",
       "desc": "Apple: EPUB"
     },
         {
       "id": "goog",
       "label": "Google",
       "url": "https://play.google.com/store/books/details/A_N_Alex_A_Mote_in_Shadow?id=JXgKEQAAQBAJ",
-      "icon": "▣",
+      "icon": "⌬",
       "desc": "Google Books: EPUB"
     },
        {
@@ -66,7 +66,7 @@
       "id": "atr",
       "label": "Everand",
       "url": "https://www.everand.com/book/743986453/A-Mote-in-Shadow-Ex-Astris-Umbra-1",
-      "icon": "⌥",
+      "icon": "⬡",
       "desc": "Everand: EPUB"
     }
   ],
