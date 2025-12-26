@@ -1,27 +1,248 @@
+# ACIDBURN TEMPLATE
+
+90s hacker aesthetic meets astrophysics. A static site template with a ray-traced black hole background.
+
 ---
+
+## Features
+
+- **Schwarzschild black hole** — Physically accurate WebGL raytracer as animated background
+- **Procedural galaxy** — Tiger-stripe patterned background texture (acidburn-galaxy.js)
+- **Mode toggle** — FULL (WebGL), LITE (static CSS), AUTO (detects device capabilities)
+- **Content system** — Markdown-driven posts with JSON configuration
+- **Accessibility** — Reduced motion support, skip links, ARIA labels
+- **Responsive** — Mobile-friendly with fluid typography
+
 ---
 
-# Ray-traced simulation of a black hole
+## Quick Start
 
-In this simulation, the light ray paths are computed by integrating an ODE describing the Schwarzschild geodesics using GLSL on the GPU, leveraging WebGL and [three.js](http://threejs.org). This should result to a fairly physically accurate gravitational lensing effect. Various other relativistic effects have also been added and their contributions can be toggled from the GUI.
-The simulation has normalized units such that the Schwarzschild radius of the black hole is one and the speed of light is one length unit per second (unless changed using the "time scale" parameter).
+```
+your-site/
+├── index.html              ← main page
+├── css/
+│   └── acidburn.css        ← all styles
+├── js/
+│   ├── acidburn-mode.js    ← FULL/LITE/AUTO toggle
+│   ├── acidburn-blackhole.js
+│   ├── acidburn-author.js  ← content system
+│   └── acidburn-galaxy.js  ← procedural background
+├── js-libs/                ← Three.js dependencies
+├── img/                    ← textures (milkyway.jpg, stars.png, etc.)
+├── author/                 ← content folder
+│   ├── config.json
+│   ├── bio.md
+│   ├── posts.md
+│   └── posts/
+├── raytracer.glsl
+├── pagelayout.json         ← navigation menu config
+└── nav-menu.js
+```
 
-See **[this page](https://oseiskar.github.io/black-hole/docs/physics.html)** ([PDF version](https://oseiskar.github.io/black-hole/docs/physics.pdf)) for a more detailed description of the physics of the simulation.
+---
 
-### System requirements
+## Page Configuration
 
-The simulation needs a decent GPU and a recent variant of Chrome or Firefox to run smoothly. In addition to changing simulation quality from the GUI, frame rate can be increased by shrinking the browser window and/or reducing screen resolution. Disabling the planet from the GUI also increases frame rate.
+Each page can load different content by setting `PAGE_CONFIG` before the scripts:
 
-Example: runs 30+ fps at resolution 1920 x 1080 in Chrome 48 on a Linux desktop with GeForce GTX 750 Ti and "high" simulation quality
+```html
+<script>
+  window.PAGE_CONFIG = {
+    configPath: 'author/config.json',  // path to config file
+    contentDir: 'author/',              // base path for content
+    titleSuffix: 'transmissions'        // page title suffix
+  };
+</script>
+```
 
-### Known artefacts
+### Multiple Pages Example
 
- * The striped accretion disk and planet textures are (obviously?) fake and are included to help visualizing motion.
- * The spectrum used in modeling the Doppler shift of the Milky Way background image is quite arbitrary (not based on real spectral data) and consequently the Doppler-shifted background colors may be wrong.
- * The lighting model of the planet is based on a point-like light source and a quite unphysical ambient component.
- * In the "medium" quality mode, the planet deforms unphysically when it travels between the camera and the black hole.
- * The light paths bend a bit more than they should due to low ODE solver step counts (see [numeric tests](https://github.com/oseiskar/black-hole/blob/numeric-notebooks/numeric_tests.ipynb)), but this seems to happen in a systematic way so that the image looks very similar in comparison to a more accurate simulation.
- * Lorentz contraction causes jagged looks in the planet when simultaneously enabled with "light travel time" and the planet is close to the black hole.
- * Texture sampling issues cause unintended star blinking.
+```javascript
+// index.html
+window.PAGE_CONFIG = {
+  configPath: 'author/config.json',
+  contentDir: 'author/',
+  titleSuffix: 'transmissions'
+};
 
-_see **[COPYRIGHT.md](https://github.com/oseiskar/black-hole/blob/master/COPYRIGHT.md)** for license and copyright info_
+// maps.html  
+window.PAGE_CONFIG = {
+  configPath: 'maps/config.json',
+  contentDir: 'maps/',
+  titleSuffix: 'SPECULATIVE MAPS'
+};
+```
+
+---
+
+## Content System
+
+See **[TRANSMISSIONS.md](TRANSMISSIONS.md)** for the full content guide.
+
+### Quick Reference
+
+**config.json** — Author info, links, file paths
+```json
+{
+  "author": {
+    "name": "Display Name",
+    "handle": "your.handle",
+    "tagline": "short description",
+    "avatar": "◬",
+    "bio_file": "bio.md"
+  },
+  "posts_index": "posts.md",
+  "links": [
+    { "icon": "△", "label": "LINK", "desc": "description", "url": "https://..." }
+  ]
+}
+```
+
+**posts.md** — Post index with metadata
+```markdown
+## post-slug
+- title: Post Title
+- date: 2025.01.15
+- tags: tag1, tag2
+- file: posts/post-slug.md
+
+Excerpt text shown on index page.
+```
+
+**posts/post-slug.md** — Full post content in markdown
+
+---
+
+## Navigation Menu
+
+Configure site navigation in `pagelayout.json`:
+
+```json
+{
+  "siteName": "SITE NAME",
+  "menuIcon": "≡",
+  "pages": [
+    { "label": "HOME", "url": "/", "icon": ">" },
+    { "label": "ABOUT", "url": "/about/", "icon": "@" },
+    {
+      "label": "DROPDOWN",
+      "icon": "*",
+      "children": [
+        { "label": "Sub Item", "url": "/sub/", "icon": "-" }
+      ]
+    }
+  ]
+}
+```
+
+---
+
+## Display Modes
+
+| Mode | Description |
+|------|-------------|
+| **FULL** | WebGL black hole, all animations, glitch effects |
+| **LITE** | Static CSS background, no animations, saves battery |
+| **AUTO** | Detects mobile, reduced-motion preference, WebGL support |
+
+Mode persists in localStorage. AUTO mode checks:
+- Mobile device / small screen
+- `prefers-reduced-motion` system setting
+- WebGL availability
+- Low battery (if API available)
+
+---
+
+## Customization
+
+### Colors (in acidburn.css)
+
+```css
+:root {
+  --cyan: #00ffff;
+  --purple: #bf00ff;
+  --magenta: #ff00ff;
+  --green: #00ff88;
+  --pink: #ff0099;
+  --dark: #000000;
+  --panel: rgba(5, 5, 15, 0.85);
+}
+```
+
+### Black Hole Parameters (in acidburn-blackhole.js)
+
+```javascript
+shader.parameters = {
+  observer: { 
+    distance: 8.0,           // camera distance (5=huge, 50=tiny)
+    orbital_inclination: -15  // viewing angle
+  },
+  time_scale: 0.5,           // orbit speed
+  accretion_disk: true       // show/hide disk
+};
+```
+
+---
+
+## Black Hole Simulation
+
+The background uses a Schwarzschild black hole raytracer. Light paths are computed by integrating geodesic ODEs in GLSL on the GPU.
+
+### Physics
+
+- Gravitational lensing (light bending)
+- Doppler shift (color changes from motion)
+- Relativistic beaming (brightness changes)
+- Gravitational time dilation
+- Light travel time effects
+
+Units are normalized: Schwarzschild radius = 1, speed of light = 1 unit/second.
+
+See **[physics documentation](https://oseiskar.github.io/black-hole/docs/physics.html)** for details.
+
+### System Requirements
+
+Needs decent GPU and modern browser (Chrome/Firefox) for smooth performance. Reduce quality or window size if needed. LITE mode works everywhere.
+
+### Textures
+
+| File | Purpose |
+|------|---------|
+| `milkyway.jpg` | Spherical panorama background (or use acidburn-galaxy.js) |
+| `stars.png` | Star field overlay |
+| `accretion-disk.png` | Glowing ring texture |
+| `spectra.png` | Temperature→color mapping |
+| `beach-ball.png` | Planet texture (disabled by default) |
+
+---
+
+## Known Artifacts
+
+- Accretion disk texture is artistic, not physically accurate
+- Doppler-shifted background colors are approximate
+- Planet lighting uses simplified model
+- Texture sampling may cause star blinking
+- ODE solver approximations cause slight extra light bending
+
+---
+
+## Credits
+
+**Black hole raytracer** by [oseiskar](https://github.com/oseiskar/black-hole)
+
+**Acidburn aesthetic** — 90s hacker movie interfaces + astrophysics
+
+**Dependencies:**
+- [Three.js](https://threejs.org)
+- [Marked.js](https://marked.js.org)
+- [Google Fonts](https://fonts.google.com) (Orbitron, Share Tech Mono, Space Mono, VT323)
+
+---
+
+## License
+
+See **[COPYRIGHT.md](COPYRIGHT.md)** for license and copyright info.
+
+---
+
+*the signal continues*
