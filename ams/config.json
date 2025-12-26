@@ -21,49 +21,49 @@
     },
 
         {
-      "id": "bn",
+      "id": "gr",
       "label": "Gumroad",
       "url": "https://lastnpcalex.gumroad.com/l/AMoteInShadow",
       "icon": "◇",
       "desc": "Gumroad: PDF, EPUB"
     },
     {
-      "id": "signal",
+      "id": "bn",
       "label": "Barnes and Noble",
       "url": "https://www.barnesandnoble.com/w?ean=2940185881507",
       "icon": "◈",
       "desc": "Barnes & Noble: Nook"
     },
         {
-      "id": "author",
+      "id": "apl",
       "label": "Apple",
       "url": "https://books.apple.com/us/book/a-mote-in-shadow/id6504643594",
-      "icon": "🕮",
+      "icon": "▢",
       "desc": "Apple: EPUB"
     },
         {
-      "id": "future",
+      "id": "goog",
       "label": "Google",
       "url": "https://play.google.com/store/books/details/A_N_Alex_A_Mote_in_Shadow?id=JXgKEQAAQBAJ",
-      "icon": "⌥",
+      "icon": "▣",
       "desc": "Google Books: EPUB"
     },
        {
-      "id": "maps",
+      "id": "kobo",
       "label": "Kobo",
       "url": "https://www.kobo.com/us/en/ebook/a-mote-in-shadow",
       "icon": "✧",
       "desc": "Kobo: EPUB"
     },
            {
-      "id": "author",
+      "id": "sw",
       "label": "Smashwords",
       "url": "https://www.smashwords.com/books/view/1580515",
-      "icon": "🕮",
+      "icon": "⬒",
       "desc": "Smashwords: EPUB"
     },
         {
-      "id": "future",
+      "id": "atr",
       "label": "Everand",
       "url": "https://www.everand.com/book/743986453/A-Mote-in-Shadow-Ex-Astris-Umbra-1",
       "icon": "⌥",
