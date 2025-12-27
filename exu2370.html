@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Inhabited Space Transit Network — 2370 SolUT</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="K-Tube route planner for inhabited space transit network">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=Space+Mono:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/acidburn.css">
+    <link rel="stylesheet" href="css/transit-map.css">
+
+    <!-- WebGL conditional loading -->
+    <script>
+        (function() {
+            var mode = localStorage.getItem('acidburn-mode') || 'auto';
+            var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+            var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (mode === 'lite' || (mode === 'auto' && (isMobile || reducedMotion))) {
+                document.documentElement.classList.add('skip-webgl');
+            }
+        })();
+    </script>
+    
+    <script>
+        if (!document.documentElement.classList.contains('skip-webgl')) {
+            document.write('<script src="js-libs/jquery-2.1.4.min.js"><\/script>');
+            document.write('<script src="js-libs/three.min.js"><\/script>');
+            document.write('<script src="js-libs/OrbitControls.js"><\/script>');
+            document.write('<script src="js-libs/Detector.js"><\/script>');
+            document.write('<script src="js-libs/stats.min.js"><\/script>');
+            document.write('<script src="js-libs/ShaderLoader.min.js"><\/script>');
+            document.write('<script src="js-libs/mustache.min.js"><\/script>');
+            document.write('<script src="js-libs/dat.gui.min.js"><\/script>');
+            document.write('<script src="three-js-monkey-patch.js"><\/script>');
+            document.write('<script src="js/acidburn-galaxy.js"><\/script>');
+        }
+    </script>
+</head>
+<body>
+    <!-- Skip Link -->
+    <a href="#main" class="skip-link">Skip to main content</a>
+    
+    <!-- Static Background (lite mode fallback) -->
+    <div class="static-bg" aria-hidden="true"></div>
+    
+    <!-- Black Hole Background -->
+    <div id="blackhole-container" aria-hidden="true"></div>
+    
+    <!-- Original black hole UI elements (hidden) -->
+    <div id="hint-text" class="hidden-phone initially-hidden"></div>
+    <div class="info"><div id="loader">Loading...</div></div>
+    <div class="link-bar"></div>
+
+    <!-- Header -->
+    <header class="header-bar" role="banner">
+        <div class="header-texture" aria-hidden="true"></div>
+        <div class="header-noise" aria-hidden="true"></div>
+        <div class="header-shimmer" aria-hidden="true"></div>
+        
+        <a href="/" class="header-brand">INHABITED SPACE</a>
+        
+        <!-- Navigation Menu -->
+        <div id="nav-menu"></div>
+        
+        <!-- Mode Toggle (inserted by acidburn-mode.js) -->
+        
+        <div class="header-stats">
+            <div class="header-stat">
+                <div class="header-stat-value">2370</div>
+                <div class="header-stat-label">SOLUT</div>
+            </div>
+            <div class="header-stat">
+                <div class="header-stat-value">K-TUBE</div>
+                <div class="header-stat-label">ERR-AL DRIVE</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main id="main" class="transit-container" role="main">
+        <div class="transit-grid">
+            <!-- Map -->
+            <div class="map-container">
+                <svg id="transit-map" viewBox="0 0 1600 1000" role="img" aria-label="Transit map of inhabited space"></svg>
+                
+                <div class="legend">
+                    <h3>FACTION ROUTES</h3>
+                    <div class="legend-item">
+                        <div class="legend-line uplb-route"></div>
+                        <span>UPLB</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-line swi-route"></div>
+                        <span>SWI</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-line hw-route"></div>
+                        <span>Homeworlds</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-line inter-route"></div>
+                        <span>Inter-faction</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Route Planner Panel -->
+            <div class="route-planner">
+                <div class="planner-header">
+                    <h2>ROUTE PLANNER</h2>
+                    <button class="clear-btn" onclick="clearRoute()">CLEAR ROUTE</button>
+                </div>
+                
+                <div id="route-content">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">✧</div>
+                        <div class="empty-state-text">Click stations on the map to plan your route</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <footer class="transit-footer">
+            <p>transit data current as of 2370.127 SolUT ;; <a href="#">network status: nominal</a></p>
+        </footer>
+    </main>
+
+    <!-- Black hole shaders -->
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        void main() { gl_Position = vec4(position, 1.0); }
+    </script>
+    <script data-src="raytracer.glsl" data-name="raytracer" type="x-shader/x-fragment"></script>
+
+    <!-- Core Scripts -->
+    <script src="js/acidburn-mode.js"></script>
+    <script src="js/acidburn-blackhole.js"></script>
+    
+    <!-- Transit Map -->
+    <script src="js/transit-map.js"></script>
+    
+    <!-- Navigation -->
+    <script src="nav-menu.js"></script>
+</body>
+</html>
