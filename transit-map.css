@@ -1,0 +1,469 @@
+/**
+ * TRANSIT MAP STYLES
+ * 
+ * Styles specific to the transit map page
+ * Use with acidburn.css as base
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   FACTION COLORS
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+    --uplb: #4a9eff;
+    --swi: #51cf66;
+    --hw: #a78bfa;
+    --inter: #fbbf24;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LAYOUT
+   ═══════════════════════════════════════════════════════════════ */
+
+.transit-container {
+    position: relative;
+    z-index: 10;
+    padding: 70px 20px 40px;
+    max-width: 1800px;
+    margin: 0 auto;
+}
+
+.transit-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 20px;
+    min-height: calc(100vh - 140px);
+}
+
+@media (max-width: 1200px) {
+    .transit-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MAP CONTAINER
+   ═══════════════════════════════════════════════════════════════ */
+
+.map-container {
+    background: var(--panel);
+    border: 3px solid transparent;
+    border-image: linear-gradient(135deg, var(--purple), var(--cyan), var(--purple)) 1;
+    position: relative;
+    backdrop-filter: blur(10px);
+    overflow: hidden;
+}
+
+.map-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: 
+        repeating-linear-gradient(-55deg, var(--purple) 0px, var(--purple) 5px, transparent 5px, transparent 10px),
+        repeating-linear-gradient(55deg, var(--cyan) 0px, var(--cyan) 4px, transparent 4px, transparent 12px),
+        linear-gradient(90deg, var(--purple), var(--cyan), var(--purple));
+    z-index: 10;
+}
+
+#transit-map {
+    width: 100%;
+    height: 100%;
+    min-height: 600px;
+    display: block;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   SVG ROUTES
+   ═══════════════════════════════════════════════════════════════ */
+
+.route-line {
+    stroke-width: 3;
+    opacity: 0.4;
+    transition: all 0.3s ease;
+    pointer-events: none;
+}
+
+.route-line.active {
+    opacity: 1;
+    stroke-width: 5;
+    filter: drop-shadow(0 0 8px currentColor);
+}
+
+.uplb-route { stroke: var(--uplb); }
+.swi-route { stroke: var(--swi); }
+.hw-route { stroke: var(--hw); }
+.inter-route { stroke: var(--inter); stroke-dasharray: 8, 4; }
+
+/* ═══════════════════════════════════════════════════════════════
+   SVG STATIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+.station-group {
+    cursor: pointer;
+}
+
+.station-group:hover .station-circle {
+    filter: drop-shadow(0 0 15px currentColor);
+    stroke-width: 4;
+}
+
+.station-group:hover .station-label {
+    fill: var(--cyan);
+}
+
+.station-hit-area {
+    fill: transparent;
+    cursor: pointer;
+}
+
+.station-circle {
+    transition: all 0.15s ease;
+    pointer-events: none;
+    fill: #0a0a1a;
+    stroke-width: 3;
+}
+
+.station-circle.faction-uplb { stroke: var(--uplb); }
+.station-circle.faction-swi { stroke: var(--swi); }
+.station-circle.faction-hw { stroke: var(--hw); }
+
+.station-circle.selected {
+    fill: var(--cyan) !important;
+    stroke: var(--cyan) !important;
+    filter: drop-shadow(0 0 15px var(--cyan));
+}
+
+.station-circle.in-route {
+    fill: var(--purple) !important;
+    stroke: var(--purple) !important;
+    filter: drop-shadow(0 0 10px var(--purple));
+}
+
+.station-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    fill: #fff;
+    pointer-events: none;
+    transition: fill 0.15s ease;
+}
+
+.station-sublabel {
+    font-family: 'VT323', monospace;
+    font-size: 12px;
+    fill: var(--cyan);
+    opacity: 0.8;
+    pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LEGEND
+   ═══════════════════════════════════════════════════════════════ */
+
+.legend {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    background: var(--panel);
+    border: 2px solid var(--purple);
+    padding: 15px 20px;
+    backdrop-filter: blur(5px);
+}
+
+.legend h3 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    color: var(--purple);
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.7);
+}
+
+.legend-line {
+    width: 30px;
+    height: 3px;
+}
+
+.legend-line.uplb-route { background: var(--uplb); }
+.legend-line.swi-route { background: var(--swi); }
+.legend-line.hw-route { background: var(--hw); }
+.legend-line.inter-route { 
+    background: repeating-linear-gradient(90deg, var(--inter) 0px, var(--inter) 8px, transparent 8px, transparent 12px);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ROUTE PLANNER PANEL
+   ═══════════════════════════════════════════════════════════════ */
+
+.route-planner {
+    background: var(--panel);
+    border: 3px solid transparent;
+    border-image: linear-gradient(135deg, var(--cyan), var(--purple)) 1;
+    display: flex;
+    flex-direction: column;
+    backdrop-filter: blur(10px);
+    max-height: calc(100vh - 120px);
+    overflow: hidden;
+    position: relative;
+}
+
+.route-planner::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: 
+        repeating-linear-gradient(-55deg, var(--cyan) 0px, var(--cyan) 5px, transparent 5px, transparent 10px),
+        repeating-linear-gradient(55deg, var(--purple) 0px, var(--purple) 4px, transparent 4px, transparent 12px),
+        linear-gradient(90deg, var(--cyan), var(--purple), var(--cyan));
+}
+
+.planner-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 25px 20px 15px;
+    border-bottom: 1px solid rgba(191, 0, 255, 0.3);
+}
+
+.planner-header h2 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 14px;
+    color: var(--cyan);
+    letter-spacing: 3px;
+}
+
+.clear-btn {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    padding: 8px 15px;
+    background: transparent;
+    border: 2px solid var(--pink);
+    color: var(--pink);
+    cursor: pointer;
+    letter-spacing: 2px;
+    transition: all 0.3s ease;
+}
+
+.clear-btn:hover {
+    background: var(--pink);
+    color: #000;
+    box-shadow: 0 0 20px var(--pink);
+}
+
+.clear-btn:focus {
+    outline: 2px solid var(--pink);
+    outline-offset: 2px;
+}
+
+#route-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+/* Scrollbar */
+#route-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+#route-content::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.3);
+}
+
+#route-content::-webkit-scrollbar-thumb {
+    background: var(--purple);
+    border-radius: 3px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EMPTY STATE
+   ═══════════════════════════════════════════════════════════════ */
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.empty-state-icon {
+    font-size: 48px;
+    margin-bottom: 15px;
+    filter: grayscale(0.5);
+}
+
+.empty-state-text {
+    color: rgba(255,255,255,0.5);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ROUTE DISPLAY
+   ═══════════════════════════════════════════════════════════════ */
+
+.route-display {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+}
+
+.route-stop {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(0, 255, 255, 0.1);
+    border: 1px solid var(--cyan);
+    padding: 6px 12px;
+    border-radius: 3px;
+}
+
+.stop-number {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    color: var(--purple);
+    background: rgba(191, 0, 255, 0.2);
+    padding: 2px 6px;
+    border-radius: 2px;
+}
+
+.stop-name {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 12px;
+    color: var(--cyan);
+}
+
+.stop-arrow {
+    color: var(--purple);
+    font-size: 16px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TOTALS
+   ═══════════════════════════════════════════════════════════════ */
+
+.totals-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 12px;
+    margin-bottom: 25px;
+}
+
+.total-box {
+    background: rgba(191, 0, 255, 0.1);
+    border: 1px solid var(--purple);
+    padding: 18px 12px;
+    text-align: center;
+}
+
+.total-label {
+    font-size: 10px;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    line-height: 1.3;
+}
+
+.total-value {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 22px;
+    color: var(--cyan);
+    text-shadow: 0 0 10px var(--cyan);
+}
+
+.total-unit {
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    margin-left: 4px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LEG DETAILS
+   ═══════════════════════════════════════════════════════════════ */
+
+.leg-details h3 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 11px;
+    color: var(--purple);
+    letter-spacing: 2px;
+    margin-bottom: 15px;
+}
+
+.leg-item {
+    background: rgba(0, 0, 0, 0.3);
+    border-left: 3px solid var(--cyan);
+    padding: 12px 15px;
+    margin-bottom: 10px;
+}
+
+.leg-route {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 12px;
+    color: #fff;
+    margin-bottom: 8px;
+}
+
+.leg-times {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.leg-time {
+    font-size: 11px;
+}
+
+.leg-time-label {
+    color: rgba(255,255,255,0.5);
+}
+
+.leg-time-value {
+    color: var(--green);
+    font-family: 'VT323', monospace;
+    font-size: 14px;
+    margin-left: 5px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TRANSIT FOOTER
+   ═══════════════════════════════════════════════════════════════ */
+
+.transit-footer {
+    text-align: center;
+    padding: 30px 20px;
+    margin-top: 20px;
+}
+
+.transit-footer p {
+    font-size: 12px;
+    color: rgba(255,255,255,0.3);
+}
+
+.transit-footer a {
+    color: var(--cyan);
+    text-decoration: none;
+    border-bottom: 1px solid var(--purple);
+    transition: all 0.2s ease;
+}
+
+.transit-footer a:hover {
+    color: var(--purple);
+    border-color: var(--cyan);
+    text-shadow: 0 0 10px var(--purple);
+}
