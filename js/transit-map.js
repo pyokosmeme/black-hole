@@ -13,6 +13,7 @@
     // ═══════════════════════════════════════════════════════════════
 
     const stations = {
+        // UPLB Systems
         'Sol': {x: 800, y: 500, pop: 10440, faction: 'UPLB', labelOffset: {x: 0, y: -25}},
         'Gamov': {x: 950, y: 300, pop: 631, faction: 'UPLB', labelOffset: {x: 0, y: -25}},
         'Wolf': {x: 650, y: 250, pop: 432, faction: 'UPLB', labelOffset: {x: 0, y: -25}},
@@ -21,12 +22,15 @@
         'Issetock': {x: 650, y: 700, pop: 283, faction: 'UPLB', labelOffset: {x: 0, y: 25}},
         'Nursia': {x: 950, y: 700, pop: 411, faction: 'UPLB', labelOffset: {x: 0, y: 25}},
         'Bakunawa': {x: 800, y: 150, pop: 215, faction: 'UPLB', labelOffset: {x: 0, y: -25}},
+        // SWI Systems
         'Vega': {x: 1150, y: 450, pop: 262, faction: 'SWI', labelOffset: {x: 60, y: 0}},
         'Ya Ke': {x: 1400, y: 350, pop: 579, faction: 'SWI', labelOffset: {x: 60, y: 0}},
         'Zi Wei Yuan': {x: 1400, y: 600, pop: 259, faction: 'SWI', labelOffset: {x: 60, y: 0}},
         'Sipapu': {x: 1150, y: 700, pop: 254, faction: 'SWI', labelOffset: {x: 60, y: 0}},
+        // Homeworlds Systems
         'Proxima': {x: 300, y: 700, pop: 397, faction: 'HW', labelOffset: {x: -60, y: 10}},
-        'Rigil': {x: 400, y: 850, pop: 649, faction: 'HW', labelOffset: {x: 0, y: 25}},
+        'Rigil': {x: 400, y: 850, pop: 649, faction: 'HW', labelOffset: {x: -50, y: 25}},
+        'Toliman': {x: 480, y: 820, pop: 7, faction: 'HW', labelOffset: {x: 0, y: -25}},
         'Tartarus': {x: 250, y: 550, pop: 231, faction: 'HW', labelOffset: {x: -60, y: 0}},
         'Tau Ceti': {x: 550, y: 900, pop: 228, faction: 'HW', labelOffset: {x: 0, y: 25}},
         'Barnard': {x: 200, y: 850, pop: 455, faction: 'HW', labelOffset: {x: -60, y: 10}}
@@ -46,17 +50,40 @@
         {from: 'Sol', to: 'Nursia', proper: 54.86, tau: null, fdr: null, type: 'uplb'},
         {from: 'Sol', to: 'Bakunawa', proper: 56.8, tau: null, fdr: null, type: 'uplb'},
         {from: 'Wolf', to: 'Gamov', proper: 31.55, tau: 3.128, fdr: 48, type: 'uplb'},
+        
         // SWI routes
         {from: 'Vega', to: 'Ya Ke', proper: 87.23, tau: 12.25, fdr: 48, type: 'swi'},
         {from: 'Ya Ke', to: 'Sipapu', proper: 45.45, tau: 4.51, fdr: 24, type: 'swi'},
         {from: 'Gamov', to: 'Zi Wei Yuan', proper: 76.87, tau: 7.62, fdr: 24, type: 'swi'},
         {from: 'Zi Wei Yuan', to: 'Vega', proper: 82.87, tau: 8.22, fdr: 10, type: 'swi'},
-        // Homeworlds routes
+        
+        // Homeworlds routes - Sol connections
         {from: 'Sol', to: 'Proxima', proper: 5.90, tau: 1.0, fdr: 20, type: 'hw'},
         {from: 'Sol', to: 'Rigil', proper: 5.90, tau: 1.0, fdr: 20, type: 'hw'},
+        {from: 'Sol', to: 'Toliman', proper: 5.90, tau: 1.0, fdr: 20, type: 'hw'},
         {from: 'Sol', to: 'Tartarus', proper: 15.13, tau: 1.51, fdr: 24, type: 'hw'},
         {from: 'Sol', to: 'Tau Ceti', proper: 16.5, tau: null, fdr: null, type: 'hw'},
         {from: 'Sol', to: 'Barnard', proper: 8.31, tau: null, fdr: null, type: 'hw'},
+        
+        // Homeworlds internal routes - Rigil/Toliman (AL only, same binary system)
+        {from: 'Rigil', to: 'Toliman', proper: 0.01, tau: 0.05, fdr: 0.1, type: 'hw'},
+        
+        // Homeworlds internal routes - Adeyemi Balanza-Llach cloud connections
+        {from: 'Proxima', to: 'Rigil', proper: 0.8, tau: 0.15, fdr: 2, type: 'hw'},
+        {from: 'Proxima', to: 'Toliman', proper: 0.8, tau: 0.15, fdr: 2, type: 'hw'},
+        
+        // Homeworlds internal routes - Federation interconnections
+        {from: 'Proxima', to: 'Tartarus', proper: 12.4, tau: 1.2, fdr: 18, type: 'hw'},
+        {from: 'Proxima', to: 'Tau Ceti', proper: 13.8, tau: 1.35, fdr: 20, type: 'hw'},
+        {from: 'Rigil', to: 'Tartarus', proper: 12.4, tau: 1.2, fdr: 18, type: 'hw'},
+        {from: 'Rigil', to: 'Tau Ceti', proper: 13.2, tau: 1.3, fdr: 18, type: 'hw'},
+        {from: 'Toliman', to: 'Tartarus', proper: 12.4, tau: 1.2, fdr: 18, type: 'hw'},
+        {from: 'Toliman', to: 'Tau Ceti', proper: 13.2, tau: 1.3, fdr: 18, type: 'hw'},
+        {from: 'Tartarus', to: 'Tau Ceti', proper: 18.7, tau: 1.85, fdr: 24, type: 'hw'},
+        
+        // Barnard's Star - isolated, only Sol and Proxima connections
+        {from: 'Barnard', to: 'Proxima', proper: 6.5, tau: 0.65, fdr: 12, type: 'hw'},
+        
         // Inter-faction routes
         {from: 'Sol', to: 'Vega', proper: 35.43, tau: 3.54, fdr: 10, type: 'inter'},
         {from: 'Wolf', to: 'Vega', proper: 21.69, tau: 2.99, fdr: 1, type: 'inter'},
