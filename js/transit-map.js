@@ -58,13 +58,13 @@
         // SWI to UPLB routes (via Gamov hub)
         {from: 'Gamov', to: 'Zi Wei Yuan', proper: 76.87, tau: 7.62, fdr: 24, type: 'inter'},
         
-        // Homeworlds routes - Sol connections
-        {from: 'Sol', to: 'Proxima', proper: 5.90, tau: 1.0, fdr: 20, type: 'hw'},
-        {from: 'Sol', to: 'Rigil', proper: 5.90, tau: 1.0, fdr: 20, type: 'hw'},
-        {from: 'Sol', to: 'Toliman', proper: 5.90, tau: 1.0, fdr: 20, type: 'hw'},
-        {from: 'Sol', to: 'Tartarus', proper: 15.13, tau: 1.51, fdr: 24, type: 'hw'},
-        {from: 'Sol', to: 'Tau Ceti', proper: 16.5, tau: null, fdr: null, type: 'hw'},
-        {from: 'Sol', to: 'Barnard', proper: 8.31, tau: null, fdr: null, type: 'hw'},
+        // Homeworlds routes - Sol connections (inter-faction since UPLB ↔ HW)
+        {from: 'Sol', to: 'Proxima', proper: 5.90, tau: 1.0, fdr: 20, type: 'inter'},
+        {from: 'Sol', to: 'Rigil', proper: 5.90, tau: 1.0, fdr: 20, type: 'inter'},
+        {from: 'Sol', to: 'Toliman', proper: 5.90, tau: 1.0, fdr: 20, type: 'inter'},
+        {from: 'Sol', to: 'Tartarus', proper: 15.13, tau: 1.51, fdr: 24, type: 'inter'},
+        {from: 'Sol', to: 'Tau Ceti', proper: 16.5, tau: null, fdr: null, type: 'inter'},
+        {from: 'Sol', to: 'Barnard', proper: 8.31, tau: null, fdr: null, type: 'inter'},
         
         // Homeworlds internal routes - Rigil/Toliman (AL only, same binary system)
         {from: 'Rigil', to: 'Toliman', proper: 0.01, tau: 0.05, fdr: 0.1, type: 'hw'},
