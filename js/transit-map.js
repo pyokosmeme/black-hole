@@ -51,11 +51,12 @@
         {from: 'Sol', to: 'Bakunawa', proper: 56.8, tau: null, fdr: null, type: 'uplb'},
         {from: 'Wolf', to: 'Gamov', proper: 31.55, tau: 3.128, fdr: 48, type: 'uplb'},
         
-        // SWI routes
-        {from: 'Vega', to: 'Ya Ke', proper: 87.23, tau: 12.25, fdr: 48, type: 'swi'},
+        // SWI internal routes (note: "All None Listed SWI To SWI routes are Prohibitively Long/Expensive")
         {from: 'Ya Ke', to: 'Sipapu', proper: 45.45, tau: 4.51, fdr: 24, type: 'swi'},
-        {from: 'Gamov', to: 'Zi Wei Yuan', proper: 76.87, tau: 7.62, fdr: 24, type: 'swi'},
         {from: 'Zi Wei Yuan', to: 'Vega', proper: 82.87, tau: 8.22, fdr: 10, type: 'swi'},
+        {from: 'Sipapu', to: 'Vega', proper: 87.23, tau: 12.25, fdr: 48, type: 'swi'},
+        // SWI to UPLB routes (via Gamov hub)
+        {from: 'Gamov', to: 'Zi Wei Yuan', proper: 76.87, tau: 7.62, fdr: 24, type: 'inter'},
         
         // Homeworlds routes - Sol connections
         {from: 'Sol', to: 'Proxima', proper: 5.90, tau: 1.0, fdr: 20, type: 'hw'},
@@ -90,7 +91,7 @@
         {from: 'Gamov', to: 'Vega', proper: 74.18, tau: 7.35, fdr: 48, type: 'inter'},
         {from: 'Gamov', to: 'Ya Ke', proper: 76.22, tau: 7.56, fdr: 20, type: 'inter'},
         {from: 'Gamov', to: 'Sipapu', proper: 40.48, tau: 4.01, fdr: 4, type: 'inter'},
-        {from: 'Sol', to: 'Ya Ke', proper: 89.5, tau: 8.95, fdr: 48, type: 'inter'},
+        {from: 'Sol', to: 'Ya Ke', proper: 89.5, tau: 8.95, fdr: 2, type: 'inter'},
         {from: 'Sol', to: 'Zi Wei Yuan', proper: 94.48, tau: 9.45, fdr: 10, type: 'inter'},
         {from: 'Sol', to: 'Sipapu', proper: 56.97, tau: 5.697, fdr: 24, type: 'inter'}
     ];
