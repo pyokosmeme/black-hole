@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>K-Tube Transit Network — 3D View | 2370 SolUT</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="3D K-Tube route planner for inhabited space transit network">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=Space+Mono:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+    
+    <!-- Acidburn Styles -->
+    <link rel="stylesheet" href="css/acidburn.css">
+    
+    <!-- 3D Map Specific Styles -->
+    <style>
+        :root {
+            --uplb: #4a9eff;
+            --swi: #51cf66;
+            --hw: #a78bfa;
+            --inter: #fbbf24;
+        }
+        
+        /* 3D Canvas Container */
+        #star-map-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 10;
+            pointer-events: auto;
+        }
+        
+        #star-map-container canvas {
+            cursor: grab;
+        }
+        
+        #star-map-container canvas:active {
+            cursor: grabbing;
+        }
+        
+        /* Legend Panel */
+        #legend {
+            position: fixed;
+            bottom: 200px;
+            left: var(--space-md, 20px);
+            background: var(--panel);
+            border: 1px solid var(--purple);
+            padding: 15px 20px;
+            z-index: 50;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.8s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        #legend.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        #legend h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 9px;
+            color: var(--purple);
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 6px;
+            font-size: 11px;
+            color: rgba(255,255,255,0.7);
+        }
+        
+        .legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+        
+        .legend-dot.uplb { background: var(--uplb); box-shadow: 0 0 8px var(--uplb); }
+        .legend-dot.swi { background: var(--swi); box-shadow: 0 0 8px var(--swi); }
+        .legend-dot.hw { background: var(--hw); box-shadow: 0 0 8px var(--hw); }
+        
+        .legend-line {
+            width: 25px;
+            height: 2px;
+        }
+        
+        .legend-line.route { background: var(--inter); }
+        .legend-line.active { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+        .legend-line.erebus { background: var(--pink); box-shadow: 0 0 8px var(--pink); }
+        
+        /* Erebus Toggle Button */
+        .erebus-btn {
+            width: 100%;
+            margin-top: 12px;
+            padding: 10px 12px;
+            background: transparent;
+            border: 1px solid var(--pink);
+            color: var(--pink);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 9px;
+            letter-spacing: 2px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .erebus-btn:hover {
+            background: rgba(255, 0, 153, 0.1);
+            box-shadow: 0 0 15px rgba(255, 0, 153, 0.3);
+        }
+        
+        .erebus-btn.active {
+            background: var(--pink);
+            color: #000;
+            box-shadow: 0 0 20px var(--pink);
+        }
+        
+        .erebus-icon {
+            font-size: 12px;
+            transition: transform 0.3s ease;
+        }
+        
+        .erebus-btn.active .erebus-icon {
+            transform: rotate(180deg);
+        }
+        
+        /* Route Panel - Bottom Bar */
+        #route-panel {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: var(--panel);
+            border-top: 2px solid var(--purple);
+            backdrop-filter: blur(10px);
+            z-index: 50;
+            opacity: 0;
+            transform: translateY(100%);
+            transition: all 0.8s ease;
+        }
+        
+        #route-panel.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        #route-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--purple), var(--cyan), var(--purple));
+        }
+        
+        .panel-header {
+            padding: 12px 25px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(191, 0, 255, 0.3);
+        }
+        
+        .panel-header h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 11px;
+            letter-spacing: 3px;
+            color: var(--cyan);
+        }
+        
+        .clear-btn {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 9px;
+            padding: 5px 12px;
+            background: transparent;
+            border: 1px solid var(--pink);
+            color: var(--pink);
+            cursor: pointer;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+        }
+        
+        .clear-btn:hover {
+            background: var(--pink);
+            color: #000;
+        }
+        
+        #route-content {
+            padding: 12px 25px 15px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: flex-start;
+            gap: 20px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        #route-content::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        #route-content::-webkit-scrollbar-thumb {
+            background: var(--purple);
+        }
+        
+        .empty-state {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: rgba(255,255,255,0.4);
+            font-size: 13px;
+            padding: 5px 0;
+        }
+        
+        .empty-state-icon {
+            font-size: 24px;
+            filter: grayscale(0.5);
+        }
+        
+        /* Route Display */
+        .route-stops {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            align-items: center;
+            flex: 1;
+            min-width: 200px;
+        }
+        
+        .route-stop {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid var(--cyan);
+            padding: 4px 8px;
+            font-size: 10px;
+        }
+        
+        .route-stop.erebus-stop {
+            border-color: var(--pink);
+            background: rgba(255, 0, 153, 0.15);
+        }
+        
+        .route-stop.erebus-stop .stop-name {
+            color: var(--pink);
+        }
+        
+        .stop-num {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 8px;
+            color: var(--purple);
+            background: rgba(191, 0, 255, 0.2);
+            padding: 1px 4px;
+        }
+        
+        .stop-name {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 9px;
+            color: var(--cyan);
+        }
+        
+        .stop-arrow {
+            color: var(--purple);
+            font-size: 12px;
+        }
+        
+        /* Totals */
+        .totals-grid {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .total-box {
+            background: rgba(191, 0, 255, 0.1);
+            border: 1px solid var(--purple);
+            padding: 8px 15px;
+            text-align: center;
+            min-width: 80px;
+        }
+        
+        .total-label {
+            font-size: 8px;
+            color: rgba(255,255,255,0.5);
+            letter-spacing: 1px;
+            margin-bottom: 3px;
+        }
+        
+        .total-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 16px;
+            color: var(--cyan);
+            text-shadow: 0 0 10px var(--cyan);
+        }
+        
+        .total-unit {
+            font-size: 9px;
+            color: rgba(255,255,255,0.4);
+        }
+        
+        .erebus-warning {
+            background: rgba(255, 0, 153, 0.15);
+            border: 1px solid var(--pink);
+            padding: 6px 12px;
+            font-size: 10px;
+            color: var(--pink);
+            white-space: nowrap;
+        }
+        
+        .leg-details { display: none; }
+        
+        /* Star Tooltip */
+        #star-tooltip {
+            position: fixed;
+            padding: 12px 16px;
+            background: var(--panel);
+            border: 1px solid var(--cyan);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 11px;
+            pointer-events: none;
+            z-index: 200;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.2s ease;
+            backdrop-filter: blur(10px);
+        }
+        
+        #star-tooltip.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        #star-tooltip .star-name {
+            color: var(--cyan);
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+        
+        #star-tooltip .star-faction {
+            color: var(--purple);
+            font-size: 10px;
+            letter-spacing: 2px;
+        }
+        
+        #star-tooltip .star-pop {
+            color: rgba(255,255,255,0.6);
+            font-family: 'VT323', monospace;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+        
+        /* Controls Hint */
+        #controls-hint {
+            position: fixed;
+            bottom: 130px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'VT323', monospace;
+            font-size: 14px;
+            color: rgba(255,255,255,0.4);
+            z-index: 45;
+            text-align: center;
+            opacity: 0;
+            transition: all 0.8s ease;
+            background: var(--panel);
+            padding: 6px 15px;
+            border-radius: 3px;
+        }
+        
+        #controls-hint.visible {
+            opacity: 1;
+        }
+        
+        #controls-hint span {
+            color: var(--cyan);
+        }
+        
+        /* Header Extension */
+        .header-nav-links {
+            display: flex;
+            gap: 15px;
+            margin-left: auto;
+            margin-right: var(--space-md, 20px);
+        }
+        
+        .header-nav-link {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10px;
+            color: #000;
+            text-decoration: none;
+            padding: 6px 12px;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid rgba(0,0,0,0.3);
+            letter-spacing: 1px;
+            transition: all 0.2s ease;
+        }
+        
+        .header-nav-link:hover,
+        .header-nav-link.active {
+            background: #000;
+            color: var(--cyan);
+        }
+        
+        .reset-btn {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 10px;
+            padding: 6px 12px;
+            background: transparent;
+            border: 1px solid var(--cyan);
+            color: var(--cyan);
+            cursor: pointer;
+            letter-spacing: 2px;
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+        
+        .reset-btn:hover {
+            background: var(--cyan);
+            color: #000;
+            box-shadow: 0 0 15px var(--cyan);
+        }
+        
+        /* Intro Overlay */
+        #intro-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at center, 
+                rgba(20, 0, 40, 0.3) 0%,
+                rgba(10, 10, 26, 0.8) 50%,
+                rgba(5, 5, 15, 1) 100%);
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            opacity: 1;
+            transition: opacity 2s ease;
+            pointer-events: none;
+        }
+        
+        #intro-overlay.fade-out {
+            opacity: 0;
+        }
+        
+        #intro-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 14px;
+            letter-spacing: 8px;
+            color: var(--cyan);
+            text-transform: uppercase;
+            opacity: 0;
+            animation: fadeInText 2s ease 1s forwards;
+        }
+        
+        #intro-subtitle {
+            font-family: 'VT323', monospace;
+            font-size: 18px;
+            color: var(--purple);
+            margin-top: 15px;
+            opacity: 0;
+            animation: fadeInText 2s ease 2s forwards;
+        }
+        
+        @keyframes fadeInText {
+            to { opacity: 0.8; }
+        }
+        
+        /* Erebus Hint */
+        #erebus-hint {
+            position: fixed;
+            top: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 0, 153, 0.2);
+            border: 1px solid var(--pink);
+            padding: 10px 20px;
+            font-family: 'VT323', monospace;
+            font-size: 16px;
+            color: var(--pink);
+            z-index: 100;
+            display: none;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* Mobile adjustments */
+        @media (max-width: 768px) {
+            #legend { bottom: 180px; }
+            #controls-hint { bottom: 110px; font-size: 12px; }
+            .totals-grid { flex-wrap: wrap; }
+            .total-box { min-width: 70px; padding: 6px 10px; }
+            .total-value { font-size: 14px; }
+            .header-nav-links { display: none; }
+        }
+    </style>
+
+    <!-- WebGL conditional loading -->
+    <script>
+        (function() {
+            var mode = localStorage.getItem('acidburn-mode') || 'auto';
+            var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+            var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (mode === 'lite' || (mode === 'auto' && (isMobile || reducedMotion))) {
+                document.documentElement.classList.add('skip-webgl');
+            }
+        })();
+    </script>
+    
+    <script>
+        if (!document.documentElement.classList.contains('skip-webgl')) {
+            document.write('<script src="js-libs/jquery-2.1.4.min.js"><\/script>');
+            document.write('<script src="js-libs/three.min.js"><\/script>');
+            document.write('<script src="js-libs/OrbitControls.js"><\/script>');
+            document.write('<script src="js-libs/Detector.js"><\/script>');
+            document.write('<script src="js-libs/stats.min.js"><\/script>');
+            document.write('<script src="js-libs/ShaderLoader.min.js"><\/script>');
+            document.write('<script src="js-libs/mustache.min.js"><\/script>');
+            document.write('<script src="js-libs/dat.gui.min.js"><\/script>');
+            document.write('<script src="three-js-monkey-patch.js"><\/script>');
+            document.write('<script src="js/acidburn-galaxy.js"><\/script>');
+        }
+    </script>
+</head>
+<body>
+    <!-- Skip Link -->
+    <a href="#main" class="skip-link">Skip to main content</a>
+    
+    <!-- Static Background (lite mode fallback) -->
+    <div class="static-bg" aria-hidden="true"></div>
+    
+    <!-- Black Hole Background -->
+    <div id="blackhole-container" aria-hidden="true"></div>
+    
+    <!-- Original black hole UI elements (hidden) -->
+    <div id="hint-text" class="hidden-phone initially-hidden"></div>
+    <div class="info"><div id="loader">Loading...</div></div>
+    <div class="link-bar"></div>
+
+    <!-- Header -->
+    <header class="header-bar" role="banner">
+        <div class="header-texture" aria-hidden="true"></div>
+        <div class="header-noise" aria-hidden="true"></div>
+        <div class="header-shimmer" aria-hidden="true"></div>
+        
+        <!-- Navigation Menu -->
+        <div id="nav-menu"></div>
+        
+        <a href="/" class="header-brand">K-TUBE NETWORK</a>
+        
+        <div class="header-nav-links">
+            <a href="transit-map.html" class="header-nav-link">2D MAP</a>
+            <a href="star-map-3d.html" class="header-nav-link active">3D MAP</a>
+        </div>
+        
+        <button id="reset-sol" class="reset-btn" onclick="resetToSol()">⊙ SOL</button>
+        
+        <div class="header-stats">
+            <div class="header-stat">
+                <div class="header-stat-value">2370</div>
+                <div class="header-stat-label">SOLUT</div>
+            </div>
+            <div class="header-stat">
+                <div class="header-stat-value">18</div>
+                <div class="header-stat-label">SYSTEMS</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 3D Star Map Container -->
+    <div id="star-map-container" role="main"></div>
+    
+    <!-- Intro Overlay -->
+    <div id="intro-overlay">
+        <div id="intro-text">Initializing K-Tube Network</div>
+        <div id="intro-subtitle">Mapping inhabited space...</div>
+    </div>
+    
+    <!-- Legend -->
+    <div id="legend">
+        <h3>FACTIONS</h3>
+        <div class="legend-item"><div class="legend-dot uplb"></div> UPLB</div>
+        <div class="legend-item"><div class="legend-dot swi"></div> SWI</div>
+        <div class="legend-item"><div class="legend-dot hw"></div> Homeworlds</div>
+        <div style="margin-top: 12px;"></div>
+        <h3>ROUTES</h3>
+        <div class="legend-item"><div class="legend-line route"></div> K-Tube Link</div>
+        <div class="legend-item"><div class="legend-line active"></div> Selected Route</div>
+        <button id="erebus-toggle" class="erebus-btn" onclick="toggleErebus()">
+            <span class="erebus-icon">◉</span> EREBUS CHAIN
+        </button>
+    </div>
+    
+    <!-- Route Panel -->
+    <div id="route-panel">
+        <div class="panel-header">
+            <h2>ROUTE PLANNER</h2>
+            <button class="clear-btn" onclick="clearRoute()">CLEAR</button>
+        </div>
+        <div id="route-content">
+            <div class="empty-state">
+                <div class="empty-state-icon">🛸</div>
+                <div>Click stars to plan your route</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Star Tooltip -->
+    <div id="star-tooltip">
+        <div class="star-name"></div>
+        <div class="star-faction"></div>
+        <div class="star-pop"></div>
+    </div>
+    
+    <!-- Controls Hint -->
+    <div id="controls-hint">
+        <span>DRAG</span> to rotate | <span>SCROLL</span> to zoom | <span>CLICK</span> to route | <span>DBL-CLICK</span> to center
+    </div>
+    
+    <!-- Erebus Hint -->
+    <div id="erebus-hint">⚠ SCROLL OUT to view full Erebus chain (~400 ly)</div>
+
+    <!-- Black hole shaders -->
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        void main() { gl_Position = vec4(position, 1.0); }
+    </script>
+    <script data-src="raytracer.glsl" data-name="raytracer" type="x-shader/x-fragment"></script>
+
+    <!-- Core Scripts -->
+    <script src="js/acidburn-mode.js"></script>
+    <script src="js/acidburn-blackhole.js"></script>
+    
+    <!-- Navigation -->
+    <script src="nav-menu.js"></script>
+
+    <!-- Three.js CDN fallback for standalone testing -->
+    <script>
+        if (typeof THREE === 'undefined') {
+            document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
+        }
+    </script>
+
+    <!-- 3D Star Map Script -->
+    <script>
+        // ═══════════════════════════════════════════════════════════════
+        // STAR DATA - Canonical coordinates from EXU universe
+        // ═══════════════════════════════════════════════════════════════
+        
+        const STARS = [
+            // UPLB Systems
+            { name: 'Sol', x: 0, y: 0, z: 0, faction: 'uplb', pop: '10440M', habitat: 'Earth' },
+            { name: 'Gamov', x: 9.43, y: 25.19, z: -31.15, faction: 'uplb', pop: '631M', habitat: 'Gamov' },
+            { name: 'Wolf', x: -0.73, y: 5.59, z: 12.78, faction: 'uplb', pop: '432M', habitat: 'Fenrir' },
+            { name: 'Luyten', x: 6.51, y: 2.16, z: -10.16, faction: 'uplb', pop: '322M', habitat: 'Semarang' },
+            { name: 'Gowjin', x: -6.07, y: -13.15, z: 4.77, faction: 'uplb', pop: '317M', habitat: 'GJ 876 Moon' },
+            { name: 'Issetock', x: 1.59, y: 13.18, z: 15.66, faction: 'uplb', pop: '28M', habitat: 'Ehgion' },
+            { name: 'Nursia', x: -20.32, y: -32.91, z: 7.59, faction: 'uplb', pop: '411M', habitat: 'Benedict' },
+            { name: 'Bakunawa', x: -7.60, y: -39.75, z: -3.60, faction: 'uplb', pop: '215M', habitat: 'Marindaga' },
+            
+            // SWI Systems
+            { name: 'Vega', x: -21.77, y: 8.24, z: 9.03, faction: 'swi', pop: '262M', habitat: 'Ahtash' },
+            { name: 'Ya Ke', x: -42.9, y: -46.7, z: -10.7, faction: 'swi', pop: '579M', habitat: 'Celosia' },
+            { name: 'Zi Wei Yuan', x: -45.59, y: 26.33, z: -43.62, faction: 'swi', pop: '259M', habitat: 'HD33564 Moon' },
+            { name: 'Sipapu', x: 32.45, y: 9.00, z: -23.03, faction: 'swi', pop: '254M', habitat: 'Olentsi' },
+            
+            // Homeworlds Federation
+            { name: 'Proxima', x: 2.94, y: -0.10, z: 3.15, faction: 'hw', pop: '397M', habitat: 'Polkan' },
+            { name: 'Rigil', x: 2.99, y: -0.05, z: 3.09, faction: 'hw', pop: '649M', habitat: 'Chiron' },
+            { name: 'Toliman', x: 2.96, y: -0.08, z: 3.12, faction: 'hw', pop: '7M', habitat: 'Theseus' },
+            { name: 'Tartarus', x: 5.56, y: 9.41, z: 0.02, faction: 'hw', pop: '231M', habitat: 'Zerzura' },
+            { name: 'Tau Ceti', x: -0.40, y: -11.35, z: -3.39, faction: 'hw', pop: '228M', habitat: 'Shennong' },
+            { name: 'Barnard', x: -2.87, y: 1.40, z: 4.59, faction: 'hw', pop: '455M', habitat: "Barnard's Planet" },
+        ];
+        
+        // EREBUS WAYPOINT CHAIN - Secret route to RX J1856.5-3754
+        const EREBUS_WAYPOINTS = [
+            { name: 'WP-1', label: 'Gateway', x: 72.5, y: -28.3, z: -19.2, dist: '80 ly', type: 'M4V red dwarf' },
+            { name: 'WP-2', label: 'Midway', x: 144.8, y: -56.9, z: -38.1, dist: '160 ly', type: 'L2 brown dwarf' },
+            { name: 'WP-3', label: 'Threshold', x: 217.4, y: -85.1, z: -57.6, dist: '240 ly', type: 'Rogue planet' },
+            { name: 'WP-4', label: 'Silence', x: 289.7, y: -113.8, z: -76.8, dist: '320 ly', type: 'M6V red dwarf' },
+            { name: 'WP-5', label: 'Antechamber', x: 344.2, y: -135.1, z: -91.2, dist: '380 ly', type: 'M8V + ice giant' },
+            { name: 'Erebus', label: 'RX J1856', x: 362.8, y: -142.5, z: -96.3, dist: '400 ly', type: 'Neutron star' },
+        ];
+        
+        const BLACKHOLE_POS = { x: 362.8, y: -142.5, z: -96.3 };
+        
+        // K-tube routes
+        const ROUTES = [
+            // UPLB Internal
+            {from: 'Sol', to: 'Wolf', proper: 19.17, tau: 1.92, fdr: 24},
+            {from: 'Sol', to: 'Luyten', proper: 18.38, tau: 1.84, fdr: 24},
+            {from: 'Sol', to: 'Gowjin', proper: 22.47, tau: 2.25, fdr: 24},
+            {from: 'Sol', to: 'Issetock', proper: 28.48, tau: null, fdr: null},
+            {from: 'Sol', to: 'Gamov', proper: 55.85, tau: 5.59, fdr: 48},
+            {from: 'Wolf', to: 'Issetock', proper: 10.46, tau: 1.05, fdr: 16},
+            {from: 'Luyten', to: 'Gamov', proper: 51.30, tau: 5.13, fdr: 48},
+            {from: 'Gowjin', to: 'Nursia', proper: 29.61, tau: 2.96, fdr: 30},
+            {from: 'Gowjin', to: 'Bakunawa', proper: 36.43, tau: 3.64, fdr: 36},
+            {from: 'Nursia', to: 'Bakunawa', proper: 16.77, tau: 1.68, fdr: 20},
+            // SWI Internal
+            {from: 'Vega', to: 'Zi Wei Yuan', proper: 65.58, tau: 6.56, fdr: 54},
+            {from: 'Vega', to: 'Sipapu', proper: 69.48, tau: 6.95, fdr: 58},
+            {from: 'Ya Ke', to: 'Nursia', proper: 33.28, tau: 3.33, fdr: 32},
+            {from: 'Ya Ke', to: 'Bakunawa', proper: 40.23, tau: 4.02, fdr: 38},
+            // Homeworlds Internal
+            {from: 'Proxima', to: 'Rigil', proper: 0.03, tau: 0.01, fdr: 2},
+            {from: 'Proxima', to: 'Toliman', proper: 0.02, tau: 0.01, fdr: 2},
+            {from: 'Rigil', to: 'Toliman', proper: 0.02, tau: 0.01, fdr: 2},
+            {from: 'Proxima', to: 'Barnard', proper: 6.27, tau: 0.63, fdr: 12},
+            {from: 'Tartarus', to: 'Proxima', proper: 12.40, tau: 1.20, fdr: 18},
+            {from: 'Tau Ceti', to: 'Proxima', proper: 15.19, tau: 1.52, fdr: 20},
+            // Inter-faction
+            {from: 'Sol', to: 'Vega', proper: 35.91, tau: 3.59, fdr: 34},
+            {from: 'Gamov', to: 'Zi Wei Yuan', proper: 91.21, tau: 9.12, fdr: 72},
+            {from: 'Sipapu', to: 'Gamov', proper: 56.20, tau: 5.62, fdr: 48},
+            {from: 'Sipapu', to: 'Luyten', proper: 40.23, tau: 4.02, fdr: 38},
+            {from: 'Sol', to: 'Proxima', proper: 5.90, tau: 1.0, fdr: 20},
+            {from: 'Sol', to: 'Rigil', proper: 5.90, tau: 1.0, fdr: 20},
+            {from: 'Sol', to: 'Toliman', proper: 5.90, tau: 1.0, fdr: 20},
+            {from: 'Sol', to: 'Tartarus', proper: 15.13, tau: 1.51, fdr: 24},
+            {from: 'Sol', to: 'Tau Ceti', proper: 16.5, tau: null, fdr: null},
+            {from: 'Sol', to: 'Barnard', proper: 8.31, tau: null, fdr: null},
+            // EREBUS CHAIN
+            {from: 'Ya Ke', to: 'WP-1', proper: 120, tau: 11.5, fdr: 48, erebus: true},
+            {from: 'WP-1', to: 'WP-2', proper: 82, tau: 7.9, fdr: 36, erebus: true},
+            {from: 'WP-2', to: 'WP-3', proper: 82, tau: 7.9, fdr: 36, erebus: true},
+            {from: 'WP-3', to: 'WP-4', proper: 82, tau: 7.9, fdr: 36, erebus: true},
+            {from: 'WP-4', to: 'WP-5', proper: 62, tau: 6.0, fdr: 30, erebus: true},
+            {from: 'WP-5', to: 'Erebus', proper: 21, tau: 2.0, fdr: 12, erebus: true},
+        ];
+        
+        const SCALE = 2;
+        const FACTION_COLORS = { uplb: 0x4a9eff, swi: 0x51cf66, hw: 0xa78bfa };
+        
+        // STATE
+        let scene, camera, renderer;
+        let starMeshes = {}, routeLines = [], activeRouteLines = [], selectedRoute = [];
+        let raycaster, mouse;
+        let isIntroComplete = false, isDragging = false;
+        let orbitCenter = null, spherical = null;
+        let erebusVisible = false, erebusMeshes = [], erebusLines = [], erebusClickableMeshes = {};
+        
+        // Black hole integration
+        const DEFAULT_BLACKHOLE_DISTANCE = 8.0;
+        const MIN_BLACKHOLE_DISTANCE = 3.0;
+        
+        function init() {
+            scene = new THREE.Scene();
+            orbitCenter = new THREE.Vector3(0, 0, 0);
+            spherical = new THREE.Spherical();
+            
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 3000);
+            camera.position.set(BLACKHOLE_POS.x * 0.3, BLACKHOLE_POS.y * 0.3, BLACKHOLE_POS.z * 0.3);
+            camera.lookAt(0, 0, 0);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setClearColor(0x000000, 0);
+            document.getElementById('star-map-container').appendChild(renderer.domElement);
+            
+            createStarfield();
+            STARS.forEach(star => createStar(star));
+            createRoutes();
+            createErebusChain();
+            
+            raycaster = new THREE.Raycaster();
+            mouse = new THREE.Vector2();
+            
+            window.addEventListener('resize', onWindowResize);
+            startIntroAnimation();
+            animate();
+        }
+        
+        function createStarfield() {
+            const geometry = new THREE.BufferGeometry();
+            const vertices = [], colors = [];
+            for (let i = 0; i < 3000; i++) {
+                const r = 300 + Math.random() * 1200;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                vertices.push(r * Math.sin(phi) * Math.cos(theta), r * Math.sin(phi) * Math.sin(theta), r * Math.cos(phi));
+                const brightness = 0.15 + Math.random() * 0.4;
+                colors.push(brightness, brightness, brightness * 1.2);
+            }
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+            scene.add(new THREE.Points(geometry, new THREE.PointsMaterial({ size: 1, vertexColors: true, transparent: true, opacity: 0.6 })));
+        }
+        
+        function createStar(star) {
+            const color = FACTION_COLORS[star.faction];
+            const mesh = new THREE.Mesh(
+                new THREE.SphereGeometry(star.name === 'Sol' ? 3.0 : 2.0, 16, 16),
+                new THREE.MeshBasicMaterial({ color })
+            );
+            mesh.position.set(star.x * SCALE, star.y * SCALE, star.z * SCALE);
+            mesh.userData = star;
+            scene.add(mesh);
+            starMeshes[star.name] = mesh;
+            
+            const glow = new THREE.Mesh(
+                new THREE.SphereGeometry(star.name === 'Sol' ? 5.0 : 3.5, 16, 16),
+                new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.15 })
+            );
+            glow.position.copy(mesh.position);
+            scene.add(glow);
+            
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = 256; canvas.height = 64;
+            ctx.font = 'bold 24px Orbitron, sans-serif';
+            ctx.fillStyle = '#ffffff';
+            ctx.textAlign = 'center';
+            ctx.fillText(star.name, 128, 40);
+            const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true, opacity: 0.9 }));
+            sprite.position.set(star.x * SCALE, star.y * SCALE + 7, star.z * SCALE);
+            sprite.scale.set(8, 2, 1);
+            scene.add(sprite);
+        }
+        
+        function createRoutes() {
+            ROUTES.filter(r => !r.erebus).forEach(route => {
+                const fromStar = STARS.find(s => s.name === route.from);
+                const toStar = STARS.find(s => s.name === route.to);
+                if (!fromStar || !toStar) return;
+                const geometry = new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(fromStar.x * SCALE, fromStar.y * SCALE, fromStar.z * SCALE),
+                    new THREE.Vector3(toStar.x * SCALE, toStar.y * SCALE, toStar.z * SCALE)
+                ]);
+                const line = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.25 }));
+                line.userData = route;
+                scene.add(line);
+                routeLines.push(line);
+            });
+        }
+        
+        function createErebusChain() {
+            const EREBUS_COLOR = 0xff0099;
+            EREBUS_WAYPOINTS.forEach(wp => {
+                const mesh = new THREE.Mesh(
+                    new THREE.SphereGeometry(1.8, 12, 12),
+                    new THREE.MeshBasicMaterial({ color: EREBUS_COLOR, transparent: true, opacity: 0.8 })
+                );
+                mesh.position.set(wp.x * SCALE, wp.y * SCALE, wp.z * SCALE);
+                mesh.userData = { name: wp.name, label: wp.label, type: wp.type, dist: wp.dist, faction: 'erebus', isErebus: true, x: wp.x, y: wp.y, z: wp.z };
+                mesh.visible = false;
+                scene.add(mesh);
+                erebusMeshes.push(mesh);
+                erebusClickableMeshes[wp.name] = mesh;
+                
+                const glow = new THREE.Mesh(new THREE.SphereGeometry(3.0, 12, 12), new THREE.MeshBasicMaterial({ color: EREBUS_COLOR, transparent: true, opacity: 0.12 }));
+                glow.position.copy(mesh.position);
+                glow.visible = false;
+                scene.add(glow);
+                erebusMeshes.push(glow);
+                
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 256; canvas.height = 64;
+                ctx.font = 'bold 20px Orbitron, sans-serif';
+                ctx.fillStyle = '#ff0099';
+                ctx.textAlign = 'center';
+                ctx.fillText(wp.label, 128, 40);
+                const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true, opacity: 0.8 }));
+                sprite.position.set(wp.x * SCALE, wp.y * SCALE + 6, wp.z * SCALE);
+                sprite.scale.set(6, 1.5, 1);
+                sprite.visible = false;
+                scene.add(sprite);
+                erebusMeshes.push(sprite);
+            });
+            
+            const yaKe = STARS.find(s => s.name === 'Ya Ke');
+            const wp1 = EREBUS_WAYPOINTS[0];
+            const connectLine = new THREE.Line(
+                new THREE.BufferGeometry().setFromPoints([
+                    new THREE.Vector3(yaKe.x * SCALE, yaKe.y * SCALE, yaKe.z * SCALE),
+                    new THREE.Vector3(wp1.x * SCALE, wp1.y * SCALE, wp1.z * SCALE)
+                ]),
+                new THREE.LineBasicMaterial({ color: 0xff0099, transparent: true, opacity: 0.5 })
+            );
+            connectLine.visible = false;
+            scene.add(connectLine);
+            erebusLines.push(connectLine);
+            
+            for (let i = 0; i < EREBUS_WAYPOINTS.length - 1; i++) {
+                const from = EREBUS_WAYPOINTS[i], to = EREBUS_WAYPOINTS[i + 1];
+                const line = new THREE.Line(
+                    new THREE.BufferGeometry().setFromPoints([
+                        new THREE.Vector3(from.x * SCALE, from.y * SCALE, from.z * SCALE),
+                        new THREE.Vector3(to.x * SCALE, to.y * SCALE, to.z * SCALE)
+                    ]),
+                    new THREE.LineBasicMaterial({ color: 0xff0099, transparent: true, opacity: 0.4 })
+                );
+                line.visible = false;
+                scene.add(line);
+                erebusLines.push(line);
+            }
+        }
+        
+        function toggleErebus() {
+            erebusVisible = !erebusVisible;
+            erebusMeshes.forEach(m => m.visible = erebusVisible);
+            erebusLines.forEach(l => l.visible = erebusVisible);
+            const btn = document.getElementById('erebus-toggle');
+            const hint = document.getElementById('erebus-hint');
+            if (erebusVisible) { btn.classList.add('active'); hint.style.display = 'block'; hint.style.animation = 'pulse 2s ease infinite'; }
+            else { btn.classList.remove('active'); hint.style.display = 'none'; }
+        }
+        
+        function startIntroAnimation() {
+            const duration = 5000, startTime = Date.now();
+            const startPos = camera.position.clone(), endPos = new THREE.Vector3(80, 80, 100);
+            function animateIntro() {
+                const elapsed = Date.now() - startTime, progress = Math.min(elapsed / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3);
+                camera.position.lerpVectors(startPos, endPos, eased);
+                camera.lookAt(0, 0, 0);
+                if (progress < 1) requestAnimationFrame(animateIntro);
+                else { isIntroComplete = true; enableOrbitControls(); showUI(); }
+            }
+            animateIntro();
+        }
+        
+        function showUI() {
+            document.getElementById('intro-overlay').classList.add('fade-out');
+            setTimeout(() => {
+                document.getElementById('route-panel').classList.add('visible');
+                document.getElementById('legend').classList.add('visible');
+                document.getElementById('controls-hint').classList.add('visible');
+            }, 500);
+        }
+        
+        function enableOrbitControls() {
+            let didDrag = false, mouseDownPos = { x: 0, y: 0 }, previousMousePosition = { x: 0, y: 0 };
+            updateSphericalFromCamera();
+            const DRAG_THRESHOLD = 5;
+            
+            renderer.domElement.addEventListener('mousedown', (e) => {
+                if (e.button === 0) { isDragging = true; didDrag = false; mouseDownPos = { x: e.clientX, y: e.clientY }; previousMousePosition = { x: e.clientX, y: e.clientY }; renderer.domElement.style.cursor = 'grabbing'; }
+            });
+            renderer.domElement.addEventListener('mouseup', (e) => {
+                if (e.button === 0) {
+                    const dx = e.clientX - mouseDownPos.x, dy = e.clientY - mouseDownPos.y;
+                    if (Math.sqrt(dx*dx + dy*dy) < DRAG_THRESHOLD && isIntroComplete) handleStarClick(e);
+                    isDragging = false; didDrag = false; renderer.domElement.style.cursor = 'grab';
+                }
+            });
+            renderer.domElement.addEventListener('dblclick', (e) => { if (isIntroComplete) handleDoubleClick(e); });
+            renderer.domElement.addEventListener('mouseleave', () => { isDragging = false; didDrag = false; });
+            renderer.domElement.addEventListener('mousemove', (e) => {
+                updateTooltip(e);
+                if (!isDragging || !isIntroComplete) return;
+                const deltaX = e.clientX - previousMousePosition.x, deltaY = e.clientY - previousMousePosition.y;
+                const dx = e.clientX - mouseDownPos.x, dy = e.clientY - mouseDownPos.y;
+                if (Math.sqrt(dx*dx + dy*dy) > DRAG_THRESHOLD) didDrag = true;
+                spherical.theta -= deltaX * 0.005;
+                spherical.phi -= deltaY * 0.005;
+                spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
+                const offset = new THREE.Vector3().setFromSpherical(spherical);
+                camera.position.copy(orbitCenter).add(offset);
+                camera.lookAt(orbitCenter);
+                previousMousePosition = { x: e.clientX, y: e.clientY };
+            });
+            renderer.domElement.addEventListener('wheel', (e) => {
+                if (!isIntroComplete) return;
+                spherical.radius += e.deltaY * 0.1;
+                spherical.radius = Math.max(30, Math.min(1200, spherical.radius));
+                const offset = new THREE.Vector3().setFromSpherical(spherical);
+                camera.position.copy(orbitCenter).add(offset);
+                camera.lookAt(orbitCenter);
+                updateBlackholeDistance();
+            });
+        }
+        
+        function updateSphericalFromCamera() { spherical.setFromVector3(camera.position.clone().sub(orbitCenter)); }
+        
+        function updateBlackholeDistance() {
+            const erebusPos = new THREE.Vector3(BLACKHOLE_POS.x * SCALE, BLACKHOLE_POS.y * SCALE, BLACKHOLE_POS.z * SCALE);
+            const distToErebus = orbitCenter.distanceTo(erebusPos);
+            const maxDist = 800, t = Math.min(1, distToErebus / maxDist);
+            const blackholeDistance = MIN_BLACKHOLE_DISTANCE + t * (DEFAULT_BLACKHOLE_DISTANCE - MIN_BLACKHOLE_DISTANCE);
+            const zoomFactor = Math.min(1, spherical.radius / 400);
+            const finalDistance = blackholeDistance * (0.5 + zoomFactor * 0.5);
+            if (typeof AcidburnBlackhole !== 'undefined') AcidburnBlackhole.setDistance(finalDistance);
+        }
+        
+        function handleStarClick(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const zoomDistance = spherical ? spherical.radius : 100;
+            raycaster.params.Mesh = { threshold: Math.max(3, zoomDistance * 0.03) };
+            const allClickable = [...Object.values(starMeshes), ...(erebusVisible ? Object.values(erebusClickableMeshes) : [])];
+            const intersects = raycaster.intersectObjects(allClickable);
+            if (intersects.length > 0) addToRoute(intersects[0].object.userData.name);
+        }
+        
+        function handleDoubleClick(event) {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const zoomDistance = spherical ? spherical.radius : 100;
+            raycaster.params.Mesh = { threshold: Math.max(3, zoomDistance * 0.03) };
+            const allClickable = [...Object.values(starMeshes), ...(erebusVisible ? Object.values(erebusClickableMeshes) : [])];
+            const intersects = raycaster.intersectObjects(allClickable);
+            if (intersects.length > 0) centerMapOn(intersects[0].object.position.clone());
+        }
+        
+        function centerMapOn(targetPos) {
+            const duration = 1000, startTime = Date.now();
+            const startLookAt = orbitCenter.clone();
+            const currentDistance = camera.position.clone().sub(orbitCenter).length();
+            const direction = camera.position.clone().sub(orbitCenter).normalize();
+            const newCameraPos = targetPos.clone().add(direction.multiplyScalar(currentDistance));
+            const startCameraPos = camera.position.clone();
+            
+            function animateCenter() {
+                const elapsed = Date.now() - startTime, progress = Math.min(elapsed / duration, 1);
+                const eased = 1 - Math.pow(1 - progress, 3);
+                camera.position.lerpVectors(startCameraPos, newCameraPos, eased);
+                const currentLookAt = new THREE.Vector3().lerpVectors(startLookAt, targetPos, eased);
+                camera.lookAt(currentLookAt);
+                
+                // Update black hole distance during animation
+                const tempCenter = new THREE.Vector3().lerpVectors(startLookAt, targetPos, eased);
+                const erebusPos = new THREE.Vector3(BLACKHOLE_POS.x * SCALE, BLACKHOLE_POS.y * SCALE, BLACKHOLE_POS.z * SCALE);
+                const distToErebus = tempCenter.distanceTo(erebusPos);
+                const maxDist = 800, t = Math.min(1, distToErebus / maxDist);
+                const blackholeDistance = MIN_BLACKHOLE_DISTANCE + t * (DEFAULT_BLACKHOLE_DISTANCE - MIN_BLACKHOLE_DISTANCE);
+                if (typeof AcidburnBlackhole !== 'undefined') AcidburnBlackhole.setDistance(blackholeDistance);
+                
+                if (progress >= 1) { orbitCenter.copy(targetPos); updateSphericalFromCamera(); updateBlackholeDistance(); }
+                else requestAnimationFrame(animateCenter);
+            }
+            animateCenter();
+        }
+        
+        function resetToSol() { centerMapOn(new THREE.Vector3(0, 0, 0)); }
+        
+        function updateTooltip(event) {
+            if (!isIntroComplete) return;
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            raycaster.setFromCamera(mouse, camera);
+            const zoomDistance = spherical ? spherical.radius : 100;
+            raycaster.params.Mesh = { threshold: Math.max(3, zoomDistance * 0.03) };
+            const allClickable = [...Object.values(starMeshes), ...(erebusVisible ? Object.values(erebusClickableMeshes) : [])];
+            const intersects = raycaster.intersectObjects(allClickable);
+            const tooltip = document.getElementById('star-tooltip');
+            if (intersects.length > 0) {
+                const data = intersects[0].object.userData;
+                tooltip.querySelector('.star-name').textContent = data.isErebus ? data.label : data.name;
+                tooltip.querySelector('.star-faction').textContent = data.isErebus ? 'EREBUS WAYPOINT' : data.faction.toUpperCase();
+                tooltip.querySelector('.star-pop').textContent = data.isErebus ? `${data.dist} | ${data.type}` : `Population: ${data.pop}`;
+                tooltip.style.left = (event.clientX + 15) + 'px';
+                tooltip.style.top = (event.clientY + 15) + 'px';
+                tooltip.classList.add('visible');
+                renderer.domElement.style.cursor = 'pointer';
+            } else {
+                tooltip.classList.remove('visible');
+                if (!isDragging) renderer.domElement.style.cursor = 'grab';
+            }
+        }
+        
+        // ROUTE PLANNING
+        function addToRoute(starName) { if (selectedRoute.length === 0 || selectedRoute[selectedRoute.length - 1] !== starName) { selectedRoute.push(starName); updateRouteDisplay(); highlightRoute(); } }
+        function clearRoute() { selectedRoute = []; updateRouteDisplay(); highlightRoute(); }
+        function findRoute(from, to) { return ROUTES.find(r => (r.from === from && r.to === to) || (r.from === to && r.to === from)); }
+        function getAllStationNames() { const names = STARS.map(s => s.name); if (erebusVisible) EREBUS_WAYPOINTS.forEach(wp => names.push(wp.name)); return names; }
+        
+        function findPath(start, end) {
+            const queue = [[start]], visited = new Set([start]), allStations = getAllStationNames();
+            const availableRoutes = erebusVisible ? ROUTES : ROUTES.filter(r => !r.erebus);
+            while (queue.length > 0) {
+                const path = queue.shift(), current = path[path.length - 1];
+                if (current === end) return path;
+                availableRoutes.forEach(route => {
+                    let next = null;
+                    if (route.from === current) next = route.to;
+                    else if (route.to === current) next = route.from;
+                    if (next && !visited.has(next) && allStations.includes(next)) { visited.add(next); queue.push([...path, next]); }
+                });
+            }
+            return null;
+        }
+        
+        function calculateFullPath() {
+            if (selectedRoute.length < 2) return selectedRoute;
+            let fullPath = [selectedRoute[0]];
+            for (let i = 0; i < selectedRoute.length - 1; i++) {
+                const segment = findPath(selectedRoute[i], selectedRoute[i + 1]);
+                if (segment) fullPath = fullPath.concat(segment.slice(1));
+            }
+            return fullPath;
+        }
+        
+        function highlightRoute() {
+            activeRouteLines.forEach(line => scene.remove(line));
+            activeRouteLines = [];
+            routeLines.forEach(line => { line.material.opacity = 0.25; line.material.color.setHex(0xfbbf24); });
+            if (selectedRoute.length < 2) return;
+            const fullPath = calculateFullPath();
+            if (!fullPath) return;
+            for (let i = 0; i < fullPath.length - 1; i++) {
+                const route = findRoute(fullPath[i], fullPath[i + 1]);
+                const isErebusLeg = route && route.erebus;
+                let fromPos = null, toPos = null;
+                const fromStar = STARS.find(s => s.name === fullPath[i]);
+                const toStar = STARS.find(s => s.name === fullPath[i + 1]);
+                const fromWP = EREBUS_WAYPOINTS.find(wp => wp.name === fullPath[i]);
+                const toWP = EREBUS_WAYPOINTS.find(wp => wp.name === fullPath[i + 1]);
+                if (fromStar) fromPos = {x: fromStar.x, y: fromStar.y, z: fromStar.z};
+                else if (fromWP) fromPos = {x: fromWP.x, y: fromWP.y, z: fromWP.z};
+                if (toStar) toPos = {x: toStar.x, y: toStar.y, z: toStar.z};
+                else if (toWP) toPos = {x: toWP.x, y: toWP.y, z: toWP.z};
+                if (fromPos && toPos) {
+                    const line = new THREE.Line(
+                        new THREE.BufferGeometry().setFromPoints([
+                            new THREE.Vector3(fromPos.x * SCALE, fromPos.y * SCALE, fromPos.z * SCALE),
+                            new THREE.Vector3(toPos.x * SCALE, toPos.y * SCALE, toPos.z * SCALE)
+                        ]),
+                        new THREE.LineBasicMaterial({ color: isErebusLeg ? 0xff0099 : 0x00ffff, transparent: true, opacity: 1, linewidth: 2 })
+                    );
+                    scene.add(line);
+                    activeRouteLines.push(line);
+                }
+            }
+        }
+        
+        function updateRouteDisplay() {
+            const content = document.getElementById('route-content');
+            if (selectedRoute.length === 0) { content.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🛸</div><div>Click stars to plan your route</div></div>'; return; }
+            const fullPath = calculateFullPath();
+            if (!fullPath || fullPath.length === 0) { content.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠</div><div>No route found between selected points</div></div>'; return; }
+            const getDisplayName = (name) => { const wp = EREBUS_WAYPOINTS.find(w => w.name === name); return wp ? wp.label : name; };
+            const isErebusStation = (name) => EREBUS_WAYPOINTS.some(wp => wp.name === name);
+            let stopsHtml = '<div class="route-stops">';
+            fullPath.forEach((stop, i) => {
+                const isErebus = isErebusStation(stop);
+                stopsHtml += `<div class="${isErebus ? 'route-stop erebus-stop' : 'route-stop'}"><span class="stop-num">${i + 1}</span><span class="stop-name">${getDisplayName(stop)}</span></div>`;
+                if (i < fullPath.length - 1) stopsHtml += '<span class="stop-arrow">→</span>';
+            });
+            stopsHtml += '</div>';
+            let totalProper = 0, totalTau = 0, totalFdr = 0, hasErebusLegs = false;
+            for (let i = 0; i < fullPath.length - 1; i++) {
+                const route = findRoute(fullPath[i], fullPath[i + 1]);
+                if (route) { totalProper += route.proper || 0; totalTau += route.tau || 0; totalFdr += route.fdr || 0; if (route.erebus) hasErebusLegs = true; }
+            }
+            const erebusWarning = hasErebusLegs ? '<div class="erebus-warning">⚠ Route includes clandestine Erebus waypoints</div>' : '';
+            const totalsHtml = `<div class="totals-grid"><div class="total-box"><div class="total-label">PROPER TIME</div><div class="total-value">${totalProper.toFixed(1)}<span class="total-unit">d</span></div></div><div class="total-box"><div class="total-label">TAU TIME</div><div class="total-value">${totalTau.toFixed(1)}<span class="total-unit">h</span></div></div><div class="total-box"><div class="total-label">FDR BURN</div><div class="total-value">${totalFdr.toFixed(1)}<span class="total-unit">h</span></div></div></div>`;
+            content.innerHTML = stopsHtml + erebusWarning + totalsHtml;
+        }
+        
+        function onWindowResize() { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }
+        function animate() { requestAnimationFrame(animate); renderer.render(scene, camera); }
+        
+        // START
+        function waitForThree() { if (typeof THREE !== 'undefined') init(); else setTimeout(waitForThree, 100); }
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', waitForThree);
+        else waitForThree();
+    </script>
+</body>
+</html>
