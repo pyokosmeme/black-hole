@@ -823,6 +823,7 @@
             document.getElementById('star-map-container').appendChild(renderer.domElement);
             
             createStarfield();
+            createGrid();  // Add spatial reference grid
             STARS.forEach(star => createStar(star));
             createRoutes();
             createErebusChain();
@@ -845,8 +846,8 @@
         function createStarfield() {
             const geometry = new THREE.BufferGeometry();
             const vertices = [], colors = [];
-            for (let i = 0; i < 3000; i++) {
-                const r = 300 + Math.random() * 1200;
+            for (let i = 0; i < 5000; i++) {
+                const r = 300 + Math.random() * 1800;  // Extended range for Erebus
                 const theta = Math.random() * Math.PI * 2;
                 const phi = Math.acos(2 * Math.random() - 1);
                 vertices.push(r * Math.sin(phi) * Math.cos(theta), r * Math.sin(phi) * Math.sin(theta), r * Math.cos(phi));
@@ -857,6 +858,61 @@
             geometry.addAttribute('position', new THREE.BufferAttribute(new Float32Array(vertices), 3));
             geometry.addAttribute('color', new THREE.BufferAttribute(new Float32Array(colors), 3));
             scene.add(new THREE.Points(geometry, new THREE.PointsMaterial({ size: 1, vertexColors: THREE.VertexColors, transparent: true, opacity: 0.6 })));
+        }
+        
+        // Create a subtle 3D grid for spatial reference
+        let gridLines = [];
+        function createGrid() {
+            const gridColor = 0xbf00ff;  // Purple to match acidburn theme
+            const gridOpacity = 0.06;
+            const gridSize = 1600;  // Extended for Erebus chain (~800 ly * 2)
+            const gridSpacing = 100; // 50 ly spacing (since SCALE = 2)
+            
+            const material = new THREE.LineBasicMaterial({ 
+                color: gridColor, 
+                transparent: true, 
+                opacity: gridOpacity 
+            });
+            
+            // Create grid lines on the XZ plane (horizontal)
+            for (let i = -gridSize; i <= gridSize; i += gridSpacing) {
+                // Lines along X axis
+                const geomX = createLineGeometry(
+                    new THREE.Vector3(-gridSize, 0, i),
+                    new THREE.Vector3(gridSize, 0, i)
+                );
+                const lineX = new THREE.Line(geomX, material);
+                scene.add(lineX);
+                gridLines.push(lineX);
+                
+                // Lines along Z axis
+                const geomZ = createLineGeometry(
+                    new THREE.Vector3(i, 0, -gridSize),
+                    new THREE.Vector3(i, 0, gridSize)
+                );
+                const lineZ = new THREE.Line(geomZ, material);
+                scene.add(lineZ);
+                gridLines.push(lineZ);
+            }
+            
+            // Add some vertical reference lines at key intervals
+            const verticalMaterial = new THREE.LineBasicMaterial({ 
+                color: gridColor, 
+                transparent: true, 
+                opacity: gridOpacity * 0.5
+            });
+            
+            for (let x = -gridSize; x <= gridSize; x += gridSpacing * 2) {
+                for (let z = -gridSize; z <= gridSize; z += gridSpacing * 2) {
+                    const geomV = createLineGeometry(
+                        new THREE.Vector3(x, -200, z),
+                        new THREE.Vector3(x, 200, z)
+                    );
+                    const lineV = new THREE.Line(geomV, verticalMaterial);
+                    scene.add(lineV);
+                    gridLines.push(lineV);
+                }
+            }
         }
         
         function createStar(star) {
@@ -1186,7 +1242,15 @@
                 
                 if (typeof AcidburnBlackhole !== 'undefined') AcidburnBlackhole.setDistance(bhDist);
                 
-                if (progress >= 1) { orbitCenter.copy(targetPos); updateSphericalFromCamera(); updateBlackholeDistance(); }
+                if (progress >= 1) { 
+                    orbitCenter.copy(targetPos); 
+                    updateSphericalFromCamera(); 
+                    updateBlackholeDistance();
+                    // Reset parallax for clean positioning
+                    if (typeof AcidburnBlackhole !== 'undefined' && AcidburnBlackhole.resetParallax) {
+                        AcidburnBlackhole.resetParallax();
+                    }
+                }
                 else requestAnimationFrame(animateCenter);
             }
             animateCenter();
