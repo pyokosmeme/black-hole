@@ -750,13 +750,24 @@
         const SCALE = 2;
         const FACTION_COLORS = { uplb: 0x4a9eff, swi: 0x51cf66, hw: 0xa78bfa };
         
+        // Helper: Create line geometry from two Vector3 points (r73 compatible)
+        function createLineGeometry(p1, p2) {
+            const geometry = new THREE.BufferGeometry();
+            const vertices = new Float32Array([p1.x, p1.y, p1.z, p2.x, p2.y, p2.z]);
+            geometry.addAttribute('position', new THREE.BufferAttribute(vertices, 3));
+            return geometry;
+        }
+        
         // STATE
         let scene, camera, renderer;
         let starMeshes = {}, routeLines = [], activeRouteLines = [], selectedRoute = [];
         let raycaster, mouse;
         let isIntroComplete = false, isDragging = false;
-        let orbitCenter = null, spherical = null;
+        let orbitCenter = null;
         let erebusVisible = false, erebusMeshes = [], erebusLines = [], erebusClickableMeshes = {};
+        
+        // Manual spherical coordinates (for Three.js r73 compatibility)
+        let spherical = { radius: 150, phi: Math.PI / 3, theta: 0 };
         
         // Black hole integration
         const DEFAULT_BLACKHOLE_DISTANCE = 8.0;
@@ -765,7 +776,6 @@
         function init() {
             scene = new THREE.Scene();
             orbitCenter = new THREE.Vector3(0, 0, 0);
-            spherical = new THREE.Spherical();
             
             camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 3000);
             camera.position.set(BLACKHOLE_POS.x * 0.3, BLACKHOLE_POS.y * 0.3, BLACKHOLE_POS.z * 0.3);
@@ -801,9 +811,10 @@
                 const brightness = 0.15 + Math.random() * 0.4;
                 colors.push(brightness, brightness, brightness * 1.2);
             }
-            geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
-            geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-            scene.add(new THREE.Points(geometry, new THREE.PointsMaterial({ size: 1, vertexColors: true, transparent: true, opacity: 0.6 })));
+            // r73 compatible buffer attribute creation
+            geometry.addAttribute('position', new THREE.BufferAttribute(new Float32Array(vertices), 3));
+            geometry.addAttribute('color', new THREE.BufferAttribute(new Float32Array(colors), 3));
+            scene.add(new THREE.Points(geometry, new THREE.PointsMaterial({ size: 1, vertexColors: THREE.VertexColors, transparent: true, opacity: 0.6 })));
         }
         
         function createStar(star) {
@@ -842,10 +853,9 @@
                 const fromStar = STARS.find(s => s.name === route.from);
                 const toStar = STARS.find(s => s.name === route.to);
                 if (!fromStar || !toStar) return;
-                const geometry = new THREE.BufferGeometry().setFromPoints([
-                    new THREE.Vector3(fromStar.x * SCALE, fromStar.y * SCALE, fromStar.z * SCALE),
-                    new THREE.Vector3(toStar.x * SCALE, toStar.y * SCALE, toStar.z * SCALE)
-                ]);
+                const p1 = new THREE.Vector3(fromStar.x * SCALE, fromStar.y * SCALE, fromStar.z * SCALE);
+                const p2 = new THREE.Vector3(toStar.x * SCALE, toStar.y * SCALE, toStar.z * SCALE);
+                const geometry = createLineGeometry(p1, p2);
                 const line = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: 0xfbbf24, transparent: true, opacity: 0.25 }));
                 line.userData = route;
                 scene.add(line);
@@ -890,11 +900,10 @@
             
             const yaKe = STARS.find(s => s.name === 'Ya Ke');
             const wp1 = EREBUS_WAYPOINTS[0];
+            const p1 = new THREE.Vector3(yaKe.x * SCALE, yaKe.y * SCALE, yaKe.z * SCALE);
+            const p2 = new THREE.Vector3(wp1.x * SCALE, wp1.y * SCALE, wp1.z * SCALE);
             const connectLine = new THREE.Line(
-                new THREE.BufferGeometry().setFromPoints([
-                    new THREE.Vector3(yaKe.x * SCALE, yaKe.y * SCALE, yaKe.z * SCALE),
-                    new THREE.Vector3(wp1.x * SCALE, wp1.y * SCALE, wp1.z * SCALE)
-                ]),
+                createLineGeometry(p1, p2),
                 new THREE.LineBasicMaterial({ color: 0xff0099, transparent: true, opacity: 0.5 })
             );
             connectLine.visible = false;
@@ -903,11 +912,10 @@
             
             for (let i = 0; i < EREBUS_WAYPOINTS.length - 1; i++) {
                 const from = EREBUS_WAYPOINTS[i], to = EREBUS_WAYPOINTS[i + 1];
+                const fp = new THREE.Vector3(from.x * SCALE, from.y * SCALE, from.z * SCALE);
+                const tp = new THREE.Vector3(to.x * SCALE, to.y * SCALE, to.z * SCALE);
                 const line = new THREE.Line(
-                    new THREE.BufferGeometry().setFromPoints([
-                        new THREE.Vector3(from.x * SCALE, from.y * SCALE, from.z * SCALE),
-                        new THREE.Vector3(to.x * SCALE, to.y * SCALE, to.z * SCALE)
-                    ]),
+                    createLineGeometry(fp, tp),
                     new THREE.LineBasicMaterial({ color: 0xff0099, transparent: true, opacity: 0.4 })
                 );
                 line.visible = false;
@@ -975,7 +983,13 @@
                 spherical.theta -= deltaX * 0.005;
                 spherical.phi -= deltaY * 0.005;
                 spherical.phi = Math.max(0.1, Math.min(Math.PI - 0.1, spherical.phi));
-                const offset = new THREE.Vector3().setFromSpherical(spherical);
+                // Manual setFromSpherical (r73 compatible)
+                const sinPhi = Math.sin(spherical.phi);
+                const offset = new THREE.Vector3(
+                    spherical.radius * sinPhi * Math.sin(spherical.theta),
+                    spherical.radius * Math.cos(spherical.phi),
+                    spherical.radius * sinPhi * Math.cos(spherical.theta)
+                );
                 camera.position.copy(orbitCenter).add(offset);
                 camera.lookAt(orbitCenter);
                 previousMousePosition = { x: e.clientX, y: e.clientY };
@@ -984,14 +998,31 @@
                 if (!isIntroComplete) return;
                 spherical.radius += e.deltaY * 0.1;
                 spherical.radius = Math.max(30, Math.min(1200, spherical.radius));
-                const offset = new THREE.Vector3().setFromSpherical(spherical);
+                // Manual setFromSpherical (r73 compatible)
+                const sinPhi = Math.sin(spherical.phi);
+                const offset = new THREE.Vector3(
+                    spherical.radius * sinPhi * Math.sin(spherical.theta),
+                    spherical.radius * Math.cos(spherical.phi),
+                    spherical.radius * sinPhi * Math.cos(spherical.theta)
+                );
                 camera.position.copy(orbitCenter).add(offset);
                 camera.lookAt(orbitCenter);
                 updateBlackholeDistance();
             });
         }
         
-        function updateSphericalFromCamera() { spherical.setFromVector3(camera.position.clone().sub(orbitCenter)); }
+        function updateSphericalFromCamera() {
+            // Manual conversion from cartesian to spherical (r73 compatible)
+            const offset = camera.position.clone().sub(orbitCenter);
+            spherical.radius = offset.length();
+            if (spherical.radius === 0) {
+                spherical.theta = 0;
+                spherical.phi = 0;
+            } else {
+                spherical.theta = Math.atan2(offset.x, offset.z);
+                spherical.phi = Math.acos(Math.max(-1, Math.min(1, offset.y / spherical.radius)));
+            }
+        }
         
         function updateBlackholeDistance() {
             const erebusPos = new THREE.Vector3(BLACKHOLE_POS.x * SCALE, BLACKHOLE_POS.y * SCALE, BLACKHOLE_POS.z * SCALE);
@@ -1007,8 +1038,6 @@
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
-            const zoomDistance = spherical ? spherical.radius : 100;
-            raycaster.params.Mesh = { threshold: Math.max(3, zoomDistance * 0.03) };
             const allClickable = [...Object.values(starMeshes), ...(erebusVisible ? Object.values(erebusClickableMeshes) : [])];
             const intersects = raycaster.intersectObjects(allClickable);
             if (intersects.length > 0) addToRoute(intersects[0].object.userData.name);
@@ -1018,14 +1047,13 @@
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
-            const zoomDistance = spherical ? spherical.radius : 100;
-            raycaster.params.Mesh = { threshold: Math.max(3, zoomDistance * 0.03) };
             const allClickable = [...Object.values(starMeshes), ...(erebusVisible ? Object.values(erebusClickableMeshes) : [])];
             const intersects = raycaster.intersectObjects(allClickable);
             if (intersects.length > 0) centerMapOn(intersects[0].object.position.clone());
         }
         
         function centerMapOn(targetPos) {
+            if (!camera || !orbitCenter) return;
             const duration = 1000, startTime = Date.now();
             const startLookAt = orbitCenter.clone();
             const currentDistance = camera.position.clone().sub(orbitCenter).length();
@@ -1054,15 +1082,16 @@
             animateCenter();
         }
         
-        function resetToSol() { centerMapOn(new THREE.Vector3(0, 0, 0)); }
+        function resetToSol() { 
+            if (!camera || !isIntroComplete) return;
+            centerMapOn(new THREE.Vector3(0, 0, 0)); 
+        }
         
         function updateTooltip(event) {
             if (!isIntroComplete) return;
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
             raycaster.setFromCamera(mouse, camera);
-            const zoomDistance = spherical ? spherical.radius : 100;
-            raycaster.params.Mesh = { threshold: Math.max(3, zoomDistance * 0.03) };
             const allClickable = [...Object.values(starMeshes), ...(erebusVisible ? Object.values(erebusClickableMeshes) : [])];
             const intersects = raycaster.intersectObjects(allClickable);
             const tooltip = document.getElementById('star-tooltip');
@@ -1133,11 +1162,10 @@
                 if (toStar) toPos = {x: toStar.x, y: toStar.y, z: toStar.z};
                 else if (toWP) toPos = {x: toWP.x, y: toWP.y, z: toWP.z};
                 if (fromPos && toPos) {
+                    const p1 = new THREE.Vector3(fromPos.x * SCALE, fromPos.y * SCALE, fromPos.z * SCALE);
+                    const p2 = new THREE.Vector3(toPos.x * SCALE, toPos.y * SCALE, toPos.z * SCALE);
                     const line = new THREE.Line(
-                        new THREE.BufferGeometry().setFromPoints([
-                            new THREE.Vector3(fromPos.x * SCALE, fromPos.y * SCALE, fromPos.z * SCALE),
-                            new THREE.Vector3(toPos.x * SCALE, toPos.y * SCALE, toPos.z * SCALE)
-                        ]),
+                        createLineGeometry(p1, p2),
                         new THREE.LineBasicMaterial({ color: isErebusLeg ? 0xff0099 : 0x00ffff, transparent: true, opacity: 1, linewidth: 2 })
                     );
                     scene.add(line);
