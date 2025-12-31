@@ -770,8 +770,15 @@
         let spherical = { radius: 150, phi: Math.PI / 3, theta: 0 };
         
         // Black hole integration
-        const DEFAULT_BLACKHOLE_DISTANCE = 8.0;
-        const MIN_BLACKHOLE_DISTANCE = 3.0;
+        // The black hole is visually centered at the Erebus endpoint (RX J1856)
+        // Observer distance only decreases when near the final Erebus waypoints
+        const DEFAULT_BLACKHOLE_DISTANCE = 12.0;  // Far - small background object
+        const APPROACH_BLACKHOLE_DISTANCE = 5.5;  // Medium - looming (Antechamber)
+        const CLOSE_BLACKHOLE_DISTANCE = 3.0;     // Close - dominates view (RX J1856)
+        
+        // Positions for proximity checks (in scene units = ly * SCALE)
+        const EREBUS_POS = { x: 362.8 * SCALE, y: -142.5 * SCALE, z: -96.3 * SCALE };
+        const ANTECHAMBER_POS = { x: 344.2 * SCALE, y: -135.1 * SCALE, z: -91.2 * SCALE };
         
         function init() {
             scene = new THREE.Scene();
@@ -796,6 +803,12 @@
             mouse = new THREE.Vector2();
             
             window.addEventListener('resize', onWindowResize);
+            
+            // Set initial black hole distance (far/small)
+            if (typeof AcidburnBlackhole !== 'undefined') {
+                AcidburnBlackhole.setDistance(DEFAULT_BLACKHOLE_DISTANCE);
+            }
+            
             startIntroAnimation();
             animate();
         }
@@ -943,7 +956,7 @@
                 camera.position.lerpVectors(startPos, endPos, eased);
                 camera.lookAt(0, 0, 0);
                 if (progress < 1) requestAnimationFrame(animateIntro);
-                else { isIntroComplete = true; enableOrbitControls(); showUI(); }
+                else { isIntroComplete = true; enableOrbitControls(); showUI(); updateBlackholeDistance(); }
             }
             animateIntro();
         }
@@ -1025,13 +1038,44 @@
         }
         
         function updateBlackholeDistance() {
-            const erebusPos = new THREE.Vector3(BLACKHOLE_POS.x * SCALE, BLACKHOLE_POS.y * SCALE, BLACKHOLE_POS.z * SCALE);
-            const distToErebus = orbitCenter.distanceTo(erebusPos);
-            const maxDist = 800, t = Math.min(1, distToErebus / maxDist);
-            const blackholeDistance = MIN_BLACKHOLE_DISTANCE + t * (DEFAULT_BLACKHOLE_DISTANCE - MIN_BLACKHOLE_DISTANCE);
+            // Calculate distances from orbit center to key Erebus waypoints
+            const erebusVec = new THREE.Vector3(EREBUS_POS.x, EREBUS_POS.y, EREBUS_POS.z);
+            const antechamberVec = new THREE.Vector3(ANTECHAMBER_POS.x, ANTECHAMBER_POS.y, ANTECHAMBER_POS.z);
+            
+            const distToErebus = orbitCenter.distanceTo(erebusVec);
+            const distToAntechamber = orbitCenter.distanceTo(antechamberVec);
+            
+            // Proximity thresholds (in scene units)
+            const CLOSE_THRESHOLD = 20;    // Very close to waypoint
+            const APPROACH_THRESHOLD = 80; // Within approach distance
+            
+            let blackholeDistance = DEFAULT_BLACKHOLE_DISTANCE;
+            
+            // Only zoom in black hole for final Erebus waypoints
+            if (distToErebus < CLOSE_THRESHOLD) {
+                // Centered on RX J1856 - black hole dominates
+                blackholeDistance = CLOSE_BLACKHOLE_DISTANCE;
+            } else if (distToErebus < APPROACH_THRESHOLD) {
+                // Approaching RX J1856 - interpolate
+                const t = distToErebus / APPROACH_THRESHOLD;
+                blackholeDistance = CLOSE_BLACKHOLE_DISTANCE + t * (APPROACH_BLACKHOLE_DISTANCE - CLOSE_BLACKHOLE_DISTANCE);
+            } else if (distToAntechamber < CLOSE_THRESHOLD) {
+                // Centered on Antechamber - black hole looming
+                blackholeDistance = APPROACH_BLACKHOLE_DISTANCE;
+            } else if (distToAntechamber < APPROACH_THRESHOLD) {
+                // Approaching Antechamber - slight zoom
+                const t = distToAntechamber / APPROACH_THRESHOLD;
+                blackholeDistance = APPROACH_BLACKHOLE_DISTANCE + t * (DEFAULT_BLACKHOLE_DISTANCE - APPROACH_BLACKHOLE_DISTANCE);
+            }
+            // All other locations: black hole stays at DEFAULT_BLACKHOLE_DISTANCE (far/small)
+            
+            // Apply zoom factor - closer camera zoom = slightly closer black hole
             const zoomFactor = Math.min(1, spherical.radius / 400);
-            const finalDistance = blackholeDistance * (0.5 + zoomFactor * 0.5);
-            if (typeof AcidburnBlackhole !== 'undefined') AcidburnBlackhole.setDistance(finalDistance);
+            const finalDistance = blackholeDistance * (0.85 + zoomFactor * 0.15);
+            
+            if (typeof AcidburnBlackhole !== 'undefined') {
+                AcidburnBlackhole.setDistance(finalDistance);
+            }
         }
         
         function handleStarClick(event) {
@@ -1068,13 +1112,29 @@
                 const currentLookAt = new THREE.Vector3().lerpVectors(startLookAt, targetPos, eased);
                 camera.lookAt(currentLookAt);
                 
-                // Update black hole distance during animation
+                // Update black hole distance during animation using same proximity logic
                 const tempCenter = new THREE.Vector3().lerpVectors(startLookAt, targetPos, eased);
-                const erebusPos = new THREE.Vector3(BLACKHOLE_POS.x * SCALE, BLACKHOLE_POS.y * SCALE, BLACKHOLE_POS.z * SCALE);
-                const distToErebus = tempCenter.distanceTo(erebusPos);
-                const maxDist = 800, t = Math.min(1, distToErebus / maxDist);
-                const blackholeDistance = MIN_BLACKHOLE_DISTANCE + t * (DEFAULT_BLACKHOLE_DISTANCE - MIN_BLACKHOLE_DISTANCE);
-                if (typeof AcidburnBlackhole !== 'undefined') AcidburnBlackhole.setDistance(blackholeDistance);
+                const erebusVec = new THREE.Vector3(EREBUS_POS.x, EREBUS_POS.y, EREBUS_POS.z);
+                const antechamberVec = new THREE.Vector3(ANTECHAMBER_POS.x, ANTECHAMBER_POS.y, ANTECHAMBER_POS.z);
+                const distToErebus = tempCenter.distanceTo(erebusVec);
+                const distToAntechamber = tempCenter.distanceTo(antechamberVec);
+                
+                const CLOSE_THRESHOLD = 20, APPROACH_THRESHOLD = 80;
+                let bhDist = DEFAULT_BLACKHOLE_DISTANCE;
+                
+                if (distToErebus < CLOSE_THRESHOLD) {
+                    bhDist = CLOSE_BLACKHOLE_DISTANCE;
+                } else if (distToErebus < APPROACH_THRESHOLD) {
+                    const t = distToErebus / APPROACH_THRESHOLD;
+                    bhDist = CLOSE_BLACKHOLE_DISTANCE + t * (APPROACH_BLACKHOLE_DISTANCE - CLOSE_BLACKHOLE_DISTANCE);
+                } else if (distToAntechamber < CLOSE_THRESHOLD) {
+                    bhDist = APPROACH_BLACKHOLE_DISTANCE;
+                } else if (distToAntechamber < APPROACH_THRESHOLD) {
+                    const t = distToAntechamber / APPROACH_THRESHOLD;
+                    bhDist = APPROACH_BLACKHOLE_DISTANCE + t * (DEFAULT_BLACKHOLE_DISTANCE - APPROACH_BLACKHOLE_DISTANCE);
+                }
+                
+                if (typeof AcidburnBlackhole !== 'undefined') AcidburnBlackhole.setDistance(bhDist);
                 
                 if (progress >= 1) { orbitCenter.copy(targetPos); updateSphericalFromCamera(); updateBlackholeDistance(); }
                 else requestAnimationFrame(animateCenter);
