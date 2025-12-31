@@ -648,7 +648,6 @@
     <script src="js/acidburn-mode.js"></script>
     <script src="js/acidburn-blackhole.js"></script>
     <script src="js/acidburn-blackhole-position.js"></script>
-    <script src="js/acidburn-galaxy-dense.js"></script>
     
     <!-- Navigation -->
     <script src="nav-menu.js"></script>
@@ -824,7 +823,7 @@
             document.getElementById('star-map-container').appendChild(renderer.domElement);
             
             createStarfield();
-            createGrid();  // Add spatial reference grid
+            createCelestialSphere();  // Celestial sphere background with grid
             STARS.forEach(star => createStar(star));
             createRoutes();
             createErebusChain();
@@ -861,59 +860,128 @@
             scene.add(new THREE.Points(geometry, new THREE.PointsMaterial({ size: 1, vertexColors: THREE.VertexColors, transparent: true, opacity: 0.6 })));
         }
         
-        // Create a subtle 3D grid for spatial reference
-        let gridLines = [];
-        function createGrid() {
-            const gridColor = 0xbf00ff;  // Purple to match acidburn theme
-            const gridOpacity = 0.06;
-            const gridSize = 1600;  // Extended for Erebus chain (~800 ly * 2)
-            const gridSpacing = 100; // 50 ly spacing (since SCALE = 2)
+        // Create celestial sphere (skybox) with grid pattern
+        let celestialSphere = null;
+        let celestialTexture = null;
+        
+        function createCelestialSphere() {
+            // Generate grid texture on canvas
+            const texWidth = 2048;
+            const texHeight = 1024;
+            const canvas = document.createElement('canvas');
+            canvas.width = texWidth;
+            canvas.height = texHeight;
+            const ctx = canvas.getContext('2d');
             
-            const material = new THREE.LineBasicMaterial({ 
-                color: gridColor, 
-                transparent: true, 
-                opacity: gridOpacity 
-            });
+            // Dark background
+            ctx.fillStyle = '#030508';
+            ctx.fillRect(0, 0, texWidth, texHeight);
             
-            // Create grid lines on the XZ plane (horizontal)
-            for (let i = -gridSize; i <= gridSize; i += gridSpacing) {
-                // Lines along X axis
-                const geomX = createLineGeometry(
-                    new THREE.Vector3(-gridSize, 0, i),
-                    new THREE.Vector3(gridSize, 0, i)
-                );
-                const lineX = new THREE.Line(geomX, material);
-                scene.add(lineX);
-                gridLines.push(lineX);
+            // Subtle gradient
+            const vGrad = ctx.createLinearGradient(0, 0, 0, texHeight);
+            vGrad.addColorStop(0, 'rgba(191, 0, 255, 0.1)');
+            vGrad.addColorStop(0.5, 'rgba(0, 255, 255, 0.03)');
+            vGrad.addColorStop(1, 'rgba(191, 0, 255, 0.1)');
+            ctx.fillStyle = vGrad;
+            ctx.fillRect(0, 0, texWidth, texHeight);
+            
+            // Grid settings
+            const latLines = 36;
+            const lonLines = 72;
+            const gridOpacity = 0.2;
+            
+            ctx.lineWidth = 1;
+            ctx.globalAlpha = gridOpacity;
+            
+            // Latitude lines (horizontal - cyan)
+            ctx.strokeStyle = '#00ffff';
+            for (let i = 0; i <= latLines; i++) {
+                const y = (i / latLines) * texHeight;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(texWidth, y);
+                ctx.stroke();
+            }
+            
+            // Longitude lines (vertical - purple)
+            ctx.strokeStyle = '#bf00ff';
+            for (let i = 0; i <= lonLines; i++) {
+                const x = (i / lonLines) * texWidth;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, texHeight);
+                ctx.stroke();
+            }
+            
+            // Diagonal lines for tiger stripe effect
+            ctx.globalAlpha = gridOpacity * 0.5;
+            const diagSpacing = texWidth / 24;
+            
+            ctx.strokeStyle = '#00ffff';
+            for (let i = -texHeight; i < texWidth + texHeight; i += diagSpacing) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i + texHeight, texHeight);
+                ctx.stroke();
+            }
+            
+            ctx.strokeStyle = '#bf00ff';
+            for (let i = -texHeight; i < texWidth + texHeight; i += diagSpacing) {
+                ctx.beginPath();
+                ctx.moveTo(i + texHeight, 0);
+                ctx.lineTo(i, texHeight);
+                ctx.stroke();
+            }
+            
+            // Stars/noise
+            ctx.globalAlpha = 0.5;
+            for (let i = 0; i < 600; i++) {
+                const x = Math.random() * texWidth;
+                const y = Math.random() * texHeight;
+                const size = Math.random() * 2;
+                const c = Math.random();
+                ctx.fillStyle = c > 0.7 ? '#00ffff' : c > 0.4 ? '#bf00ff' : '#ffffff';
+                ctx.globalAlpha = 0.3 + Math.random() * 0.4;
+                ctx.fillRect(x, y, size, size);
+            }
+            
+            // Glow regions
+            ctx.globalAlpha = 1;
+            for (let i = 0; i < 6; i++) {
+                const gx = Math.random() * texWidth;
+                const gy = Math.random() * texHeight;
+                const radius = 100 + Math.random() * 200;
+                const color = Math.random() > 0.5 ? [191, 0, 255] : [0, 255, 255];
                 
-                // Lines along Z axis
-                const geomZ = createLineGeometry(
-                    new THREE.Vector3(i, 0, -gridSize),
-                    new THREE.Vector3(i, 0, gridSize)
-                );
-                const lineZ = new THREE.Line(geomZ, material);
-                scene.add(lineZ);
-                gridLines.push(lineZ);
+                const grad = ctx.createRadialGradient(gx, gy, 0, gx, gy, radius);
+                grad.addColorStop(0, `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.1)`);
+                grad.addColorStop(0.5, `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.03)`);
+                grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, texWidth, texHeight);
             }
             
-            // Add some vertical reference lines at key intervals
-            const verticalMaterial = new THREE.LineBasicMaterial({ 
-                color: gridColor, 
-                transparent: true, 
-                opacity: gridOpacity * 0.5
+            // Create Three.js texture from canvas (r73 compatible)
+            celestialTexture = new THREE.Texture(canvas);
+            celestialTexture.needsUpdate = true;
+            celestialTexture.wrapS = THREE.RepeatWrapping;
+            celestialTexture.wrapT = THREE.ClampToEdgeWrapping;
+            
+            // Create sphere geometry - large enough to contain everything
+            const sphereRadius = 2500;  // Larger than max zoom out
+            const geometry = new THREE.SphereGeometry(sphereRadius, 64, 32);
+            
+            const material = new THREE.MeshBasicMaterial({
+                map: celestialTexture,
+                side: THREE.BackSide,  // Render inside of sphere
+                transparent: true,
+                opacity: 0.8
             });
             
-            for (let x = -gridSize; x <= gridSize; x += gridSpacing * 2) {
-                for (let z = -gridSize; z <= gridSize; z += gridSpacing * 2) {
-                    const geomV = createLineGeometry(
-                        new THREE.Vector3(x, -200, z),
-                        new THREE.Vector3(x, 200, z)
-                    );
-                    const lineV = new THREE.Line(geomV, verticalMaterial);
-                    scene.add(lineV);
-                    gridLines.push(lineV);
-                }
-            }
+            celestialSphere = new THREE.Mesh(geometry, material);
+            scene.add(celestialSphere);
+            
+            console.log('[Star Map] Celestial sphere created');
         }
         
         function createStar(star) {
