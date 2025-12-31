@@ -782,6 +782,27 @@
         const EREBUS_POS = { x: 362.8 * SCALE, y: -142.5 * SCALE, z: -96.3 * SCALE };
         const ANTECHAMBER_POS = { x: 344.2 * SCALE, y: -135.1 * SCALE, z: -91.2 * SCALE };
         
+        // Project Erebus position to screen coordinates for shader
+        function updateBlackholeScreenPosition() {
+            if (!camera) return;
+            
+            const erebusVec = new THREE.Vector3(EREBUS_POS.x, EREBUS_POS.y, EREBUS_POS.z);
+            
+            // Project 3D position to normalized device coordinates (-1 to 1)
+            const projected = erebusVec.clone().project(camera);
+            
+            // Convert NDC to UV coordinates (0 to 1, with 0.5 being center)
+            const screenX = (projected.x + 1) / 2;
+            const screenY = (projected.y + 1) / 2;
+            
+            // Check if behind camera (z > 1 means behind)
+            const isBehindCamera = projected.z > 1;
+            
+            if (typeof AcidburnBlackhole !== 'undefined' && AcidburnBlackhole.setPosition) {
+                AcidburnBlackhole.setPosition(screenX, screenY, isBehindCamera);
+            }
+        }
+        
         // Black hole marker mesh (always visible, anchored at RX J1856)
         let blackHoleMarker = null;
         let blackHoleGlow = null;
@@ -1286,9 +1307,17 @@
             content.innerHTML = stopsHtml + erebusWarning + totalsHtml;
         }
         
-        function onWindowResize() { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }
+        function onWindowResize() { 
+            camera.aspect = window.innerWidth / window.innerHeight; 
+            camera.updateProjectionMatrix(); 
+            renderer.setSize(window.innerWidth, window.innerHeight); 
+            updateBlackholeScreenPosition();
+        }
         function animate() { 
             requestAnimationFrame(animate); 
+            
+            // Update black hole shader position to match Erebus in 3D space
+            updateBlackholeScreenPosition();
             
             // Make the anchor glow ring face the camera
             if (erebusAnchorMesh && erebusAnchorMesh.userData.glowRing) {
