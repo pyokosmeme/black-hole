@@ -770,11 +770,12 @@
         let spherical = { radius: 150, phi: Math.PI / 3, theta: 0 };
         
         // Black hole integration
-        // The black hole is visually centered at the Erebus endpoint (RX J1856)
-        // Observer distance only decreases when near the final Erebus waypoints
-        const DEFAULT_BLACKHOLE_DISTANCE = 12.0;  // Far - small background object
-        const APPROACH_BLACKHOLE_DISTANCE = 5.5;  // Medium - looming (Antechamber)
-        const CLOSE_BLACKHOLE_DISTANCE = 3.0;     // Close - dominates view (RX J1856)
+        // The black hole IS the neutron star at RX J1856 (Erebus endpoint)
+        // It's always "there" at 400 ly, appearing as a tiny speck from inhabited space
+        // Only when you travel the Erebus chain does it grow to dominate the view
+        const DEFAULT_BLACKHOLE_DISTANCE = 50.0;  // Very far - tiny speck in background
+        const APPROACH_BLACKHOLE_DISTANCE = 12.0; // Getting closer (Antechamber)
+        const CLOSE_BLACKHOLE_DISTANCE = 4.0;     // Close - dominates view (RX J1856)
         
         // Positions for proximity checks (in scene units = ly * SCALE)
         const EREBUS_POS = { x: 362.8 * SCALE, y: -142.5 * SCALE, z: -96.3 * SCALE };
@@ -1046,8 +1047,8 @@
             const distToAntechamber = orbitCenter.distanceTo(antechamberVec);
             
             // Proximity thresholds (in scene units)
-            const CLOSE_THRESHOLD = 20;    // Very close to waypoint
-            const APPROACH_THRESHOLD = 80; // Within approach distance
+            const CLOSE_THRESHOLD = 30;    // Very close to waypoint
+            const APPROACH_THRESHOLD = 120; // Within approach distance
             
             let blackholeDistance = DEFAULT_BLACKHOLE_DISTANCE;
             
@@ -1057,24 +1058,21 @@
                 blackholeDistance = CLOSE_BLACKHOLE_DISTANCE;
             } else if (distToErebus < APPROACH_THRESHOLD) {
                 // Approaching RX J1856 - interpolate
-                const t = distToErebus / APPROACH_THRESHOLD;
+                const t = (distToErebus - CLOSE_THRESHOLD) / (APPROACH_THRESHOLD - CLOSE_THRESHOLD);
                 blackholeDistance = CLOSE_BLACKHOLE_DISTANCE + t * (APPROACH_BLACKHOLE_DISTANCE - CLOSE_BLACKHOLE_DISTANCE);
             } else if (distToAntechamber < CLOSE_THRESHOLD) {
                 // Centered on Antechamber - black hole looming
                 blackholeDistance = APPROACH_BLACKHOLE_DISTANCE;
             } else if (distToAntechamber < APPROACH_THRESHOLD) {
-                // Approaching Antechamber - slight zoom
-                const t = distToAntechamber / APPROACH_THRESHOLD;
+                // Approaching Antechamber - begin to see it grow
+                const t = (distToAntechamber - CLOSE_THRESHOLD) / (APPROACH_THRESHOLD - CLOSE_THRESHOLD);
                 blackholeDistance = APPROACH_BLACKHOLE_DISTANCE + t * (DEFAULT_BLACKHOLE_DISTANCE - APPROACH_BLACKHOLE_DISTANCE);
             }
-            // All other locations: black hole stays at DEFAULT_BLACKHOLE_DISTANCE (far/small)
-            
-            // Apply zoom factor - closer camera zoom = slightly closer black hole
-            const zoomFactor = Math.min(1, spherical.radius / 400);
-            const finalDistance = blackholeDistance * (0.85 + zoomFactor * 0.15);
+            // All other locations: black hole stays at DEFAULT_BLACKHOLE_DISTANCE (tiny speck)
+            // No zoom factor influence - it's 400 ly away, zooming your view doesn't make it bigger
             
             if (typeof AcidburnBlackhole !== 'undefined') {
-                AcidburnBlackhole.setDistance(finalDistance);
+                AcidburnBlackhole.setDistance(blackholeDistance);
             }
         }
         
@@ -1119,18 +1117,18 @@
                 const distToErebus = tempCenter.distanceTo(erebusVec);
                 const distToAntechamber = tempCenter.distanceTo(antechamberVec);
                 
-                const CLOSE_THRESHOLD = 20, APPROACH_THRESHOLD = 80;
+                const CLOSE_THRESHOLD = 30, APPROACH_THRESHOLD = 120;
                 let bhDist = DEFAULT_BLACKHOLE_DISTANCE;
                 
                 if (distToErebus < CLOSE_THRESHOLD) {
                     bhDist = CLOSE_BLACKHOLE_DISTANCE;
                 } else if (distToErebus < APPROACH_THRESHOLD) {
-                    const t = distToErebus / APPROACH_THRESHOLD;
+                    const t = (distToErebus - CLOSE_THRESHOLD) / (APPROACH_THRESHOLD - CLOSE_THRESHOLD);
                     bhDist = CLOSE_BLACKHOLE_DISTANCE + t * (APPROACH_BLACKHOLE_DISTANCE - CLOSE_BLACKHOLE_DISTANCE);
                 } else if (distToAntechamber < CLOSE_THRESHOLD) {
                     bhDist = APPROACH_BLACKHOLE_DISTANCE;
                 } else if (distToAntechamber < APPROACH_THRESHOLD) {
-                    const t = distToAntechamber / APPROACH_THRESHOLD;
+                    const t = (distToAntechamber - CLOSE_THRESHOLD) / (APPROACH_THRESHOLD - CLOSE_THRESHOLD);
                     bhDist = APPROACH_BLACKHOLE_DISTANCE + t * (DEFAULT_BLACKHOLE_DISTANCE - APPROACH_BLACKHOLE_DISTANCE);
                 }
                 
