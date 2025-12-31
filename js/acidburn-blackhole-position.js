@@ -3,6 +3,7 @@
  * 
  * Adds setPosition() capability to AcidburnBlackhole
  * Uses CSS transforms to position the black hole at a screen location
+ * Includes parallax motion for depth effect
  * 
  * The shader renders the black hole at canvas center.
  * By translating the canvas, we move where the black hole appears on screen.
@@ -20,6 +21,11 @@
     let currentPosition = { x: 0.5, y: 0.5 };
     let isVisible = true;
     
+    // Parallax state - tracks cumulative rotation for background drift
+    let parallaxOffset = { x: 0, y: 0 };
+    let lastPosition = { x: 0.5, y: 0.5 };
+    const PARALLAX_FACTOR = 0.15;  // How much the background "lags" behind (0 = no parallax, 1 = full)
+    
     /**
      * Update the CSS transform to position the black hole
      * Position is in UV coordinates (0-1), where (0.5, 0.5) is center
@@ -30,20 +36,19 @@
         }
         if (!container) return;
         
-        // Calculate offset from center in viewport units
-        // x=0.5, y=0.5 means center (no offset)
-        // x=0 means left edge, x=1 means right edge
-        // y=0 means bottom, y=1 means top (shader UV convention)
-        
+        // Calculate base offset from center in viewport units
         const offsetX = (currentPosition.x - 0.5) * 100; // vw
-        const offsetY = (0.5 - currentPosition.y) * 100; // vh (flip Y: UV y=1 is top, CSS y increases downward)
+        const offsetY = (0.5 - currentPosition.y) * 100; // vh (flip Y)
         
         if (isVisible) {
-            container.style.transform = `translate(${offsetX}vw, ${offsetY}vh)`;
+            // Apply position with parallax offset for depth effect
+            const finalX = offsetX + parallaxOffset.x;
+            const finalY = offsetY + parallaxOffset.y;
+            
+            container.style.transform = `translate(${finalX}vw, ${finalY}vh)`;
             container.style.opacity = '1';
             container.style.visibility = 'visible';
         } else {
-            // Behind camera - hide completely
             container.style.opacity = '0';
             container.style.visibility = 'hidden';
         }
@@ -58,8 +63,27 @@
             return;
         }
         
-        // Add setPosition method
+        // Add setPosition method with parallax tracking
         window.AcidburnBlackhole.setPosition = function(x, y, isBehindCamera) {
+            // Calculate movement delta for parallax
+            const deltaX = (x - lastPosition.x) * 100;
+            const deltaY = (lastPosition.y - y) * 100;  // Flip Y
+            
+            // Accumulate parallax offset (background lags behind movement)
+            parallaxOffset.x += deltaX * PARALLAX_FACTOR;
+            parallaxOffset.y += deltaY * PARALLAX_FACTOR;
+            
+            // Decay parallax offset back toward zero (spring effect)
+            parallaxOffset.x *= 0.95;
+            parallaxOffset.y *= 0.95;
+            
+            // Clamp parallax to prevent extreme drift
+            const maxParallax = 15; // vw/vh units
+            parallaxOffset.x = Math.max(-maxParallax, Math.min(maxParallax, parallaxOffset.x));
+            parallaxOffset.y = Math.max(-maxParallax, Math.min(maxParallax, parallaxOffset.y));
+            
+            lastPosition.x = x;
+            lastPosition.y = y;
             currentPosition.x = x;
             currentPosition.y = y;
             isVisible = !isBehindCamera;
@@ -71,11 +95,18 @@
             return { 
                 x: currentPosition.x, 
                 y: currentPosition.y, 
-                visible: isVisible 
+                visible: isVisible,
+                parallax: { ...parallaxOffset }
             };
         };
         
-        console.log('[ACIDBURN Blackhole Position] API patched with setPosition()');
+        // Add method to reset parallax (e.g., on centering animation)
+        window.AcidburnBlackhole.resetParallax = function() {
+            parallaxOffset.x = 0;
+            parallaxOffset.y = 0;
+        };
+        
+        console.log('[ACIDBURN Blackhole Position] API patched with setPosition() + parallax');
     }
     
     /**
@@ -88,12 +119,8 @@
             return;
         }
         
-        // Ensure container can be transformed
-        // It should already have position:fixed from acidburn.css
-        // Just make sure pointer-events pass through
         container.style.pointerEvents = 'none';
-        
-        console.log('[ACIDBURN Blackhole Position] Initialized');
+        console.log('[ACIDBURN Blackhole Position] Initialized with parallax');
     }
     
     // Start
@@ -107,7 +134,6 @@
         patchAPI();
     }
     
-    // Handle resize
     window.addEventListener('resize', updateTransform);
     
 })();
