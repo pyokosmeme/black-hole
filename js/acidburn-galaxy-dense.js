@@ -1,147 +1,120 @@
 /**
- * ACIDBURN GALAXY PATCH - Dense Mode
+ * ACIDBURN GALAXY PATCH - Dense Grid for Star Map
  * 
- * Enhances the galaxy texture for 3D star map with:
- * - Denser grid (36x72 vs 24x48)
- * - Diagonal tiger stripe lines
- * - More stars and glow regions
+ * Generates a dense grid texture that the black hole shader will raytrace.
+ * This grid WILL be distorted by gravitational lensing.
  * 
- * Load AFTER acidburn-galaxy.js and acidburn-blackhole.js:
- *   <script src="js/acidburn-galaxy.js"></script>
- *   <script src="js/acidburn-blackhole.js"></script>
- *   <script src="js/acidburn-galaxy-dense.js"></script>
+ * Load AFTER acidburn-galaxy.js but BEFORE acidburn-blackhole.js
  */
 
 (function() {
     'use strict';
     
-    function applyDensePatch() {
-        if (typeof AcidburnGalaxy === 'undefined') {
-            setTimeout(applyDensePatch, 100);
-            return;
-        }
+    if (typeof AcidburnGalaxy !== 'undefined') {
+        const originalGenerate = AcidburnGalaxy.generate;
         
-        const config = AcidburnGalaxy.getConfig();
-        if (!config) {
-            // Galaxy not generated yet, wait for it
-            setTimeout(applyDensePatch, 200);
-            return;
-        }
-        
-        const canvas = AcidburnGalaxy.getCanvas();
-        if (!canvas) {
-            setTimeout(applyDensePatch, 200);
-            return;
-        }
-        
-        const ctx = canvas.getContext('2d');
-        const width = canvas.width;
-        const height = canvas.height;
-        
-        // Enhanced settings
-        const denseGrid = {
-            latLines: 36,
-            lonLines: 72,
-            opacity: 0.2,
-            diagSpacing: width / 24
-        };
-        
-        // Draw additional diagonal lines over existing texture
-        ctx.lineWidth = 1;
-        ctx.globalAlpha = denseGrid.opacity * 0.5;
-        
-        // Diagonal lines going one direction (cyan)
-        ctx.strokeStyle = config.colors ? config.colors.cyan : '#00ffff';
-        for (let i = -height; i < width + height; i += denseGrid.diagSpacing) {
-            ctx.beginPath();
-            ctx.moveTo(i, 0);
-            ctx.lineTo(i + height, height);
-            ctx.stroke();
-        }
-        
-        // Diagonal lines going other direction (purple)
-        ctx.strokeStyle = config.colors ? config.colors.purple : '#bf00ff';
-        for (let i = -height; i < width + height; i += denseGrid.diagSpacing) {
-            ctx.beginPath();
-            ctx.moveTo(i + height, 0);
-            ctx.lineTo(i, height);
-            ctx.stroke();
-        }
-        
-        // Add more grid lines to fill gaps
-        ctx.globalAlpha = denseGrid.opacity * 0.4;
-        
-        // Extra latitude lines (cyan)
-        ctx.strokeStyle = config.colors ? config.colors.cyan : '#00ffff';
-        for (let i = 0; i <= denseGrid.latLines; i++) {
-            const y = (i / denseGrid.latLines) * height;
-            ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(width, y);
-            ctx.stroke();
-        }
-        
-        // Extra longitude lines (purple)
-        ctx.strokeStyle = config.colors ? config.colors.purple : '#bf00ff';
-        for (let i = 0; i <= denseGrid.lonLines; i++) {
-            const x = (i / denseGrid.lonLines) * width;
-            ctx.beginPath();
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, height);
-            ctx.stroke();
-        }
-        
-        // Add more noise particles
-        ctx.globalAlpha = 0.4;
-        for (let i = 0; i < 400; i++) {
-            const x = Math.random() * width;
-            const y = Math.random() * height;
-            const size = Math.random() * 2;
+        AcidburnGalaxy.generate = function(options) {
+            // Call original to set up canvas
+            const canvas = originalGenerate.call(AcidburnGalaxy, {
+                width: options.width || 2048,
+                height: options.height || 1024,
+                animated: options.animated || false,
+                grid: { enabled: false },
+                nodes: { enabled: false },
+                glows: { enabled: false },
+                noise: { enabled: false }
+            });
             
-            const colorChoice = Math.random();
-            if (colorChoice > 0.7) {
-                ctx.fillStyle = '#00ffff';
-            } else if (colorChoice > 0.4) {
-                ctx.fillStyle = '#bf00ff';
-            } else {
-                ctx.fillStyle = '#ffffff';
+            // Now draw our own dense grid on top
+            const ctx = canvas.getContext('2d');
+            const width = canvas.width;
+            const height = canvas.height;
+            
+            // Dark background
+            ctx.fillStyle = '#030508';
+            ctx.fillRect(0, 0, width, height);
+            
+            // Subtle gradient
+            const vGrad = ctx.createLinearGradient(0, 0, 0, height);
+            vGrad.addColorStop(0, 'rgba(191, 0, 255, 0.06)');
+            vGrad.addColorStop(0.5, 'rgba(0, 255, 255, 0.02)');
+            vGrad.addColorStop(1, 'rgba(191, 0, 255, 0.06)');
+            ctx.fillStyle = vGrad;
+            ctx.fillRect(0, 0, width, height);
+            
+            // Grid settings - dense for good lensing visibility
+            const latLines = 48;
+            const lonLines = 96;
+            const gridOpacity = 0.3;
+            
+            ctx.lineWidth = 1;
+            
+            // Latitude lines (horizontal - cyan)
+            ctx.strokeStyle = 'rgba(0, 255, 255, ' + gridOpacity + ')';
+            for (let i = 0; i <= latLines; i++) {
+                const y = (i / latLines) * height;
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
             }
             
-            ctx.fillRect(x, y, size, size);
-        }
-        
-        // Add extra glow regions
-        ctx.globalAlpha = 1;
-        for (let i = 0; i < 4; i++) {
-            const gx = Math.random() * width;
-            const gy = Math.random() * height;
-            const radius = 150 + Math.random() * 200;
-            const color = Math.random() > 0.5 ? [191, 0, 255] : [0, 255, 255];
+            // Longitude lines (vertical - purple)
+            ctx.strokeStyle = 'rgba(191, 0, 255, ' + gridOpacity + ')';
+            for (let i = 0; i <= lonLines; i++) {
+                const x = (i / lonLines) * width;
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
             
-            const grad = ctx.createRadialGradient(gx, gy, 0, gx, gy, radius);
-            grad.addColorStop(0, `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.08)`);
-            grad.addColorStop(0.5, `rgba(${color[0]}, ${color[1]}, ${color[2]}, 0.03)`);
-            grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            // Diagonal tiger stripes
+            const diagOpacity = gridOpacity * 0.4;
+            const diagSpacing = width / 32;
             
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, width, height);
-        }
+            ctx.strokeStyle = 'rgba(0, 255, 255, ' + diagOpacity + ')';
+            for (let i = -height; i < width + height; i += diagSpacing) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i + height, height);
+                ctx.stroke();
+            }
+            
+            ctx.strokeStyle = 'rgba(191, 0, 255, ' + diagOpacity + ')';
+            for (let i = -height; i < width + height; i += diagSpacing) {
+                ctx.beginPath();
+                ctx.moveTo(i + height, 0);
+                ctx.lineTo(i, height);
+                ctx.stroke();
+            }
+            
+            // Intersection accent points
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
+            for (let i = 0; i <= lonLines; i += 8) {
+                for (let j = 0; j <= latLines; j += 8) {
+                    const x = (i / lonLines) * width;
+                    const y = (j / latLines) * height;
+                    ctx.fillRect(x - 1, y - 1, 3, 3);
+                }
+            }
+            
+            // Some dim stars
+            for (let i = 0; i < 300; i++) {
+                const x = Math.random() * width;
+                const y = Math.random() * height;
+                const size = Math.random() * 2;
+                const c = Math.random();
+                ctx.fillStyle = c > 0.7 ? 'rgba(0, 255, 255, 0.4)' : 
+                               c > 0.4 ? 'rgba(191, 0, 255, 0.4)' : 
+                                         'rgba(255, 255, 255, 0.5)';
+                ctx.fillRect(x, y, size, size);
+            }
+            
+            console.log('[AcidburnGalaxy Dense] Grid texture ready for raytracing');
+            return canvas;
+        };
         
-        ctx.globalAlpha = 1;
-        
-        // Mark texture as needing update for Three.js
-        canvas.needsUpdate = true;
-        
-        console.log('[AcidburnGalaxy Dense] Patch applied - denser grid + diagonals');
+        console.log('[AcidburnGalaxy Dense] Patched with dense grid');
     }
-    
-    // Start checking after DOM ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(applyDensePatch, 500);
-        });
-    } else {
-        setTimeout(applyDensePatch, 500);
-    }
-    
 })();
