@@ -34,6 +34,13 @@
             pointer-events: auto;
         }
         
+        /* Black hole renders ON TOP of Three.js with blend mode */
+        #blackhole-container {
+            z-index: 15 !important;
+            mix-blend-mode: lighten;  /* Only bright parts (accretion disk) show through */
+            pointer-events: none;
+        }
+        
         #star-map-container canvas {
             cursor: grab;
         }
