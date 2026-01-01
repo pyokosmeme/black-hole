@@ -34,10 +34,10 @@
             pointer-events: auto;
         }
         
-        /* Black hole renders ON TOP of Three.js with blend mode */
+        /* Black hole renders ON TOP with blend mode - only bright parts show */
         #blackhole-container {
             z-index: 15 !important;
-            mix-blend-mode: lighten;  /* Only bright parts (accretion disk) show through */
+            mix-blend-mode: lighten;
             pointer-events: none;
         }
         
@@ -544,6 +544,7 @@
             document.write('<script src="js-libs/dat.gui.min.js"><\/script>');
             document.write('<script src="three-js-monkey-patch.js"><\/script>');
             document.write('<script src="js/acidburn-galaxy.js"><\/script>');
+            document.write('<script src="js/acidburn-galaxy-minimal.js"><\/script>');
         }
     </script>
 </head>
@@ -655,6 +656,7 @@
     <script src="js/acidburn-mode.js"></script>
     <script src="js/acidburn-blackhole.js"></script>
     <script src="js/acidburn-blackhole-position.js"></script>
+    <script src="js/acidburn-galaxy-celestial.js"></script>
     
     <!-- Navigation -->
     <script src="nav-menu.js"></script>
@@ -830,7 +832,7 @@
             document.getElementById('star-map-container').appendChild(renderer.domElement);
             
             createStarfield();
-            createCelestialSphere();  // Celestial sphere background with grid
+            createCelestialSphere();  // Grid background sphere
             STARS.forEach(star => createStar(star));
             createRoutes();
             createErebusChain();
@@ -867,12 +869,10 @@
             scene.add(new THREE.Points(geometry, new THREE.PointsMaterial({ size: 1, vertexColors: THREE.VertexColors, transparent: true, opacity: 0.6 })));
         }
         
-        // Create celestial sphere (skybox) with grid pattern
+        // Celestial sphere - grid pattern that always surrounds camera
         let celestialSphere = null;
-        let celestialTexture = null;
         
         function createCelestialSphere() {
-            // Generate grid texture on canvas - transparent background with grid lines
             const texWidth = 2048;
             const texHeight = 1024;
             const canvas = document.createElement('canvas');
@@ -880,26 +880,17 @@
             canvas.height = texHeight;
             const ctx = canvas.getContext('2d');
             
-            // Transparent background (let black hole shader show through)
+            // Transparent background
             ctx.clearRect(0, 0, texWidth, texHeight);
-            
-            // Very subtle gradient tint
-            const vGrad = ctx.createLinearGradient(0, 0, 0, texHeight);
-            vGrad.addColorStop(0, 'rgba(191, 0, 255, 0.03)');
-            vGrad.addColorStop(0.5, 'rgba(0, 255, 255, 0.01)');
-            vGrad.addColorStop(1, 'rgba(191, 0, 255, 0.03)');
-            ctx.fillStyle = vGrad;
-            ctx.fillRect(0, 0, texWidth, texHeight);
             
             // Grid settings
             const latLines = 36;
             const lonLines = 72;
             const gridOpacity = 0.25;
             
-            ctx.lineWidth = 1;
-            
             // Latitude lines (horizontal - cyan)
             ctx.strokeStyle = 'rgba(0, 255, 255, ' + gridOpacity + ')';
+            ctx.lineWidth = 1;
             for (let i = 0; i <= latLines; i++) {
                 const y = (i / latLines) * texHeight;
                 ctx.beginPath();
@@ -918,7 +909,7 @@
                 ctx.stroke();
             }
             
-            // Diagonal lines for tiger stripe effect
+            // Diagonal lines
             const diagOpacity = gridOpacity * 0.4;
             const diagSpacing = texWidth / 24;
             
@@ -948,28 +939,23 @@
                 }
             }
             
-            // Create Three.js texture from canvas (r73 compatible)
-            celestialTexture = new THREE.Texture(canvas);
+            // Create texture (r73 compatible)
+            const celestialTexture = new THREE.Texture(canvas);
             celestialTexture.needsUpdate = true;
             celestialTexture.wrapS = THREE.RepeatWrapping;
             celestialTexture.wrapT = THREE.ClampToEdgeWrapping;
             
-            // Create sphere geometry - always surrounds camera
-            const sphereRadius = 2000;
-            const geometry = new THREE.SphereGeometry(sphereRadius, 64, 32);
-            
+            const geometry = new THREE.SphereGeometry(2000, 64, 32);
             const material = new THREE.MeshBasicMaterial({
                 map: celestialTexture,
-                side: THREE.BackSide,  // Render inside of sphere
+                side: THREE.BackSide,
                 transparent: true,
                 opacity: 1.0,
-                depthWrite: false  // Don't occlude other objects
+                depthWrite: false
             });
             
             celestialSphere = new THREE.Mesh(geometry, material);
             scene.add(celestialSphere);
-            
-            console.log('[Star Map] Celestial sphere created (transparent background)');
         }
         
         function createStar(star) {
@@ -1441,10 +1427,9 @@
             // Update black hole shader position to match Erebus in 3D space
             updateBlackholeScreenPosition();
             
-            // Keep celestial sphere centered on camera (always surrounds viewer)
+            // Keep celestial sphere centered on camera and slowly rotating
             if (celestialSphere) {
                 celestialSphere.position.copy(camera.position);
-                // Slow rotation for visual interest and to show accretion disk lensing
                 celestialSphere.rotation.y += 0.0003;
                 celestialSphere.rotation.x += 0.0001;
             }
