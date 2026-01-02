@@ -34,13 +34,6 @@
             pointer-events: auto;
         }
         
-        /* Black hole renders ON TOP with blend mode - only bright parts show */
-        #blackhole-container {
-            z-index: 15 !important;
-            mix-blend-mode: lighten;
-            pointer-events: none;
-        }
-        
         #star-map-container canvas {
             cursor: grab;
         }
@@ -544,7 +537,7 @@
             document.write('<script src="js-libs/dat.gui.min.js"><\/script>');
             document.write('<script src="three-js-monkey-patch.js"><\/script>');
             document.write('<script src="js/acidburn-galaxy.js"><\/script>');
-            document.write('<script src="js/acidburn-galaxy-minimal.js"><\/script>');
+            document.write('<script src="js/acidburn-galaxy-dense.js"><\/script>');
         }
     </script>
 </head>
@@ -655,8 +648,6 @@
     <!-- Core Scripts -->
     <script src="js/acidburn-mode.js"></script>
     <script src="js/acidburn-blackhole.js"></script>
-    <script src="js/acidburn-blackhole-position.js"></script>
-    <script src="js/acidburn-galaxy-celestial.js"></script>
     
     <!-- Navigation -->
     <script src="nav-menu.js"></script>
@@ -792,27 +783,6 @@
         const EREBUS_POS = { x: 362.8 * SCALE, y: -142.5 * SCALE, z: -96.3 * SCALE };
         const ANTECHAMBER_POS = { x: 344.2 * SCALE, y: -135.1 * SCALE, z: -91.2 * SCALE };
         
-        // Project Erebus position to screen coordinates for shader
-        function updateBlackholeScreenPosition() {
-            if (!camera) return;
-            
-            const erebusVec = new THREE.Vector3(EREBUS_POS.x, EREBUS_POS.y, EREBUS_POS.z);
-            
-            // Project 3D position to normalized device coordinates (-1 to 1)
-            const projected = erebusVec.clone().project(camera);
-            
-            // Convert NDC to UV coordinates (0 to 1, with 0.5 being center)
-            const screenX = (projected.x + 1) / 2;
-            const screenY = (projected.y + 1) / 2;
-            
-            // Check if behind camera (z > 1 means behind)
-            const isBehindCamera = projected.z > 1;
-            
-            if (typeof AcidburnBlackhole !== 'undefined' && AcidburnBlackhole.setPosition) {
-                AcidburnBlackhole.setPosition(screenX, screenY, isBehindCamera);
-            }
-        }
-        
         // Black hole marker mesh (always visible, anchored at RX J1856)
         let blackHoleMarker = null;
         let blackHoleGlow = null;
@@ -832,7 +802,6 @@
             document.getElementById('star-map-container').appendChild(renderer.domElement);
             
             createStarfield();
-            createCelestialSphere();  // Grid background sphere
             STARS.forEach(star => createStar(star));
             createRoutes();
             createErebusChain();
@@ -867,95 +836,6 @@
             geometry.addAttribute('position', new THREE.BufferAttribute(new Float32Array(vertices), 3));
             geometry.addAttribute('color', new THREE.BufferAttribute(new Float32Array(colors), 3));
             scene.add(new THREE.Points(geometry, new THREE.PointsMaterial({ size: 1, vertexColors: THREE.VertexColors, transparent: true, opacity: 0.6 })));
-        }
-        
-        // Celestial sphere - grid pattern that always surrounds camera
-        let celestialSphere = null;
-        
-        function createCelestialSphere() {
-            const texWidth = 2048;
-            const texHeight = 1024;
-            const canvas = document.createElement('canvas');
-            canvas.width = texWidth;
-            canvas.height = texHeight;
-            const ctx = canvas.getContext('2d');
-            
-            // Transparent background
-            ctx.clearRect(0, 0, texWidth, texHeight);
-            
-            // Grid settings
-            const latLines = 36;
-            const lonLines = 72;
-            const gridOpacity = 0.25;
-            
-            // Latitude lines (horizontal - cyan)
-            ctx.strokeStyle = 'rgba(0, 255, 255, ' + gridOpacity + ')';
-            ctx.lineWidth = 1;
-            for (let i = 0; i <= latLines; i++) {
-                const y = (i / latLines) * texHeight;
-                ctx.beginPath();
-                ctx.moveTo(0, y);
-                ctx.lineTo(texWidth, y);
-                ctx.stroke();
-            }
-            
-            // Longitude lines (vertical - purple)
-            ctx.strokeStyle = 'rgba(191, 0, 255, ' + gridOpacity + ')';
-            for (let i = 0; i <= lonLines; i++) {
-                const x = (i / lonLines) * texWidth;
-                ctx.beginPath();
-                ctx.moveTo(x, 0);
-                ctx.lineTo(x, texHeight);
-                ctx.stroke();
-            }
-            
-            // Diagonal lines
-            const diagOpacity = gridOpacity * 0.4;
-            const diagSpacing = texWidth / 24;
-            
-            ctx.strokeStyle = 'rgba(0, 255, 255, ' + diagOpacity + ')';
-            for (let i = -texHeight; i < texWidth + texHeight; i += diagSpacing) {
-                ctx.beginPath();
-                ctx.moveTo(i, 0);
-                ctx.lineTo(i + texHeight, texHeight);
-                ctx.stroke();
-            }
-            
-            ctx.strokeStyle = 'rgba(191, 0, 255, ' + diagOpacity + ')';
-            for (let i = -texHeight; i < texWidth + texHeight; i += diagSpacing) {
-                ctx.beginPath();
-                ctx.moveTo(i + texHeight, 0);
-                ctx.lineTo(i, texHeight);
-                ctx.stroke();
-            }
-            
-            // Intersection points
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
-            for (let i = 0; i <= lonLines; i += 6) {
-                for (let j = 0; j <= latLines; j += 6) {
-                    const x = (i / lonLines) * texWidth;
-                    const y = (j / latLines) * texHeight;
-                    ctx.fillRect(x - 1, y - 1, 3, 3);
-                }
-            }
-            
-            // Create texture (r73 compatible)
-            const celestialTexture = new THREE.Texture(canvas);
-            celestialTexture.needsUpdate = true;
-            celestialTexture.wrapS = THREE.RepeatWrapping;
-            celestialTexture.wrapT = THREE.ClampToEdgeWrapping;
-            
-            const geometry = new THREE.SphereGeometry(2000, 64, 32);
-            const material = new THREE.MeshBasicMaterial({
-                map: celestialTexture,
-                side: THREE.BackSide,
-                transparent: true,
-                opacity: 1.0,
-                depthWrite: false
-            });
-            
-            celestialSphere = new THREE.Mesh(geometry, material);
-            scene.add(celestialSphere);
         }
         
         function createStar(star) {
@@ -1289,10 +1169,6 @@
                     orbitCenter.copy(targetPos); 
                     updateSphericalFromCamera(); 
                     updateBlackholeDistance();
-                    // Reset parallax for clean positioning
-                    if (typeof AcidburnBlackhole !== 'undefined' && AcidburnBlackhole.resetParallax) {
-                        AcidburnBlackhole.resetParallax();
-                    }
                 }
                 else requestAnimationFrame(animateCenter);
             }
@@ -1419,20 +1295,9 @@
             camera.aspect = window.innerWidth / window.innerHeight; 
             camera.updateProjectionMatrix(); 
             renderer.setSize(window.innerWidth, window.innerHeight); 
-            updateBlackholeScreenPosition();
         }
         function animate() { 
             requestAnimationFrame(animate); 
-            
-            // Update black hole shader position to match Erebus in 3D space
-            updateBlackholeScreenPosition();
-            
-            // Keep celestial sphere centered on camera and slowly rotating
-            if (celestialSphere) {
-                celestialSphere.position.copy(camera.position);
-                celestialSphere.rotation.y += 0.0003;
-                celestialSphere.rotation.x += 0.0001;
-            }
             
             // Make the anchor glow ring face the camera
             if (erebusAnchorMesh && erebusAnchorMesh.userData.glowRing) {
