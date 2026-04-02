@@ -2,3 +2,5 @@
 img/milkyway.png
 *.pyc
 *.ipynb
+CLAUDE.md
+.claude/

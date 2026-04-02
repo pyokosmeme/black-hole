@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>SPECULATIVE FUTURES ;; short fiction by A.N. Alex</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         META TAGS
+         ═══════════════════════════════════════════════════════════════ -->
+    <meta name="description" content="SPECULATIVE FUTURES ;; short fiction by A.N. Alex. collected transmissions from the edge of the possible.">
+    <meta name="author" content="Author NPC Alex">
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="lastnpcalex.agency">
+    <meta property="og:title" content="SPECULATIVE FUTURES ;; lastnpcalex.agency">
+    <meta property="og:description" content="SPECULATIVE FUTURES ;; short fiction by A.N. Alex. collected transmissions from the edge of the possible.">
+    <meta property="og:url" content="https://lastnpcalex.agency/futures.html">
+    <meta property="og:image" content="https://lastnpcalex.agency/img/banner.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Retro-futuristic space scene with black hole and neon grid">
+    <meta property="og:locale" content="en_US">
+
+    <!-- Theme -->
+    <meta name="theme-color" content="#0a0a1a">
+    <meta name="msapplication-TileColor" content="#bf00ff">
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         FONTS
+         ═══════════════════════════════════════════════════════════════ -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=VT323&display=swap" rel="stylesheet">
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         STYLES
+         ═══════════════════════════════════════════════════════════════ -->
+    <link rel="stylesheet" href="css/acidburn.css">
+    <link rel="stylesheet" href="css/futures-reading.css">
+
+    <!-- Lite mode detection -->
+    <script>
+        (function() {
+            var mode = localStorage.getItem('acidburn-mode') || 'auto';
+            var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+            var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (mode === 'lite' || (mode === 'auto' && (isMobile || reducedMotion))) {
+                document.documentElement.classList.add('skip-webgl');
+            }
+        })();
+    </script>
+
+    <!-- Page config -->
+    <script>
+     window.PAGE_CONFIG = {
+      configPath: 'futures/config.json',
+      contentDir: 'futures/',
+      titleSuffix: 'short fiction by A.N. Alex'
+     };
+    </script>
+
+    <!-- WebGL scripts - only loaded if not skipping -->
+    <script>
+        if (!document.documentElement.classList.contains('skip-webgl')) {
+            document.write('<script src="js-libs/jquery-2.1.4.min.js"><\/script>');
+            document.write('<script src="js-libs/three.min.js"><\/script>');
+            document.write('<script src="js-libs/OrbitControls.js"><\/script>');
+            document.write('<script src="js-libs/Detector.js"><\/script>');
+            document.write('<script src="js-libs/stats.min.js"><\/script>');
+            document.write('<script src="js-libs/ShaderLoader.min.js"><\/script>');
+            document.write('<script src="js-libs/mustache.min.js"><\/script>');
+            document.write('<script src="js-libs/dat.gui.min.js"><\/script>');
+            document.write('<script src="three-js-monkey-patch.js"><\/script>');
+            document.write('<script src="js/acidburn-galaxy.js"><\/script>');
+        }
+    </script>
+
+    <!-- Marked.js for markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+    <!-- Skip to main content (accessibility) -->
+    <a href="#main" class="skip-link">Skip to main content</a>
+
+    <!-- Static Background (lite mode fallback) -->
+    <div class="static-bg" aria-hidden="true"></div>
+
+    <!-- Black hole container - simulation renders here -->
+    <div id="blackhole-container" aria-hidden="true"></div>
+
+    <!-- Original black hole UI elements (hidden by CSS) -->
+    <div id="hint-text" class="hidden-phone initially-hidden"></div>
+    <div class="info"><div id="loader">Loading...</div></div>
+    <div class="link-bar"></div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         HEADER
+         ═══════════════════════════════════════════════════════════════ -->
+    <header class="header-bar" role="banner">
+        <div class="header-texture" aria-hidden="true"></div>
+        <div id="nav-menu"></div>
+        <div class="header-noise" aria-hidden="true"></div>
+        <div class="header-shimmer" aria-hidden="true"></div>
+
+        <a href="#" class="header-brand" id="header-brand" onclick="showIndex(); return false;">LOADING</a>
+
+        <div class="header-stats">
+            <div class="header-stat">
+                <div class="header-stat-value" id="node-count">2847</div>
+                <div class="header-stat-label">NETWORK NODES</div>
+            </div>
+            <div class="header-stat">
+                <div class="header-stat-value" id="signal-strength">97.3%</div>
+                <div class="header-stat-label">SIGNAL</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Reading Bar (replaces full header when viewing a post) -->
+    <div class="reading-bar" id="reading-bar">
+        <button class="reading-bar-back" onclick="showIndex()">← INDEX</button>
+        <span class="reading-bar-title" id="reading-bar-title"></span>
+        <button class="reading-mode-toggle" id="reading-mode-toggle" onclick="toggleReadingMode()" title="Toggle light/dark reading mode">
+            <span class="mode-icon" id="mode-icon">☀</span>
+        </button>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         MAIN CONTENT
+         ═══════════════════════════════════════════════════════════════ -->
+    <main id="main" class="main-content" role="main">
+
+        <!-- Index View -->
+        <div class="index-view" id="index-view">
+
+            <!-- Author Card -->
+            <section class="author-card">
+                <div class="author-header">
+                    <div class="author-avatar">
+                        <span id="author-avatar">⌥</span>
+                    </div>
+                    <div class="author-info">
+                        <h1 id="author-name">Loading...</h1>
+                        <div class="author-handle" id="author-handle">@...</div>
+                        <div class="author-tagline" id="author-tagline">...</div>
+                    </div>
+                </div>
+                <div class="author-bio" id="author-bio">
+                    <p>Loading signal...</p>
+                </div>
+            </section>
+
+            <!-- Posts Section -->
+            <section class="posts-section">
+                <div class="section-header">
+                    <h2>// TRANSMISSIONS</h2>
+                    <div class="section-line"></div>
+                </div>
+                <div id="tag-filter"></div>
+                <div id="posts-list"></div>
+            </section>
+
+        </div>
+
+        <!-- Post View -->
+        <article class="post-view" id="post-view">
+            <div class="post-view-meta">
+                <div class="post-view-date" id="post-view-date"></div>
+                <div class="post-view-tags" id="post-view-tags"></div>
+            </div>
+            <div class="post-content" id="post-content"></div>
+        </article>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>
+                node active since 2025 ;;
+                transmitted from <a href="/">lastnpcalex.agency</a>
+            </p>
+        </footer>
+
+    </main>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         BLACK HOLE SHADERS
+         ═══════════════════════════════════════════════════════════════ -->
+    <script id="vertex-shader" type="x-shader/x-vertex">
+        void main() {
+            gl_Position = vec4(position, 1.0);
+        }
+    </script>
+    <script data-src="raytracer.glsl" data-name="raytracer" type="x-shader/x-fragment"></script>
+
+    <!-- ═══════════════════════════════════════════════════════════════
+         APPLICATION SCRIPTS
+         ═══════════════════════════════════════════════════════════════ -->
+
+    <!-- Mode Toggle (FULL/LITE/AUTO) -->
+    <script src="js/acidburn-mode.js"></script>
+
+    <!-- Black Hole Renderer (only runs if not in lite mode) -->
+    <script src="js/acidburn-blackhole.js"></script>
+
+    <!-- Author Content System -->
+    <script src="js/acidburn-author.js"></script>
+
+    <!-- Navigation Menu -->
+    <script src="nav-menu.js"></script>
+
+    <!-- Reading bar + mode toggle -->
+    <script>
+    function toggleReadingMode() {
+        const postView = document.getElementById('post-view');
+        const readingBar = document.getElementById('reading-bar');
+        const icon = document.getElementById('mode-icon');
+        postView.classList.toggle('light-reading');
+        readingBar.classList.toggle('light-reading');
+        const isLight = postView.classList.contains('light-reading');
+        icon.textContent = isLight ? '☽' : '☀';
+        localStorage.setItem('futures-reading-mode', isLight ? 'light' : 'dark');
+    }
+
+    // Hook into acidburn-author's loadPost/showIndex to manage reading bar
+    (function() {
+        // Wait for acidburn-author to initialize
+        const check = setInterval(() => {
+            if (!window.AcidburnAuthor) return;
+            clearInterval(check);
+
+            const origLoadPost = window.AcidburnAuthor.loadPost;
+            const origShowIndex = window.showIndex;
+            const header = document.querySelector('.header-bar');
+            const readingBar = document.getElementById('reading-bar');
+            const barTitle = document.getElementById('reading-bar-title');
+
+            // Override loadPost to show reading bar
+            window.AcidburnAuthor.loadPost = async function(slug) {
+                await origLoadPost(slug);
+                const posts = window.AcidburnAuthor.getPosts();
+                const post = posts.find(p => p.slug === slug);
+                if (barTitle && post) barTitle.textContent = post.title || slug;
+                header.classList.add('header-collapsed');
+                readingBar.classList.add('active');
+            };
+
+            // Override showIndex to restore full header
+            window.showIndex = function() {
+                origShowIndex();
+                header.classList.remove('header-collapsed');
+                readingBar.classList.remove('active');
+            };
+
+            // Tag filter — wait until posts are actually loaded
+            const tagCheck = setInterval(() => {
+                const posts = window.AcidburnAuthor.getPosts();
+                if (!posts.length) return;
+                clearInterval(tagCheck);
+
+                const filterEl = document.getElementById('tag-filter');
+                if (!filterEl) return;
+
+                // Collect unique tags in order of appearance
+                const seen = new Set();
+                const tags = [];
+                posts.forEach(p => (p.tags || []).forEach(t => {
+                    if (!seen.has(t)) { seen.add(t); tags.push(t); }
+                }));
+                if (!tags.length) return;
+
+                function applyFilter(tag) {
+                    filterEl.querySelectorAll('.tag-filter-btn').forEach(btn => {
+                        btn.classList.toggle('active', btn.dataset.tag === (tag || ''));
+                    });
+                    document.querySelectorAll('#posts-list .post-card').forEach(card => {
+                        const post = posts.find(p => p.slug === card.dataset.slug);
+                        const match = !tag || (post && (post.tags || []).includes(tag));
+                        card.style.display = match ? '' : 'none';
+                    });
+                }
+
+                filterEl.innerHTML =
+                    `<button class="tag-filter-btn active" data-tag="">ALL</button>` +
+                    tags.map(t => `<button class="tag-filter-btn" data-tag="${t}">#${t}</button>`).join('');
+
+                filterEl.addEventListener('click', e => {
+                    const btn = e.target.closest('.tag-filter-btn');
+                    if (!btn) return;
+                    applyFilter(btn.dataset.tag || null);
+                });
+            }, 50);
+
+            // Also handle direct hash navigation
+            const origHash = window.addEventListener;
+            window.addEventListener('hashchange', () => {
+                const hash = window.location.hash;
+                if (hash.startsWith('#post/')) {
+                    const slug = hash.replace('#post/', '');
+                    window.AcidburnAuthor.loadPost(slug);
+                }
+            });
+
+            // Check if we loaded directly into a post
+            if (window.location.hash.startsWith('#post/')) {
+                const slug = window.location.hash.replace('#post/', '');
+                window.AcidburnAuthor.loadPost(slug);
+            }
+        }, 50);
+
+        // Restore light/dark preference
+        if (localStorage.getItem('futures-reading-mode') === 'light') {
+            const pv = document.getElementById('post-view');
+            const rb = document.getElementById('reading-bar');
+            const ic = document.getElementById('mode-icon');
+            if (pv) pv.classList.add('light-reading');
+            if (rb) rb.classList.add('light-reading');
+            if (ic) ic.textContent = '☽';
+        }
+    })();
+    </script>
+
+</body>
+</html>

@@ -4,6 +4,7 @@
   "pages": [
     { "label": "HOME", "url": "/", "icon": "⌂" },
     { "label": "A MOTE IN SHADOW", "url": "/ams.html", "icon": "◬" },
+    { "label": "SPECULATIVE FUTURES", "url": "/futures.html", "icon": "⌥" },
     {
       "label": "MAPS",
       "icon": "⬡",

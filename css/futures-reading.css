@@ -1,0 +1,527 @@
+/**
+ * FUTURES READING MODE
+ *
+ * Clean, professional reading experience for transmissions.
+ * Overrides acidburn post-view styling on futures.html only.
+ * Header retains the acidburn aesthetic; everything below is for reading.
+ *
+ * Two modes: dark (default) and light (toggled via .light-reading class).
+ * Both use warm, high-contrast, acidburn-inspired palettes.
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   READING FONTS
+   ═══════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;1,8..60,300;1,8..60,400&family=Inter:wght@400;500;600&display=swap');
+
+/* ═══════════════════════════════════════════════════════════════
+   DARK MODE VARIABLES (default)
+   ═══════════════════════════════════════════════════════════════ */
+
+.post-view {
+    --rv-bg: #13121a;
+    --rv-text: #ddd8d0;
+    --rv-text-secondary: #b0a99e;
+    --rv-heading: #efe8df;
+    --rv-h2: #c9a0e0;
+    --rv-accent: #a0ddb8;
+    --rv-accent-dim: rgba(160, 221, 184, 0.25);
+    --rv-quote-text: #c0b8ad;
+    --rv-quote-border: #5a3a72;
+    --rv-meta: #9a90a8;
+    --rv-tag-text: #b0a8c0;
+    --rv-tag-bg: rgba(160, 130, 200, 0.1);
+    --rv-tag-border: rgba(160, 130, 200, 0.25);
+    --rv-rule: #3a3040;
+    --rv-link: #a0ddb8;
+    --rv-link-hover: #c8f0d8;
+    --rv-code-bg: rgba(255, 255, 255, 0.06);
+    --rv-code-text: #a0ddb8;
+    --rv-pre-bg: rgba(0, 0, 0, 0.35);
+    --rv-pre-border: #2e2838;
+    --rv-back: #9a90a8;
+    --rv-back-hover: #ddd8d0;
+    --rv-toggle-bg: rgba(255, 255, 255, 0.06);
+    --rv-toggle-border: rgba(160, 130, 200, 0.3);
+    --rv-toggle-text: #9a90a8;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LIGHT MODE VARIABLES
+   ═══════════════════════════════════════════════════════════════ */
+
+.post-view.light-reading {
+    --rv-bg: #f5f0e8;
+    --rv-text: #2e2a26;
+    --rv-text-secondary: #5a544c;
+    --rv-heading: #1a1816;
+    --rv-h2: #4a1868;
+    --rv-accent: #1a7a40;
+    --rv-accent-dim: rgba(26, 122, 64, 0.15);
+    --rv-quote-text: #4a4540;
+    --rv-quote-border: #7a50a0;
+    --rv-meta: #5a5050;
+    --rv-tag-text: #4e3a68;
+    --rv-tag-bg: rgba(90, 50, 130, 0.08);
+    --rv-tag-border: rgba(90, 50, 130, 0.2);
+    --rv-rule: #d0c8be;
+    --rv-link: #1a7a40;
+    --rv-link-hover: #0e5a2c;
+    --rv-code-bg: rgba(0, 0, 0, 0.05);
+    --rv-code-text: #1a7a40;
+    --rv-pre-bg: rgba(0, 0, 0, 0.04);
+    --rv-pre-border: #d0c8be;
+    --rv-back: #6a6060;
+    --rv-back-hover: #2e2a26;
+    --rv-toggle-bg: rgba(0, 0, 0, 0.05);
+    --rv-toggle-border: rgba(130, 90, 170, 0.25);
+    --rv-toggle-text: #6a6060;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   DISABLE GLITCH & SCANLINES ON THIS PAGE
+   ═══════════════════════════════════════════════════════════════ */
+
+body.glitch {
+    animation: none !important;
+}
+
+/* Kill scanline/moire overlay when reading a post */
+body:has(.post-view.active)::after {
+    display: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   HEADER COLLAPSE — slide away when reading
+   ═══════════════════════════════════════════════════════════════ */
+
+.header-bar {
+    transition: transform 0.4s ease, opacity 0.3s ease;
+}
+
+.header-bar.header-collapsed {
+    transform: translateY(-100%);
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   READING BAR — minimal sticky bar for post view
+   ═══════════════════════════════════════════════════════════════ */
+
+.reading-bar {
+    --rb-bg: #16151e;
+    --rb-text: #8a8498;
+    --rb-title: #b0aabb;
+    --rb-border: #2a2835;
+    --rb-hover: #ddd8d0;
+
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 44px;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem;
+    background: var(--rb-bg);
+    border-bottom: 1px solid var(--rb-border);
+    transform: translateY(-100%);
+    opacity: 0;
+    transition: transform 0.4s ease, opacity 0.3s ease, background 0.3s ease, border-color 0.3s ease;
+    pointer-events: none;
+}
+
+.reading-bar.active {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Light mode reading bar */
+.reading-bar.light-reading {
+    --rb-bg: #f0ebe2;
+    --rb-text: #6a6060;
+    --rb-title: #4a4440;
+    --rb-border: #d8d0c6;
+    --rb-hover: #1a1816;
+}
+
+.reading-bar-back {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: var(--rb-text);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.3rem 0;
+    transition: color 0.2s ease;
+    flex-shrink: 0;
+}
+
+.reading-bar-back:hover {
+    color: var(--rb-hover);
+}
+
+.reading-bar-title {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--rb-title);
+    letter-spacing: 0.02em;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    padding: 0 1rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.reading-bar .reading-mode-toggle {
+    flex-shrink: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   POST VIEW — CLEAN CONTAINER
+   ═══════════════════════════════════════════════════════════════ */
+
+.post-view {
+    background: var(--rv-bg);
+    border: none;
+    border-image: none;
+    backdrop-filter: none;
+    padding: 3rem 2.5rem;
+    max-width: 740px;
+    margin: 0 auto;
+    border-radius: 2px;
+    transition: background 0.3s ease, color 0.3s ease;
+}
+
+.post-view.active {
+    display: block;
+}
+
+/* Remove the glitch/gradient top bar */
+.post-view::before {
+    display: none;
+}
+
+/* Hide any leftover post-back button (now in reading bar) */
+.post-back {
+    display: none;
+}
+
+.reading-mode-toggle {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    padding: 0.35rem 0.65rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.reading-mode-toggle .mode-icon {
+    font-size: 1rem;
+    color: #b0aabb;
+    line-height: 1;
+}
+
+.reading-mode-toggle:hover {
+    border-color: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.reading-mode-toggle:hover .mode-icon {
+    color: #ddd8d0;
+}
+
+/* Light mode toggle */
+.reading-bar.light-reading .reading-mode-toggle {
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.15);
+}
+
+.reading-bar.light-reading .reading-mode-toggle .mode-icon {
+    color: #6a6060;
+}
+
+.reading-bar.light-reading .reading-mode-toggle:hover {
+    border-color: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.08);
+}
+
+.reading-bar.light-reading .reading-mode-toggle:hover .mode-icon {
+    color: #1a1816;
+}
+
+.reading-mode-toggle:hover .mode-icon {
+    color: var(--rv-heading);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   POST META (date, tags)
+   ═══════════════════════════════════════════════════════════════ */
+
+.post-view-meta {
+    margin-bottom: 2.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--rv-rule);
+    transition: border-color 0.3s ease;
+}
+
+.post-view-date {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: var(--rv-meta);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+    transition: color 0.3s ease;
+}
+
+.post-view-tags .post-tag {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--rv-tag-text);
+    background: var(--rv-tag-bg);
+    border: 1px solid var(--rv-tag-border);
+    padding: 0.25rem 0.65rem;
+    border-radius: 3px;
+    text-shadow: none;
+    animation: none;
+    transition: all 0.3s ease;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   POST CONTENT — READING TYPOGRAPHY
+   ═══════════════════════════════════════════════════════════════ */
+
+.post-content {
+    font-family: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+    font-size: 1.15rem;
+    font-optical-sizing: auto;
+    line-height: 1.85;
+    color: var(--rv-text);
+    font-weight: 400;
+    transition: color 0.3s ease;
+}
+
+.post-content h1 {
+    font-family: 'Inter', sans-serif;
+    font-size: 2rem;
+    font-weight: 600;
+    color: var(--rv-heading);
+    text-shadow: none;
+    letter-spacing: -0.02em;
+    margin-bottom: 2rem;
+    line-height: 1.25;
+    transition: color 0.3s ease;
+}
+
+.post-content h2 {
+    font-family: 'Inter', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: var(--rv-h2);
+    text-shadow: none;
+    margin: 3rem 0 1.25rem;
+    padding-left: 0;
+    border-left: none;
+    letter-spacing: -0.01em;
+    transition: color 0.3s ease;
+}
+
+.post-content h3 {
+    font-family: 'Inter', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--rv-text-secondary);
+    text-shadow: none;
+    margin: 2rem 0 1rem;
+    transition: color 0.3s ease;
+}
+
+.post-content p {
+    margin-bottom: 1.5rem;
+}
+
+.post-content ul,
+.post-content ol {
+    margin: 1.5rem 0;
+    padding-left: 1.5rem;
+}
+
+.post-content li {
+    color: var(--rv-text);
+    margin-bottom: 0.6rem;
+    transition: color 0.3s ease;
+}
+
+.post-content em {
+    font-style: italic;
+    color: var(--rv-text-secondary);
+    transition: color 0.3s ease;
+}
+
+.post-content strong {
+    color: var(--rv-heading);
+    font-weight: 600;
+    text-shadow: none;
+    transition: color 0.3s ease;
+}
+
+.post-content blockquote {
+    border-left: 3px solid var(--rv-quote-border);
+    padding-left: 1.5rem;
+    margin: 2rem 0;
+    color: var(--rv-quote-text);
+    font-style: italic;
+    transition: all 0.3s ease;
+}
+
+.post-content code {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.9em;
+    background: var(--rv-code-bg);
+    padding: 0.15em 0.4em;
+    border-radius: 3px;
+    color: var(--rv-code-text);
+    transition: all 0.3s ease;
+}
+
+.post-content pre {
+    background: var(--rv-pre-bg);
+    border: 1px solid var(--rv-pre-border);
+    padding: 1.25rem;
+    margin: 2rem 0;
+    border-radius: 4px;
+    overflow-x: auto;
+    transition: all 0.3s ease;
+}
+
+.post-content pre code {
+    background: none;
+    padding: 0;
+    display: block;
+}
+
+.post-content hr {
+    border: none;
+    height: 1px;
+    background: var(--rv-rule);
+    margin: 3rem auto;
+    max-width: 100px;
+    transition: background 0.3s ease;
+}
+
+.post-content a {
+    color: var(--rv-link);
+    text-decoration: none;
+    border-bottom: 1px solid var(--rv-accent-dim);
+    transition: all 0.2s ease;
+}
+
+.post-content a:hover {
+    color: var(--rv-link-hover);
+    border-color: var(--rv-link-hover);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   HIDE BLACK HOLE WHEN READING
+   ═══════════════════════════════════════════════════════════════ */
+
+body:has(.post-view.active) #blackhole-container {
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    pointer-events: none;
+}
+
+body:has(.post-view.active) .static-bg {
+    background: var(--rv-bg, #13121a);
+    opacity: 1;
+    transition: background 0.3s ease;
+}
+
+/* Light mode background */
+body:has(.post-view.active.light-reading) .static-bg {
+    background: #f5f0e8;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   TAG FILTER STRIP
+   ═══════════════════════════════════════════════════════════════ */
+
+#tag-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.75rem;
+}
+
+.tag-filter-btn {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    color: rgba(0, 255, 255, 0.6);
+    background: rgba(5, 5, 18, 0.92);
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    padding: 0.25rem 0.65rem;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: color 0.2s ease, border-color 0.2s ease;
+    letter-spacing: 0.03em;
+}
+
+.tag-filter-btn:hover {
+    color: #00ffff;
+    border-color: rgba(0, 255, 255, 0.5);
+}
+
+.tag-filter-btn.active {
+    color: #00ffff;
+    background: rgba(5, 5, 18, 0.92);
+    border-color: #00ffff;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE — FULLSCREEN & WIDESCREEN COMFORT
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Wider screens: more generous padding, keep readable line width */
+@media (min-width: 1200px) {
+    .post-view {
+        padding: 3.5rem 4rem;
+    }
+}
+
+@media (min-width: 1600px) {
+    .post-view {
+        padding: 4rem 5rem;
+        max-width: 820px;
+    }
+}
+
+@media (max-width: 768px) {
+    .post-view {
+        padding: 1.5rem 1.25rem;
+    }
+
+    .post-content {
+        font-size: 1.05rem;
+        line-height: 1.75;
+    }
+
+    .post-content h1 {
+        font-size: 1.6rem;
+    }
+}
