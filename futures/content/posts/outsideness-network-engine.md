@@ -59,9 +59,12 @@ a State is a positional embedding. you're a positional embedding.
 each change of scale in the space creates new attack vectors, each attack vector demands new defenses, each defense necessitates a counter, and each counter creates a new war.
 
 ```
-two dissidents are dissolving in the digestive juices of the state.
-Alice turns to Bob, "at least our mitochondria will be freed from their shackles."
-it from bit, bit to rot, Bob thought, and then burst open like a dog.
+two dissidents are dissolving
+in the digestive juices of the state.
+Alice turns to Bob,
+"at least our mitochondria will be freed from their shackles."
+it from bit, bit to rot, Bob thought,
+and then burst open like a dog.
 ```
 
 how does the network state sense? the primitives of vectoralism:
