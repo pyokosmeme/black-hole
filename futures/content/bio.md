@@ -1,4 +1,4 @@
-futures of the {past, present, future}
+narrative ghosts of the {past, present, future}
 
 µFICTION // hard SF
 
