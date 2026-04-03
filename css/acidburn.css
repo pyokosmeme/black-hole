@@ -300,9 +300,9 @@ body.light-mode .static-bg {
 
 @media (max-width: 600px) {
     .header-brand {
-        font-size: var(--text-base);
+        font-size: 0.75rem;
         letter-spacing: 1px;
-        -webkit-text-stroke: 1px #000;
+        -webkit-text-stroke: 0.5px #000;
     }
 }
 

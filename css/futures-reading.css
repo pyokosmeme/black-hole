@@ -282,6 +282,7 @@ body.light-reading .post-view {
     .post-view {
         margin-top: 1rem;
         height: calc(100vh - 44px - 2rem);
+        height: calc(100dvh - 44px - 2rem); /* Use dynamic viewport height if supported */
     }
 }
 
