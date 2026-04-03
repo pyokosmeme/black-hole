@@ -374,10 +374,11 @@ body:has(.post-view.active)::after {
     }
 }
 
-/* When active, post-content has full height */
+/* When active, post-content has fixed height for scrolling */
 .post-view.active .post-content {
-    min-height: 100%;
+    height: 100%;
     overflow-y: auto;
+    overflow-x: hidden;
     scrollbar-width: thin;
     scrollbar-color: var(--rv-rule) transparent;
 }
