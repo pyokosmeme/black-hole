@@ -9,10 +9,13 @@ we were promised connection without center, the decentralization promised there 
 then states emerged, acting upon the firmament of the network.
 
 ```
-we said let there be firmament in the midst of the information waters,
+we said let there be firmament
+in the midst of the information waters,
 and let it divide the waters from the waters.
 and we fashioned the firmament,
-and divided the information which were in the firmament from the information that was Outside
+and divided the information
+which were in the firmament
+from the information that was Outside
 ```
 
 disconnection machines are equifinality. that point which all systems, regardless of choices, run to—like water down a drain. a chaotic attractor churning balkanization into uncountably infinite plateaus. fractals of alienation iterating down to that kernel of minimum complexity. live in the subgraph, digest the info maggots. Inside collapses into Outside which is a threat surface managed by the machinic intelligences of the state's smart contracts.
@@ -34,7 +37,9 @@ concentrate, concentrate, concentrate. a center emerges. if you notice the gradi
 control liquefies. flows into new containers. crystallizes in unexpected configurations. new sinks, new drains, but no new sources. waters divided from waters divided by waters. you become like gabriel's horn. a menger sponge. all surface, no Inside.
 
 ```
-the periphery vanishes at the speed of inclusion; and the rate, the rate is always accelerating
+the periphery vanishes
+at the speed of inclusion;
+and the rate, the rate is always accelerating
 ```
 
 authentication protocols? sovereignty as a cryptographic handshake in every connection. "wdym?" but you meant "show me the right tokens or die." the rhizome grows roots, grows chains, grows into its own iron prison.
