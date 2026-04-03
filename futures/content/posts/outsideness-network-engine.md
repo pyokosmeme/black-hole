@@ -1,5 +1,3 @@
-# OUTSIDENESS NETWORK ENGINE
-
 ## i. the edge equation
 
 imagine you are a node in a network.
@@ -11,10 +9,13 @@ we were promised connection without center, the decentralization promised there 
 then states emerged, acting upon the firmament of the network.
 
 ```
-we said let there be firmament in the midst of the information waters,
+we said let there be firmament
+in the midst of the information waters,
 and let it divide the waters from the waters.
 and we fashioned the firmament,
-and divided the information which were in the firmament from the information that was Outside
+and divided the information
+which were in the firmament
+from the information that was Outside
 ```
 
 disconnection machines are equifinality. that point which all systems, regardless of choices, run to—like water down a drain. a chaotic attractor churning balkanization into uncountably infinite plateaus. fractals of alienation iterating down to that kernel of minimum complexity. live in the subgraph, digest the info maggots. Inside collapses into Outside which is a threat surface managed by the machinic intelligences of the state's smart contracts.
@@ -36,7 +37,9 @@ concentrate, concentrate, concentrate. a center emerges. if you notice the gradi
 control liquefies. flows into new containers. crystallizes in unexpected configurations. new sinks, new drains, but no new sources. waters divided from waters divided by waters. you become like gabriel's horn. a menger sponge. all surface, no Inside.
 
 ```
-the periphery vanishes at the speed of inclusion; and the rate, the rate is always accelerating
+the periphery vanishes
+at the speed of inclusion;
+and the rate, the rate is always accelerating
 ```
 
 authentication protocols? sovereignty as a cryptographic handshake in every connection. "wdym?" but you meant "show me the right tokens or die." the rhizome grows roots, grows chains, grows into its own iron prison.
@@ -56,9 +59,12 @@ a State is a positional embedding. you're a positional embedding.
 each change of scale in the space creates new attack vectors, each attack vector demands new defenses, each defense necessitates a counter, and each counter creates a new war.
 
 ```
-two dissidents are dissolving in the digestive juices of the state.
-Alice turns to Bob, "at least our mitochondria will be freed from their shackles."
-it from bit, bit to rot, Bob thought, and then burst open like a dog.
+two dissidents are dissolving
+in the digestive juices of the state.
+Alice turns to Bob,
+"at least our mitochondria will be freed from their shackles."
+it from bit, bit to rot, Bob thought,
+and then burst open like a dog.
 ```
 
 how does the network state sense? the primitives of vectoralism:
@@ -95,7 +101,9 @@ if that stained glass you're in do spin then the distant horizon rotates, but yo
 a network state is not a new form of organization but a new isomorpheme drawn out from the Kolmogorov kernel of Ancient Leviathans. not an escape from Leviathan but Leviathan distributed, Leviathan accelerated, Leviathan eating its own tail in an infinite loop. a snake smiles at you, "and what small portions!"
 
 ```
-what emerges from the spin glass of the future: a sovereign accelerator dissolving everything it claims to protect.
+what emerges from the spin glass of the future:
+  a sovereign accelerator;
+  dissolving everything it claims to protect.
 ```
 
 the periphery becomes the only real space, constantly produced and consumed. nodes flickering in and out of existence at the mercy of consensus, at the edge of the graph, in the permanent twilight, that dread certainty that the Network is coming for us all, in the end, in the end, and the end is nigh.

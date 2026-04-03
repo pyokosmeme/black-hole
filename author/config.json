@@ -46,14 +46,14 @@
       "label": "SPECULATIVE FUTURES",
       "url": "/futures.html",
       "icon": "⌥",
-      "desc": "short fiction ;; collected transmissions"
+      "desc": "µFICTION ;; collected transmissions"
     },
        {
       "id": "maps",
-      "label": "SPECULATIVE MAPS",
+      "label": "POSSIBLE TERRITORIES",
       "url": "https://maps.lastnpcalex.agency",
       "icon": "✧",
-      "desc": "maps from fictional worlds"
+      "desc": "maps of speculative worlds"
     }
   ],
 

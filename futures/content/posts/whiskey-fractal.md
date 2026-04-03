@@ -1,5 +1,3 @@
-# WHISKEY TRANSLUCENT FRACTAL
-
 ## where is my eigen-john wayne?
 
 **you are a fractal. in space.** against a clear background.

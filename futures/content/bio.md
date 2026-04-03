@@ -1,7 +1,5 @@
-// speculations (pasts, presents, futures) 
+narrative ghosts of the {past, present, future}
 
-// short fiction and hard SF
+µFICTION // hard SF
 
-// speculative infrastructure
-
-"the human residue of engineered systems"
+speculative infrastructure
