@@ -304,8 +304,50 @@ body:has(.post-view.active)::after {
     border-color: rgba(0,0,0,0.3);
 }
 
+/* Acidburn header effects */
+.reading-bar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        repeating-linear-gradient(-55deg, var(--purple) 0px, var(--purple) 6px, transparent 6px, transparent 12px),
+        repeating-linear-gradient(55deg, var(--cyan) 0px, var(--cyan) 4px, transparent 4px, transparent 14px),
+        repeating-linear-gradient(-45deg, rgba(255, 0, 153, 0.5) 0px, rgba(255, 0, 153, 0.5) 2px, transparent 2px, transparent 6px),
+        repeating-linear-gradient(75deg, rgba(0, 255, 255, 0.4) 0px, rgba(0, 255, 255, 0.4) 3px, transparent 3px, transparent 9px),
+        linear-gradient(90deg, var(--purple), var(--cyan), var(--magenta), var(--cyan), var(--purple));
+    z-index: -2;
+}
+
+.reading-bar::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        repeating-linear-gradient(90deg, transparent 0px, transparent 2px, rgba(0,0,0,0.2) 2px, rgba(0,0,0,0.2) 4px),
+        repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(255,255,255,0.08) 3px, rgba(255,255,255,0.08) 4px),
+        repeating-linear-gradient(-30deg, rgba(191,0,255,0.3) 0px, transparent 1px, transparent 4px, rgba(0,255,255,0.3) 5px, transparent 6px, transparent 8px);
+    mix-blend-mode: overlay;
+    z-index: -1;
+}
+
+.reading-bar.light-reading::before {
+    background:
+        repeating-linear-gradient(-55deg, #6a3a72 0px, #6a3a72 6px, transparent 6px, transparent 12px),
+        repeating-linear-gradient(55deg, #3a7a7a 0px, #3a7a7a 4px, transparent 4px, transparent 14px),
+        repeating-linear-gradient(-45deg, rgba(255, 0, 153, 0.2) 0px, rgba(255, 0, 153, 0.2) 2px, transparent 2px, transparent 6px),
+        repeating-linear-gradient(75deg, rgba(0, 255, 255, 0.2) 0px, rgba(0, 255, 255, 0.2) 3px, transparent 3px, transparent 9px),
+        linear-gradient(90deg, #6a3a72, #3a7a7a, #ff009d, #3a7a7a, #6a3a72);
+}
+
+.reading-bar.light-reading::after {
+    background:
+        repeating-linear-gradient(90deg, transparent 0px, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px),
+        repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px),
+        repeating-linear-gradient(-30deg, rgba(191,0,255,0.2) 0px, transparent 1px, transparent 4px, rgba(0,255,255,0.2) 5px, transparent 6px, transparent 8px);
+}
+
 /* ════╗═══════════════════════════════════════════════════════════╗═══════════════════════════════════════╗
-   POST VIEW — SCROLLABLE CONTENT WITHIN VIEWPORT
+   POST VIEW — FIXED HEIGHT WITH INTERNAL SCROLL
    ════╝═══════════════════════════════════════════════════════════╗═══════════════════════════════════════╗ */
 
 .post-view {
@@ -319,8 +361,9 @@ body:has(.post-view.active)::after {
     border-radius: 2px;
     transition: background 0.3s ease, color 0.3s ease;
     position: relative;
-    margin-top: 50px; /* reading-bar height */
+    margin-top: 50px;
     height: calc(100vh - 50px);
+    overflow: hidden;
 }
 
 @media (max-width: 600px) {
