@@ -79,6 +79,55 @@
     --rv-toggle-text: #6a6060;
 }
 
+/* Light mode header-bar (acidburn style inverted) */
+.header-bar.light-reading {
+    background: #f5f0e8;
+}
+
+.header-bar.light-reading::before {
+    background:
+        repeating-linear-gradient(-55deg, #6a3a72 0px, #6a3a72 6px, transparent 6px, transparent 12px),
+        repeating-linear-gradient(55deg, #3a7a7a 0px, #3a7a7a 4px, transparent 4px, transparent 14px),
+        repeating-linear-gradient(-45deg, rgba(255, 0, 153, 0.2) 0px, rgba(255, 0, 153, 0.2) 2px, transparent 2px, transparent 6px),
+        repeating-linear-gradient(75deg, rgba(0, 255, 255, 0.2) 0px, rgba(0, 255, 255, 0.2) 3px, transparent 3px, transparent 9px),
+        linear-gradient(90deg, #6a3a72, #3a7a7a, #ff009d, #3a7a7a, #6a3a72);
+}
+
+.header-bar.light-reading .header-texture {
+    background:
+        repeating-linear-gradient(90deg, transparent 0px, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px),
+        repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px),
+        repeating-linear-gradient(-30deg, rgba(191,0,255,0.2) 0px, transparent 1px, transparent 4px, rgba(0,255,255,0.2) 5px, transparent 6px, transparent 8px);
+}
+
+.header-bar.light-reading .header-noise {
+    background:
+        radial-gradient(circle at 2px 2px, rgba(0,0,0,0.08) 1px, transparent 1px),
+        radial-gradient(circle at 6px 6px, rgba(0,0,0,0.1) 1px, transparent 1px);
+    mix-blend-mode: screen;
+}
+
+.header-bar.light-reading .header-shimmer {
+    background: linear-gradient(90deg, transparent, rgba(0,0,0,0.1), transparent);
+}
+
+.header-bar.light-reading .header-brand,
+.header-bar.light-reading .header-post-title {
+    color: #2e2a26;
+    text-shadow: 2px 2px 0px var(--cyan);
+    -webkit-text-stroke: 1.2px var(--cyan);
+}
+
+.header-bar.light-reading .header-stat-value {
+    color: #2e2a26;
+    text-shadow: 1px 1px 0px var(--cyan);
+    -webkit-text-stroke: 0.8px var(--cyan);
+}
+
+.header-bar.light-reading .header-stat-label {
+    color: rgba(0,0,0,0.6);
+}
+
 /* ═══════════════════════════════════════════════════════════════
    DISABLE GLITCH & SCANLINES ON THIS PAGE
    ═══════════════════════════════════════════════════════════════ */
@@ -92,258 +141,111 @@ body:has(.post-view.active)::after {
     display: none !important;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   HEADER COLLAPSE — slide away when reading
-   ═══════════════════════════════════════════════════════════════ */
-
-.header-bar {
-    transition: transform 0.4s ease, opacity 0.3s ease;
+/* Fix container padding and prevent double scrolling when reading */
+body:has(.post-view.active) {
+    overflow: hidden;
 }
 
-.header-bar.header-collapsed {
-    transform: translateY(-100%);
-    opacity: 0;
-    pointer-events: none;
-}
-
-/* ════╗═══════════════════════════════════════════════════════════╗═══════════════════════════════════════╗
-   READING BAR — acidburn header styling matching main site
-   ════╝═══════════════════════════════════════════════════════════╗═══════════════════════════════════════╗ */
-
-.reading-bar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 50px;
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    padding: 0 var(--space-md);
-    gap: var(--space-sm);
-    background: var(--panel);
-    overflow: visible;
-    opacity: 0;
-    transition: opacity 0.4s ease;
-    pointer-events: none;
+body:has(.post-view.active) .main-content {
+    padding-top: 50px !important;
+    padding-bottom: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
 }
 
 @media (max-width: 600px) {
-    .reading-bar {
-        height: 44px;
-        padding: 0 var(--space-sm);
+    body:has(.post-view.active) .main-content {
+        padding-top: 44px !important;
     }
 }
 
-.reading-bar::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background:
-        repeating-linear-gradient(-55deg, var(--purple) 0px, var(--purple) 6px, transparent 6px, transparent 12px),
-        repeating-linear-gradient(55deg, var(--cyan) 0px, var(--cyan) 4px, transparent 4px, transparent 14px),
-        repeating-linear-gradient(-45deg, rgba(255, 0, 153, 0.5) 0px, rgba(255, 0, 153, 0.5) 2px, transparent 2px, transparent 6px),
-        repeating-linear-gradient(75deg, rgba(0, 255, 255, 0.4) 0px, rgba(0, 255, 255, 0.4) 3px, transparent 3px, transparent 9px),
-        linear-gradient(90deg, var(--purple), var(--cyan), var(--magenta), var(--cyan), var(--purple));
-    z-index: -2;
+/* ═══════════════════════════════════════════════════════════════
+   ANIMATED TRANSITIONS — smooth flow between index and posts
+   ═══════════════════════════════════════════════════════════════ */
+
+.main-content {
+    display: grid;
+    grid-template-columns: 100%;
+    align-items: start;
 }
 
-.reading-bar::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background:
-        repeating-linear-gradient(90deg, transparent 0px, transparent 2px, rgba(0,0,0,0.2) 2px, rgba(0,0,0,0.2) 4px),
-        repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(255,255,255,0.08) 3px, rgba(255,255,255,0.08) 4px);
-    mix-blend-mode: overlay;
+.index-view, .post-view {
+    grid-column: 1;
+    grid-row: 1;
+    transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), 
+                transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+                visibility 0.5s;
+}
+
+.index-view.hidden {
+    display: block !important; /* Override display: none to allow transition */
+    opacity: 0;
+    transform: translateY(-20px);
     pointer-events: none;
-    z-index: -1;
+    visibility: hidden;
 }
 
-.reading-bar.active {
+.post-view {
+    display: flex !important; /* Always flex layout, controlled by opacity */
+    opacity: 0;
+    transform: translateY(30px);
+    pointer-events: none;
+    visibility: hidden;
+}
+
+.post-view.active {
     opacity: 1;
+    transform: translateY(0);
     pointer-events: auto;
+    visibility: visible;
+    transition-delay: 0.1s; /* Slight delay for post coming in */
 }
 
-/* Light mode reading bar */
-.reading-bar.light-reading {
-    background: #f5f0e8;
+/* Ensure header content transitions smoothly too */
+.header-brand, .header-post-title {
+    transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
-.reading-bar.light-reading::after {
-    background:
-        repeating-linear-gradient(90deg, transparent 0px, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px),
-        repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px);
-}
+/* ═══════════════════════════════════════════════════════════════
+   ADAPTIVE HEADER — keep acidburn vibe, show post info
+   ═══════════════════════════════════════════════════════════════ */
 
-/* Header textures/noise/shimmer for reading-bar */
-.reading-bar .header-texture {
-    position: absolute;
-    inset: 0;
-    background:
-        repeating-linear-gradient(90deg, transparent 0px, transparent 2px, rgba(0,0,0,0.2) 2px, rgba(0,0,0,0.2) 4px),
-        repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(255,255,255,0.08) 3px, rgba(255,255,255,0.08) 4px),
-        repeating-linear-gradient(-30deg, rgba(191,0,255,0.3) 0px, transparent 1px, transparent 4px, rgba(0,255,255,0.3) 5px, transparent 6px, transparent 8px);
-    mix-blend-mode: overlay;
-    pointer-events: none;
-    z-index: -1;
-}
-
-.reading-bar.light-reading .header-texture {
-    background:
-        repeating-linear-gradient(90deg, transparent 0px, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px),
-        repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px),
-        repeating-linear-gradient(-30deg, rgba(191,0,255,0.3) 0px, transparent 1px, transparent 4px, rgba(0,255,255,0.3) 5px, transparent 6px, transparent 8px);
-    mix-blend-mode: overlay;
-}
-
-.reading-bar .header-noise {
-    position: absolute;
-    inset: 0;
-    background:
-        radial-gradient(circle at 2px 2px, rgba(255,255,255,0.12) 1px, transparent 1px),
-        radial-gradient(circle at 6px 6px, rgba(0,255,255,0.15) 1px, transparent 1px);
-    background-size: 8px 8px, 12px 12px;
-    mix-blend-mode: screen;
-    pointer-events: none;
-    z-index: -1;
-}
-
-.reading-bar.light-reading .header-noise {
-    background:
-        radial-gradient(circle at 2px 2px, rgba(0,0,0,0.08) 1px, transparent 1px),
-        radial-gradient(circle at 6px 6px, rgba(0,0,0,0.1) 1px, transparent 1px);
-    background-size: 8px 8px, 12px 12px;
-    mix-blend-mode: screen;
-}
-
-.reading-bar .header-shimmer {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-    z-index: -1;
-    animation: shimmer calc(4s * var(--animation-speed)) ease-in-out infinite;
-    pointer-events: none;
-}
-
-.reading-bar.light-reading .header-shimmer {
-    background: linear-gradient(90deg, transparent, rgba(0,0,0,0.1), transparent);
-}
-
-@keyframes shimmer {
-    0%, 100% { transform: translateX(-100%); opacity: 0; }
-    50% { transform: translateX(100%); opacity: 1; }
-}
-
-.reading-bar-back {
-    font-family: 'Inter', sans-serif;
-    font-size: 0.75rem;
-    font-weight: 500;
-    letter-spacing: 0.06em;
-    color: var(--rb-text);
-    background: none;
-    border: none;
-    cursor: pointer;
-    padding: 0.3rem 0;
-    transition: color 0.2s ease;
-    flex-shrink: 0;
-}
-
-.reading-bar-back:hover {
-    color: var(--rb-hover);
-}
-
-.reading-bar-title {
-    font-family: 'Inter', sans-serif;
-    font-size: 0.9rem;
-    font-weight: 600;
-    color: var(--rv-heading);
-    letter-spacing: 0.01em;
-    text-align: center;
+.header-content-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
     min-width: 0;
+}
+
+.header-brand {
+    /* Inherit from acidburn.css, ensure it's on top of textures */
+    position: relative;
+    z-index: 10;
+    white-space: nowrap;
+}
+
+.header-post-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 900;
+    color: var(--cyan);
+    text-shadow: 2px 2px 0px #000, 0 0 10px rgba(0,255,255,0.5);
+    -webkit-text-stroke: 1.5px #000;
+    letter-spacing: 1px;
+    opacity: 1;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    flex: 1;
+    border-left: 1px solid rgba(0,0,0,0.3);
+    padding-left: 1.5rem;
+    position: relative;
+    z-index: 10;
 }
 
-.reading-bar .reading-mode-toggle {
-    flex-shrink: 0;
-    margin-left: 0.5rem;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.15);
-    border-radius: 4px;
-    padding: 0.3rem 0.6rem;
-    height: 34px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.reading-bar .reading-mode-toggle:hover {
-    background: rgba(255,255,255,0.1);
-    border-color: rgba(255,255,255,0.3);
-}
-
-.reading-bar .reading-mode-toggle .mode-icon {
-    font-size: 1rem;
-    color: var(--rv-text);
-    line-height: 1;
-}
-
-/* Light mode */
-.reading-bar.light-reading .reading-mode-toggle {
-    background: rgba(0,0,0,0.05);
-    border-color: rgba(0,0,0,0.15);
-}
-
-.reading-bar.light-reading .reading-mode-toggle:hover {
-    background: rgba(0,0,0,0.1);
-    border-color: rgba(0,0,0,0.3);
-}
-
-/* Acidburn header effects */
-.reading-bar::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background:
-        repeating-linear-gradient(-55deg, var(--purple) 0px, var(--purple) 6px, transparent 6px, transparent 12px),
-        repeating-linear-gradient(55deg, var(--cyan) 0px, var(--cyan) 4px, transparent 4px, transparent 14px),
-        repeating-linear-gradient(-45deg, rgba(255, 0, 153, 0.5) 0px, rgba(255, 0, 153, 0.5) 2px, transparent 2px, transparent 6px),
-        repeating-linear-gradient(75deg, rgba(0, 255, 255, 0.4) 0px, rgba(0, 255, 255, 0.4) 3px, transparent 3px, transparent 9px),
-        linear-gradient(90deg, var(--purple), var(--cyan), var(--magenta), var(--cyan), var(--purple));
-    z-index: -2;
-}
-
-.reading-bar::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background:
-        repeating-linear-gradient(90deg, transparent 0px, transparent 2px, rgba(0,0,0,0.2) 2px, rgba(0,0,0,0.2) 4px),
-        repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(255,255,255,0.08) 3px, rgba(255,255,255,0.08) 4px),
-        repeating-linear-gradient(-30deg, rgba(191,0,255,0.3) 0px, transparent 1px, transparent 4px, rgba(0,255,255,0.3) 5px, transparent 6px, transparent 8px);
-    mix-blend-mode: overlay;
-    z-index: -1;
-}
-
-.reading-bar.light-reading::before {
-    background:
-        repeating-linear-gradient(-55deg, #6a3a72 0px, #6a3a72 6px, transparent 6px, transparent 12px),
-        repeating-linear-gradient(55deg, #3a7a7a 0px, #3a7a7a 4px, transparent 4px, transparent 14px),
-        repeating-linear-gradient(-45deg, rgba(255, 0, 153, 0.2) 0px, rgba(255, 0, 153, 0.2) 2px, transparent 2px, transparent 6px),
-        repeating-linear-gradient(75deg, rgba(0, 255, 255, 0.2) 0px, rgba(0, 255, 255, 0.2) 3px, transparent 3px, transparent 9px),
-        linear-gradient(90deg, #6a3a72, #3a7a7a, #ff009d, #3a7a7a, #6a3a72);
-}
-
-.reading-bar.light-reading::after {
-    background:
-        repeating-linear-gradient(90deg, transparent 0px, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px),
-        repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px),
-        repeating-linear-gradient(-30deg, rgba(191,0,255,0.2) 0px, transparent 1px, transparent 4px, rgba(0,255,255,0.2) 5px, transparent 6px, transparent 8px);
+@media (max-width: 768px) {
+    .header-post-title {
+        display: none; /* Hide title on very small screens to fit INDEX */
+    }
 }
 
 /* ════╗═══════════════════════════════════════════════════════════╗═══════════════════════════════════════╗
@@ -351,36 +253,129 @@ body:has(.post-view.active)::after {
    ════╝═══════════════════════════════════════════════════════════╗═══════════════════════════════════════╗ */
 
 .post-view {
-    background: var(--rv-bg);
+    background: #12121a; /* Smooth dark gray for the box */
+    background-image: none; /* No grid inside the reader */
     border: 3px solid transparent;
     border-image: linear-gradient(135deg, var(--purple), var(--cyan), var(--purple)) 1;
     backdrop-filter: blur(10px);
-    padding: 3rem 2.5rem;
     max-width: min(740px, 90%);
     margin: 0 auto;
     border-radius: 2px;
-    transition: background 0.3s ease, color 0.3s ease;
+    transition: background 0.3s ease, color 0.3s ease, opacity 0.5s ease, transform 0.5s ease, visibility 0.5s;
     position: relative;
-    margin-top: 50px;
-    height: calc(100vh - 50px);
+    /* Height and margin adjustments to fit screen perfectly */
+    margin-top: 2rem;
+    height: calc(100vh - 50px - 4rem);
+    display: flex; /* Always flex layout, animation handled by opacity/visibility */
+    flex-direction: column;
     overflow: hidden;
+    z-index: 500;
+}
+
+body.light-reading .post-view {
+    background: #f5f0e8;
+    background-image: none;
+    border-image: linear-gradient(135deg, #bf00ff, #00ffff, #bf00ff) 1;
 }
 
 @media (max-width: 600px) {
     .post-view {
-        padding: 1.5rem 1.25rem;
-        margin-top: 44px;
-        height: calc(100vh - 44px);
+        margin-top: 1rem;
+        height: calc(100vh - 44px - 2rem);
     }
 }
 
-/* When active, post-content has fixed height for scrolling */
+/* Internal layout: Meta stays at top, content scrolls */
+.post-view-meta {
+    flex-shrink: 0;
+    padding: 3.5rem 2.5rem 1.5rem; /* Increased top padding for close button */
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--rv-rule);
+    transition: border-color 0.3s ease;
+}
+
+/* Close button inside box */
+.post-close-btn {
+    position: absolute;
+    top: 1rem;
+    left: 2.5rem;
+    z-index: 1000;
+    background: none;
+    border: none;
+    color: var(--rv-meta);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+}
+
+.post-close-btn:hover {
+    color: var(--rv-accent);
+    text-shadow: 0 0 10px var(--rv-accent-dim);
+}
+
+/* Toggle moved inside post-view */
+.reading-mode-toggle {
+    position: absolute;
+    top: 1rem;
+    right: 2rem;
+    z-index: 1000;
+    background: var(--rv-toggle-bg);
+    border: 1px solid var(--rv-toggle-border);
+    border-radius: 4px;
+    padding: 0.4rem 0.8rem;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.reading-mode-toggle:hover {
+    background: var(--rv-accent-dim);
+    border-color: var(--rv-accent);
+}
+
+.reading-mode-toggle .mode-icon {
+    width: 24px;
+    height: 24px;
+    display: block;
+    transition: transform 0.3s ease, filter 0.3s ease;
+    filter: drop-shadow(0 0 5px var(--rv-accent-dim));
+}
+
+.reading-mode-toggle:hover .mode-icon {
+    transform: scale(1.1);
+    filter: drop-shadow(0 0 8px var(--rv-accent));
+}
+
+.post-view.light-reading .reading-mode-toggle .mode-icon {
+    filter: none;
+}
+
+@media (max-width: 600px) {
+    .reading-mode-toggle {
+        top: 1rem;
+        right: 1rem;
+        padding: 0.3rem 0.6rem;
+        height: 32px;
+    }
+}
+
+/* When active, post-content scrolls */
 .post-view.active .post-content {
-    height: 100%;
+    flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: thin;
     scrollbar-color: var(--rv-rule) transparent;
+    padding: 0 2.5rem 3rem;
 }
 
 /* Hide scrollbar but keep functionality */
@@ -425,10 +420,6 @@ body:has(.post-view.active)::after {
     overflow-wrap: break-word;
 }
 
-.post-view.active {
-    display: block;
-}
-
 /* Hide any leftover post-back button (now in reading bar) */
 .post-back {
     display: none;
@@ -437,13 +428,6 @@ body:has(.post-view.active)::after {
 /* ═══════════════════════════════════════════════════════════════
    POST META (date, tags)
    ═══════════════════════════════════════════════════════════════ */
-
-.post-view-meta {
-    margin-bottom: 2.5rem;
-    padding-bottom: 1.5rem;
-    border-bottom: 1px solid var(--rv-rule);
-    transition: border-color 0.3s ease;
-}
 
 .post-view-date {
     font-family: 'Inter', sans-serif;
@@ -625,14 +609,16 @@ body:has(.post-view.active) #blackhole-container {
 }
 
 body:has(.post-view.active) .static-bg {
-    background: var(--rv-bg, #13121a);
+    display: block !important;
     opacity: 1;
-    transition: background 0.3s ease;
 }
 
 /* Light mode background */
 body:has(.post-view.active.light-reading) .static-bg {
-    background: #f5f0e8;
+    background: #f5f0e8 !important;
+    background-image: 
+        linear-gradient(rgba(191, 0, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(191, 0, 255, 0.05) 1px, transparent 1px) !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════

@@ -4,3 +4,15 @@ img/milkyway.png
 *.ipynb
 CLAUDE.md
 .claude/
+GEMINI.md
+.gemini/
+*.png
+!img/*.png
+!author/*.png
+*.md
+!README.md
+!COPYRIGHT.md
+!TRANSMISSIONS.md
+!futures/content/**/*.md
+!author/content/**/*.md
+!author/bio.md

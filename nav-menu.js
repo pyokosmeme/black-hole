@@ -30,32 +30,59 @@
       font-family: 'Share Tech Mono', 'Courier New', monospace;
     }
 
+    /* Container Positioning */
+    .nav-menu {
+      position: relative;
+      display: inline-block;
+    }
+
     /* Menu Toggle Button */
     .nav-toggle {
       display: flex;
       align-items: center;
       gap: 10px;
       padding: 8px 16px;
-      background: rgba(0, 0, 0, 0.5);
+      background: #000;
       border: 2px solid #bf00ff;
       color: #00ffff;
       font-family: 'Orbitron', 'Share Tech Mono', sans-serif;
-      font-size: 12px;
-      font-weight: 700;
+      font-size: 13px;
+      font-weight: 900;
       letter-spacing: 2px;
       cursor: pointer;
       transition: all 0.2s ease;
+      -webkit-text-stroke: 1.5px #000;
+      text-shadow: 2px 2px 0px #000, 0 0 10px rgba(0, 255, 255, 0.5);
     }
 
     .nav-toggle:hover {
-      background: rgba(191, 0, 255, 0.2);
+      background: #111;
       border-color: #00ffff;
-      box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+      color: #fff;
+      -webkit-text-stroke: 1.5px #000;
+      text-shadow: 2px 2px 0px #000, 0 0 15px #00ffff;
+    }
+
+    /* Light Mode Overrides */
+    .header-bar.light-reading .nav-toggle {
+      background: #fdfaf5;
+      border-color: #bf00ff;
+      color: #2e2a26;
+      -webkit-text-stroke: 1.2px #00ffff;
+      text-shadow: 1.5px 1.5px 0px #00ffff;
+    }
+
+    .header-bar.light-reading .nav-toggle:hover {
+      background: #fff;
+      -webkit-text-stroke: 1.2px #00ffff;
+      text-shadow: 0 0 10px #00ffff;
     }
 
     .nav-toggle-icon {
       font-size: 16px;
       transition: transform 0.3s ease;
+      -webkit-text-stroke: 0;
+      text-shadow: none;
     }
 
     .nav-menu.open .nav-toggle-icon {
@@ -65,6 +92,8 @@
     .nav-toggle-arrow {
       font-size: 10px;
       transition: transform 0.3s ease;
+      -webkit-text-stroke: 0;
+      text-shadow: none;
     }
 
     .nav-menu.open .nav-toggle-arrow {
@@ -73,18 +102,24 @@
 
     /* Dropdown Panel */
     .nav-dropdown {
-      position: fixed;
-      top: 60px;
-      left: 20px;
+      position: absolute;
+      top: calc(100% + 10px);
+      left: 50%;
+      transform: translateX(-50%) translateY(-10px);
       min-width: 220px;
-      background: rgba(5, 5, 15, 0.95);
+      background: rgba(2, 2, 8, 0.95);
       border: 2px solid #bf00ff;
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(15px);
       opacity: 0;
       visibility: hidden;
-      transform: translateY(-10px);
       transition: all 0.2s ease;
       z-index: 9999;
+    }
+
+    .nav-menu.open .nav-dropdown {
+      opacity: 1;
+      visibility: visible;
+      transform: translateX(-50%) translateY(0);
     }
 
     .nav-menu.open .nav-dropdown {
@@ -260,7 +295,6 @@
     return `
       <button class="nav-toggle" aria-expanded="false" aria-controls="nav-dropdown">
         <span class="nav-toggle-icon">${config.menuIcon || '☰'}</span>
-        <span class="nav-toggle-label">${config.siteName || 'MENU'}</span>
         <span class="nav-toggle-arrow">▼</span>
       </button>
       <nav class="nav-dropdown" id="nav-dropdown">
@@ -302,19 +336,11 @@
   function attachEventListeners(container) {
     // Toggle main menu
     const toggle = container.querySelector('.nav-toggle');
-    const dropdown = container.querySelector('.nav-dropdown');
     
     toggle.addEventListener('click', (e) => {
       e.stopPropagation();
       container.classList.toggle('open');
       toggle.setAttribute('aria-expanded', container.classList.contains('open'));
-      
-      // Position dropdown below toggle button
-      if (container.classList.contains('open')) {
-        const rect = toggle.getBoundingClientRect();
-        dropdown.style.top = (rect.bottom + 8) + 'px';
-        dropdown.style.left = rect.left + 'px';
-      }
     });
 
     // Toggle submenus

@@ -169,13 +169,11 @@ body {
     width: 100%;
     height: 100%;
     z-index: 0;
-    background: 
-        radial-gradient(ellipse at 30% 50%, rgba(191, 0, 255, 0.15) 0%, transparent 50%),
-        radial-gradient(ellipse at 70% 50%, rgba(0, 255, 255, 0.1) 0%, transparent 50%),
-        linear-gradient(rgba(0, 255, 255, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(191, 0, 255, 0.03) 1px, transparent 1px),
-        #050510;
-    background-size: 100% 100%, 100% 100%, 60px 60px, 60px 60px, 100% 100%;
+    background: #12121a; /* Smooth dark gray matching reader */
+    background-image: 
+        linear-gradient(rgba(0, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 60px 60px;
     display: none;
 }
 
@@ -184,40 +182,13 @@ body {
     display: block;
 }
 
-/* ═══════════════════════════════════════════════════════════════
-   SCANLINES OVERLAY
-   ═══════════════════════════════════════════════════════════════ */
-
-body::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: repeating-linear-gradient(
-        0deg,
-        rgba(0, 0, 0, var(--scanline-opacity)) 0px,
-        rgba(0, 0, 0, var(--scanline-opacity)) 1px,
-        transparent 1px,
-        transparent 3px
-    );
-    pointer-events: none;
-    z-index: 10000;
-    animation: scan calc(0.1s * var(--animation-speed)) linear infinite;
-}
-
-@keyframes scan {
-    to { transform: translateY(6px); }
-}
-
-/* Glitch effect */
-body.glitch {
-    animation: glitchEffect calc(0.15s * var(--animation-speed)) linear;
-}
-
-@keyframes glitchEffect {
-    0%, 100% { transform: translate(0); filter: hue-rotate(0); }
-    25% { transform: translate(-2px, 1px); filter: hue-rotate(90deg); }
-    50% { transform: translate(2px, -1px); filter: hue-rotate(180deg); }
-    75% { transform: translate(-1px, -2px); filter: hue-rotate(270deg); }
+/* Light Mode Background Overrides */
+body.light-mode .static-bg {
+    background: #f5f0e8 !important;
+    background-image: 
+        linear-gradient(rgba(191, 0, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(191, 0, 255, 0.05) 1px, transparent 1px) !important;
+    background-size: 60px 60px !important;
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -233,15 +204,17 @@ body.glitch {
     z-index: 1000;
     display: flex;
     align-items: center;
+    justify-content: center; /* Center everything */
     padding: 0 var(--space-md);
     overflow: visible;
-    gap: var(--space-sm);
+    gap: var(--space-lg); /* Increased gap for better spacing when centered */
 }
 
 @media (max-width: 600px) {
     .header-bar {
         height: 44px;
         padding: 0 var(--space-sm);
+        gap: var(--space-md);
     }
 }
 
@@ -311,8 +284,9 @@ body.glitch {
     font-family: 'Orbitron', sans-serif;
     font-weight: 900;
     font-size: var(--text-lg);
-    color: #000;
-    text-shadow: 0 0 10px rgba(255,255,255,0.5);
+    color: var(--cyan);
+    text-shadow: 2px 2px 0px #000, 0 0 10px rgba(0,255,255,0.5);
+    -webkit-text-stroke: 1.5px #000;
     letter-spacing: 2px;
     z-index: 10;
     text-decoration: none;
@@ -324,6 +298,7 @@ body.glitch {
     .header-brand {
         font-size: var(--text-base);
         letter-spacing: 1px;
+        -webkit-text-stroke: 1px #000;
     }
 }
 
@@ -344,8 +319,9 @@ body.glitch {
 .header-stat-value {
     font-family: 'Orbitron', sans-serif;
     font-size: var(--text-sm);
-    color: #000;
-    text-shadow: 0 0 5px rgba(255,255,255,0.5);
+    color: var(--cyan);
+    text-shadow: 1px 1px 0px #000;
+    -webkit-text-stroke: 0.8px #000;
 }
 
 .header-stat-label {
@@ -361,76 +337,137 @@ body.glitch {
 #nav-menu {
     z-index: 100;
     position: relative;
-    margin-right: var(--space-md);
+    display: flex;
+    align-items: center;
+}
+
+.header-bookend {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: 1.8rem;
+    color: #000;
+    text-shadow: 0 0 10px rgba(0,255,255,0.8);
+    -webkit-text-stroke: 1.5px var(--cyan);
+    pointer-events: none;
+    user-select: none;
+    z-index: 10;
+    margin: 0 1rem; /* Spacing from buttons */
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   MODE TOGGLE
+   MODE TOGGLE (CYCLIC ICON)
    ═══════════════════════════════════════════════════════════════ */
 
 .mode-toggle {
     display: flex;
-    gap: 0;
-    background: #000;
-    border: 2px solid #000;
     z-index: 10;
-    margin-left: auto;
-    margin-right: var(--space-sm);
+    align-items: center;
+    background: #000; /* Always black/opaque background for toggle area */
+    padding: 2px;
+    border-radius: 6px;
+    border: 1px solid rgba(191, 0, 255, 0.3);
+    height: 42px; /* Ensure it fits in 50px header */
 }
 
-.mode-btn {
-    font-family: 'Share Tech Mono', monospace;
-    font-size: 11px;
-    font-weight: bold;
-    padding: 6px 10px;
-    background: #000;
+/* Light mode bookend overrides */
+.light-reading .header-bookend {
+    color: #000;
+    text-shadow: none;
+    -webkit-text-stroke: 1.5px var(--cyan);
+}
+
+.mode-btn-icon {
+    background: transparent;
     border: none;
-    border-right: 1px solid #333;
-    color: #888;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    min-height: 30px;
+    border-radius: 4px;
+    width: 38px;
+    height: 38px;
     display: flex;
     align-items: center;
     justify-content: center;
-    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 6px;
 }
 
-.mode-btn:last-child {
-    border-right: none;
+.mode-btn-icon img {
+    width: 100%;
+    height: 100%;
+    transition: all 0.2s ease;
 }
 
-.mode-btn:hover {
-    color: #fff;
-    background: #111;
-}
+/* Glow effects for the button based on current mode */
+.mode-btn-icon.glow-bh img { filter: drop-shadow(0 0 8px var(--purple)); }
+.mode-btn-icon.glow-dark img { filter: drop-shadow(0 0 8px var(--cyan)); }
+.mode-btn-icon.glow-light img { filter: drop-shadow(0 0 8px var(--pink)); }
 
-.mode-btn.active {
-    color: #000;
-    background: var(--cyan);
-}
-
-.mode-btn[data-mode="lite"].active {
-    background: var(--purple);
-    color: #fff;
-}
-
-.mode-btn[data-mode="auto"].active {
-    background: var(--green);
-    color: #000;
-}
-
-.mode-btn:focus {
-    outline: 2px solid #fff;
-    outline-offset: -2px;
-    z-index: 1;
+.mode-btn-icon:hover {
+    background: rgba(255, 255, 255, 0.05);
 }
 
 @media (max-width: 480px) {
-    .mode-btn {
-        font-size: 10px;
-        padding: 6px 8px;
+    .mode-btn-icon {
+        width: 36px;
+        height: 36px;
+        padding: 6px;
     }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LIGHT MODE (CARDS ONLY)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Keep main body black even in light mode */
+body.light-mode {
+    background-color: #000 !important;
+}
+
+/* Light theme for cards and interactive elements only */
+body.light-mode .author-card,
+body.light-mode .post-card,
+body.light-mode .link-card {
+    background: #fdfaf5;
+    border-image: none;
+    border: 2px solid #bf00ff;
+    color: #2e2a26;
+}
+
+body.light-mode .link-card h3,
+body.light-mode .post-card h3,
+body.light-mode .author-info h1 {
+    color: #2e2a26;
+    text-shadow: 1.5px 1.5px 0px var(--cyan);
+    -webkit-text-stroke: 0;
+}
+
+body.light-mode .link-text p,
+body.light-mode .author-bio,
+body.light-mode .post-card > p {
+    color: rgba(0,0,0,0.7);
+}
+
+body.light-mode .link-icon,
+body.light-mode .author-handle,
+body.light-mode .post-date {
+    color: var(--purple);
+    text-shadow: none;
+}
+
+body.light-mode .post-read-more,
+body.light-mode .link-arrow {
+    color: #bf00ff;
+    font-weight: 700;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BH MODE (TRANSPARENT CARDS)
+   ═══════════════════════════════════════════════════════════════ */
+
+body.bh-mode .author-card,
+body.bh-mode .post-card,
+body.bh-mode .link-card {
+    background: rgba(5, 5, 15, 0.85);
+    backdrop-filter: blur(10px);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -456,7 +493,7 @@ body.glitch {
    ═══════════════════════════════════════════════════════════════ */
 
 .author-card {
-    background: var(--panel);
+    background: #12121a; /* Smooth dark gray */
     border: 3px solid transparent;
     border-image: linear-gradient(135deg, var(--purple), var(--cyan), var(--purple)) 1;
     padding: var(--space-xl);
@@ -608,7 +645,7 @@ body.glitch {
 }
 
 .link-card {
-    background: var(--panel);
+    background: #12121a; /* Smooth dark gray */
     border: 2px solid var(--purple);
     padding: var(--space-md);
     cursor: pointer;
@@ -617,7 +654,6 @@ body.glitch {
     overflow: hidden;
     text-decoration: none;
     display: block;
-    backdrop-filter: blur(5px);
 }
 
 .link-card::before {
@@ -692,7 +728,7 @@ body.glitch {
 }
 
 .post-card {
-    background: var(--panel);
+    background: #12121a; /* Smooth dark gray */
     border: 2px solid rgba(191,0,255,0.3);
     padding: var(--space-lg);
     margin-bottom: 15px;
@@ -701,7 +737,6 @@ body.glitch {
     position: relative;
     text-decoration: none;
     display: block;
-    backdrop-filter: blur(5px);
 }
 
 .post-card::before {

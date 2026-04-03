@@ -100,32 +100,25 @@
          ═══════════════════════════════════════════════════════════════ -->
     <header class="header-bar" role="banner">
         <div class="header-texture" aria-hidden="true"></div>
-        <div id="nav-menu"></div>
         <div class="header-noise" aria-hidden="true"></div>
         <div class="header-shimmer" aria-hidden="true"></div>
 
-        <a href="#" class="header-brand" id="header-brand" onclick="showIndex(); return false;">LOADING</a>
+        
+        
+        <div id="nav-menu"></div>
 
-        <div class="header-stats">
-            <div class="header-stat">
-                <div class="header-stat-value" id="node-count">2847</div>
-                <div class="header-stat-label">NETWORK NODES</div>
-            </div>
-            <div class="header-stat">
-                <div class="header-stat-value" id="signal-strength">97.3%</div>
-                <div class="header-stat-label">SIGNAL</div>
-            </div>
+        <div class="header-content-wrapper">
+            <a href="#" class="header-brand" id="header-brand" onclick="showIndex(); return false;">LOADING</a>
+            <span class="header-post-title" id="header-post-title"></span>
         </div>
+
+        <!-- Mode Toggle inserted by script -->
+
+        
     </header>
 
-    <!-- Reading Bar (replaces full header when viewing a post) -->
-    <div class="reading-bar" id="reading-bar">
-        <button class="reading-bar-back" onclick="showIndex()">← INDEX</button>
-        <span class="reading-bar-title" id="reading-bar-title"></span>
-        <button class="reading-mode-toggle" id="reading-mode-toggle" onclick="toggleReadingMode()" title="Toggle light/dark reading mode">
-            <span class="mode-icon" id="mode-icon">☀</span>
-        </button>
-    </div>
+    <!-- Reading Bar removed in favor of adaptive main header -->
+
 
     <!-- ═══════════════════════════════════════════════════════════════
          MAIN CONTENT
@@ -166,6 +159,7 @@
 
         <!-- Post View -->
         <article class="post-view" id="post-view">
+            <button class="post-close-btn" onclick="showIndex()" title="Close transmission">✕ CLOSE</button>
             <div class="post-view-meta">
                 <div class="post-view-date" id="post-view-date"></div>
                 <div class="post-view-tags" id="post-view-tags"></div>
@@ -174,12 +168,7 @@
         </article>
 
         <!-- Footer -->
-        <footer class="footer">
-            <p>
-                node active since 2025 ;;
-                transmitted from <a href="/">lastnpcalex.agency</a>
-            </p>
-        </footer>
+        
 
     </main>
 
@@ -209,20 +198,7 @@
     <!-- Navigation Menu -->
     <script src="nav-menu.js"></script>
 
-    <!-- Reading bar + mode toggle -->
-    <script>
-    function toggleReadingMode() {
-        const postView = document.getElementById('post-view');
-        const readingBar = document.getElementById('reading-bar');
-        const icon = document.getElementById('mode-icon');
-        postView.classList.toggle('light-reading');
-        readingBar.classList.toggle('light-reading');
-        const isLight = postView.classList.contains('light-reading');
-        icon.textContent = isLight ? '☽' : '☀';
-        localStorage.setItem('futures-reading-mode', isLight ? 'light' : 'dark');
-    }
-
-    // Hook into acidburn-author's loadPost/showIndex to manage reading bar
+    // Hook into acidburn-author's loadPost/showIndex to manage header state
     (function() {
         // Wait for acidburn-author to initialize
         const check = setInterval(() => {
@@ -231,26 +207,61 @@
 
             const origLoadPost = window.AcidburnAuthor.loadPost;
             const origShowIndex = window.showIndex;
-            const header = document.querySelector('.header-bar');
-            const readingBar = document.getElementById('reading-bar');
-            const barTitle = document.getElementById('reading-bar-title');
+            const headerBrand = document.getElementById('header-brand');
+            const postTitle = document.getElementById('header-post-title');
 
-            // Override loadPost to show reading bar
+            function updateHeader(slug) {
+                if (slug) {
+                    const posts = window.AcidburnAuthor.getPosts();
+                    const post = posts.find(p => p.slug === slug);
+                    if (headerBrand) headerBrand.textContent = "← INDEX";
+                    if (postTitle) postTitle.textContent = (post ? (post.title || slug) : slug).toUpperCase();
+                } else {
+                    const config = window.AcidburnAuthor.getConfig();
+                    if (headerBrand && config) headerBrand.textContent = config.author.handle.toUpperCase();
+                    if (postTitle) postTitle.textContent = "";
+                }
+            }
+
+            // Override loadPost to update header and sync mode
             window.AcidburnAuthor.loadPost = async function(slug) {
                 await origLoadPost(slug);
-                const posts = window.AcidburnAuthor.getPosts();
-                const post = posts.find(p => p.slug === slug);
-                if (barTitle && post) barTitle.textContent = post.title || slug;
-                header.classList.add('header-collapsed');
-                readingBar.classList.add('active');
+                updateHeader(slug);
+                // Trigger mode re-application to handle BH skip
+                if (window.AcidburnMode) {
+                    window.AcidburnMode.setMode(window.AcidburnMode.getMode());
+                }
             };
 
-            // Override showIndex to restore full header
+            // Override showIndex to restore brand and sync mode
             window.showIndex = function() {
                 origShowIndex();
-                header.classList.remove('header-collapsed');
-                readingBar.classList.remove('active');
+                updateHeader(null);
+                if (window.AcidburnMode) {
+                    window.AcidburnMode.setMode(window.AcidburnMode.getMode());
+                }
             };
+
+            // Check initial state (e.g. on refresh)
+            const hash = window.location.hash;
+            if (hash.startsWith('#post/')) {
+                const slug = hash.replace('#post/', '');
+                const tagCheck = setInterval(() => {
+                    const posts = window.AcidburnAuthor.getPosts();
+                    if (posts.length) {
+                        clearInterval(tagCheck);
+                        updateHeader(slug);
+                    }
+                }, 50);
+            } else {
+                const configCheck = setInterval(() => {
+                    const config = window.AcidburnAuthor.getConfig();
+                    if (config) {
+                        clearInterval(configCheck);
+                        updateHeader(null);
+                    }
+                }, 50);
+            }
 
             // Tag filter — wait until posts are actually loaded
             const tagCheck = setInterval(() => {
@@ -290,33 +301,7 @@
                     applyFilter(btn.dataset.tag || null);
                 });
             }, 50);
-
-            // Also handle direct hash navigation
-            const origHash = window.addEventListener;
-            window.addEventListener('hashchange', () => {
-                const hash = window.location.hash;
-                if (hash.startsWith('#post/')) {
-                    const slug = hash.replace('#post/', '');
-                    window.AcidburnAuthor.loadPost(slug);
-                }
-            });
-
-            // Check if we loaded directly into a post
-            if (window.location.hash.startsWith('#post/')) {
-                const slug = window.location.hash.replace('#post/', '');
-                window.AcidburnAuthor.loadPost(slug);
-            }
         }, 50);
-
-        // Restore light/dark preference
-        if (localStorage.getItem('futures-reading-mode') === 'light') {
-            const pv = document.getElementById('post-view');
-            const rb = document.getElementById('reading-bar');
-            const ic = document.getElementById('mode-icon');
-            if (pv) pv.classList.add('light-reading');
-            if (rb) rb.classList.add('light-reading');
-            if (ic) ic.textContent = '☽';
-        }
     })();
     </script>
 

@@ -175,8 +175,8 @@
 
             for (let i = 1; i < lines.length; i++) {
                 const line = lines[i];
-                if (line.startsWith('- ') && inMeta) {
-                    const match = line.match(/^- (\w+):\s*(.+)$/);
+                if (line.trim().startsWith('- ') && inMeta) {
+                    const match = line.match(/^\s*-\s*(\w+):\s*(.+)$/);
                     if (match) {
                         const [, key, value] = match;
                         if (key === 'tags') {
@@ -190,6 +190,7 @@
                     excerptLines.push(line);
                 }
             }
+            if (!post.tags) post.tags = [];
             post.excerpt = excerptLines.join(' ').trim();
             posts.push(post);
         }
@@ -281,26 +282,6 @@
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // STATS ANIMATION
-    // ═══════════════════════════════════════════════════════════════
-
-    function initStatsAnimation() {
-        let nodeCount = 2847;
-        let signalStrength = 97.3;
-        
-        setInterval(() => {
-            nodeCount += Math.floor(seededRandom() * 10) - 3;
-            signalStrength = Math.min(99.9, Math.max(90, signalStrength + (seededRandom() - 0.5) * 2));
-            
-            const nodeEl = document.getElementById('node-count');
-            const signalEl = document.getElementById('signal-strength');
-            
-            if (nodeEl) nodeEl.textContent = nodeCount;
-            if (signalEl) signalEl.textContent = signalStrength.toFixed(1) + '%';
-        }, 2000);
-    }
-
-    // ═══════════════════════════════════════════════════════════════
     // INITIALIZATION
     // ═══════════════════════════════════════════════════════════════
 
@@ -309,9 +290,6 @@
         const seedEl = document.getElementById('seed-display');
         if (seedEl) seedEl.textContent = SEED;
         
-        // Start stats animation
-        initStatsAnimation();
-
         try {
             await loadConfig();
             loadAuthorInfo();
