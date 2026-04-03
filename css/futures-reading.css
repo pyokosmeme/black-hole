@@ -107,25 +107,19 @@ body:has(.post-view.active)::after {
 }
 
 /* ════╗═══════════════════════════════════════════════════════════╗═══════════════════════════════════════╗
-   READING BAR — fixed floating title bar matching post width
+   READING BAR — simple acidburn display with title and mode toggle
    ════╝═══════════════════════════════════════════════════════════╗═══════════════════════════════════════╗ */
 
 .reading-bar {
-    --rb-bg: var(--rv-bg);
-    --rb-text: var(--rv-heading);
-    --rb-title: var(--rv-heading);
-    --rb-border: var(--rv-rule);
-    --rb-hover: var(--rv-link-hover);
-
-    background: var(--rv-bg);
-    border: 3px solid var(--rv-rule);
+    background: var(--panel);
+    border: none;
     border-radius: 4px;
     height: 44px;
     z-index: 1000;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 1.25rem;
+    padding: 0 1rem;
     margin: 0 auto;
     position: fixed;
     top: 0;
@@ -141,34 +135,9 @@ body:has(.post-view.active)::after {
     pointer-events: auto;
 }
 
-.reading-bar::before,
-.reading-bar::after {
-    content: '';
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    height: 4px;
-    background:
-        repeating-linear-gradient(-55deg, var(--purple) 0px, var(--purple) 5px, transparent 5px, transparent 10px),
-        repeating-linear-gradient(55deg, var(--cyan) 0px, var(--cyan) 4px, transparent 4px, transparent 12px),
-        linear-gradient(90deg, var(--purple), var(--cyan), var(--purple));
-}
-
-.reading-bar::before {
-    top: -6px;
-}
-
-.reading-bar::after {
-    bottom: -6px;
-}
-
 /* Light mode reading bar */
 .reading-bar.light-reading {
-    --rb-bg: var(--rv-bg);
-    --rb-text: var(--rv-heading);
-    --rb-title: var(--rv-heading);
-    --rb-border: var(--rv-rule);
-    --rb-hover: var(--rv-link-hover);
+    background: var(--panel);
 }
 
 .reading-bar-back {
@@ -191,22 +160,52 @@ body:has(.post-view.active)::after {
 
 .reading-bar-title {
     font-family: 'Inter', sans-serif;
-    font-size: 0.75rem;
-    font-weight: 500;
-    color: var(--rb-title);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--rv-heading);
     letter-spacing: 0.02em;
     text-align: center;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    padding: 0 1rem;
-    flex: 1;
-    min-width: 0;
-    line-height: 1.2;
 }
 
 .reading-bar .reading-mode-toggle {
     flex-shrink: 0;
+    margin-left: 0.5rem;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 4px;
+    padding: 0.3rem 0.6rem;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.reading-bar .reading-mode-toggle:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.3);
+}
+
+.reading-bar .reading-mode-toggle .mode-icon {
+    font-size: 1rem;
+    color: var(--rv-text);
+    line-height: 1;
+}
+
+/* Light mode */
+.reading-bar.light-reading .reading-mode-toggle {
+    background: rgba(0,0,0,0.05);
+    border-color: rgba(0,0,0,0.15);
+}
+
+.reading-bar.light-reading .reading-mode-toggle:hover {
+    background: rgba(0,0,0,0.1);
+    border-color: rgba(0,0,0,0.3);
 }
 
 /* ════╗═══════════════════════════════════════════════════════════╗═══════════════════════════════════════╗
@@ -308,56 +307,6 @@ body:has(.post-view.active)::after {
 /* Hide any leftover post-back button (now in reading bar) */
 .post-back {
     display: none;
-}
-
-.reading-mode-toggle {
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 4px;
-    padding: 0.35rem 0.65rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.reading-mode-toggle .mode-icon {
-    font-size: 1rem;
-    color: #b0aabb;
-    line-height: 1;
-}
-
-.reading-mode-toggle:hover {
-    border-color: rgba(255, 255, 255, 0.3);
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.reading-mode-toggle:hover .mode-icon {
-    color: #ddd8d0;
-}
-
-/* Light mode toggle */
-.reading-bar.light-reading .reading-mode-toggle {
-    background: rgba(0, 0, 0, 0.04);
-    border-color: rgba(0, 0, 0, 0.15);
-}
-
-.reading-bar.light-reading .reading-mode-toggle .mode-icon {
-    color: #6a6060;
-}
-
-.reading-bar.light-reading .reading-mode-toggle:hover {
-    border-color: rgba(0, 0, 0, 0.3);
-    background: rgba(0, 0, 0, 0.08);
-}
-
-.reading-bar.light-reading .reading-mode-toggle:hover .mode-icon {
-    color: #1a1816;
-}
-
-.reading-mode-toggle:hover .mode-icon {
-    color: var(--rv-heading);
 }
 
 /* ═══════════════════════════════════════════════════════════════
