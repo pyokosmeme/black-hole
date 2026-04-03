@@ -176,6 +176,7 @@ body:has(.post-view.active)::after {
         repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px);
 }
 
+/* Header textures/noise/shimmer for reading-bar */
 .reading-bar .header-texture {
     position: absolute;
     inset: 0;
@@ -254,15 +255,16 @@ body:has(.post-view.active)::after {
 
 .reading-bar-title {
     font-family: 'Inter', sans-serif;
-    font-size: 0.85rem;
-    font-weight: 500;
+    font-size: 0.9rem;
+    font-weight: 600;
     color: var(--rv-heading);
-    letter-spacing: 0.02em;
+    letter-spacing: 0.01em;
     text-align: center;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    flex: 1;
 }
 
 .reading-bar .reading-mode-toggle {
@@ -306,6 +308,10 @@ body:has(.post-view.active)::after {
    POST VIEW — SCROLLABLE CONTAINER WITH FIXED POSITION
    ════╝═══════════════════════════════════════════════════════════╗═══════════════════════════════════════╗ */
 
+/* ════╗═══════════════════════════════════════════════════════════╗═══════════════════════════════════════╗
+   POST VIEW — SCROLLABLE CONTAINER WITH FIXED POSITION
+   ════╝═══════════════════════════════════════════════════════════╗═══════════════════════════════════════╗ */
+
 .post-view {
     background: var(--rv-bg);
     border: 3px solid transparent;
@@ -313,26 +319,31 @@ body:has(.post-view.active)::after {
     backdrop-filter: blur(10px);
     padding: 3rem 2.5rem;
     max-width: min(740px, 90%);
+    width: 100%;
     margin: 0 auto;
     border-radius: 2px;
     transition: background 0.3s ease, color 0.3s ease;
-    position: relative;
-    height: calc(100vh - 50px);
-    max-height: calc(100vh - 50px);
-    margin-top: 50px;
+    position: absolute;
+    top: 50px; /* reading-bar height */
+    left: 0;
+    right: 0;
+    bottom: 0;
     overflow: hidden;
 }
 
 @media (max-width: 600px) {
     .post-view {
-        height: calc(100vh - 44px);
-        max-height: calc(100vh - 44px);
-        margin-top: 44px;
         padding: 1.5rem 1.25rem;
     }
 }
 
 /* When active, post-content has full height */
+.post-view.active {
+    display: block;
+    height: 100%;
+    margin-top: 0;
+}
+
 .post-view.active .post-content {
     height: 100%;
     min-height: 100%;
