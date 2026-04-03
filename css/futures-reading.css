@@ -384,20 +384,6 @@ body:has(.post-view.active)::after {
     overflow-wrap: break-word;
 }
 
-.post-view::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 6px;
-    background:
-        repeating-linear-gradient(-55deg, var(--purple) 0px, var(--purple) 5px, transparent 5px, transparent 10px),
-        repeating-linear-gradient(55deg, var(--cyan) 0px, var(--cyan) 4px, transparent 4px, transparent 12px),
-        repeating-linear-gradient(-35deg, rgba(255, 0, 153, 0.5) 0px, rgba(255, 0, 153, 0.5) 2px, transparent 2px, transparent 7px),
-        linear-gradient(90deg, var(--purple), var(--cyan), var(--purple));
-}
-
 /* Apply max-width to post-content (the scrollable area) */
 .post-view.active .post-content {
     max-width: 740px;
@@ -417,11 +403,6 @@ body:has(.post-view.active)::after {
 
 .post-view.active {
     display: block;
-}
-
-/* Remove the glitch/gradient top bar */
-.post-view::before {
-    display: none;
 }
 
 /* Hide any leftover post-back button (now in reading bar) */
