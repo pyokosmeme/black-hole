@@ -20,6 +20,10 @@
         'dark': { icon: 'img/Dark-Mode.svg', title: 'Dark Mode', next: 'light' },
         'light': { icon: 'img/Light-Mode.svg', title: 'Light Mode', next: 'bh' }
     };
+
+    // Sanitize stale localStorage values from previous versions
+    if (!MODE_INFO[currentMode]) currentMode = 'bh';
+    if (!MODE_INFO[lastStaticMode]) lastStaticMode = 'dark';
     
     // ═══════════════════════════════════════════════════════════════
     // DETECTION
@@ -181,11 +185,18 @@
         const info = MODE_INFO[displayMode];
         btn.title = info.title + ' (Click to Cycle)';
         
-        // Determine relative path based on current directory depth
-        const path = window.location.pathname;
-        // Only prepend ../ if we are explicitly in author/ or maps/ subdirectories
-        const isSubfolder = path.indexOf('/author/') !== -1 || path.indexOf('/maps/') !== -1;
-        const iconUrl = (isSubfolder ? '../' : '') + info.icon;
+        // Find the absolute root path relative to this script
+        let rootPath = '';
+        const scripts = document.getElementsByTagName('script');
+        for (let s of scripts) {
+            if (s.src.includes('acidburn-mode.js')) {
+                // Get part before 'js/acidburn-mode.js'
+                rootPath = s.src.split('js/acidburn-mode.js')[0];
+                break;
+            }
+        }
+        
+        const iconUrl = rootPath + info.icon;
 
         btn.innerHTML = `<img src="${iconUrl}" alt="${info.title}" width="24" height="24" style="width:100%; height:100%; display:block; object-fit:contain;">`;
         
