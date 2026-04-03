@@ -1,5 +1,3 @@
-# OUTSIDENESS NETWORK ENGINE
-
 ## i. the edge equation
 
 imagine you are a node in a network.
