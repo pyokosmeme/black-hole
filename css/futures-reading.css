@@ -288,7 +288,7 @@ body.light-reading .post-view {
 /* Internal layout: Meta stays at top, content scrolls */
 .post-view-meta {
     flex-shrink: 0;
-    padding: 3.5rem 4rem 1.5rem; /* Increased padding to match content */
+    padding: 2rem 5rem 1.5rem; /* Reduced top padding, match 5rem side padding */
     margin-bottom: 0;
     border-bottom: 1px solid var(--rv-rule);
     transition: border-color 0.3s ease;
@@ -296,19 +296,19 @@ body.light-reading .post-view {
 
 .post-view-title {
     font-family: 'Orbitron', sans-serif;
-    font-size: 2.5rem;
+    font-size: 1.1rem; /* Much smaller to save space */
     font-weight: 900;
     color: var(--rv-heading);
-    margin-bottom: 1.5rem;
+    margin-bottom: 0.5rem;
     letter-spacing: 2px;
-    text-shadow: 2px 2px 0px #000, 0 0 20px var(--rv-accent-dim);
-    -webkit-text-stroke: 1.5px #000;
+    text-shadow: 2px 2px 0px #000, 0 0 10px var(--rv-accent-dim);
+    -webkit-text-stroke: 1px #000;
 }
 
 /* Close button inside box */
 .post-close-btn {
     position: absolute;
-    top: 1.25rem;
+    top: 0.75rem; /* Nudged up due to reduced padding */
     left: 5rem; /* Aligned with new padding */
     z-index: 1000;
     background: none;
@@ -707,7 +707,25 @@ body.light-reading .tag-filter-btn.active {
 
 @media (max-width: 768px) {
     .post-view.active .post-content {
-        padding: 1.5rem 1.25rem;
+        padding: 1.5rem 1rem;
+    }
+
+    .post-view-meta {
+        padding: 1.5rem 1rem 1rem;
+    }
+
+    .post-view-title {
+        font-size: 1.2rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .post-view-tags {
+        display: none; /* Hide tags on mobile to save vertical space */
+    }
+
+    .post-close-btn {
+        left: 1rem;
+        top: 0.5rem;
     }
 
     .post-content {

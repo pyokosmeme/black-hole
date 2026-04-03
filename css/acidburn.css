@@ -213,8 +213,8 @@ body.light-mode .static-bg {
 @media (max-width: 600px) {
     .header-bar {
         height: 44px;
-        padding: 0 var(--space-sm);
-        gap: var(--space-md);
+        padding: 0 5px;
+        gap: 8px;
     }
 }
 
@@ -291,7 +291,11 @@ body.light-mode .static-bg {
     z-index: 10;
     text-decoration: none;
     cursor: pointer;
-    flex-shrink: 0;
+    flex-shrink: 1; /* Allow to shrink */
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 @media (max-width: 600px) {

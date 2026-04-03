@@ -166,26 +166,31 @@
 
         updateToggleUI();
     }
+function updateToggleUI() {
+    const btn = document.getElementById('main-mode-toggle');
+    if (!btn) return;
 
-    function updateToggleUI() {
-        const btn = document.getElementById('main-mode-toggle');
-        if (!btn) return;
+    const postView = document.getElementById('post-view');
+    const isReading = !!(postView && postView.classList.contains('active'));
 
-        const postView = document.getElementById('post-view');
-        const isReading = !!(postView && postView.classList.contains('active'));
-        
-        let displayMode = currentMode;
-        if (isReading && currentMode === 'bh') {
-            displayMode = lastStaticMode;
-        }
-
-        const info = MODE_INFO[displayMode];
-        btn.title = info.title + ' (Click to Cycle)';
-        btn.innerHTML = `<img src="${info.icon}" alt="${info.title}" style="width:100%; height:100%; display:block; object-fit:contain;">`;
-        
-        // Glow effect based on mode
-        btn.className = 'mode-btn-icon cyclic-mode-btn glow-' + displayMode;
+    let displayMode = currentMode;
+    if (isReading && currentMode === 'bh') {
+        displayMode = lastStaticMode;
     }
+
+    const info = MODE_INFO[displayMode];
+    btn.title = info.title + ' (Click to Cycle)';
+
+    // Fix path for subfolders
+    const path = window.location.pathname;
+    const isSubfolder = path.includes('/author/') || path.includes('/maps/');
+    const iconUrl = (isSubfolder ? '../' : '') + info.icon;
+
+    btn.innerHTML = `<img src="${iconUrl}" alt="${info.title}" width="24" height="24" style="width:100%; height:100%; display:block; object-fit:contain;">`;
+
+    // Glow effect based on mode
+    btn.className = 'mode-btn-icon cyclic-mode-btn glow-' + displayMode;
+}
     
     // ═══════════════════════════════════════════════════════════════
     // INITIALIZATION

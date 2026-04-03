@@ -152,12 +152,6 @@
       transform: translateX(-50%) translateY(0);
     }
 
-    .nav-menu.open .nav-dropdown {
-      opacity: 1;
-      visibility: visible;
-      transform: translateY(0);
-    }
-
     /* Tiger stripe top border */
     .nav-dropdown::before {
       content: '';
@@ -269,9 +263,17 @@
     /* Mobile adjustments */
     @media (max-width: 768px) {
       .nav-dropdown {
+        position: fixed;
+        top: 60px;
         left: 10px;
         right: 10px;
+        transform: translateY(-10px);
         min-width: auto;
+        width: auto;
+      }
+
+      .nav-menu.open .nav-dropdown {
+        transform: translateY(0);
       }
 
       .nav-toggle-label {
