@@ -368,6 +368,9 @@
         if (!animating) return;
         requestAnimationFrame(animate);
         
+        // Safety check: Don't animate if not ready
+        if (typeof camera === 'undefined' || !camera || typeof shader === 'undefined' || !shader) return;
+
         // Stop rendering if switched to lite mode
         if (document.body.classList.contains('lite-mode')) {
             return;
@@ -423,6 +426,7 @@
 
     // Public API
     window.AcidburnBlackhole = {
+        get isReady() { return !!(camera && renderer && scene && shader); },
         getShader: function() { return shader; },
         getObserver: function() { return observer; },
         setDistance: function(d) { 

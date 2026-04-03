@@ -8,8 +8,15 @@
     'use strict';
 
     const body = document.body;
-    // Default to 'bh' (Black Hole)
-    let currentMode = localStorage.getItem('acidburn-mode') || 'bh';
+    // Detection for default setting
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
+    
+    // Default to 'bh' on desktop, 'dark' on mobile if no preference saved
+    const savedMode = localStorage.getItem('acidburn-mode');
+    let currentMode = savedMode || (isMobile ? 'dark' : 'bh');
+    
+    console.log(`[ACIDBURN Mode] Init: isMobile=${isMobile}, saved=${savedMode}, current=${currentMode}`);
+    
     let lastStaticMode = localStorage.getItem('acidburn-static-mode') || 'dark';
     let webglSupported = true;
     let glitchInterval = null;
@@ -118,7 +125,22 @@
                 setTimeout(() => body.classList.remove('glitch'), 100);
             }
         }, 3000);
-        if (typeof AcidburnGalaxy !== 'undefined' && AcidburnGalaxy.start) AcidburnGalaxy.start();
+        
+        // Wait for blackhole initialization if needed
+        if (typeof AcidburnGalaxy !== 'undefined' && AcidburnGalaxy.start) {
+            // Check if renderer is actually ready (empirical check)
+            if (window.AcidburnBlackhole && !window.AcidburnBlackhole.isReady) {
+                console.log('[ACIDBURN Mode] Waiting for renderer before starting galaxy...');
+                const wait = setInterval(() => {
+                    if (window.AcidburnBlackhole.isReady) {
+                        clearInterval(wait);
+                        AcidburnGalaxy.start();
+                    }
+                }, 100);
+            } else {
+                AcidburnGalaxy.start();
+            }
+        }
     }
     
     function stopEffects() {
