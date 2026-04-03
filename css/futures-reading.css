@@ -202,6 +202,7 @@ body:has(.post-view.active)::after {
     padding: 0 1rem;
     flex: 1;
     min-width: 0;
+    line-height: 1.2;
 }
 
 .reading-bar .reading-mode-toggle {
