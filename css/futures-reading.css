@@ -135,6 +135,27 @@ body:has(.post-view.active)::after {
     pointer-events: auto;
 }
 
+.reading-bar::before,
+.reading-bar::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    height: 4px;
+    background:
+        repeating-linear-gradient(-55deg, var(--purple) 0px, var(--purple) 5px, transparent 5px, transparent 10px),
+        repeating-linear-gradient(55deg, var(--cyan) 0px, var(--cyan) 4px, transparent 4px, transparent 12px),
+        linear-gradient(90deg, var(--purple), var(--cyan), var(--purple));
+}
+
+.reading-bar::before {
+    top: -6px;
+}
+
+.reading-bar::after {
+    bottom: -6px;
+}
+
 /* Light mode reading bar */
 .reading-bar.light-reading {
     background: var(--panel);
@@ -160,8 +181,8 @@ body:has(.post-view.active)::after {
 
 .reading-bar-title {
     font-family: 'Inter', sans-serif;
-    font-size: 0.8rem;
-    font-weight: 600;
+    font-size: 0.85rem;
+    font-weight: 500;
     color: var(--rv-heading);
     letter-spacing: 0.02em;
     text-align: center;
