@@ -183,7 +183,8 @@
         
         // Determine relative path based on current directory depth
         const path = window.location.pathname;
-        const isSubfolder = path.includes('/author/') || path.includes('/maps/');
+        // Only prepend ../ if we are explicitly in author/ or maps/ subdirectories
+        const isSubfolder = path.indexOf('/author/') !== -1 || path.indexOf('/maps/') !== -1;
         const iconUrl = (isSubfolder ? '../' : '') + info.icon;
 
         btn.innerHTML = `<img src="${iconUrl}" alt="${info.title}" width="24" height="24" style="width:100%; height:100%; display:block; object-fit:contain;">`;
