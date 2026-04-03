@@ -62,7 +62,8 @@ each change of scale in the space creates new attack vectors, each attack vector
 two dissidents are dissolving
 in the digestive juices of the state.
 Alice turns to Bob,
-"at least our mitochondria will be freed from their shackles."
+"at least our mitochondria
+   will be freed from their shackles."
 it from bit, bit to rot, Bob thought,
 and then burst open like a dog.
 ```
