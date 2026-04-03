@@ -203,6 +203,18 @@ body:has(.post-view.active)::after {
     transition: background 0.3s ease, color 0.3s ease;
 }
 
+@media (min-width: 1200px) {
+    .post-view {
+        max-width: 820px;
+    }
+}
+
+@media (min-width: 1600px) {
+    .post-view {
+        max-width: 960px;
+    }
+}
+
 .post-view.active {
     display: block;
 }
@@ -315,6 +327,9 @@ body:has(.post-view.active)::after {
     color: var(--rv-text);
     font-weight: 400;
     transition: color 0.3s ease;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+    hyphens: auto;
 }
 
 .post-content h1 {
@@ -388,6 +403,13 @@ body:has(.post-view.active)::after {
     color: var(--rv-quote-text);
     font-style: italic;
     transition: all 0.3s ease;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+.post-content code {
+    max-width: 100%;
+    overflow-wrap: break-word;
 }
 
 .post-content code {
