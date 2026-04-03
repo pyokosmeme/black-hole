@@ -181,21 +181,10 @@
         const info = MODE_INFO[displayMode];
         btn.title = info.title + ' (Click to Cycle)';
         
-        // Find the root path relative to this script's location
-        let rootPath = '';
-        const scriptTags = document.getElementsByTagName('script');
-        for (let s of scriptTags) {
-            if (s.src && s.src.includes('acidburn-mode.js')) {
-                const parts = s.src.split('/');
-                // Remove 'js/acidburn-mode.js' from the end
-                parts.pop(); // remove file
-                parts.pop(); // remove 'js'
-                rootPath = parts.join('/') + '/';
-                break;
-            }
-        }
-        
-        const iconUrl = rootPath + info.icon;
+        // Determine relative path based on current directory depth
+        const path = window.location.pathname;
+        const isSubfolder = path.includes('/author/') || path.includes('/maps/');
+        const iconUrl = (isSubfolder ? '../' : '') + info.icon;
 
         btn.innerHTML = `<img src="${iconUrl}" alt="${info.title}" width="24" height="24" style="width:100%; height:100%; display:block; object-fit:contain;">`;
         
