@@ -1,4 +1,4 @@
-futures of the {past,present, future}
+futures of the {past, present, future}
 
 µFICTION // hard SF
 
