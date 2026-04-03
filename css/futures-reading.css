@@ -317,7 +317,6 @@ body:has(.post-view.active)::after {
     border-radius: 2px;
     transition: background 0.3s ease, color 0.3s ease;
     position: relative;
-    overflow-y: auto;
     height: calc(100vh - 50px);
     max-height: calc(100vh - 50px);
     margin-top: 50px;
@@ -335,7 +334,7 @@ body:has(.post-view.active)::after {
 /* When active, post-content has full height */
 .post-view.active .post-content {
     height: 100%;
-    max-height: none;
+    min-height: 100%;
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: var(--rv-rule) transparent;
@@ -374,6 +373,13 @@ body:has(.post-view.active)::after {
     .post-view.active .post-content {
         padding: 4rem 5rem;
     }
+}
+
+/* Ensure content wraps properly at all widths */
+.post-content {
+    max-width: 100%;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .post-view::before {
