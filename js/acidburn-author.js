@@ -164,7 +164,9 @@
 
     function parsePostsMarkdown(markdown) {
         const posts = [];
-        const sections = markdown.split(/^## /m).slice(1);
+        // Normalize line endings to LF only
+        const normalized = markdown.replace(/\r\n/g, '\n');
+        const sections = normalized.split(/^## /m).slice(1);
 
         for (const section of sections) {
             const lines = section.trim().split('\n');
@@ -182,7 +184,7 @@
                         if (key === 'tags') {
                             post.tags = value.split(',').map(t => t.trim());
                         } else {
-                            post[key] = value;
+                            post[key] = value.trim();
                         }
                     }
                 } else if (line.trim() !== '') {
@@ -219,7 +221,11 @@
         list.querySelectorAll('.post-card').forEach(card => {
             card.addEventListener('click', (e) => {
                 e.preventDefault();
-                loadPost(card.dataset.slug);
+                if (window.AcidburnAuthor && window.AcidburnAuthor.loadPost) {
+                    window.AcidburnAuthor.loadPost(card.dataset.slug);
+                } else {
+                    loadPost(card.dataset.slug);
+                }
             });
         });
     }
@@ -249,13 +255,16 @@
             postContent.innerHTML = '<div class="loading">LOADING SIGNAL</div>';
 
             try {
-                const response = await fetch(CONTENT_DIR + post.file);
+                // Ensure CONTENT_DIR doesn't cause double slashes or weird relative pathing
+                const fetchPath = (CONTENT_DIR + post.file).replace(/^\/+/, '');
+                const response = await fetch(window.location.origin + '/' + fetchPath);
                 if (!response.ok) throw new Error('Failed to load post');
                 const markdown = await response.text();
                 if (typeof marked !== 'undefined') {
                     postContent.innerHTML = marked.parse(markdown);
                 }
             } catch (error) {
+                console.error('[ACIDBURN Author] Fetch error:', error);
                 postContent.innerHTML = '<p class="error">ERROR: Signal corrupted.</p>';
             }
         }

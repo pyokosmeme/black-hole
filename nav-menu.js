@@ -64,18 +64,48 @@
     }
 
     /* Light Mode Overrides */
-    .header-bar.light-reading .nav-toggle {
-      background: #fdfaf5;
-      border-color: #bf00ff;
+    body.light-reading .nav-toggle {
+      background: #fdfaf5; /* Anchored background for light mode */
+      border: 1px solid rgba(191, 0, 255, 0.3);
       color: #2e2a26;
       -webkit-text-stroke: 1.2px #00ffff;
       text-shadow: 1.5px 1.5px 0px #00ffff;
     }
 
-    .header-bar.light-reading .nav-toggle:hover {
+    body.light-reading .nav-toggle:hover {
       background: #fff;
       -webkit-text-stroke: 1.2px #00ffff;
       text-shadow: 0 0 10px #00ffff;
+    }
+
+    /* Light Mode Dropdown */
+    body.light-reading .nav-dropdown {
+      background: rgba(253, 250, 245, 0.98);
+      border-color: #bf00ff;
+    }
+
+    body.light-reading .nav-link {
+      color: #2e2a26;
+      border-bottom-color: rgba(191, 0, 255, 0.1);
+    }
+
+    body.light-reading .nav-link:hover {
+      background: rgba(191, 0, 255, 0.05);
+      color: #bf00ff;
+    }
+
+    /* Active page indicator in light mode */
+    body.light-reading .nav-link.active {
+      background: rgba(191, 0, 255, 0.1);
+      border-left-color: #bf00ff;
+    }
+
+    body.light-reading .nav-link.active .nav-link-label {
+      color: #bf00ff;
+    }
+
+    body.light-reading .nav-submenu {
+      background: rgba(0, 0, 0, 0.03);
     }
 
     .nav-toggle-icon {

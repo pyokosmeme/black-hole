@@ -104,15 +104,20 @@
          ═══════════════════════════════════════════════════════════════ -->
     <header class="header-bar" role="banner">
         <div class="header-texture" aria-hidden="true"></div>
-        <div id="nav-menu"></div>
         <div class="header-noise" aria-hidden="true"></div>
         <div class="header-shimmer" aria-hidden="true"></div>
-        
-        <a href="#" class="header-brand" id="header-brand" onclick="showIndex(); return false;">LOADING</a>
-        
-        <!-- Mode Toggle (inserted by acidburn-mode.js) -->
-    </header>
 
+        
+
+        <div id="nav-menu"></div>
+
+        <div class="header-content-wrapper">
+            <a href="#" class="header-brand" id="header-brand" onclick="showIndex(); return false;">LOADING</a>
+            <span class="header-post-title" id="header-post-title"></span>
+        </div>
+
+        
+    </header>
     <!-- ═══════════════════════════════════════════════════════════════
          MAIN CONTENT
          ═══════════════════════════════════════════════════════════════ -->
@@ -160,7 +165,7 @@
 
         <!-- Post View -->
         <article class="post-view" id="post-view">
-            <button class="post-back" onclick="showIndex()">← RETURN TO INDEX</button>
+            <button class="post-close-btn" onclick="showIndex()" title="Close transmission">✕ CLOSE</button>
             <div class="post-view-meta">
                 <div class="post-view-date" id="post-view-date"></div>
                 <div class="post-view-tags" id="post-view-tags"></div>

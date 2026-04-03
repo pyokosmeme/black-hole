@@ -354,6 +354,55 @@ body.light-mode .static-bg {
     margin: 0 1rem; /* Spacing from buttons */
 }
 
+/* Light mode header-bar (acidburn style inverted) */
+body.light-reading .header-bar {
+    background: #f5f0e8;
+}
+
+body.light-reading .header-bar::before {
+    background:
+        repeating-linear-gradient(-55deg, #6a3a72 0px, #6a3a72 6px, transparent 6px, transparent 12px),
+        repeating-linear-gradient(55deg, #3a7a7a 0px, #3a7a7a 4px, transparent 4px, transparent 14px),
+        repeating-linear-gradient(-45deg, rgba(255, 0, 153, 0.2) 0px, rgba(255, 0, 153, 0.2) 2px, transparent 2px, transparent 6px),
+        repeating-linear-gradient(75deg, rgba(0, 255, 255, 0.2) 0px, rgba(0, 255, 255, 0.2) 3px, transparent 3px, transparent 9px),
+        linear-gradient(90deg, #6a3a72, #3a7a7a, #ff009d, #3a7a7a, #6a3a72);
+}
+
+body.light-reading .header-bar .header-texture {
+    background:
+        repeating-linear-gradient(90deg, transparent 0px, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px),
+        repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px),
+        repeating-linear-gradient(-30deg, rgba(191,0,255,0.2) 0px, transparent 1px, transparent 4px, rgba(0,255,255,0.2) 5px, transparent 6px, transparent 8px);
+}
+
+body.light-reading .header-bar .header-noise {
+    background:
+        radial-gradient(circle at 2px 2px, rgba(0,0,0,0.08) 1px, transparent 1px),
+        radial-gradient(circle at 6px 6px, rgba(0,0,0,0.1) 1px, transparent 1px);
+    mix-blend-mode: screen;
+}
+
+body.light-reading .header-bar .header-shimmer {
+    background: linear-gradient(90deg, transparent, rgba(0,0,0,0.1), transparent);
+}
+
+body.light-reading .header-bar .header-brand,
+body.light-reading .header-bar .header-post-title {
+    color: #2e2a26;
+    text-shadow: 2px 2px 0px var(--cyan);
+    -webkit-text-stroke: 1.2px var(--cyan);
+}
+
+body.light-reading .header-bar .header-stat-value {
+    color: #2e2a26;
+    text-shadow: 1px 1px 0px var(--cyan);
+    -webkit-text-stroke: 0.8px var(--cyan);
+}
+
+body.light-reading .header-bar .header-stat-label {
+    color: rgba(0,0,0,0.6);
+}
+
 /* ═══════════════════════════════════════════════════════════════
    MODE TOGGLE (CYCLIC ICON)
    ═══════════════════════════════════════════════════════════════ */
@@ -362,22 +411,16 @@ body.light-mode .static-bg {
     display: flex;
     z-index: 10;
     align-items: center;
-    background: #000; /* Always black/opaque background for toggle area */
-    padding: 2px;
-    border-radius: 6px;
-    border: 1px solid rgba(191, 0, 255, 0.3);
-    height: 42px; /* Ensure it fits in 50px header */
+    background: none; /* Removed background */
+    padding: 0;
+    border: none; /* Removed border */
+    height: 42px;
 }
 
-/* Light mode bookend overrides */
-.light-reading .header-bookend {
-    color: #000;
-    text-shadow: none;
-    -webkit-text-stroke: 1.5px var(--cyan);
-}
+/* Light mode toggle background override removed */
 
 .mode-btn-icon {
-    background: transparent;
+    background: none;
     border: none;
     border-radius: 4px;
     width: 38px;
@@ -387,7 +430,11 @@ body.light-mode .static-bg {
     justify-content: center;
     cursor: pointer;
     transition: all 0.2s ease;
-    padding: 6px;
+    padding: 4px;
+}
+
+.light-reading .mode-btn-icon {
+    background: none;
 }
 
 .mode-btn-icon img {
@@ -397,9 +444,9 @@ body.light-mode .static-bg {
 }
 
 /* Glow effects for the button based on current mode */
-.mode-btn-icon.glow-bh img { filter: drop-shadow(0 0 8px var(--purple)); }
-.mode-btn-icon.glow-dark img { filter: drop-shadow(0 0 8px var(--cyan)); }
-.mode-btn-icon.glow-light img { filter: drop-shadow(0 0 8px var(--pink)); }
+.mode-btn-icon.glow-bh img { filter: drop-shadow(2px 2px 2px #000) drop-shadow(0 0 5px #000); }
+.mode-btn-icon.glow-dark img { filter: drop-shadow(2px 2px 2px #000) drop-shadow(0 0 5px #000); }
+.mode-btn-icon.glow-light img { filter: drop-shadow(2px 2px 2px #000) drop-shadow(0 0 5px #000); }
 
 .mode-btn-icon:hover {
     background: rgba(255, 255, 255, 0.05);
@@ -451,6 +498,10 @@ body.light-mode .author-handle,
 body.light-mode .post-date {
     color: var(--purple);
     text-shadow: none;
+}
+
+body.light-mode .author-tagline {
+    color: rgba(0,0,0,0.6);
 }
 
 body.light-mode .post-read-more,
@@ -579,7 +630,8 @@ body.bh-mode .link-card {
     font-size: var(--text-2xl);
     font-weight: 900;
     color: var(--cyan);
-    text-shadow: 0 0 calc(20px * var(--glow-intensity)) var(--cyan);
+    text-shadow: 2px 2px 0px #000, 0 0 calc(20px * var(--glow-intensity)) var(--cyan);
+    -webkit-text-stroke: 1.5px #000;
     margin-bottom: 5px;
 }
 

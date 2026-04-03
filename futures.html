@@ -109,7 +109,6 @@
 
         <div class="header-content-wrapper">
             <a href="#" class="header-brand" id="header-brand" onclick="showIndex(); return false;">LOADING</a>
-            <span class="header-post-title" id="header-post-title"></span>
         </div>
 
         <!-- Mode Toggle inserted by script -->
@@ -161,6 +160,7 @@
         <article class="post-view" id="post-view">
             <button class="post-close-btn" onclick="showIndex()" title="Close transmission">✕ CLOSE</button>
             <div class="post-view-meta">
+                <div class="post-view-title" id="post-view-title"></div>
                 <div class="post-view-date" id="post-view-date"></div>
                 <div class="post-view-tags" id="post-view-tags"></div>
             </div>
@@ -198,6 +198,7 @@
     <!-- Navigation Menu -->
     <script src="nav-menu.js"></script>
 
+    <script>
     // Hook into acidburn-author's loadPost/showIndex to manage header state
     (function() {
         // Wait for acidburn-author to initialize
@@ -211,22 +212,21 @@
             const postTitle = document.getElementById('header-post-title');
 
             function updateHeader(slug) {
+                const internalTitle = document.getElementById('post-view-title');
                 if (slug) {
                     const posts = window.AcidburnAuthor.getPosts();
                     const post = posts.find(p => p.slug === slug);
-                    if (headerBrand) headerBrand.textContent = "← INDEX";
-                    if (postTitle) postTitle.textContent = (post ? (post.title || slug) : slug).toUpperCase();
+                    const titleText = (post ? (post.title || slug) : slug).toUpperCase();
+                    if (internalTitle) internalTitle.textContent = titleText;
                 } else {
-                    const config = window.AcidburnAuthor.getConfig();
-                    if (headerBrand && config) headerBrand.textContent = config.author.handle.toUpperCase();
-                    if (postTitle) postTitle.textContent = "";
+                    if (internalTitle) internalTitle.textContent = "";
                 }
             }
 
             // Override loadPost to update header and sync mode
             window.AcidburnAuthor.loadPost = async function(slug) {
                 await origLoadPost(slug);
-                updateHeader(slug);
+                updateHeader(slug); // Call AFTER origLoadPost ensures POSTS data is ready
                 // Trigger mode re-application to handle BH skip
                 if (window.AcidburnMode) {
                     window.AcidburnMode.setMode(window.AcidburnMode.getMode());
