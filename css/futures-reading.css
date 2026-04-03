@@ -111,12 +111,15 @@ body:has(.post-view.active)::after {
    ═══════════════════════════════════════════════════════════════ */
 
 .reading-bar {
-    --rb-bg: #16151e;
-    --rb-text: #8a8498;
-    --rb-title: #b0aabb;
-    --rb-border: #2a2835;
-    --rb-hover: #ddd8d0;
+    --rb-bg: var(--panel);
+    --rb-text: #00ffff;
+    --rb-title: #00ffff;
+    --rb-border: rgba(0, 255, 255, 0.3);
+    --rb-hover: var(--cyan);
 
+    background: var(--panel);
+    border: 3px solid transparent;
+    border-image: linear-gradient(135deg, var(--purple), var(--cyan)) 1;
     position: fixed;
     top: 0;
     left: 0;
@@ -127,8 +130,6 @@ body:has(.post-view.active)::after {
     align-items: center;
     justify-content: space-between;
     padding: 0 1.5rem;
-    background: var(--rb-bg);
-    border-bottom: 1px solid var(--rb-border);
     transform: translateY(-100%);
     opacity: 0;
     transition: transform 0.4s ease, opacity 0.3s ease, background 0.3s ease, border-color 0.3s ease;
@@ -141,13 +142,26 @@ body:has(.post-view.active)::after {
     pointer-events: auto;
 }
 
+.reading-bar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background:
+        repeating-linear-gradient(-55deg, var(--purple) 0px, var(--purple) 5px, transparent 5px, transparent 10px),
+        repeating-linear-gradient(55deg, var(--cyan) 0px, var(--cyan) 4px, transparent 4px, transparent 12px),
+        linear-gradient(90deg, var(--purple), var(--cyan), var(--purple));
+}
+
 /* Light mode reading bar */
 .reading-bar.light-reading {
-    --rb-bg: #f0ebe2;
-    --rb-text: #6a6060;
-    --rb-title: #4a4440;
-    --rb-border: #d8d0c6;
-    --rb-hover: #1a1816;
+    --rb-bg: var(--panel);
+    --rb-text: #00ffff;
+    --rb-title: #00ffff;
+    --rb-border: rgba(0, 255, 255, 0.3);
+    --rb-hover: var(--cyan);
 }
 
 .reading-bar-back {
@@ -193,14 +207,29 @@ body:has(.post-view.active)::after {
 
 .post-view {
     background: var(--rv-bg);
-    border: none;
-    border-image: none;
-    backdrop-filter: none;
+    border: 3px solid transparent;
+    border-image: linear-gradient(135deg, var(--purple), var(--cyan), var(--purple)) 1;
+    backdrop-filter: blur(10px);
     padding: 3rem 2.5rem;
     max-width: 740px;
     margin: 0 auto;
     border-radius: 2px;
     transition: background 0.3s ease, color 0.3s ease;
+    position: relative;
+}
+
+.post-view::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background:
+        repeating-linear-gradient(-55deg, var(--purple) 0px, var(--purple) 5px, transparent 5px, transparent 10px),
+        repeating-linear-gradient(55deg, var(--cyan) 0px, var(--cyan) 4px, transparent 4px, transparent 12px),
+        repeating-linear-gradient(-35deg, rgba(255, 0, 153, 0.5) 0px, rgba(255, 0, 153, 0.5) 2px, transparent 2px, transparent 7px),
+        linear-gradient(90deg, var(--purple), var(--cyan), var(--purple));
 }
 
 @media (min-width: 1200px) {
