@@ -107,26 +107,57 @@ body:has(.post-view.active)::after {
 }
 
 /* ════╗═══════════════════════════════════════════════════════════╗═══════════════════════════════════════╗
-   READING BAR — full-width header that blends with background
+   READING BAR — acidburn header styling matching main site
    ════╝═══════════════════════════════════════════════════════════╗═══════════════════════════════════════╗ */
 
 .reading-bar {
-    background: transparent;
-    border: none;
-    height: 44px;
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 1rem;
-    margin: 0 auto;
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
+    height: 50px;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    padding: 0 var(--space-md);
+    gap: var(--space-sm);
+    background: var(--panel);
+    overflow: visible;
     opacity: 0;
     transition: opacity 0.4s ease;
     pointer-events: none;
+}
+
+@media (max-width: 600px) {
+    .reading-bar {
+        height: 44px;
+        padding: 0 var(--space-sm);
+    }
+}
+
+.reading-bar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        repeating-linear-gradient(-55deg, var(--purple) 0px, var(--purple) 6px, transparent 6px, transparent 12px),
+        repeating-linear-gradient(55deg, var(--cyan) 0px, var(--cyan) 4px, transparent 4px, transparent 14px),
+        repeating-linear-gradient(-45deg, rgba(255, 0, 153, 0.5) 0px, rgba(255, 0, 153, 0.5) 2px, transparent 2px, transparent 6px),
+        repeating-linear-gradient(75deg, rgba(0, 255, 255, 0.4) 0px, rgba(0, 255, 255, 0.4) 3px, transparent 3px, transparent 9px),
+        linear-gradient(90deg, var(--purple), var(--cyan), var(--magenta), var(--cyan), var(--purple));
+    z-index: -2;
+}
+
+.reading-bar::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        repeating-linear-gradient(90deg, transparent 0px, transparent 2px, rgba(0,0,0,0.2) 2px, rgba(0,0,0,0.2) 4px),
+        repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(255,255,255,0.08) 3px, rgba(255,255,255,0.08) 4px);
+    mix-blend-mode: overlay;
+    pointer-events: none;
+    z-index: -1;
 }
 
 .reading-bar.active {
@@ -136,7 +167,71 @@ body:has(.post-view.active)::after {
 
 /* Light mode reading bar */
 .reading-bar.light-reading {
-    background: transparent;
+    background: #f5f0e8;
+}
+
+.reading-bar.light-reading::after {
+    background:
+        repeating-linear-gradient(90deg, transparent 0px, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px),
+        repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px);
+}
+
+.reading-bar .header-texture {
+    position: absolute;
+    inset: 0;
+    background:
+        repeating-linear-gradient(90deg, transparent 0px, transparent 2px, rgba(0,0,0,0.2) 2px, rgba(0,0,0,0.2) 4px),
+        repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(255,255,255,0.08) 3px, rgba(255,255,255,0.08) 4px),
+        repeating-linear-gradient(-30deg, rgba(191,0,255,0.3) 0px, transparent 1px, transparent 4px, rgba(0,255,255,0.3) 5px, transparent 6px, transparent 8px);
+    mix-blend-mode: overlay;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.reading-bar.light-reading .header-texture {
+    background:
+        repeating-linear-gradient(90deg, transparent 0px, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px),
+        repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px),
+        repeating-linear-gradient(-30deg, rgba(191,0,255,0.3) 0px, transparent 1px, transparent 4px, rgba(0,255,255,0.3) 5px, transparent 6px, transparent 8px);
+    mix-blend-mode: overlay;
+}
+
+.reading-bar .header-noise {
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 2px 2px, rgba(255,255,255,0.12) 1px, transparent 1px),
+        radial-gradient(circle at 6px 6px, rgba(0,255,255,0.15) 1px, transparent 1px);
+    background-size: 8px 8px, 12px 12px;
+    mix-blend-mode: screen;
+    pointer-events: none;
+    z-index: -1;
+}
+
+.reading-bar.light-reading .header-noise {
+    background:
+        radial-gradient(circle at 2px 2px, rgba(0,0,0,0.08) 1px, transparent 1px),
+        radial-gradient(circle at 6px 6px, rgba(0,0,0,0.1) 1px, transparent 1px);
+    background-size: 8px 8px, 12px 12px;
+    mix-blend-mode: screen;
+}
+
+.reading-bar .header-shimmer {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    z-index: -1;
+    animation: shimmer calc(4s * var(--animation-speed)) ease-in-out infinite;
+    pointer-events: none;
+}
+
+.reading-bar.light-reading .header-shimmer {
+    background: linear-gradient(90deg, transparent, rgba(0,0,0,0.1), transparent);
+}
+
+@keyframes shimmer {
+    0%, 100% { transform: translateX(-100%); opacity: 0; }
+    50% { transform: translateX(100%); opacity: 1; }
 }
 
 .reading-bar-back {
@@ -222,20 +317,28 @@ body:has(.post-view.active)::after {
     border-radius: 2px;
     transition: background 0.3s ease, color 0.3s ease;
     position: relative;
+    overflow-y: auto;
+    height: calc(100vh - 50px);
+    max-height: calc(100vh - 50px);
+    margin-top: 50px;
 }
 
-/* When active, post-content scrolls inside the fixed container */
+@media (max-width: 600px) {
+    .post-view {
+        height: calc(100vh - 44px);
+        max-height: calc(100vh - 44px);
+        margin-top: 44px;
+        padding: 1.5rem 1.25rem;
+    }
+}
+
+/* When active, post-content has full height */
 .post-view.active .post-content {
-    max-height: 85vh;
+    height: 100%;
+    max-height: none;
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: var(--rv-rule) transparent;
-}
-
-@media (max-width: 768px) {
-    .post-view.active .post-content {
-        max-height: 75vh;
-    }
 }
 
 /* Hide scrollbar but keep functionality */
@@ -260,6 +363,16 @@ body:has(.post-view.active)::after {
 
     .post-view.active .post-content::-webkit-scrollbar-thumb {
         background-color: var(--rv-rule);
+    }
+
+    .post-view.active .post-content {
+        padding: 3.5rem 4rem;
+    }
+}
+
+@media (min-width: 1600px) {
+    .post-view.active .post-content {
+        padding: 4rem 5rem;
     }
 }
 
