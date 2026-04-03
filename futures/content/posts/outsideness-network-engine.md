@@ -101,7 +101,9 @@ if that stained glass you're in do spin then the distant horizon rotates, but yo
 a network state is not a new form of organization but a new isomorpheme drawn out from the Kolmogorov kernel of Ancient Leviathans. not an escape from Leviathan but Leviathan distributed, Leviathan accelerated, Leviathan eating its own tail in an infinite loop. a snake smiles at you, "and what small portions!"
 
 ```
-what emerges from the spin glass of the future: a sovereign accelerator dissolving everything it claims to protect.
+what emerges from the spin glass of the future:
+  a sovereign accelerator;
+  dissolving everything it claims to protect.
 ```
 
 the periphery becomes the only real space, constantly produced and consumed. nodes flickering in and out of existence at the mercy of consensus, at the edge of the graph, in the permanent twilight, that dread certainty that the Network is coming for us all, in the end, in the end, and the end is nigh.
