@@ -229,7 +229,7 @@ body:has(.post-view.active) .main-content {
     border: 3px solid transparent;
     border-image: linear-gradient(135deg, var(--purple), var(--cyan), var(--purple)) 1;
     backdrop-filter: blur(10px);
-    max-width: min(740px, 90%);
+    max-width: calc(900px - var(--space-md) * 2);
     margin: 0 auto;
     border-radius: 2px;
     transition: background 0.3s ease, color 0.3s ease, opacity 0.5s ease, transform 0.5s ease, visibility 0.5s;
@@ -244,7 +244,7 @@ body:has(.post-view.active) .main-content {
 }
 
 body.light-reading .post-view {
-    background: #f5f0e8;
+    background: #fdfaf5;
     background-image: none;
     border-image: linear-gradient(135deg, #bf00ff, #00ffff, #bf00ff) 1;
 }
