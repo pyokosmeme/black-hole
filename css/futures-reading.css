@@ -79,49 +79,20 @@ body.light-reading .post-view {
     --rv-toggle-text: #3a3030;
 }
 
-/* Light mode header-bar (acidburn style inverted) */
-body.light-reading .header-bar {
-    background: #f5f0e8;
-}
-
-body.light-reading .header-bar::before {
-    background:
-        repeating-linear-gradient(-55deg, #6a3a72 0px, #6a3a72 6px, transparent 6px, transparent 12px),
-        repeating-linear-gradient(55deg, #3a7a7a 0px, #3a7a7a 4px, transparent 4px, transparent 14px),
-        repeating-linear-gradient(-45deg, rgba(255, 0, 153, 0.2) 0px, rgba(255, 0, 153, 0.2) 2px, transparent 2px, transparent 6px),
-        repeating-linear-gradient(75deg, rgba(0, 255, 255, 0.2) 0px, rgba(0, 255, 255, 0.2) 3px, transparent 3px, transparent 9px),
-        linear-gradient(90deg, #6a3a72, #3a7a7a, #ff009d, #3a7a7a, #6a3a72);
-}
-
-body.light-reading .header-bar .header-texture {
-    background:
-        repeating-linear-gradient(90deg, transparent 0px, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px),
-        repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px),
-        repeating-linear-gradient(-30deg, rgba(191,0,255,0.2) 0px, transparent 1px, transparent 4px, rgba(0,255,255,0.2) 5px, transparent 6px, transparent 8px);
-}
-
-body.light-reading .header-bar .header-noise {
-    background:
-        radial-gradient(circle at 2px 2px, rgba(0,0,0,0.08) 1px, transparent 1px),
-        radial-gradient(circle at 6px 6px, rgba(0,0,0,0.1) 1px, transparent 1px);
-    mix-blend-mode: screen;
-}
-
-body.light-reading .header-bar .header-shimmer {
-    background: linear-gradient(90deg, transparent, rgba(0,0,0,0.1), transparent);
+/* Light mode header — inherits window card from acidburn.css, just override inner panel + text */
+body.light-reading .header-bar::after {
+    background: #fdfaf5;
 }
 
 body.light-reading .header-bar .header-brand,
 body.light-reading .header-bar .header-post-title {
-    color: #2e2a26;
-    text-shadow: 2px 2px 0px var(--cyan);
-    -webkit-text-stroke: 1.2px var(--cyan);
+    color: #bf00ff;
+    text-shadow: none;
 }
 
 body.light-reading .header-bar .header-stat-value {
-    color: #2e2a26;
-    text-shadow: 1px 1px 0px var(--cyan);
-    -webkit-text-stroke: 0.8px var(--cyan);
+    color: #bf00ff;
+    text-shadow: none;
 }
 
 body.light-reading .header-bar .header-stat-label {
