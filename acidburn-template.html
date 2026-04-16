@@ -142,112 +142,65 @@
         
         .header-bar {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: calc(100% - 24px);
+            max-width: 868px;
             height: 50px;
             z-index: 1000;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0 30px;
-            overflow: hidden;
+            padding: 0 12px;
+            overflow: visible;
         }
 
-        /* Layer 1: Base gradient + primary stripes */
+        @media (max-width: 600px) {
+            .header-bar {
+                top: 4px;
+                height: 44px;
+                padding: 0 8px;
+                width: calc(100% - 16px);
+            }
+        }
+
+        /* Cyberpunk gradient pattern — visible as frame/border accent */
         .header-bar::before {
             content: '';
             position: absolute;
             inset: 0;
-            background: 
-                /* Stripe layer 1: -55deg purple */
-                repeating-linear-gradient(
-                    -55deg,
-                    var(--purple) 0px,
-                    var(--purple) 6px,
-                    transparent 6px,
-                    transparent 12px
-                ),
-                /* Stripe layer 2: +55deg cyan */
-                repeating-linear-gradient(
-                    55deg,
-                    var(--cyan) 0px,
-                    var(--cyan) 4px,
-                    transparent 4px,
-                    transparent 14px
-                ),
-                /* Stripe layer 3: -45deg pink */
-                repeating-linear-gradient(
-                    -45deg,
-                    rgba(255, 0, 153, 0.5) 0px,
-                    rgba(255, 0, 153, 0.5) 2px,
-                    transparent 2px,
-                    transparent 6px
-                ),
-                /* Stripe layer 4: +75deg cyan */
-                repeating-linear-gradient(
-                    75deg,
-                    rgba(0, 255, 255, 0.4) 0px,
-                    rgba(0, 255, 255, 0.4) 3px,
-                    transparent 3px,
-                    transparent 9px
-                ),
-                /* Base gradient: purple -> cyan -> magenta -> cyan -> purple */
-                linear-gradient(
-                    90deg,
-                    var(--purple),
-                    var(--cyan),
-                    var(--magenta),
-                    var(--cyan),
-                    var(--purple)
-                );
+            background:
+                repeating-linear-gradient(-55deg, var(--purple) 0px, var(--purple) 6px, transparent 6px, transparent 12px),
+                repeating-linear-gradient(55deg, var(--cyan) 0px, var(--cyan) 4px, transparent 4px, transparent 14px),
+                repeating-linear-gradient(-45deg, rgba(255, 0, 153, 0.5) 0px, rgba(255, 0, 153, 0.5) 2px, transparent 2px, transparent 6px),
+                repeating-linear-gradient(75deg, rgba(0, 255, 255, 0.4) 0px, rgba(0, 255, 255, 0.4) 3px, transparent 3px, transparent 9px),
+                linear-gradient(90deg, var(--purple), var(--cyan), var(--magenta), var(--cyan), var(--purple));
             z-index: -2;
         }
 
-        /* Layer 2: Texture overlay (CRT-like) */
-        .header-texture {
-            position: absolute;
-            inset: 0;
-            background:
-                /* Vertical scanlines */
-                repeating-linear-gradient(
-                    90deg,
-                    transparent 0px,
-                    transparent 2px,
-                    rgba(0, 0, 0, 0.2) 2px,
-                    rgba(0, 0, 0, 0.2) 4px
-                ),
-                /* Horizontal highlight lines */
-                repeating-linear-gradient(
-                    0deg,
-                    transparent 0px,
-                    transparent 3px,
-                    rgba(255, 255, 255, 0.08) 3px,
-                    rgba(255, 255, 255, 0.08) 4px
-                );
-            z-index: -1;
-            mix-blend-mode: overlay;
-        }
-
-        /* Layer 3: Bottom glow line */
+        /* Card-colored inner panel */
         .header-bar::after {
             content: '';
             position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, var(--cyan), var(--purple), var(--cyan));
-            box-shadow: 0 0 15px var(--cyan), 0 0 30px var(--purple);
+            inset: 4px;
+            background: #12121a;
+            z-index: -1;
+        }
+
+        .header-texture,
+        .header-noise,
+        .header-shimmer {
+            display: none;
         }
 
         /* Header text */
         .header-title {
             font-family: 'Orbitron', sans-serif;
-            font-weight: 900;
+            font-weight: 700;
             font-size: 18px;
-            color: #000;
-            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            color: var(--cyan);
+            text-shadow: 0 0 8px rgba(0,255,255,0.3);
             letter-spacing: 3px;
             z-index: 10;
         }
@@ -255,7 +208,7 @@
         .header-subtitle {
             font-family: 'VT323', monospace;
             font-size: 14px;
-            color: rgba(0, 0, 0, 0.8);
+            color: rgba(0, 255, 255, 0.6);
             letter-spacing: 2px;
             z-index: 10;
         }

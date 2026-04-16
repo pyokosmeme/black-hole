@@ -41,9 +41,9 @@
       display: flex;
       align-items: center;
       gap: 10px;
-      padding: 8px 16px;
-      background: #000;
-      border: 2px solid #bf00ff;
+      padding: 6px 10px;
+      background: transparent;
+      border: none;
       color: #00ffff;
       font-family: 'Orbitron', 'Share Tech Mono', sans-serif;
       font-size: 13px;
@@ -51,31 +51,25 @@
       letter-spacing: 2px;
       cursor: pointer;
       transition: all 0.2s ease;
-      -webkit-text-stroke: 1.5px #000;
-      text-shadow: 2px 2px 0px #000, 0 0 10px rgba(0, 255, 255, 0.5);
     }
 
     .nav-toggle:hover {
-      background: #111;
-      border-color: #00ffff;
       color: #fff;
-      -webkit-text-stroke: 1.5px #000;
-      text-shadow: 2px 2px 0px #000, 0 0 15px #00ffff;
+      text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
     }
 
     /* Light Mode Overrides */
-    body.light-reading .nav-toggle {
-      background: #fdfaf5; /* Anchored background for light mode */
-      border: 1px solid rgba(191, 0, 255, 0.3);
-      color: #2e2a26;
-      -webkit-text-stroke: 1.2px #00ffff;
-      text-shadow: 1.5px 1.5px 0px #00ffff;
+    body.light-reading .nav-toggle,
+    body.light-mode .nav-toggle {
+      background: transparent;
+      border: none;
+      color: #bf00ff;
     }
 
-    body.light-reading .nav-toggle:hover {
-      background: #fff;
-      -webkit-text-stroke: 1.2px #00ffff;
-      text-shadow: 0 0 10px #00ffff;
+    body.light-reading .nav-toggle:hover,
+    body.light-mode .nav-toggle:hover {
+      color: #6a3a72;
+      text-shadow: 0 0 10px rgba(191, 0, 255, 0.3);
     }
 
     /* Light Mode Dropdown */
@@ -262,9 +256,14 @@
 
     /* Mobile adjustments */
     @media (max-width: 768px) {
+      .nav-toggle {
+        padding: 4px 6px;
+        font-size: 11px;
+      }
+
       .nav-dropdown {
         position: fixed;
-        top: 60px;
+        top: 56px;
         left: 10px;
         right: 10px;
         transform: translateY(-10px);

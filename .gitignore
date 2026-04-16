@@ -6,6 +6,7 @@ CLAUDE.md
 .claude/
 GEMINI.md
 .gemini/
+canvas/
 *.png
 !img/*.png
 !author/*.png

@@ -197,32 +197,35 @@ body.light-mode .static-bg {
 
 .header-bar {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
+    top: var(--space-sm);
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - var(--space-md) * 2);
+    max-width: calc(900px - var(--space-md) * 2);
     height: 50px;
     z-index: 1000;
     display: flex;
     align-items: center;
-    justify-content: center; /* Center everything */
-    padding: 0 var(--space-md);
+    justify-content: space-between;
+    padding: 0 12px;
     overflow: visible;
-    gap: var(--space-lg); /* Increased gap for better spacing when centered */
 }
 
 @media (max-width: 600px) {
     .header-bar {
+        top: 4px;
         height: 44px;
-        padding: 0 5px;
-        gap: 8px;
+        padding: 0 8px;
+        width: calc(100% - 16px);
     }
 }
 
+/* Cyberpunk gradient pattern — visible as frame/border accent */
 .header-bar::before {
     content: '';
     position: absolute;
     inset: 0;
-    background: 
+    background:
         repeating-linear-gradient(-55deg, var(--purple) 0px, var(--purple) 6px, transparent 6px, transparent 12px),
         repeating-linear-gradient(55deg, var(--cyan) 0px, var(--cyan) 4px, transparent 4px, transparent 14px),
         repeating-linear-gradient(-45deg, rgba(255, 0, 153, 0.5) 0px, rgba(255, 0, 153, 0.5) 2px, transparent 2px, transparent 6px),
@@ -231,67 +234,41 @@ body.light-mode .static-bg {
     z-index: -2;
 }
 
-.header-texture {
-    position: absolute;
-    inset: 0;
-    background:
-        repeating-linear-gradient(90deg, transparent 0px, transparent 2px, rgba(0,0,0,0.2) 2px, rgba(0,0,0,0.2) 4px),
-        repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(255,255,255,0.08) 3px, rgba(255,255,255,0.08) 4px),
-        repeating-linear-gradient(-30deg, rgba(191,0,255,0.3) 0px, transparent 1px, transparent 4px, rgba(0,255,255,0.3) 5px, transparent 6px, transparent 8px);
-    z-index: -1;
-    mix-blend-mode: overlay;
-    pointer-events: none;
-}
-
-.header-noise {
-    position: absolute;
-    inset: 0;
-    background:
-        radial-gradient(circle at 2px 2px, rgba(255,255,255,0.12) 1px, transparent 1px),
-        radial-gradient(circle at 6px 6px, rgba(0,255,255,0.15) 1px, transparent 1px);
-    background-size: 8px 8px, 12px 12px;
-    z-index: -1;
-    mix-blend-mode: screen;
-    pointer-events: none;
-}
-
-.header-shimmer {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
-    z-index: -1;
-    animation: shimmer calc(4s * var(--animation-speed)) ease-in-out infinite;
-    pointer-events: none;
-}
-
-@keyframes shimmer {
-    0%, 100% { transform: translateX(-100%); opacity: 0; }
-    50% { transform: translateX(100%); opacity: 1; }
-}
-
+/* Card-colored inner panel — sits on top of gradient, inset to let gradient show as border */
 .header-bar::after {
     content: '';
     position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, var(--cyan), var(--purple), var(--cyan));
-    box-shadow: 0 0 calc(15px * var(--glow-intensity)) var(--cyan);
+    inset: 4px;
+    background: #12121a;
+    z-index: -1;
+}
+
+.header-texture,
+.header-noise,
+.header-shimmer {
+    display: none;
+}
+
+.header-content-wrapper {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-width: 0;
+    z-index: 10;
 }
 
 .header-brand {
     font-family: 'Orbitron', sans-serif;
-    font-weight: 900;
+    font-weight: 700;
     font-size: var(--text-lg);
     color: var(--cyan);
-    text-shadow: 2px 2px 0px #000, 0 0 10px rgba(0,255,255,0.5);
-    -webkit-text-stroke: 1.5px #000;
+    text-shadow: 0 0 8px rgba(0,255,255,0.3);
     letter-spacing: 2px;
     z-index: 10;
     text-decoration: none;
     cursor: pointer;
-    flex-shrink: 1; /* Allow to shrink */
+    flex-shrink: 1;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -302,7 +279,6 @@ body.light-mode .static-bg {
     .header-brand {
         font-size: 0.75rem;
         letter-spacing: 1px;
-        -webkit-text-stroke: 0.5px #000;
     }
 }
 
@@ -346,65 +322,33 @@ body.light-mode .static-bg {
 }
 
 .header-bookend {
-    font-family: 'Orbitron', sans-serif;
-    font-weight: 900;
-    font-size: 1.8rem;
-    color: #000;
-    text-shadow: 0 0 10px rgba(0,255,255,0.8);
-    -webkit-text-stroke: 1.5px var(--cyan);
-    pointer-events: none;
-    user-select: none;
-    z-index: 10;
-    margin: 0 1rem; /* Spacing from buttons */
+    display: none;
 }
 
-/* Light mode header-bar (acidburn style inverted) */
-body.light-reading .header-bar {
-    background: #f5f0e8;
-}
+/* Light mode header-bar — cream inner panel, same vivid gradient frame */
 
-body.light-reading .header-bar::before {
-    background:
-        repeating-linear-gradient(-55deg, #6a3a72 0px, #6a3a72 6px, transparent 6px, transparent 12px),
-        repeating-linear-gradient(55deg, #3a7a7a 0px, #3a7a7a 4px, transparent 4px, transparent 14px),
-        repeating-linear-gradient(-45deg, rgba(255, 0, 153, 0.2) 0px, rgba(255, 0, 153, 0.2) 2px, transparent 2px, transparent 6px),
-        repeating-linear-gradient(75deg, rgba(0, 255, 255, 0.2) 0px, rgba(0, 255, 255, 0.2) 3px, transparent 3px, transparent 9px),
-        linear-gradient(90deg, #6a3a72, #3a7a7a, #ff009d, #3a7a7a, #6a3a72);
-}
-
-body.light-reading .header-bar .header-texture {
-    background:
-        repeating-linear-gradient(90deg, transparent 0px, transparent 2px, rgba(0,0,0,0.1) 2px, rgba(0,0,0,0.1) 4px),
-        repeating-linear-gradient(0deg, transparent 0px, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px),
-        repeating-linear-gradient(-30deg, rgba(191,0,255,0.2) 0px, transparent 1px, transparent 4px, rgba(0,255,255,0.2) 5px, transparent 6px, transparent 8px);
-}
-
-body.light-reading .header-bar .header-noise {
-    background:
-        radial-gradient(circle at 2px 2px, rgba(0,0,0,0.08) 1px, transparent 1px),
-        radial-gradient(circle at 6px 6px, rgba(0,0,0,0.1) 1px, transparent 1px);
-    mix-blend-mode: screen;
-}
-
-body.light-reading .header-bar .header-shimmer {
-    background: linear-gradient(90deg, transparent, rgba(0,0,0,0.1), transparent);
+body.light-reading .header-bar::after,
+body.light-mode .header-bar::after {
+    background: #fdfaf5;
 }
 
 body.light-reading .header-bar .header-brand,
-body.light-reading .header-bar .header-post-title {
-    color: #2e2a26;
-    text-shadow: 2px 2px 0px var(--cyan);
-    -webkit-text-stroke: 1.2px var(--cyan);
+body.light-reading .header-bar .header-post-title,
+body.light-mode .header-bar .header-brand,
+body.light-mode .header-bar .header-post-title {
+    color: #bf00ff;
+    text-shadow: none;
 }
 
-body.light-reading .header-bar .header-stat-value {
-    color: #2e2a26;
-    text-shadow: 1px 1px 0px var(--cyan);
-    -webkit-text-stroke: 0.8px var(--cyan);
+body.light-reading .header-bar .header-stat-value,
+body.light-mode .header-bar .header-stat-value {
+    color: #bf00ff;
+    text-shadow: none;
 }
 
-body.light-reading .header-bar .header-stat-label {
-    color: rgba(0,0,0,0.6);
+body.light-reading .header-bar .header-stat-label,
+body.light-mode .header-bar .header-stat-label {
+    color: rgba(0,0,0,0.5);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -532,7 +476,7 @@ body.bh-mode .link-card {
 .main-content {
     position: relative;
     z-index: 10;
-    padding: calc(50px + var(--space-lg)) var(--space-md) var(--space-lg);
+    padding: calc(50px + var(--space-sm) + var(--space-lg)) var(--space-md) var(--space-lg);
     max-width: 900px;
     margin: 0 auto;
 }
