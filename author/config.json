@@ -57,5 +57,5 @@
     }
   ],
 
-  "posts_index": ""
+  "posts_index": "content/posts.md"
 }
