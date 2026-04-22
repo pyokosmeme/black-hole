@@ -440,35 +440,25 @@ actively maintaining.
       <path d="M0,0 L8,4 L0,8 z" fill="#f59e0b"/>
     </marker>
   </defs>
-
   <rect class="box-substrate" x="140" y="20" width="300" height="240" rx="2"/>
   <text class="label-eyebrow" x="160" y="42">TOPIC JSON</text>
   <text class="label-muted"   x="160" y="58">shared substrate</text>
-
   <line x1="160" y1="70" x2="420" y2="70" stroke="currentColor" stroke-opacity="0.2" stroke-width="0.5"/>
-
   <text class="label-main" x="160" y="92">hypotheses</text>
   <text class="label-code" x="250" y="92">{ H1, H2, H3, H4 }</text>
-
   <text class="label-main" x="160" y="112">posteriors</text>
   <text class="label-code" x="250" y="112">{ .35, .30, .25, .10 }</text>
-
   <text class="label-main" x="160" y="132">indicators</text>
   <text class="label-code" x="250" y="132">[ ... ]</text>
-
   <text class="label-main" x="160" y="152">evidenceLog</text>
   <text class="label-code" x="250" y="152">[ ... ]</text>
-
   <line x1="160" y1="170" x2="420" y2="170" stroke="currentColor" stroke-opacity="0.2" stroke-width="0.5" stroke-dasharray="2 2"/>
-
   <text class="label-main" x="160" y="195">conditionalPredictions</text>
   <text class="label-code" x="290" y="195">[ ... ]</text>
   <text class="label-small" x="160" y="212">(forecasts · append-only)</text>
-
   <path class="arrow-data" d="M 125,120 L 138,120" marker-end="url(#arr-cyan)"/>
   <text class="label-eyebrow-cyan" x="20" y="114">ENGINE</text>
   <text class="label-small"        x="20" y="128">writes</text>
-
   <path class="arrow-primary" d="M 125,200 L 138,200" marker-end="url(#arr-amber)"/>
   <text class="label-eyebrow" x="20" y="194">EXTRAPOLATE</text>
   <text class="label-small"   x="20" y="208">writes</text>
@@ -526,17 +516,14 @@ attenuator — it blocks unsafe updates.
     <marker id="sm-cyan"  viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#7dd3fc"/></marker>
     <marker id="sm-red"   viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#fca5a5"/></marker>
   </defs>
-
   <rect class="box-env" x="30" y="24" width="900" height="62" rx="2"/>
   <text class="label-eyebrow" x="50" y="48">ENVIRONMENT · THE WORLD</text>
   <text class="label-small"   x="120" y="74">news signals</text>
   <text class="label-small"   x="460" y="74">deadlines pass</text>
   <text class="label-small"   x="770" y="74">outcomes observable</text>
-
   <path class="arrow" d="M 155,88 L 155,124" marker-end="url(#sm-dim)"/>
   <path class="arrow" d="M 495,88 L 495,124" marker-end="url(#sm-dim)"/>
   <path class="arrow" d="M 810,88 L 810,124" marker-end="url(#sm-dim)"/>
-
   <rect class="box-sub" x="50" y="126" width="240" height="128" rx="2"/>
   <text class="label-eyebrow" x="70" y="148">[S1] · INDICATOR LAYER</text>
   <text class="label-code"    x="70" y="172">triage_headline()</text>
@@ -544,7 +531,6 @@ attenuator — it blocks unsafe updates.
   <text class="label-code"    x="70" y="204">apply_indicator_effect()</text>
   <text class="label-small"   x="70" y="232">emits: LR ranges</text>
   <text class="label-small"   x="70" y="246">for each hypothesis</text>
-
   <rect class="box-soft" x="400" y="126" width="180" height="128" rx="2"/>
   <text class="label-eyebrow" x="420" y="148">CLOCK</text>
   <text class="label-small"   x="420" y="172">resolution_deadline</text>
@@ -552,7 +538,6 @@ attenuator — it blocks unsafe updates.
   <text class="label-small"   x="420" y="218">_eliminate_</text>
   <text class="label-small"   x="420" y="232">  expired_</text>
   <text class="label-small"   x="420" y="246">  hypotheses()</text>
-
   <rect class="box-sub" x="680" y="126" width="240" height="128" rx="2"/>
   <text class="label-eyebrow" x="700" y="148">[S3] · RESOLUTION LAYER</text>
   <text class="label-code"    x="700" y="172">sweep_conditional_</text>
@@ -560,13 +545,10 @@ attenuator — it blocks unsafe updates.
   <text class="label-small"   x="700" y="206">→ Brier(P, outcome)</text>
   <text class="label-small"   x="700" y="232">→ source_trust update</text>
   <text class="label-small"   x="700" y="246">→ lens calibration</text>
-
   <path class="arrow-primary" d="M 170,256 L 170,298" marker-end="url(#sm-amber)"/>
   <text class="label-eyebrow" x="180" y="278">likelihood ratios</text>
-
   <path class="arrow" d="M 490,256 L 490,298" marker-end="url(#sm-dim)"/>
   <text class="label-small"   x="500" y="278">elimination</text>
-
   <rect class="box-engine" x="50" y="300" width="870" height="94" rx="2"/>
   <text class="label-eyebrow-cyan" x="70" y="324">THE BAYESIAN ENGINE · engine.py</text>
   <text class="label-code"  x="70"  y="352">bayesian_update()</text>
@@ -574,10 +556,8 @@ attenuator — it blocks unsafe updates.
   <text class="label-code"  x="510" y="352">_eliminate_expired_hypotheses()</text>
   <text class="label-code"  x="780" y="352">save_topic()</text>
   <text class="label-small" x="70"  y="376">governor-gated · computes posterior shifts from likelihoods, enforces time-bound falsification</text>
-
   <path class="arrow-primary" d="M 485,396 L 485,432" marker-end="url(#sm-amber)"/>
   <text class="label-eyebrow" x="495" y="418">mutates</text>
-
   <rect class="box-substrate" x="50" y="434" width="870" height="130" rx="2"/>
   <text class="label-eyebrow" x="70" y="458">TOPIC JSON · SHARED SUBSTRATE</text>
   <text class="label-code"  x="70"  y="484">model.hypotheses[].posterior</text>
@@ -592,25 +572,19 @@ attenuator — it blocks unsafe updates.
   <text class="label-small" x="340" y="534">← extrapolate appends</text>
   <text class="label-code"  x="500" y="534">dependencies[]</text>
   <text class="label-small" x="730" y="534">← operator writes</text>
-
   <path class="arrow-data" d="M 200,566 L 200,614" marker-end="url(#sm-cyan)"/>
   <text class="label-eyebrow-cyan" x="210" y="592">read-only</text>
-
   <rect class="box-sub" x="50" y="614" width="460" height="84" rx="2"/>
   <text class="label-eyebrow" x="70" y="638">[S2] · EXTRAPOLATE SKILL</text>
   <text class="label-small"   x="70" y="660">2 generators → Sonnet vet → 5 critics → consensus</text>
   <text class="label-code"    x="70" y="682">process_conditional_prediction()</text>
-
   <path class="arrow-primary" d="M 420,614 Q 420,580 400,564" marker-end="url(#sm-amber)"/>
   <text class="label-eyebrow" x="430" y="596">appends cp_NNN</text>
-
   <path class="arrow" d="M 280,698 L 280,732" marker-end="url(#sm-dim)"/>
   <text class="label-small"   x="290" y="718">logs</text>
-
   <rect class="box-db" x="50" y="732" width="460" height="62" rx="2"/>
   <text class="label-eyebrow-green" x="70" y="754">extrapolation.db · audit trail</text>
   <text class="label-small"         x="70" y="774">ideations · verdicts · critic_verdicts · meta_lint · snapshots</text>
-
   <rect class="box-gov" x="560" y="614" width="360" height="180" rx="2"/>
   <text class="label-eyebrow-red" x="580" y="638">GOVERNOR · variety attenuator</text>
   <text class="label-small" x="580" y="660">governor.py · cuts across S1, S2, S3</text>
@@ -619,11 +593,9 @@ attenuator — it blocks unsafe updates.
   <text class="label-code"  x="580" y="734">governance_report()</text>
   <text class="label-small" x="580" y="750">   surfaces drift · freshness · health</text>
   <text class="label-small" x="580" y="774">may veto any write from S1 or S2</text>
-
   <path class="arrow-gov" d="M 560,655 L 485,400"/>
   <path class="arrow-gov" d="M 560,680 L 510,700"/>
   <path class="arrow-gov" d="M 680,614 L 680,254"/>
-
   <path class="arrow-feedback" d="M 920,190 Q 950,500 950,660 Q 950,700 510,656" marker-end="url(#sm-green)"/>
   <text class="label-eyebrow-green" x="790" y="172">FEEDBACK</text>
   <text class="label-small" x="790" y="186">calibration</text>
@@ -664,12 +636,10 @@ portfolio?"
     <marker id="rt-red"   viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#fca5a5"/></marker>
     <marker id="rt-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#86efac"/></marker>
   </defs>
-
   <rect class="box-soft" x="230" y="20" width="300" height="46" rx="2"/>
   <text class="label-eyebrow" x="250" y="42">ONE CANDIDATE PREDICTION</text>
   <text class="label-small" x="250" y="58">from generator A or B · with probability P</text>
   <path class="arrow" d="M 380,68 L 380,96" marker-end="url(#rt-dim)"/>
-
   <rect class="box" x="80" y="98" width="600" height="146" rx="2"/>
   <text class="label-eyebrow" x="100" y="122">STAGE 1 · SONNET VET (sequential, parent)</text>
   <text class="label-main" x="100" y="154">5 sub-checks</text>
@@ -687,22 +657,17 @@ portfolio?"
   <text x="279" y="223" text-anchor="middle" class="label-eyebrow" font-size="9.5">MODIFY</text>
   <rect x="322" y="210" width="66" height="18" rx="2" class="box-decision-no"/>
   <text x="355" y="223" text-anchor="middle" class="label-eyebrow-red" font-size="9.5">REJECT</text>
-
   <path class="arrow" d="M 355,244 Q 355,270 120,290" marker-end="url(#rt-dim)"/>
   <text class="label-eyebrow-red" x="100" y="274">REJECT</text>
-
   <rect class="box-decision-no" x="50" y="294" width="150" height="40" rx="2"/>
   <text class="label-eyebrow-red" x="70" y="318">DISCARD</text>
   <text class="label-small" x="70" y="330">logged to DB</text>
-
   <path class="arrow" d="M 238,244 Q 238,270 380,288" marker-end="url(#rt-dim)"/>
   <text class="label-eyebrow-green" x="220" y="274">APPROVE / MODIFY</text>
   <path class="arrow" d="M 380,288 L 380,320" marker-end="url(#rt-dim)"/>
-
   <rect class="box" x="80" y="322" width="600" height="196" rx="2"/>
   <text class="label-eyebrow" x="100" y="346">STAGE 2 · CRITIQUE FAN-OUT</text>
   <text class="label-small" x="300" y="346">5 Opus agents · 1 message · concurrent</text>
-
   <g>
     <rect x="110" y="376" width="92" height="32" rx="2" fill="rgba(125,211,252,0.06)" stroke="#7dd3fc"/>
     <text x="156" y="397" text-anchor="middle" fill="#7dd3fc" font-size="11" font-weight="600">BLUE</text>
@@ -715,7 +680,6 @@ portfolio?"
     <rect x="534" y="376" width="92" height="32" rx="2" fill="rgba(148,163,184,0.06)" stroke="#94a3b8"/>
     <text x="580" y="397" text-anchor="middle" fill="#94a3b8" font-size="11" font-weight="600">GRAY</text>
   </g>
-
   <g>
     <path class="arrow" d="M 156,410 L 156,430" marker-end="url(#rt-dim)"/>
     <path class="arrow" d="M 262,410 L 262,430" marker-end="url(#rt-dim)"/>
@@ -728,7 +692,6 @@ portfolio?"
     <text x="474" y="444" text-anchor="middle" class="label-small">verdict</text>
     <text x="580" y="444" text-anchor="middle" class="label-small">verdict</text>
   </g>
-
   <text class="label-small" x="100" y="476">∈ {</text>
   <rect x="130" y="464" width="80" height="18" rx="2" class="box-decision-yes"/>
   <text x="170" y="477" text-anchor="middle" class="label-eyebrow-green" font-size="9.5">APPROVE</text>
@@ -740,25 +703,18 @@ portfolio?"
   <text x="392" y="477" text-anchor="middle" class="label-small" font-size="9.5">NEUTRAL</text>
   <text class="label-small" x="430" y="476">}</text>
   <text class="label-small" x="100" y="502">+ blind_spots[] and portfolio_narrative (surfaced to operator)</text>
-
   <path class="arrow" d="M 380,520 L 380,552" marker-end="url(#rt-dim)"/>
-
   <rect class="box" x="80" y="554" width="600" height="156" rx="2"/>
   <text class="label-eyebrow" x="100" y="578">STAGE 3 · CONSENSUS RULE (deterministic)</text>
   <text class="label-main" x="100" y="610">n_drop = count(critic.verdict == DROP)</text>
-
   <rect class="box-decision-yes" x="100" y="626" width="280" height="34" rx="2"/>
   <text class="label-small" x="116" y="647">n_drop ≤ 1  AND  vet ∈ {APPROVE, MODIFY}</text>
-
   <rect class="box-decision-no" x="100" y="666" width="280" height="34" rx="2"/>
   <text class="label-small" x="116" y="687">n_drop ≥ 2  OR  vet == REJECT</text>
-
   <path class="arrow-feedback" d="M 380,642 L 490,642" marker-end="url(#rt-green)"/>
   <path class="arrow" d="M 380,682 L 490,682" marker-end="url(#rt-red)"/>
-
   <text class="label-eyebrow-green" x="500" y="638">WRITE</text>
   <text class="label-eyebrow-red"   x="500" y="678">DISCARD</text>
-
   <rect class="box-decision-yes" x="410" y="728" width="260" height="156" rx="2"/>
   <text class="label-eyebrow-green" x="426" y="750">STAGE 4 · WRITE</text>
   <text class="label-code" x="426" y="782">process_conditional_</text>
@@ -768,12 +724,10 @@ portfolio?"
   <text class="label-code" x="446" y="850">  prediction()</text>
   <path class="arrow" d="M 446,860 L 446,872" marker-end="url(#rt-dim)"/>
   <text class="label-code" x="426" y="879">save_topic()  → cp_NNN</text>
-
   <rect class="box-decision-no" x="90" y="728" width="260" height="70" rx="2"/>
   <text class="label-eyebrow-red" x="106" y="750">STAGE 4 · DISCARD</text>
   <text class="label-small" x="106" y="772">audit-only</text>
   <text class="label-small" x="106" y="788">ideation row stays in DB with reason</text>
-
   <path class="arrow" d="M 550,700 L 550,725" marker-end="url(#rt-dim)"/>
   <path class="arrow" d="M 220,700 L 220,725" marker-end="url(#rt-dim)"/>
 </svg>
@@ -803,108 +757,82 @@ makes the system cybernetic rather than merely a pipeline.
     <marker id="fb-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#f59e0b"/></marker>
     <marker id="fb-dim"   viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5a6473"/></marker>
   </defs>
-
   <rect class="box-soft" x="20" y="20" width="720" height="220" rx="2"/>
   <text class="label-eyebrow" x="40" y="44">L1 · FAST LOOP</text>
   <text class="label-small"   x="140" y="44">hours–days · the Bayesian engine</text>
-
   <rect class="box" x="50" y="84" width="140" height="44" rx="2"/>
   <text class="label-small" x="66" y="104">indicator fires</text>
   <text class="label-code"  x="66" y="120">(evidence arrives)</text>
-
   <rect class="box" x="240" y="84" width="170" height="44" rx="2"/>
   <text class="label-code"  x="256" y="104">apply_indicator_</text>
   <text class="label-code"  x="276" y="120">  effect()</text>
-
   <rect class="box" x="460" y="84" width="160" height="44" rx="2"/>
   <text class="label-code"  x="476" y="104">bayesian_update()</text>
   <text class="label-small" x="476" y="120">mechanical Bayes</text>
-
   <path class="arrow-primary" d="M 194,106 L 236,106" marker-end="url(#fb-amber)"/>
   <path class="arrow-primary" d="M 414,106 L 456,106" marker-end="url(#fb-amber)"/>
-
   <rect class="box" x="460" y="160" width="160" height="44" rx="2"/>
   <text class="label-small" x="476" y="180">posterior shifts</text>
   <text class="label-code"  x="476" y="196">posteriorHistory[]</text>
   <path class="arrow-primary" d="M 540,128 L 540,158" marker-end="url(#fb-amber)"/>
-
   <rect class="box" x="240" y="160" width="170" height="44" rx="2"/>
   <text class="label-small" x="256" y="180">operator reads</text>
   <text class="label-small" x="256" y="196">dashboard → watches</text>
   <path class="arrow-feedback" d="M 458,182 L 416,182" marker-end="url(#fb-green)"/>
-
   <path class="arrow-feedback" d="M 240,182 Q 120,182 120,130" marker-end="url(#fb-green)"/>
   <text class="label-eyebrow-green" x="50" y="158">closes loop</text>
-
   <rect class="box-soft" x="20" y="260" width="720" height="288" rx="2"/>
   <text class="label-eyebrow" x="40" y="284">L2 · SLOW LOOP</text>
   <text class="label-small"   x="140" y="284">weeks–months · extrapolate × resolution</text>
-
   <rect class="box-sub" x="50" y="318" width="160" height="44" rx="2"/>
   <text class="label-small" x="66" y="338">extrapolate run</text>
   <text class="label-code"  x="66" y="354">(this skill)</text>
-
   <rect class="box" x="260" y="318" width="200" height="44" rx="2"/>
   <text class="label-code"  x="276" y="338">conditionalPredictions[]</text>
   <text class="label-small" x="276" y="354">grows (append-only)</text>
-
   <path class="arrow-primary" d="M 214,340 L 256,340" marker-end="url(#fb-amber)"/>
-
   <rect class="box" x="510" y="318" width="180" height="44" rx="2"/>
   <text class="label-small" x="526" y="338">time passes</text>
   <text class="label-small" x="526" y="354">deadlines approach</text>
   <path class="arrow" d="M 464,340 L 506,340" marker-end="url(#fb-dim)"/>
-
   <path class="arrow" d="M 600,362 L 600,396" marker-end="url(#fb-dim)"/>
-
   <rect class="box" x="490" y="398" width="220" height="44" rx="2"/>
   <text class="label-code"  x="506" y="418">sweep_conditional_</text>
   <text class="label-code"  x="526" y="434">  predictions()</text>
-
   <path class="arrow" d="M 600,442 L 600,470" marker-end="url(#fb-dim)"/>
-
   <rect class="box" x="490" y="472" width="220" height="44" rx="2"/>
   <text class="label-code"  x="506" y="492">Brier(P, outcome)</text>
   <text class="label-small" x="506" y="508">calibration score</text>
-
   <rect class="box" x="260" y="472" width="200" height="44" rx="2"/>
   <text class="label-small" x="276" y="492">source_trust update</text>
   <text class="label-small" x="276" y="508">lens calibration ledger</text>
   <path class="arrow" d="M 488,494 L 464,494" marker-end="url(#fb-dim)"/>
-
   <path class="arrow-feedback" d="M 260,494 Q 120,494 120,362" marker-end="url(#fb-green)"/>
   <text class="label-eyebrow-green" x="50" y="440">next run reads</text>
   <text class="label-small" x="50" y="454">updated trust,</text>
   <text class="label-small" x="50" y="468">weights well-</text>
   <text class="label-small" x="50" y="482">calibrated lenses</text>
   <text class="label-small" x="50" y="496">higher</text>
-
   <rect class="box-soft" x="20" y="568" width="720" height="232" rx="2"/>
   <text class="label-eyebrow" x="40" y="592">L3 · META LOOP</text>
   <text class="label-small"   x="140" y="592">quarters · governor × operator</text>
-
   <rect class="box-sub" x="50" y="626" width="160" height="56" rx="2"/>
   <text class="label-code"  x="66" y="646">governance_report()</text>
   <text class="label-small" x="66" y="662">drift flags</text>
   <text class="label-small" x="66" y="676">stale indicators</text>
-
   <rect class="box" x="260" y="626" width="160" height="56" rx="2"/>
   <text class="label-small" x="276" y="646">operator reviews</text>
   <text class="label-small" x="276" y="664">(human in loop)</text>
-
   <path class="arrow" d="M 214,654 L 256,654" marker-end="url(#fb-dim)"/>
-
   <rect class="box" x="470" y="626" width="240" height="56" rx="2"/>
   <text class="label-small" x="486" y="646">reground LRs</text>
   <text class="label-code"  x="486" y="662">stamp_resolution_dates</text>
   <text class="label-code"  x="486" y="676">reset_and_migrate</text>
   <path class="arrow" d="M 424,654 L 466,654" marker-end="url(#fb-dim)"/>
-
   <rect class="box" x="260" y="710" width="400" height="52" rx="2"/>
   <text class="label-small" x="276" y="730">S1 operates on cleaner priors</text>
   <text class="label-small" x="276" y="748">S2 generates forecasts with higher calibration headroom</text>
   <path class="arrow-feedback" d="M 590,682 Q 590,710 540,710" marker-end="url(#fb-green)"/>
-
   <path class="arrow-feedback" d="M 260,736 Q 120,736 120,682" marker-end="url(#fb-green)"/>
   <text class="label-eyebrow-green" x="50" y="716">closes loop</text>
   <text class="label-small" x="50" y="732">S1 + S2 operate</text>
@@ -1037,11 +965,9 @@ automatically become critics.
     <marker id="p2-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#f59e0b"/></marker>
     <marker id="p2-dim"   viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5a6473"/></marker>
   </defs>
-
   <rect class="box-soft" x="20" y="20" width="200" height="280" rx="2"/>
   <text class="label-eyebrow" x="40" y="44">PERSONA POOL</text>
   <text class="label-small" x="40" y="60">6 ideators + GRAY</text>
-
   <g font-size="11" font-family="JetBrains Mono, monospace" font-weight="600">
     <rect x="40" y="78"  width="72" height="22" rx="2" fill="rgba(134,239,172,0.08)" stroke="#86efac"/>
     <text x="76" y="93" text-anchor="middle" fill="#86efac">GREEN</text>
@@ -1056,15 +982,12 @@ automatically become critics.
     <rect x="128" y="138" width="72" height="22" rx="2" fill="rgba(252,211,77,0.08)" stroke="#fcd34d"/>
     <text x="164" y="153" text-anchor="middle" fill="#fcd34d">OCHRE</text>
   </g>
-
   <rect x="40" y="196" width="160" height="22" rx="2" fill="rgba(148,163,184,0.08)" stroke="#94a3b8"/>
   <text x="120" y="211" text-anchor="middle" fill="#94a3b8" font-size="11" font-weight="600" font-family="JetBrains Mono, monospace">GRAY</text>
   <text class="label-small" x="40" y="238">always a critic</text>
   <text class="label-small" x="40" y="252">never a generator</text>
-
   <path class="arrow-primary" d="M 225,160 L 275,160" marker-end="url(#p2-amber)"/>
   <text class="label-eyebrow" x="232" y="150">PICK 2</text>
-
   <rect class="box-sub" x="290" y="36" width="160" height="120" rx="2"/>
   <text class="label-eyebrow" x="310" y="58">GENERATORS · 2</text>
   <g font-size="11" font-family="JetBrains Mono, monospace" font-weight="600">
@@ -1074,7 +997,6 @@ automatically become critics.
     <text x="370" y="119" text-anchor="middle" fill="#fbbf24">AMBER</text>
   </g>
   <text class="label-small" x="310" y="144">propose predictions</text>
-
   <rect class="box-sub" x="290" y="172" width="160" height="128" rx="2"/>
   <text class="label-eyebrow-red" x="310" y="194">CRITICS · 5</text>
   <g font-size="10" font-family="JetBrains Mono, monospace" font-weight="600">
@@ -1090,13 +1012,11 @@ automatically become critics.
     <text x="368" y="262" text-anchor="middle" fill="#94a3b8">GRAY</text>
   </g>
   <text class="label-small" x="310" y="284">4 leftover + GRAY</text>
-
   <path class="arrow" d="M 470,100 Q 510,100 510,230 Q 510,230 450,230" marker-end="url(#p2-dim)"/>
   <text class="label-eyebrow-red" x="524" y="150">CRITIQUE</text>
   <text class="label-small" x="524" y="168">verdict per</text>
   <text class="label-small" x="524" y="182">prediction per</text>
   <text class="label-small" x="524" y="196">critic</text>
-
   <rect class="box-soft" x="530" y="222" width="130" height="78" rx="2"/>
   <text class="label-eyebrow" x="544" y="244">DECISION</text>
   <text class="label-small"   x="544" y="262">APPROVE</text>
@@ -1121,38 +1041,31 @@ is a <strong>heuristic ensemble</strong>, not a formal mixture model (see §6).
     <marker id="pp-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#f59e0b"/></marker>
     <marker id="pp-dim"   viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5a6473"/></marker>
   </defs>
-
   <rect class="box" x="80" y="20" width="600" height="74" rx="2"/>
   <text class="label-eyebrow" x="100" y="44">STEP 1 · SETUP</text>
   <text class="label-code"    x="100" y="66">acquire_lock()  ·  single-writer mutex in extrapolation.db</text>
   <text class="label-code"    x="100" y="82">start_run(dichotomy, generators, critics, topic_scope)</text>
   <path class="arrow-primary" d="M 380,96 L 380,114" marker-end="url(#pp-amber)"/>
-
   <rect class="box" x="80" y="116" width="600" height="78" rx="2"/>
   <text class="label-eyebrow" x="100" y="140">STEP 2 · ENUMERATE SCOPE</text>
   <text class="label-code"    x="100" y="162">load_topic(slug)  ·  keep ACTIVE topics with posterior &gt; 0.05</text>
   <text class="label-small"   x="100" y="180">pass existing conditionalPredictions to ideators (avoid dups)</text>
   <path class="arrow-primary" d="M 380,196 L 380,214" marker-end="url(#pp-amber)"/>
-
   <rect class="box-sub" x="80" y="216" width="600" height="150" rx="2"/>
   <text class="label-eyebrow" x="100" y="240">STEP 3 · PARALLEL IDEATION</text>
   <text class="label-small"   x="286" y="240">2 Haiku sub-agents · 1 message · concurrent</text>
-
   <rect x="130" y="258" width="200" height="58" rx="2" fill="rgba(134,239,172,0.05)" stroke="#86efac"/>
   <text class="label-eyebrow-green" x="150" y="278">GEN A (Haiku)</text>
   <text class="label-small" x="150" y="294">persona X · 3–5 proposals</text>
   <text class="label-small" x="150" y="308">per (topic, hypothesis)</text>
-
   <rect x="430" y="258" width="200" height="58" rx="2" fill="rgba(251,191,36,0.05)" stroke="#fbbf24"/>
   <text class="label-eyebrow" x="450" y="278" fill="#fbbf24">GEN B (Haiku)</text>
   <text class="label-small" x="450" y="294">persona Y · 3–5 proposals</text>
   <text class="label-small" x="450" y="308">per (topic, hypothesis)</text>
-
   <path class="arrow" d="M 230,316 Q 230,340 380,340" marker-end="url(#pp-dim)"/>
   <path class="arrow" d="M 530,316 Q 530,340 380,340" marker-end="url(#pp-dim)"/>
   <text class="label-small" x="310" y="358">all_proposals (merged)</text>
   <path class="arrow-primary" d="M 380,368 L 380,386" marker-end="url(#pp-amber)"/>
-
   <rect class="box" x="80" y="388" width="600" height="166" rx="2"/>
   <text class="label-eyebrow" x="100" y="412">STEP 4 · VETTING</text>
   <text class="label-small"   x="200" y="412">Sonnet · parent · sequential</text>
@@ -1166,11 +1079,9 @@ is a <strong>heuristic ensemble</strong>, not a formal mixture model (see §6).
   </g>
   <text class="label-small" x="100" y="544">verdict ∈ {APPROVE · MODIFY · REJECT}  ·  all logged regardless</text>
   <path class="arrow-primary" d="M 380,556 L 380,574" marker-end="url(#pp-amber)"/>
-
   <rect class="box-sub" x="80" y="576" width="600" height="136" rx="2"/>
   <text class="label-eyebrow" x="100" y="600">STEP 5 · PARALLEL CRITIQUE</text>
   <text class="label-small"   x="308" y="600">5 Opus sub-agents · 1 message · concurrent</text>
-
   <g>
     <rect x="104" y="614" width="96" height="36" rx="2" fill="rgba(125,211,252,0.06)" stroke="#7dd3fc"/>
     <text x="152" y="636" text-anchor="middle" fill="#7dd3fc" font-size="11" font-weight="600">BLUE</text>
@@ -1186,21 +1097,18 @@ is a <strong>heuristic ensemble</strong>, not a formal mixture model (see §6).
   <text class="label-small" x="100" y="676">per-prediction verdicts ∈ {APPROVE · MODIFY · DROP · NEUTRAL}</text>
   <text class="label-small" x="100" y="692">+ portfolio_narrative  +  blind_spots[]</text>
   <path class="arrow-primary" d="M 380,714 L 380,732" marker-end="url(#pp-amber)"/>
-
   <rect class="box" x="80" y="734" width="600" height="96" rx="2"/>
   <text class="label-eyebrow" x="100" y="758">STEP 6 · CONSENSUS RULE</text>
   <text class="label-small"   x="230" y="758">deterministic · anti-veto</text>
   <text class="label-code"    x="100" y="784">vet ∈ {APPROVE, MODIFY}  AND  n_drop ≤ 1    ⇒  write</text>
   <text class="label-small"   x="100" y="808">one objection does not kill. two concurrent objections do.</text>
   <path class="arrow-primary" d="M 380,832 L 380,850" marker-end="url(#pp-amber)"/>
-
   <rect class="box" x="80" y="852" width="600" height="90" rx="2"/>
   <text class="label-eyebrow" x="100" y="876">STEP 7 · WRITE</text>
   <text class="label-code"    x="100" y="898">process_conditional_prediction()</text>
   <text class="label-code"    x="100" y="914">   → add_conditional_prediction()  →  save_topic()</text>
   <text class="label-small"   x="100" y="932">append-only · new cp_NNN · never overwrites</text>
   <path class="arrow-primary" d="M 380,944 L 380,962" marker-end="url(#pp-amber)"/>
-
   <rect class="box" x="80" y="964" width="600" height="86" rx="2"/>
   <text class="label-eyebrow" x="100" y="988">STEP 8 · FINALIZE</text>
   <text class="label-code"    x="100" y="1010">log_portfolio_snapshot() per critic</text>
@@ -1219,64 +1127,50 @@ is a <strong>heuristic ensemble</strong>, not a formal mixture model (see §6).
     <marker id="df-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#f59e0b"/></marker>
     <marker id="df-dim"   viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5a6473"/></marker>
   </defs>
-
   <rect class="box-substrate" x="40" y="28" width="320" height="120" rx="2"/>
   <text class="label-eyebrow" x="58" y="52">TOPIC JSON · source of truth</text>
   <text class="label-code"  x="58" y="84">conditionalPredictions[]</text>
   <text class="label-small" x="58" y="104">append-only · cp_NNN sequential IDs</text>
   <text class="label-small" x="58" y="124">canonical · JSON wins over DB</text>
   <text class="label-small" x="58" y="140">read via load_topic() · write via save_topic()</text>
-
   <rect class="box-sub" x="420" y="48" width="260" height="80" rx="2"/>
   <text class="label-eyebrow" x="438" y="72">ONLY WRITE PATH</text>
   <text class="label-code"  x="438" y="94">process_conditional_</text>
   <text class="label-code"  x="458" y="108">  prediction()</text>
   <text class="label-small" x="438" y="124">engine-gated · never direct edit</text>
-
   <path class="arrow-primary" d="M 418,88 L 362,88" marker-end="url(#df-amber)"/>
-
   <path class="arrow" d="M 550,128 L 550,192" marker-end="url(#df-dim)"/>
   <text class="label-small" x="558" y="162">also writes</text>
   <text class="label-small" x="558" y="176">audit row</text>
-
   <rect class="box-db" x="40" y="194" width="640" height="246" rx="2"/>
   <text class="label-eyebrow-green" x="58" y="218">extrapolation.db · SQLite · WAL</text>
   <text class="label-small" x="270" y="218">audit + analytics only · never canonical</text>
-
   <g>
     <rect x="58" y="246" width="180" height="36" rx="2" class="box-soft"/>
     <text class="label-code"  x="72" y="264">agent_runs</text>
     <text class="label-small" x="72" y="276">one row per sweep</text>
-
     <rect x="248" y="246" width="180" height="36" rx="2" class="box-soft"/>
     <text class="label-code"  x="262" y="264">ideations</text>
     <text class="label-small" x="262" y="276">EVERY proposal (incl. rejected)</text>
-
     <rect x="438" y="246" width="224" height="36" rx="2" class="box-soft"/>
     <text class="label-code"  x="452" y="264">vetting</text>
     <text class="label-small" x="452" y="276">EVERY Sonnet verdict + reason</text>
-
     <rect x="58" y="292" width="180" height="36" rx="2" class="box-soft"/>
     <text class="label-code"  x="72" y="310">critic_verdicts</text>
     <text class="label-small" x="72" y="322">5 × every proposal</text>
-
     <rect x="248" y="292" width="180" height="36" rx="2" class="box-soft"/>
     <text class="label-code"  x="262" y="310">meta_lint</text>
     <text class="label-small" x="262" y="322">portfolio narratives</text>
-
     <rect x="438" y="292" width="224" height="36" rx="2" class="box-soft"/>
     <text class="label-code"  x="452" y="310">approved_predictions</text>
     <text class="label-small" x="452" y="322">link back to cp_NNN in JSON</text>
-
     <rect x="58" y="338" width="180" height="36" rx="2" class="box-soft"/>
     <text class="label-code"  x="72" y="356">portfolio_snapshots</text>
     <text class="label-small" x="72" y="368">per-run time series</text>
-
     <rect x="248" y="338" width="414" height="36" rx="2" class="box-soft"/>
     <text class="label-code"  x="262" y="356">sweep_lock</text>
     <text class="label-small" x="262" y="368">single-writer mutex · enforces serial runs</text>
   </g>
-
   <text class="label-small" x="58" y="396">Reconstruction guarantee: from the DB alone you can recover every</text>
   <text class="label-small" x="58" y="412">proposal ever made, every verdict, every critic's narrative, and</text>
   <text class="label-small" x="58" y="428">the link back to the approved prediction ID in the JSON.</text>
@@ -1366,41 +1260,30 @@ maintained in the source ledger.
     <marker id="wt-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#f59e0b"/></marker>
     <marker id="wt-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#86efac"/></marker>
   </defs>
-
   <text class="label-eyebrow" x="40" y="34">WRITE-TIME · extrapolate skill</text>
   <text class="label-eyebrow-green" x="400" y="34">RESOLUTION-TIME · scoring</text>
-
   <rect class="box-sub" x="40" y="62" width="280" height="70" rx="2"/>
   <text class="label-main" x="56" y="86">elicit P(pred | H_cond)</text>
   <text class="label-small" x="56" y="104">from LLM, per lens</text>
   <text class="label-small" x="56" y="120">subjective judgment, NOT data-derived</text>
-
   <path class="arrow-primary" d="M 322,96 L 398,96" marker-end="url(#wt-amber)"/>
   <text class="label-small" x="330" y="88">time passes</text>
-
   <rect class="box" x="400" y="62" width="280" height="60" rx="2"/>
   <text class="label-main"  x="416" y="86">observe outcome at deadline</text>
   <text class="label-small" x="416" y="104">(resolution criterion checked)</text>
-
   <path class="arrow-feedback" d="M 540,122 L 540,146" marker-end="url(#wt-green)"/>
-
   <rect class="box" x="400" y="148" width="280" height="60" rx="2"/>
   <text class="label-code"  x="416" y="172">Brier((P, outcome))</text>
   <text class="label-small" x="416" y="190">calibration score per prediction</text>
-
   <path class="arrow-feedback" d="M 540,208 L 540,232" marker-end="url(#wt-green)"/>
-
   <rect class="box" x="400" y="234" width="280" height="60" rx="2"/>
   <text class="label-main"  x="416" y="258">update source trust</text>
   <text class="label-small" x="416" y="276">per-lens calibration ledger</text>
-
   <path class="arrow-feedback" d="M 540,294 L 540,318" marker-end="url(#wt-green)"/>
-
   <rect class="box" x="400" y="320" width="280" height="60" rx="2"/>
   <text class="label-code"  x="416" y="344">conditional_calibration_</text>
   <text class="label-code"  x="436" y="358">  report()</text>
   <text class="label-small" x="416" y="374">per-topic, per-lens metrics</text>
-
   <path class="arrow-feedback" d="M 400,350 Q 180,350 180,138" marker-end="url(#wt-green)"/>
   <text class="label-eyebrow-green" x="60" y="210">FEEDBACK</text>
   <text class="label-small" x="60" y="228">next run weights</text>
