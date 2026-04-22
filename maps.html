@@ -38,6 +38,7 @@
          STYLES
          ═══════════════════════════════════════════════════════════════ -->
     <link rel="stylesheet" href="css/acidburn.css">
+    <link rel="stylesheet" href="css/futures-reading.css">
     
     <!-- ═══════════════════════════════════════════════════════════════
          WEBGL DEPENDENCIES (loaded conditionally by acidburn-mode.js)
@@ -158,6 +159,7 @@
                     <h2>// TRANSMISSIONS</h2>
                     <div class="section-line"></div>
                 </div>
+                <div id="tag-filter"></div>
                 <div id="posts-list"></div>
             </section>
             
@@ -203,6 +205,53 @@
     
     <!-- Navigation Menu (optional) -->
     <script src="nav-menu.js"></script>
+
+    <script>
+    // Tag filter above #posts-list. Mirrors futures.html.
+    (function() {
+        const check = setInterval(() => {
+            if (!window.AcidburnAuthor) return;
+            clearInterval(check);
+
+            const tagCheck = setInterval(() => {
+                const posts = window.AcidburnAuthor.getPosts();
+                if (!posts.length) return;
+                clearInterval(tagCheck);
+
+                const filterEl = document.getElementById('tag-filter');
+                if (!filterEl) return;
+
+                const seen = new Set();
+                const tags = [];
+                posts.forEach(p => (p.tags || []).forEach(t => {
+                    if (!seen.has(t)) { seen.add(t); tags.push(t); }
+                }));
+                if (!tags.length) return;
+
+                function applyFilter(tag) {
+                    filterEl.querySelectorAll('.tag-filter-btn').forEach(btn => {
+                        btn.classList.toggle('active', btn.dataset.tag === (tag || ''));
+                    });
+                    document.querySelectorAll('#posts-list .post-card').forEach(card => {
+                        const post = posts.find(p => p.slug === card.dataset.slug);
+                        const match = !tag || (post && (post.tags || []).includes(tag));
+                        card.style.display = match ? '' : 'none';
+                    });
+                }
+
+                filterEl.innerHTML =
+                    `<button class="tag-filter-btn active" data-tag="">ALL</button>` +
+                    tags.map(t => `<button class="tag-filter-btn" data-tag="${t}">#${t}</button>`).join('');
+
+                filterEl.addEventListener('click', e => {
+                    const btn = e.target.closest('.tag-filter-btn');
+                    if (!btn) return;
+                    applyFilter(btn.dataset.tag || null);
+                });
+            }, 50);
+        }, 50);
+    })();
+    </script>
 
 </body>
 </html>
