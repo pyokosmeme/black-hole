@@ -38,6 +38,7 @@
          STYLES
          ═══════════════════════════════════════════════════════════════ -->
     <link rel="stylesheet" href="css/acidburn.css">
+    <link rel="stylesheet" href="css/futures-reading.css">
     
     <!-- ═══════════════════════════════════════════════════════════════
          WEBGL DEPENDENCIES (loaded conditionally by acidburn-mode.js)
@@ -167,6 +168,7 @@
         <article class="post-view" id="post-view">
             <button class="post-close-btn" onclick="showIndex()" title="Close transmission">✕ CLOSE</button>
             <div class="post-view-meta">
+                <div class="post-view-title" id="post-view-title"></div>
                 <div class="post-view-date" id="post-view-date"></div>
                 <div class="post-view-tags" id="post-view-tags"></div>
             </div>
@@ -203,6 +205,50 @@
     
     <!-- Navigation Menu (optional) -->
     <script src="nav-menu.js"></script>
+
+    <script>
+    // Populate #post-view-title on post open; clear on close. Mirrors futures.html.
+    (function() {
+        const check = setInterval(() => {
+            if (!window.AcidburnAuthor) return;
+            clearInterval(check);
+
+            const origLoadPost = window.AcidburnAuthor.loadPost;
+            const origShowIndex = window.showIndex;
+
+            function setTitle(slug) {
+                const el = document.getElementById('post-view-title');
+                if (!el) return;
+                if (!slug) { el.textContent = ''; return; }
+                const post = window.AcidburnAuthor.getPosts().find(p => p.slug === slug);
+                el.textContent = (post ? (post.title || slug) : slug).toUpperCase();
+            }
+
+            window.AcidburnAuthor.loadPost = async function(slug) {
+                await origLoadPost(slug);
+                setTitle(slug);
+                if (window.AcidburnMode) window.AcidburnMode.setMode(window.AcidburnMode.getMode());
+            };
+            window.showIndex = function() {
+                origShowIndex();
+                setTitle(null);
+                if (window.AcidburnMode) window.AcidburnMode.setMode(window.AcidburnMode.getMode());
+            };
+
+            // Handle direct-link load (refresh on #post/slug)
+            const hash = window.location.hash;
+            if (hash.startsWith('#post/')) {
+                const slug = hash.replace('#post/', '');
+                const wait = setInterval(() => {
+                    if (window.AcidburnAuthor.getPosts().length) {
+                        clearInterval(wait);
+                        setTitle(slug);
+                    }
+                }, 50);
+            }
+        }, 50);
+    })();
+    </script>
 
 </body>
 </html>
