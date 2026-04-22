@@ -1,54 +1,1502 @@
-# NROL-αΩ
+<div class="nrol-doc">
 
-## a Bayesian engine with a vibe-coded skin
+<style>
+/* ═════════════════════════════════════════════════════════════════
+   NROL-αΩ transmission · scoped styles
+   All rules scoped under .nrol-doc so nothing leaks into the rest
+   of the site. Palette uses CSS vars so light-mode flips colors
+   atomically.
+   ════════════════════════════════════════════════════════════════ */
 
-i built a forecasting system. call it NROL-αΩ. every topic is a Bayesian object;;; named hypotheses, design priors, per-indicator likelihood ratios, a posterior the engine updates mechanically whenever an indicator fires. this part is math. `bayesian_update()` does what the name says. `_eliminate_expired_hypotheses()` falsifies time-bound claims as deadlines pass. governor-gated. auditable. mechanical.
+.nrol-doc {
+  --amber:       #f59e0b;
+  --amber-soft:  #fbbf24;
+  --cyan:        #7dd3fc;
+  --GREEN:       #86efac;
+  --AMBER:       #fbbf24;
+  --BLUE:        #7dd3fc;
+  --RED:         #fca5a5;
+  --VIOLET:      #c4b5fd;
+  --OCHRE:       #fcd34d;
+  --GRAY:        #94a3b8;
 
-then i bolted on something stranger.
+  --doc-bg:      transparent;
+  --doc-fg:      #e8ecf0;
+  --doc-fg-muted:#b8c0cc;
+  --doc-dim:     #5a6473;
+  --doc-faint:   #2a3140;
+  --doc-rule:    rgba(245, 158, 11, 0.18);
+  --doc-code-bg: #0a0d14;
+  --doc-soft-bg: #0d1019;
 
-## the extrapolate skill
+  font-family: 'JetBrains Mono','IBM Plex Mono','Cascadia Code',monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  letter-spacing: 0.015em;
+  color: var(--doc-fg);
+  max-width: 100%;
+  overflow-x: hidden;
+}
 
-the engine answers ONE question: which hypothesis is likely, right now? it does not answer the second question — conditional on each hypothesis being true, what observable events should follow? that's the FORECAST NET. a web of auxiliary predictions, each keyed to a conditioning hypothesis, each with a deadline and a resolution criterion.
+/* Light mode: re-map the palette for cream/paper. Keep lens colors
+   vivid but shift neutrals toward warm graphite. */
+body.light-mode .nrol-doc {
+  --amber:       #b45309;
+  --amber-soft:  #92400e;
+  --cyan:        #0369a1;
+  --GREEN:       #15803d;
+  --AMBER:       #92400e;
+  --BLUE:        #0369a1;
+  --RED:         #b91c1c;
+  --VIOLET:      #6d28d9;
+  --OCHRE:       #a16207;
+  --GRAY:        #57534e;
 
-the engine can't generate that net. the engine is Bayes. Bayes does not imagine.
+  --doc-fg:      #1c1917;
+  --doc-fg-muted:#44403c;
+  --doc-dim:     #78716c;
+  --doc-faint:   #d6d3d1;
+  --doc-rule:    rgba(180, 83, 9, 0.28);
+  --doc-code-bg: rgba(28, 25, 23, 0.06);
+  --doc-soft-bg: rgba(28, 25, 23, 0.04);
+}
 
-so i use LMs. six ideator lenses — GREEN, AMBER, BLUE, VIOLET, OCHRE, GRAY — each with a different temperamental bias. pick two per run. each proposes conditional predictions. a Sonnet parent vets each candidate on five sub-checks;;; falsifiable, not duplicate, deadline realistic, CPT-aligned, in scope. survivors fan out to five Opus critics running concurrently. verdicts in {APPROVE, MODIFY, DROP, NEUTRAL}. a deterministic consensus rule: if two or more critics DROP, discard. else write.
+.nrol-doc * { box-sizing: border-box; }
 
-```
-generator → sonnet vet → 5-critic fan-out → consensus → write
-                                          ↓
-                                    resolve → Brier → calibration
-```
+/* ── Hero ─────────────────────────────────────────────── */
+.nrol-doc .hero {
+  padding-bottom: 32px;
+  margin-bottom: 40px;
+  border-bottom: 0.5px solid var(--doc-rule);
+}
+.nrol-doc .hero .eyebrow {
+  font-size: 10px; color: var(--amber); letter-spacing: 0.35em;
+  text-transform: uppercase; margin-bottom: 14px;
+}
+.nrol-doc .hero h1 {
+  font-size: 28px; line-height: 1.2;
+  color: var(--doc-fg); font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 0 18px 0;
+  border: none; padding: 0;
+}
+.nrol-doc .hero h1 .accent { color: var(--amber); }
+.nrol-doc .hero .subtitle {
+  font-size: 13.5px; color: var(--doc-fg-muted);
+  line-height: 1.65;
+}
+.nrol-doc .hero-meta {
+  margin-top: 22px; display: flex; gap: 24px; flex-wrap: wrap;
+  font-size: 10px; color: var(--doc-dim); letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.nrol-doc .hero-meta .key { color: var(--doc-faint); margin-right: 6px; }
+.nrol-doc .hero-meta .val { color: var(--doc-fg-muted); }
 
-## what is epistemic, what is vibe
+/* ── TOC inline ───────────────────────────────────────── */
+.nrol-doc .nrol-toc {
+  margin: 28px 0 40px;
+  padding: 16px 20px;
+  border: 0.5px solid var(--doc-faint);
+  border-left: 2px solid var(--amber);
+  background: var(--doc-soft-bg);
+}
+.nrol-doc .nrol-toc .toc-label {
+  font-size: 9px; color: var(--doc-dim);
+  letter-spacing: 0.3em; text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.nrol-doc .nrol-toc ol { list-style: none; counter-reset: toc; margin: 0; padding: 0; }
+.nrol-doc .nrol-toc li { counter-increment: toc; margin: 2px 0; }
+.nrol-doc .nrol-toc a {
+  color: var(--doc-fg-muted);
+  text-decoration: none;
+  font-size: 11px;
+  border-bottom: none;
+}
+.nrol-doc .nrol-toc a::before {
+  content: "0" counter(toc) "  ";
+  color: var(--doc-faint);
+}
+.nrol-doc .nrol-toc a:hover { color: var(--amber); }
 
-this is the part that matters. the **engine** is epistemic. it has a formal update rule. every posterior shift is traceable to a likelihood ratio with a stated range and a governor check. if the math is wrong you can find the line.
+/* ── Headings / text ──────────────────────────────────── */
+.nrol-doc h2 {
+  font-size: 17px; color: var(--doc-fg);
+  margin-top: 48px; margin-bottom: 18px;
+  padding-bottom: 10px;
+  border-bottom: 0.5px solid var(--doc-rule);
+  letter-spacing: 0.02em;
+  border-left: none;
+  font-weight: 600;
+}
+.nrol-doc h2 .num {
+  color: var(--amber); margin-right: 14px;
+  font-weight: 400;
+}
+.nrol-doc h3 {
+  font-size: 13.5px; color: var(--amber-soft);
+  margin-top: 28px; margin-bottom: 12px;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+.nrol-doc h3 .num { color: var(--doc-faint); margin-right: 10px; }
 
-the **skill** is not epistemic. it is a VIBECODED APPARATUS for generating hypotheses-conditional forecasts. there is no proof that a pick-2 rotation of LM lenses, vetted by a sixth LM, critiqued by five more, and filtered by an n_drop threshold, produces a well-calibrated forecast portfolio. there is no theorem. there is a workflow. the workflow has a shape that feels right — red-team pressure, diverse priors, hard gates at the boundaries. but "feels right" is the diagnosis.
+.nrol-doc p {
+  margin-bottom: 16px;
+  color: var(--doc-fg-muted);
+}
+.nrol-doc p strong,
+.nrol-doc li strong { color: var(--doc-fg); font-weight: 600; }
+.nrol-doc em { color: var(--doc-fg-muted); }
 
-the move is: let the vibe generate. let the math resolve. the forecasts earn their keep at resolution or not at all. Brier scores feed back into source trust and lens calibration on the slow loop, weeks-to-months. the system only BECOMES epistemic when outcomes land and the generator layer is scored against them.
+.nrol-doc ul,
+.nrol-doc ol { margin: 0 0 16px 22px; color: var(--doc-fg-muted); padding: 0; }
+.nrol-doc li { margin-bottom: 6px; }
+.nrol-doc li::marker { color: var(--amber); }
 
-until then it is a very elaborate guess.
+.nrol-doc code {
+  font-family: inherit;
+  background: var(--doc-code-bg);
+  color: var(--cyan);
+  padding: 1px 6px;
+  border: 0.5px solid var(--doc-faint);
+  border-radius: 2px;
+  font-size: 12px;
+}
+.nrol-doc pre {
+  background: var(--doc-code-bg);
+  border: 0.5px solid var(--doc-faint);
+  border-left: 2px solid var(--amber);
+  padding: 16px 20px;
+  margin: 20px 0;
+  overflow-x: auto;
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--doc-fg-muted);
+}
+.nrol-doc pre code {
+  background: none; border: none; padding: 0;
+  color: inherit; font-size: inherit;
+}
 
-## three timescales
+.nrol-doc blockquote {
+  border-left: 2px solid var(--amber);
+  padding: 12px 20px;
+  margin: 24px 0;
+  background: color-mix(in srgb, var(--amber) 6%, transparent);
+  color: var(--doc-fg-muted);
+  font-style: italic;
+}
 
-- **L1 · FAST.** hours to days. indicator fires → LR computed → posterior shifts. mechanical Bayes. the tight loop.
-- **L2 · SLOW.** weeks to months. extrapolate writes forecasts → deadlines pass → `sweep_conditional_predictions()` scores them → calibration updates propagate back to sources and lenses.
-- **L3 · GOVERNOR.** cross-cutting, continuous. variety attenuator. can veto any write from S1 or S2. surfaces drift, freshness, health. the part of the system that notices when the other parts are lying.
+/* ── Tables ───────────────────────────────────────────── */
+.nrol-doc table {
+  width: 100%; border-collapse: collapse;
+  margin: 20px 0; font-size: 12px;
+  display: block; overflow-x: auto;
+}
+.nrol-doc th,
+.nrol-doc td {
+  text-align: left;
+  padding: 10px 14px;
+  border-bottom: 0.5px solid var(--doc-faint);
+  vertical-align: top;
+}
+.nrol-doc th {
+  color: var(--amber);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-size: 10px;
+  border-bottom-color: var(--doc-rule);
+  background: color-mix(in srgb, var(--amber) 4%, transparent);
+}
+.nrol-doc td { color: var(--doc-fg-muted); }
 
-## what i learned building it
+/* ── Chips ────────────────────────────────────────────── */
+.nrol-doc .chip {
+  display: inline-block;
+  padding: 1px 8px;
+  border: 0.5px solid currentColor;
+  border-radius: 2px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+}
+.nrol-doc .chip.GREEN  { color: var(--GREEN); }
+.nrol-doc .chip.AMBER  { color: var(--AMBER); }
+.nrol-doc .chip.BLUE   { color: var(--BLUE); }
+.nrol-doc .chip.RED    { color: var(--RED); }
+.nrol-doc .chip.VIOLET { color: var(--VIOLET); }
+.nrol-doc .chip.OCHRE  { color: var(--OCHRE); }
+.nrol-doc .chip.GRAY   { color: var(--GRAY); }
 
-1. **keep the math and the vibe in separate files.** the engine is boring Python. the skill is prompts and orchestration. when they live apart you can tell which part failed.
-2. **information is lost by design.** consensus by n_drop throws away the APPROVE/MODIFY ratio and ignores MODIFY content. this is a CHOICE. the alternative is letting LM verbosity drive the write policy, which is how you end up believing your own hallucinations.
-3. **the substrate is the substrate.** topic JSON. everything writes to it, everything reads from it, the governor watches all writes. pick a shared object early. all three subsystems become legible through it.
-4. **forecasts are not evidence.** this is the whole discipline. the skill can propose "10Y falls to 3.6% by Dec if H2" but this does not move P(H2). only indicators move posteriors. only outcomes score forecasts. if you blur this you get feedback without grounding — a belief system that updates on its own dreams.
+/* ── Callouts ─────────────────────────────────────────── */
+.nrol-doc .callout {
+  border: 0.5px solid var(--doc-faint);
+  border-left: 2px solid var(--amber);
+  padding: 14px 18px;
+  margin: 22px 0;
+  background: color-mix(in srgb, var(--amber) 4%, transparent);
+  font-size: 12px;
+  color: var(--doc-fg-muted);
+}
+.nrol-doc .callout.warning {
+  border-left-color: var(--RED);
+  background: color-mix(in srgb, var(--RED) 5%, transparent);
+}
+.nrol-doc .callout.note {
+  border-left-color: var(--cyan);
+  background: color-mix(in srgb, var(--cyan) 4%, transparent);
+}
+.nrol-doc .callout-label {
+  font-size: 9px; letter-spacing: 0.3em;
+  text-transform: uppercase; color: var(--amber);
+  margin-bottom: 8px; font-weight: 600;
+}
+.nrol-doc .callout.warning .callout-label { color: var(--RED); }
+.nrol-doc .callout.note    .callout-label { color: var(--cyan); }
 
-## the honest framing
+/* ── Diagram frames ───────────────────────────────────── */
+.nrol-doc .diagram-label {
+  display: inline-block;
+  font-size: 9px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--doc-dim);
+  margin: 28px 0 8px;
+  padding: 2px 10px;
+  border: 0.5px solid var(--doc-faint);
+}
+.nrol-doc .diagram-label.system   { color: var(--amber); border-color: var(--amber); }
+.nrol-doc .diagram-label.feedback { color: var(--GREEN); border-color: var(--GREEN); }
+.nrol-doc .diagram-label.decision { color: var(--RED);   border-color: var(--RED);   }
 
-NROL-αΩ is a Bayesian core wearing a language-model coat. the coat does useful work — generates conditional structure the core cannot. but the coat is held on with staples and i want to be precise about which staples.
+.nrol-doc .svg-frame {
+  margin: 16px 0 28px;
+  padding: 0;
+  background: var(--doc-code-bg);
+  border: 0.5px solid var(--doc-faint);
+  border-left: 2px solid var(--amber);
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+.nrol-doc .svg-frame.system   { border-left-color: var(--amber); }
+.nrol-doc .svg-frame.decision { border-left-color: var(--RED);   }
+.nrol-doc .svg-frame.feedback { border-left-color: var(--GREEN); }
+.nrol-doc .svg-frame.flow     { border-left-color: var(--cyan);  }
+.nrol-doc .svg-frame svg {
+  display: block; width: 100%; height: auto; max-width: 100%;
+}
 
-epistemology, infrastructure, vibe. three layers. do not confuse them.
+/* ── Legend ───────────────────────────────────────────── */
+.nrol-doc .legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 6px 24px;
+  margin: 12px 0 24px;
+  padding: 12px 16px;
+  background: var(--doc-soft-bg);
+  border: 0.5px solid var(--doc-faint);
+  font-size: 11px;
+  color: var(--doc-fg-muted);
+}
+.nrol-doc .legend-item .sym {
+  display: inline-block; width: 28px;
+  color: var(--amber); font-weight: 600;
+  margin-right: 6px;
+}
 
----
+/* ── SVG theming (class-based; beats presentation attrs) ── */
+.nrol-doc svg text {
+  font-family: 'JetBrains Mono','IBM Plex Mono',monospace;
+  fill: var(--doc-fg-muted);
+}
+.nrol-doc svg .box          { fill: color-mix(in srgb, var(--doc-fg) 3%, transparent);  stroke: var(--doc-faint); stroke-width: 1; }
+.nrol-doc svg .box-soft     { fill: color-mix(in srgb, var(--doc-fg) 2%, transparent);  stroke: var(--doc-faint); stroke-width: 0.6; }
+.nrol-doc svg .box-env      { fill: color-mix(in srgb, var(--doc-dim) 8%, transparent); stroke: var(--doc-dim);   stroke-width: 0.6; stroke-dasharray: 2 3; }
+.nrol-doc svg .box-sub      { fill: color-mix(in srgb, var(--amber) 6%, transparent);   stroke: var(--amber);     stroke-width: 0.8; }
+.nrol-doc svg .box-engine   { fill: color-mix(in srgb, var(--cyan) 6%, transparent);    stroke: var(--cyan);      stroke-width: 0.8; }
+.nrol-doc svg .box-substrate{ fill: color-mix(in srgb, var(--doc-fg) 4%, transparent);  stroke: var(--doc-fg-muted); stroke-width: 0.8; }
+.nrol-doc svg .box-gov      { fill: color-mix(in srgb, var(--RED) 5%, transparent);     stroke: var(--RED);       stroke-width: 0.6; stroke-dasharray: 3 2; }
+.nrol-doc svg .box-db       { fill: color-mix(in srgb, var(--GREEN) 5%, transparent);   stroke: var(--GREEN);     stroke-width: 0.6; }
+.nrol-doc svg .box-decision-yes { fill: color-mix(in srgb, var(--GREEN) 7%, transparent); stroke: var(--GREEN); stroke-width: 0.8; }
+.nrol-doc svg .box-decision-no  { fill: color-mix(in srgb, var(--RED) 7%, transparent);   stroke: var(--RED);   stroke-width: 0.8; }
 
-*the map is not the territory;;; but the forecast portfolio is a bet on which map will survive the next deadline.*
+.nrol-doc svg .arrow          { stroke: var(--doc-dim); stroke-width: 1;   fill: none; }
+.nrol-doc svg .arrow-primary  { stroke: var(--amber);   stroke-width: 1.2; fill: none; }
+.nrol-doc svg .arrow-feedback { stroke: var(--GREEN);   stroke-width: 1;   fill: none; stroke-dasharray: 4 3; }
+.nrol-doc svg .arrow-data     { stroke: var(--cyan);    stroke-width: 1;   fill: none; }
+.nrol-doc svg .arrow-gov      { stroke: var(--RED);     stroke-width: 0.8; fill: none; stroke-dasharray: 2 2; }
+
+.nrol-doc svg .label              { font-size: 10px;  fill: var(--doc-fg); }
+.nrol-doc svg .label-main         { font-size: 11px;  fill: var(--doc-fg); font-weight: 600; }
+.nrol-doc svg .label-muted        { font-size: 9px;   fill: var(--doc-dim); letter-spacing: 0.1em; }
+.nrol-doc svg .label-eyebrow      { font-size: 8px;   fill: var(--amber); letter-spacing: 0.25em; }
+.nrol-doc svg .label-eyebrow-cyan { font-size: 8px;   fill: var(--cyan);  letter-spacing: 0.25em; }
+.nrol-doc svg .label-eyebrow-green{ font-size: 8px;   fill: var(--GREEN); letter-spacing: 0.25em; }
+.nrol-doc svg .label-eyebrow-red  { font-size: 8px;   fill: var(--RED);   letter-spacing: 0.25em; }
+.nrol-doc svg .label-small        { font-size: 8.5px; fill: var(--doc-fg-muted); }
+.nrol-doc svg .label-code         { font-size: 9px;   fill: var(--cyan); font-style: italic; }
+
+/* SVG arrow-marker re-coloring for light mode: the marker defs in the source
+   use hardcoded hex fills. In light mode we want darker arrowheads — override
+   via fill on the <marker> children (CSS fill beats attr). */
+body.light-mode .nrol-doc svg marker path { fill: var(--doc-dim); }
+
+.nrol-doc hr {
+  border: none;
+  border-top: 0.5px solid var(--doc-rule);
+  margin: 40px 0;
+}
+
+.nrol-doc .footer-meta {
+  margin-top: 60px;
+  padding-top: 20px;
+  border-top: 0.5px solid var(--doc-faint);
+  font-size: 10px;
+  color: var(--doc-dim);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .nrol-doc .hero h1 { font-size: 22px; }
+  .nrol-doc h2 { font-size: 15px; margin-top: 36px; }
+  .nrol-doc h3 { font-size: 12.5px; }
+  .nrol-doc .hero-meta { flex-direction: column; gap: 6px; }
+  .nrol-doc pre { font-size: 10.5px; padding: 12px 14px; }
+  .nrol-doc .legend { grid-template-columns: 1fr; }
+}
+</style>
+
+<div class="hero">
+  <div class="eyebrow">Methodology · v0.4</div>
+  <h1>The <span class="accent">Extrapolate</span> skill: a generator–critic pipeline for conditional forecasting</h1>
+  <div class="subtitle">
+    NROL-αΩ is a <strong>Bayesian system at the topic level</strong> —
+    each topic carries priors, hypotheses, likelihood ratios, and a posterior
+    that the engine updates mechanically whenever an indicator fires. The
+    <em>extrapolate</em> skill sits on top of that Bayesian core as a multi-lens
+    forecasting layer: it reads the current posterior state and generates
+    conditional predictions that will later resolve, score, and feed back into
+    source calibration. This document is careful about which part is which.
+  </div>
+  <div class="hero-meta">
+    <div><span class="key">Source</span><span class="val">METHODOLOGY_EXTRAPOLATE.md</span></div>
+    <div><span class="key">Skill</span><span class="val">/extrapolate</span></div>
+    <div><span class="key">Layer</span><span class="val">forecast generation over a Bayesian core</span></div>
+  </div>
+</div>
+
+<nav class="nrol-toc">
+  <div class="toc-label">Contents</div>
+  <ol>
+    <li><a href="#sec-1">The problem this solves</a></li>
+    <li><a href="#sec-sys">Systems view</a></li>
+    <li><a href="#sec-2">Generators &amp; critics</a></li>
+    <li><a href="#sec-3">The pipeline</a></li>
+    <li><a href="#sec-4">Data flow</a></li>
+    <li><a href="#sec-5">Bayes in this system</a></li>
+    <li><a href="#sec-6">Known limitations</a></li>
+    <li><a href="#sec-7">Operator guarantees</a></li>
+    <li><a href="#sec-8">Running it</a></li>
+  </ol>
+</nav>
+
+<h2 id="sec-1"><span class="num">01</span>The problem this solves</h2>
+
+<p>
+<strong>Every topic in NROL-αΩ is a Bayesian object.</strong> It has named
+hypotheses, design priors, per-indicator likelihood ratios, and a posterior that
+the engine (<code>engine.py</code>) updates mechanically whenever an indicator
+fires. The engine is the mathematical core: <code>apply_indicator_effect()</code>
+combines LRs across firings, <code>bayesian_update()</code> applies Bayes' rule
+under governor gating, and <code>_eliminate_expired_hypotheses()</code>
+falsifies time-bound hypotheses as deadlines pass. This is where the word
+"Bayesian" does real work.
+</p>
+
+<p>
+The engine answers <strong>"which hypothesis is likely, right now?"</strong>
+It does <em>not</em> answer <strong>"conditional on each hypothesis being true,
+what other observable events should follow?"</strong> That second question is
+the forecast portfolio — a net of auxiliary predictions, each keyed to a
+conditioning hypothesis. <strong>The extrapolate skill generates that net.</strong>
+It does so by reading the topic's current Bayesian state and handing it to
+language-model lenses; the skill itself performs no Bayesian update, but every
+forecast it writes is anchored to a hypothesis whose posterior the engine is
+actively maintaining.
+</p>
+
+<div class="svg-frame flow">
+<svg viewBox="0 0 560 280" xmlns="http://www.w3.org/2000/svg" aria-label="Topic JSON structure">
+  <defs>
+    <marker id="arr-cyan" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#7dd3fc"/>
+    </marker>
+    <marker id="arr-amber" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0,0 L8,4 L0,8 z" fill="#f59e0b"/>
+    </marker>
+  </defs>
+
+  <rect class="box-substrate" x="140" y="20" width="300" height="240" rx="2"/>
+  <text class="label-eyebrow" x="160" y="42">TOPIC JSON</text>
+  <text class="label-muted"   x="160" y="58">shared substrate</text>
+
+  <line x1="160" y1="70" x2="420" y2="70" stroke="currentColor" stroke-opacity="0.2" stroke-width="0.5"/>
+
+  <text class="label-main" x="160" y="92">hypotheses</text>
+  <text class="label-code" x="250" y="92">{ H1, H2, H3, H4 }</text>
+
+  <text class="label-main" x="160" y="112">posteriors</text>
+  <text class="label-code" x="250" y="112">{ .35, .30, .25, .10 }</text>
+
+  <text class="label-main" x="160" y="132">indicators</text>
+  <text class="label-code" x="250" y="132">[ ... ]</text>
+
+  <text class="label-main" x="160" y="152">evidenceLog</text>
+  <text class="label-code" x="250" y="152">[ ... ]</text>
+
+  <line x1="160" y1="170" x2="420" y2="170" stroke="currentColor" stroke-opacity="0.2" stroke-width="0.5" stroke-dasharray="2 2"/>
+
+  <text class="label-main" x="160" y="195">conditionalPredictions</text>
+  <text class="label-code" x="290" y="195">[ ... ]</text>
+  <text class="label-small" x="160" y="212">(forecasts · append-only)</text>
+
+  <path class="arrow-data" d="M 125,120 L 138,120" marker-end="url(#arr-cyan)"/>
+  <text class="label-eyebrow-cyan" x="20" y="114">ENGINE</text>
+  <text class="label-small"        x="20" y="128">writes</text>
+
+  <path class="arrow-primary" d="M 125,200 L 138,200" marker-end="url(#arr-amber)"/>
+  <text class="label-eyebrow" x="20" y="194">EXTRAPOLATE</text>
+  <text class="label-small"   x="20" y="208">writes</text>
+</svg>
+</div>
+
+<p>A conditional prediction looks like:</p>
+
+<pre><code>{
+  "id": "cp_017",
+  "conditionTopic": "calibration-fed-rate-2026",
+  "conditionHypothesis": "H2",                  <span style="color:var(--amber)">← "IF one cut"</span>
+  "predictionText": "10Y Treasury falls to 3.6% by Dec",
+  "resolutionCriteria": "10Y close ≤ 3.6% on 2026-12-31",
+  "deadline": "2026-12-31",
+  "conditionalProbability": 0.74,               <span style="color:var(--amber)">← P(prediction | H2)</span>
+  "lens": "GREEN",
+  "criticVerdicts": { "RED": "APPROVE", ... }
+}</code></pre>
+
+<div class="callout note">
+  <div class="callout-label">Key</div>
+  These are <strong>forecasts</strong>, not evidence. They have no effect on
+  posteriors at write-time. Their value is realized at resolution — they are
+  later scored, and those scores feed calibration (Section 5).
+</div>
+
+<h2 id="sec-sys"><span class="num">02</span>Systems view</h2>
+
+<p>
+Before zooming into the pipeline mechanics, it helps to see where the extrapolate
+skill sits in the wider NROL-αΩ cybernetic system. The skill is not a standalone
+forecaster — it is one of three coupled subsystems operating on a shared
+substrate (the topic JSON), with a feedback loop that closes only when forecasts
+resolve.
+</p>
+
+<h3><span class="num">2.1</span>The whole system</h3>
+
+<p>
+Three subsystems write to the topic JSON. The engine updates beliefs from
+evidence. The extrapolate skill writes conditional forecasts. The resolution
+layer scores those forecasts when deadlines pass, producing calibration signals
+that re-enter the system. The governor cuts across all three as a variety
+attenuator — it blocks unsafe updates.
+</p>
+
+<div class="diagram-label system">System map · Viable System view</div>
+<div class="svg-frame system">
+<svg viewBox="0 0 960 820" xmlns="http://www.w3.org/2000/svg" aria-label="NROL-AO systems map">
+  <defs>
+    <marker id="sm-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#f59e0b"/></marker>
+    <marker id="sm-dim"   viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5a6473"/></marker>
+    <marker id="sm-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#86efac"/></marker>
+    <marker id="sm-cyan"  viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#7dd3fc"/></marker>
+    <marker id="sm-red"   viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#fca5a5"/></marker>
+  </defs>
+
+  <rect class="box-env" x="30" y="24" width="900" height="62" rx="2"/>
+  <text class="label-eyebrow" x="50" y="48">ENVIRONMENT · THE WORLD</text>
+  <text class="label-small"   x="120" y="74">news signals</text>
+  <text class="label-small"   x="460" y="74">deadlines pass</text>
+  <text class="label-small"   x="770" y="74">outcomes observable</text>
+
+  <path class="arrow" d="M 155,88 L 155,124" marker-end="url(#sm-dim)"/>
+  <path class="arrow" d="M 495,88 L 495,124" marker-end="url(#sm-dim)"/>
+  <path class="arrow" d="M 810,88 L 810,124" marker-end="url(#sm-dim)"/>
+
+  <rect class="box-sub" x="50" y="126" width="240" height="128" rx="2"/>
+  <text class="label-eyebrow" x="70" y="148">[S1] · INDICATOR LAYER</text>
+  <text class="label-code"    x="70" y="172">triage_headline()</text>
+  <text class="label-code"    x="70" y="188">fire_indicator()</text>
+  <text class="label-code"    x="70" y="204">apply_indicator_effect()</text>
+  <text class="label-small"   x="70" y="232">emits: LR ranges</text>
+  <text class="label-small"   x="70" y="246">for each hypothesis</text>
+
+  <rect class="box-soft" x="400" y="126" width="180" height="128" rx="2"/>
+  <text class="label-eyebrow" x="420" y="148">CLOCK</text>
+  <text class="label-small"   x="420" y="172">resolution_deadline</text>
+  <text class="label-small"   x="420" y="188">elapses</text>
+  <text class="label-small"   x="420" y="218">_eliminate_</text>
+  <text class="label-small"   x="420" y="232">  expired_</text>
+  <text class="label-small"   x="420" y="246">  hypotheses()</text>
+
+  <rect class="box-sub" x="680" y="126" width="240" height="128" rx="2"/>
+  <text class="label-eyebrow" x="700" y="148">[S3] · RESOLUTION LAYER</text>
+  <text class="label-code"    x="700" y="172">sweep_conditional_</text>
+  <text class="label-code"    x="720" y="186">  predictions()</text>
+  <text class="label-small"   x="700" y="206">→ Brier(P, outcome)</text>
+  <text class="label-small"   x="700" y="232">→ source_trust update</text>
+  <text class="label-small"   x="700" y="246">→ lens calibration</text>
+
+  <path class="arrow-primary" d="M 170,256 L 170,298" marker-end="url(#sm-amber)"/>
+  <text class="label-eyebrow" x="180" y="278">likelihood ratios</text>
+
+  <path class="arrow" d="M 490,256 L 490,298" marker-end="url(#sm-dim)"/>
+  <text class="label-small"   x="500" y="278">elimination</text>
+
+  <rect class="box-engine" x="50" y="300" width="870" height="94" rx="2"/>
+  <text class="label-eyebrow-cyan" x="70" y="324">THE BAYESIAN ENGINE · engine.py</text>
+  <text class="label-code"  x="70"  y="352">bayesian_update()</text>
+  <text class="label-code"  x="260" y="352">apply_indicator_effect()</text>
+  <text class="label-code"  x="510" y="352">_eliminate_expired_hypotheses()</text>
+  <text class="label-code"  x="780" y="352">save_topic()</text>
+  <text class="label-small" x="70"  y="376">governor-gated · computes posterior shifts from likelihoods, enforces time-bound falsification</text>
+
+  <path class="arrow-primary" d="M 485,396 L 485,432" marker-end="url(#sm-amber)"/>
+  <text class="label-eyebrow" x="495" y="418">mutates</text>
+
+  <rect class="box-substrate" x="50" y="434" width="870" height="130" rx="2"/>
+  <text class="label-eyebrow" x="70" y="458">TOPIC JSON · SHARED SUBSTRATE</text>
+  <text class="label-code"  x="70"  y="484">model.hypotheses[].posterior</text>
+  <text class="label-small" x="340" y="484">← engine writes</text>
+  <text class="label-code"  x="500" y="484">indicators.tiers[]</text>
+  <text class="label-small" x="730" y="484">← engine writes</text>
+  <text class="label-code"  x="70"  y="504">model.posteriorHistory[]</text>
+  <text class="label-small" x="340" y="504">← engine writes</text>
+  <text class="label-code"  x="500" y="504">evidenceLog[]</text>
+  <text class="label-small" x="730" y="504">← engine writes</text>
+  <text class="label-code"  x="70"  y="534">conditionalPredictions[]</text>
+  <text class="label-small" x="340" y="534">← extrapolate appends</text>
+  <text class="label-code"  x="500" y="534">dependencies[]</text>
+  <text class="label-small" x="730" y="534">← operator writes</text>
+
+  <path class="arrow-data" d="M 200,566 L 200,614" marker-end="url(#sm-cyan)"/>
+  <text class="label-eyebrow-cyan" x="210" y="592">read-only</text>
+
+  <rect class="box-sub" x="50" y="614" width="460" height="84" rx="2"/>
+  <text class="label-eyebrow" x="70" y="638">[S2] · EXTRAPOLATE SKILL</text>
+  <text class="label-small"   x="70" y="660">2 generators → Sonnet vet → 5 critics → consensus</text>
+  <text class="label-code"    x="70" y="682">process_conditional_prediction()</text>
+
+  <path class="arrow-primary" d="M 420,614 Q 420,580 400,564" marker-end="url(#sm-amber)"/>
+  <text class="label-eyebrow" x="430" y="596">appends cp_NNN</text>
+
+  <path class="arrow" d="M 280,698 L 280,732" marker-end="url(#sm-dim)"/>
+  <text class="label-small"   x="290" y="718">logs</text>
+
+  <rect class="box-db" x="50" y="732" width="460" height="62" rx="2"/>
+  <text class="label-eyebrow-green" x="70" y="754">extrapolation.db · audit trail</text>
+  <text class="label-small"         x="70" y="774">ideations · verdicts · critic_verdicts · meta_lint · snapshots</text>
+
+  <rect class="box-gov" x="560" y="614" width="360" height="180" rx="2"/>
+  <text class="label-eyebrow-red" x="580" y="638">GOVERNOR · variety attenuator</text>
+  <text class="label-small" x="580" y="660">governor.py · cuts across S1, S2, S3</text>
+  <text class="label-code"  x="580" y="694">check_update_proposal()</text>
+  <text class="label-small" x="580" y="710">   hard-blocks unsafe updates</text>
+  <text class="label-code"  x="580" y="734">governance_report()</text>
+  <text class="label-small" x="580" y="750">   surfaces drift · freshness · health</text>
+  <text class="label-small" x="580" y="774">may veto any write from S1 or S2</text>
+
+  <path class="arrow-gov" d="M 560,655 L 485,400"/>
+  <path class="arrow-gov" d="M 560,680 L 510,700"/>
+  <path class="arrow-gov" d="M 680,614 L 680,254"/>
+
+  <path class="arrow-feedback" d="M 920,190 Q 950,500 950,660 Q 950,700 510,656" marker-end="url(#sm-green)"/>
+  <text class="label-eyebrow-green" x="790" y="172">FEEDBACK</text>
+  <text class="label-small" x="790" y="186">calibration</text>
+</svg>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><span class="sym">[S1]</span>Indicator &amp; evidence intake — fast loop</div>
+  <div class="legend-item"><span class="sym">[S2]</span>Forecast generation — this skill</div>
+  <div class="legend-item"><span class="sym">[S3]</span>Resolution &amp; scoring — slow loop</div>
+  <div class="legend-item"><span class="sym">═══</span>Governor — cuts across all three</div>
+  <div class="legend-item"><span class="sym">◀───</span>Write into shared topic JSON</div>
+  <div class="legend-item"><span class="sym">───▶</span>Causal / information channel</div>
+</div>
+
+<p>
+Read as a <strong>Viable System Model</strong>: S1 keeps posteriors current with
+fresh evidence (operational). S2 generates the forecast net over those
+posteriors (optimization). S3 resolves forecasts against reality and produces
+learning signals (intelligence). The governor is S2-prime in VSM terms — the
+anti-oscillation / safety layer that prevents any subsystem from producing an
+unsafe update.
+</p>
+
+<h3><span class="num">2.2</span>Red-team decision flow</h3>
+
+<p>
+Zoom into what happens to a single candidate prediction after generation. This
+is the machinery that answers "does this forecast earn its keep in the
+portfolio?"
+</p>
+
+<div class="diagram-label decision">Decision flow · one prediction</div>
+<div class="svg-frame decision">
+<svg viewBox="0 0 760 920" xmlns="http://www.w3.org/2000/svg" aria-label="Red-team decision flow">
+  <defs>
+    <marker id="rt-dim"   viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5a6473"/></marker>
+    <marker id="rt-red"   viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#fca5a5"/></marker>
+    <marker id="rt-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#86efac"/></marker>
+  </defs>
+
+  <rect class="box-soft" x="230" y="20" width="300" height="46" rx="2"/>
+  <text class="label-eyebrow" x="250" y="42">ONE CANDIDATE PREDICTION</text>
+  <text class="label-small" x="250" y="58">from generator A or B · with probability P</text>
+  <path class="arrow" d="M 380,68 L 380,96" marker-end="url(#rt-dim)"/>
+
+  <rect class="box" x="80" y="98" width="600" height="146" rx="2"/>
+  <text class="label-eyebrow" x="100" y="122">STAGE 1 · SONNET VET (sequential, parent)</text>
+  <text class="label-main" x="100" y="154">5 sub-checks</text>
+  <g font-size="10" font-family="JetBrains Mono, monospace">
+    <text x="100" y="176" class="label-small">☐ falsifiable</text>
+    <text x="250" y="176" class="label-small">☐ not duplicate</text>
+    <text x="420" y="176" class="label-small">☐ deadline realistic</text>
+    <text x="100" y="194" class="label-small">☐ CPT-aligned</text>
+    <text x="250" y="194" class="label-small">☐ in scope</text>
+  </g>
+  <text class="label-small" x="100" y="222">verdict ∈</text>
+  <rect x="160" y="210" width="76" height="18" rx="2" class="box-decision-yes"/>
+  <text x="198" y="223" text-anchor="middle" class="label-eyebrow-green" font-size="9.5">APPROVE</text>
+  <rect x="244" y="210" width="70" height="18" rx="2" class="box-sub"/>
+  <text x="279" y="223" text-anchor="middle" class="label-eyebrow" font-size="9.5">MODIFY</text>
+  <rect x="322" y="210" width="66" height="18" rx="2" class="box-decision-no"/>
+  <text x="355" y="223" text-anchor="middle" class="label-eyebrow-red" font-size="9.5">REJECT</text>
+
+  <path class="arrow" d="M 355,244 Q 355,270 120,290" marker-end="url(#rt-dim)"/>
+  <text class="label-eyebrow-red" x="100" y="274">REJECT</text>
+
+  <rect class="box-decision-no" x="50" y="294" width="150" height="40" rx="2"/>
+  <text class="label-eyebrow-red" x="70" y="318">DISCARD</text>
+  <text class="label-small" x="70" y="330">logged to DB</text>
+
+  <path class="arrow" d="M 238,244 Q 238,270 380,288" marker-end="url(#rt-dim)"/>
+  <text class="label-eyebrow-green" x="220" y="274">APPROVE / MODIFY</text>
+  <path class="arrow" d="M 380,288 L 380,320" marker-end="url(#rt-dim)"/>
+
+  <rect class="box" x="80" y="322" width="600" height="196" rx="2"/>
+  <text class="label-eyebrow" x="100" y="346">STAGE 2 · CRITIQUE FAN-OUT</text>
+  <text class="label-small" x="300" y="346">5 Opus agents · 1 message · concurrent</text>
+
+  <g>
+    <rect x="110" y="376" width="92" height="32" rx="2" fill="rgba(125,211,252,0.06)" stroke="#7dd3fc"/>
+    <text x="156" y="397" text-anchor="middle" fill="#7dd3fc" font-size="11" font-weight="600">BLUE</text>
+    <rect x="216" y="376" width="92" height="32" rx="2" fill="rgba(252,165,165,0.06)" stroke="#fca5a5"/>
+    <text x="262" y="397" text-anchor="middle" fill="#fca5a5" font-size="11" font-weight="600">RED</text>
+    <rect x="322" y="376" width="92" height="32" rx="2" fill="rgba(196,181,253,0.06)" stroke="#c4b5fd"/>
+    <text x="368" y="397" text-anchor="middle" fill="#c4b5fd" font-size="11" font-weight="600">VIOLET</text>
+    <rect x="428" y="376" width="92" height="32" rx="2" fill="rgba(252,211,77,0.06)" stroke="#fcd34d"/>
+    <text x="474" y="397" text-anchor="middle" fill="#fcd34d" font-size="11" font-weight="600">OCHRE</text>
+    <rect x="534" y="376" width="92" height="32" rx="2" fill="rgba(148,163,184,0.06)" stroke="#94a3b8"/>
+    <text x="580" y="397" text-anchor="middle" fill="#94a3b8" font-size="11" font-weight="600">GRAY</text>
+  </g>
+
+  <g>
+    <path class="arrow" d="M 156,410 L 156,430" marker-end="url(#rt-dim)"/>
+    <path class="arrow" d="M 262,410 L 262,430" marker-end="url(#rt-dim)"/>
+    <path class="arrow" d="M 368,410 L 368,430" marker-end="url(#rt-dim)"/>
+    <path class="arrow" d="M 474,410 L 474,430" marker-end="url(#rt-dim)"/>
+    <path class="arrow" d="M 580,410 L 580,430" marker-end="url(#rt-dim)"/>
+    <text x="156" y="444" text-anchor="middle" class="label-small">verdict</text>
+    <text x="262" y="444" text-anchor="middle" class="label-small">verdict</text>
+    <text x="368" y="444" text-anchor="middle" class="label-small">verdict</text>
+    <text x="474" y="444" text-anchor="middle" class="label-small">verdict</text>
+    <text x="580" y="444" text-anchor="middle" class="label-small">verdict</text>
+  </g>
+
+  <text class="label-small" x="100" y="476">∈ {</text>
+  <rect x="130" y="464" width="80" height="18" rx="2" class="box-decision-yes"/>
+  <text x="170" y="477" text-anchor="middle" class="label-eyebrow-green" font-size="9.5">APPROVE</text>
+  <rect x="216" y="464" width="70" height="18" rx="2" class="box-sub"/>
+  <text x="251" y="477" text-anchor="middle" class="label-eyebrow" font-size="9.5">MODIFY</text>
+  <rect x="294" y="464" width="56" height="18" rx="2" class="box-decision-no"/>
+  <text x="322" y="477" text-anchor="middle" class="label-eyebrow-red" font-size="9.5">DROP</text>
+  <rect x="358" y="464" width="68" height="18" rx="2" class="box-soft"/>
+  <text x="392" y="477" text-anchor="middle" class="label-small" font-size="9.5">NEUTRAL</text>
+  <text class="label-small" x="430" y="476">}</text>
+  <text class="label-small" x="100" y="502">+ blind_spots[] and portfolio_narrative (surfaced to operator)</text>
+
+  <path class="arrow" d="M 380,520 L 380,552" marker-end="url(#rt-dim)"/>
+
+  <rect class="box" x="80" y="554" width="600" height="156" rx="2"/>
+  <text class="label-eyebrow" x="100" y="578">STAGE 3 · CONSENSUS RULE (deterministic)</text>
+  <text class="label-main" x="100" y="610">n_drop = count(critic.verdict == DROP)</text>
+
+  <rect class="box-decision-yes" x="100" y="626" width="280" height="34" rx="2"/>
+  <text class="label-small" x="116" y="647">n_drop ≤ 1  AND  vet ∈ {APPROVE, MODIFY}</text>
+
+  <rect class="box-decision-no" x="100" y="666" width="280" height="34" rx="2"/>
+  <text class="label-small" x="116" y="687">n_drop ≥ 2  OR  vet == REJECT</text>
+
+  <path class="arrow-feedback" d="M 380,642 L 490,642" marker-end="url(#rt-green)"/>
+  <path class="arrow" d="M 380,682 L 490,682" marker-end="url(#rt-red)"/>
+
+  <text class="label-eyebrow-green" x="500" y="638">WRITE</text>
+  <text class="label-eyebrow-red"   x="500" y="678">DISCARD</text>
+
+  <rect class="box-decision-yes" x="410" y="728" width="260" height="156" rx="2"/>
+  <text class="label-eyebrow-green" x="426" y="750">STAGE 4 · WRITE</text>
+  <text class="label-code" x="426" y="782">process_conditional_</text>
+  <text class="label-code" x="446" y="796">  prediction()</text>
+  <path class="arrow" d="M 446,806 L 446,820" marker-end="url(#rt-dim)"/>
+  <text class="label-code" x="426" y="836">add_conditional_</text>
+  <text class="label-code" x="446" y="850">  prediction()</text>
+  <path class="arrow" d="M 446,860 L 446,872" marker-end="url(#rt-dim)"/>
+  <text class="label-code" x="426" y="879">save_topic()  → cp_NNN</text>
+
+  <rect class="box-decision-no" x="90" y="728" width="260" height="70" rx="2"/>
+  <text class="label-eyebrow-red" x="106" y="750">STAGE 4 · DISCARD</text>
+  <text class="label-small" x="106" y="772">audit-only</text>
+  <text class="label-small" x="106" y="788">ideation row stays in DB with reason</text>
+
+  <path class="arrow" d="M 550,700 L 550,725" marker-end="url(#rt-dim)"/>
+  <path class="arrow" d="M 220,700 L 220,725" marker-end="url(#rt-dim)"/>
+</svg>
+</div>
+
+<div class="callout warning">
+  <div class="callout-label">Information lost by design</div>
+  The consensus rule discards the ratio between APPROVE and MODIFY verdicts, and
+  ignores the content of MODIFY suggestions from non-dropping critics. Only the
+  <code>n_drop</code> count matters for the write/discard decision. MODIFY
+  content is preserved in the DB for the operator to read, but it does not
+  automatically revise the written prediction.
+</div>
+
+<h3><span class="num">2.3</span>Feedback loops</h3>
+
+<p>
+Three feedback loops run at different timescales. Understanding them is what
+makes the system cybernetic rather than merely a pipeline.
+</p>
+
+<div class="diagram-label feedback">Feedback loops · three timescales</div>
+<div class="svg-frame feedback">
+<svg viewBox="0 0 760 820" xmlns="http://www.w3.org/2000/svg" aria-label="Three feedback loops">
+  <defs>
+    <marker id="fb-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#86efac"/></marker>
+    <marker id="fb-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#f59e0b"/></marker>
+    <marker id="fb-dim"   viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5a6473"/></marker>
+  </defs>
+
+  <rect class="box-soft" x="20" y="20" width="720" height="220" rx="2"/>
+  <text class="label-eyebrow" x="40" y="44">L1 · FAST LOOP</text>
+  <text class="label-small"   x="140" y="44">hours–days · the Bayesian engine</text>
+
+  <rect class="box" x="50" y="84" width="140" height="44" rx="2"/>
+  <text class="label-small" x="66" y="104">indicator fires</text>
+  <text class="label-code"  x="66" y="120">(evidence arrives)</text>
+
+  <rect class="box" x="240" y="84" width="170" height="44" rx="2"/>
+  <text class="label-code"  x="256" y="104">apply_indicator_</text>
+  <text class="label-code"  x="276" y="120">  effect()</text>
+
+  <rect class="box" x="460" y="84" width="160" height="44" rx="2"/>
+  <text class="label-code"  x="476" y="104">bayesian_update()</text>
+  <text class="label-small" x="476" y="120">mechanical Bayes</text>
+
+  <path class="arrow-primary" d="M 194,106 L 236,106" marker-end="url(#fb-amber)"/>
+  <path class="arrow-primary" d="M 414,106 L 456,106" marker-end="url(#fb-amber)"/>
+
+  <rect class="box" x="460" y="160" width="160" height="44" rx="2"/>
+  <text class="label-small" x="476" y="180">posterior shifts</text>
+  <text class="label-code"  x="476" y="196">posteriorHistory[]</text>
+  <path class="arrow-primary" d="M 540,128 L 540,158" marker-end="url(#fb-amber)"/>
+
+  <rect class="box" x="240" y="160" width="170" height="44" rx="2"/>
+  <text class="label-small" x="256" y="180">operator reads</text>
+  <text class="label-small" x="256" y="196">dashboard → watches</text>
+  <path class="arrow-feedback" d="M 458,182 L 416,182" marker-end="url(#fb-green)"/>
+
+  <path class="arrow-feedback" d="M 240,182 Q 120,182 120,130" marker-end="url(#fb-green)"/>
+  <text class="label-eyebrow-green" x="50" y="158">closes loop</text>
+
+  <rect class="box-soft" x="20" y="260" width="720" height="288" rx="2"/>
+  <text class="label-eyebrow" x="40" y="284">L2 · SLOW LOOP</text>
+  <text class="label-small"   x="140" y="284">weeks–months · extrapolate × resolution</text>
+
+  <rect class="box-sub" x="50" y="318" width="160" height="44" rx="2"/>
+  <text class="label-small" x="66" y="338">extrapolate run</text>
+  <text class="label-code"  x="66" y="354">(this skill)</text>
+
+  <rect class="box" x="260" y="318" width="200" height="44" rx="2"/>
+  <text class="label-code"  x="276" y="338">conditionalPredictions[]</text>
+  <text class="label-small" x="276" y="354">grows (append-only)</text>
+
+  <path class="arrow-primary" d="M 214,340 L 256,340" marker-end="url(#fb-amber)"/>
+
+  <rect class="box" x="510" y="318" width="180" height="44" rx="2"/>
+  <text class="label-small" x="526" y="338">time passes</text>
+  <text class="label-small" x="526" y="354">deadlines approach</text>
+  <path class="arrow" d="M 464,340 L 506,340" marker-end="url(#fb-dim)"/>
+
+  <path class="arrow" d="M 600,362 L 600,396" marker-end="url(#fb-dim)"/>
+
+  <rect class="box" x="490" y="398" width="220" height="44" rx="2"/>
+  <text class="label-code"  x="506" y="418">sweep_conditional_</text>
+  <text class="label-code"  x="526" y="434">  predictions()</text>
+
+  <path class="arrow" d="M 600,442 L 600,470" marker-end="url(#fb-dim)"/>
+
+  <rect class="box" x="490" y="472" width="220" height="44" rx="2"/>
+  <text class="label-code"  x="506" y="492">Brier(P, outcome)</text>
+  <text class="label-small" x="506" y="508">calibration score</text>
+
+  <rect class="box" x="260" y="472" width="200" height="44" rx="2"/>
+  <text class="label-small" x="276" y="492">source_trust update</text>
+  <text class="label-small" x="276" y="508">lens calibration ledger</text>
+  <path class="arrow" d="M 488,494 L 464,494" marker-end="url(#fb-dim)"/>
+
+  <path class="arrow-feedback" d="M 260,494 Q 120,494 120,362" marker-end="url(#fb-green)"/>
+  <text class="label-eyebrow-green" x="50" y="440">next run reads</text>
+  <text class="label-small" x="50" y="454">updated trust,</text>
+  <text class="label-small" x="50" y="468">weights well-</text>
+  <text class="label-small" x="50" y="482">calibrated lenses</text>
+  <text class="label-small" x="50" y="496">higher</text>
+
+  <rect class="box-soft" x="20" y="568" width="720" height="232" rx="2"/>
+  <text class="label-eyebrow" x="40" y="592">L3 · META LOOP</text>
+  <text class="label-small"   x="140" y="592">quarters · governor × operator</text>
+
+  <rect class="box-sub" x="50" y="626" width="160" height="56" rx="2"/>
+  <text class="label-code"  x="66" y="646">governance_report()</text>
+  <text class="label-small" x="66" y="662">drift flags</text>
+  <text class="label-small" x="66" y="676">stale indicators</text>
+
+  <rect class="box" x="260" y="626" width="160" height="56" rx="2"/>
+  <text class="label-small" x="276" y="646">operator reviews</text>
+  <text class="label-small" x="276" y="664">(human in loop)</text>
+
+  <path class="arrow" d="M 214,654 L 256,654" marker-end="url(#fb-dim)"/>
+
+  <rect class="box" x="470" y="626" width="240" height="56" rx="2"/>
+  <text class="label-small" x="486" y="646">reground LRs</text>
+  <text class="label-code"  x="486" y="662">stamp_resolution_dates</text>
+  <text class="label-code"  x="486" y="676">reset_and_migrate</text>
+  <path class="arrow" d="M 424,654 L 466,654" marker-end="url(#fb-dim)"/>
+
+  <rect class="box" x="260" y="710" width="400" height="52" rx="2"/>
+  <text class="label-small" x="276" y="730">S1 operates on cleaner priors</text>
+  <text class="label-small" x="276" y="748">S2 generates forecasts with higher calibration headroom</text>
+  <path class="arrow-feedback" d="M 590,682 Q 590,710 540,710" marker-end="url(#fb-green)"/>
+
+  <path class="arrow-feedback" d="M 260,736 Q 120,736 120,682" marker-end="url(#fb-green)"/>
+  <text class="label-eyebrow-green" x="50" y="716">closes loop</text>
+  <text class="label-small" x="50" y="732">S1 + S2 operate</text>
+  <text class="label-small" x="50" y="748">on re-grounded</text>
+  <text class="label-small" x="50" y="762">priors</text>
+</svg>
+</div>
+
+<p>
+L1 is the canonical Bayes loop — the one most systems stop at. L2 is what makes
+NROL-αΩ epistemically honest: forecasts must <em>resolve</em> before their
+underlying lens earns trust. L3 is the human-in-the-loop loop; without L3 the
+system would slowly accumulate drift and eventually lose grounding, because L2's
+signals are too sparse to correct structural errors.
+</p>
+
+<div class="callout note">
+  <div class="callout-label">Why three loops, not one</div>
+  A single fast loop would converge quickly but miss slow-moving calibration
+  errors (a lens that's overconfident in a specific regime). A single slow loop
+  would never react to fresh evidence. A single meta loop would be pure operator
+  judgment with no mechanical grounding. Each loop corrects failure modes the
+  other two cannot see.
+</div>
+
+<h3><span class="num">2.4</span>Information boundaries</h3>
+
+<p>
+Every arrow in the system map crosses a boundary where the data format changes
+or permissions narrow. These boundaries are where contracts live, and where
+failure modes hide.
+</p>
+
+<table>
+  <thead>
+    <tr><th>Boundary</th><th>Read</th><th>Write</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>operator → skill</strong></td>
+      <td>—</td>
+      <td><code>/extrapolate</code> cmd<br>generators=[A,B]<br>topics=[…]</td>
+    </tr>
+    <tr>
+      <td><strong>skill → topic JSON</strong></td>
+      <td>hypotheses with posterior&gt;0.05<br>existing conditionalPredictions<br>meta.status / resolutionDate / horizon</td>
+      <td>append-only <code>cp_NNN</code> via <code>process_conditional_prediction()</code></td>
+    </tr>
+    <tr>
+      <td><strong>skill → sub-agent</strong></td>
+      <td>persona prompt (verbatim)<br>topic slice + existing preds</td>
+      <td>—  <em>(sub-agents never write)</em></td>
+    </tr>
+    <tr>
+      <td><strong>sub-agent → skill</strong></td>
+      <td>—</td>
+      <td>structured JSON <code>proposals[]</code> or <code>per_prediction[]</code></td>
+    </tr>
+    <tr>
+      <td><strong>skill → extrapolation.db</strong></td>
+      <td>drop counts, critic verdicts (within run)</td>
+      <td>ideations, vetting, critic_verdicts, meta_lint, portfolio_snapshots, approved_predictions</td>
+    </tr>
+    <tr>
+      <td><strong>skill → engine</strong></td>
+      <td>—</td>
+      <td><code>process_conditional_prediction</code> → <code>add_conditional_prediction</code> → <code>save_topic</code></td>
+    </tr>
+    <tr>
+      <td><strong>engine → governor</strong></td>
+      <td>topic before + proposed update</td>
+      <td><code>governance_report</code> (health, issues, freshness, drift)<br><code>check_update_proposal</code> may <strong>hard-block</strong></td>
+    </tr>
+    <tr>
+      <td><strong>engine ↔ topic JSON</strong></td>
+      <td>full topic via <code>load_topic</code></td>
+      <td>full topic via <code>save_topic</code><br>auto-eliminates expired hypotheses on load</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="callout">
+  <div class="callout-label">The one narrow write channel</div>
+  The extrapolate skill has exactly one way to affect a topic JSON:
+  <code>process_conditional_prediction()</code>. It cannot write posteriors,
+  cannot fire indicators, cannot modify hypotheses. This is an enforced
+  capability boundary — the whole system is safer because the forecast
+  subsystem cannot accidentally update the Bayesian layer.
+</div>
+
+<h2 id="sec-2"><span class="num">03</span>Epistemic architecture: generators and critics</h2>
+
+<p>
+The pipeline deliberately does not ask a single model to forecast. It splits
+forecasting into <strong>generation</strong> and <strong>adversarial critique</strong>,
+each handled by several personas with opinionated priors.
+</p>
+
+<h3><span class="num">3.1</span>The six ideator personas</h3>
+
+<table>
+  <thead>
+    <tr><th>Persona</th><th>Prior / lens</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><span class="chip GREEN">GREEN</span></td>  <td>Midtopia / continuation — <em>"things trend"</em></td></tr>
+    <tr><td><span class="chip AMBER">AMBER</span></td>  <td>Phase-shift / regime change — <em>"nonlinear break"</em></td></tr>
+    <tr><td><span class="chip BLUE">BLUE</span></td>    <td>Systemic resolution — <em>"institutions reconverge"</em></td></tr>
+    <tr><td><span class="chip RED">RED</span></td>      <td>Tail risk / pessimist — <em>"the left tail bites"</em></td></tr>
+    <tr><td><span class="chip VIOLET">VIOLET</span></td><td>Actor-centric incentives — <em>"follow the agent"</em></td></tr>
+    <tr><td><span class="chip OCHRE">OCHRE</span></td>  <td>Structural determinism — <em>"the constraint wins"</em></td></tr>
+  </tbody>
+</table>
+
+<p>
+  <span class="chip GRAY">GRAY</span> is a universal shared-assumption skeptic
+  and <strong>is always a critic</strong>, never a generator.
+</p>
+
+<h3><span class="num">3.2</span>The pick-2 / critique-5 rule</h3>
+
+<p>
+The operator picks exactly 2 of 6 to generate. The remaining 4, plus GRAY,
+automatically become critics.
+</p>
+
+<div class="svg-frame flow">
+<svg viewBox="0 0 680 320" xmlns="http://www.w3.org/2000/svg" aria-label="Pick-2 / critique-5 rule">
+  <defs>
+    <marker id="p2-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#f59e0b"/></marker>
+    <marker id="p2-dim"   viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5a6473"/></marker>
+  </defs>
+
+  <rect class="box-soft" x="20" y="20" width="200" height="280" rx="2"/>
+  <text class="label-eyebrow" x="40" y="44">PERSONA POOL</text>
+  <text class="label-small" x="40" y="60">6 ideators + GRAY</text>
+
+  <g font-size="11" font-family="JetBrains Mono, monospace" font-weight="600">
+    <rect x="40" y="78"  width="72" height="22" rx="2" fill="rgba(134,239,172,0.08)" stroke="#86efac"/>
+    <text x="76" y="93" text-anchor="middle" fill="#86efac">GREEN</text>
+    <rect x="40" y="108" width="72" height="22" rx="2" fill="rgba(251,191,36,0.08)" stroke="#fbbf24"/>
+    <text x="76" y="123" text-anchor="middle" fill="#fbbf24">AMBER</text>
+    <rect x="40" y="138" width="72" height="22" rx="2" fill="rgba(125,211,252,0.08)" stroke="#7dd3fc"/>
+    <text x="76" y="153" text-anchor="middle" fill="#7dd3fc">BLUE</text>
+    <rect x="128" y="78"  width="72" height="22" rx="2" fill="rgba(252,165,165,0.08)" stroke="#fca5a5"/>
+    <text x="164" y="93" text-anchor="middle" fill="#fca5a5">RED</text>
+    <rect x="128" y="108" width="72" height="22" rx="2" fill="rgba(196,181,253,0.08)" stroke="#c4b5fd"/>
+    <text x="164" y="123" text-anchor="middle" fill="#c4b5fd">VIOLET</text>
+    <rect x="128" y="138" width="72" height="22" rx="2" fill="rgba(252,211,77,0.08)" stroke="#fcd34d"/>
+    <text x="164" y="153" text-anchor="middle" fill="#fcd34d">OCHRE</text>
+  </g>
+
+  <rect x="40" y="196" width="160" height="22" rx="2" fill="rgba(148,163,184,0.08)" stroke="#94a3b8"/>
+  <text x="120" y="211" text-anchor="middle" fill="#94a3b8" font-size="11" font-weight="600" font-family="JetBrains Mono, monospace">GRAY</text>
+  <text class="label-small" x="40" y="238">always a critic</text>
+  <text class="label-small" x="40" y="252">never a generator</text>
+
+  <path class="arrow-primary" d="M 225,160 L 275,160" marker-end="url(#p2-amber)"/>
+  <text class="label-eyebrow" x="232" y="150">PICK 2</text>
+
+  <rect class="box-sub" x="290" y="36" width="160" height="120" rx="2"/>
+  <text class="label-eyebrow" x="310" y="58">GENERATORS · 2</text>
+  <g font-size="11" font-family="JetBrains Mono, monospace" font-weight="600">
+    <rect x="310" y="74" width="120" height="22" rx="2" fill="rgba(134,239,172,0.08)" stroke="#86efac"/>
+    <text x="370" y="89" text-anchor="middle" fill="#86efac">GREEN</text>
+    <rect x="310" y="104" width="120" height="22" rx="2" fill="rgba(251,191,36,0.08)" stroke="#fbbf24"/>
+    <text x="370" y="119" text-anchor="middle" fill="#fbbf24">AMBER</text>
+  </g>
+  <text class="label-small" x="310" y="144">propose predictions</text>
+
+  <rect class="box-sub" x="290" y="172" width="160" height="128" rx="2"/>
+  <text class="label-eyebrow-red" x="310" y="194">CRITICS · 5</text>
+  <g font-size="10" font-family="JetBrains Mono, monospace" font-weight="600">
+    <rect x="310" y="206" width="57" height="18" rx="2" fill="rgba(125,211,252,0.08)" stroke="#7dd3fc"/>
+    <text x="338" y="218" text-anchor="middle" fill="#7dd3fc">BLUE</text>
+    <rect x="373" y="206" width="57" height="18" rx="2" fill="rgba(252,165,165,0.08)" stroke="#fca5a5"/>
+    <text x="401" y="218" text-anchor="middle" fill="#fca5a5">RED</text>
+    <rect x="310" y="228" width="57" height="18" rx="2" fill="rgba(196,181,253,0.08)" stroke="#c4b5fd"/>
+    <text x="338" y="240" text-anchor="middle" fill="#c4b5fd">VIOLET</text>
+    <rect x="373" y="228" width="57" height="18" rx="2" fill="rgba(252,211,77,0.08)" stroke="#fcd34d"/>
+    <text x="401" y="240" text-anchor="middle" fill="#fcd34d">OCHRE</text>
+    <rect x="340" y="250" width="57" height="18" rx="2" fill="rgba(148,163,184,0.08)" stroke="#94a3b8"/>
+    <text x="368" y="262" text-anchor="middle" fill="#94a3b8">GRAY</text>
+  </g>
+  <text class="label-small" x="310" y="284">4 leftover + GRAY</text>
+
+  <path class="arrow" d="M 470,100 Q 510,100 510,230 Q 510,230 450,230" marker-end="url(#p2-dim)"/>
+  <text class="label-eyebrow-red" x="524" y="150">CRITIQUE</text>
+  <text class="label-small" x="524" y="168">verdict per</text>
+  <text class="label-small" x="524" y="182">prediction per</text>
+  <text class="label-small" x="524" y="196">critic</text>
+
+  <rect class="box-soft" x="530" y="222" width="130" height="78" rx="2"/>
+  <text class="label-eyebrow" x="544" y="244">DECISION</text>
+  <text class="label-small"   x="544" y="262">APPROVE</text>
+  <text class="label-small"   x="544" y="276">MODIFY</text>
+  <text class="label-small"   x="544" y="290">DROP · NEUTRAL</text>
+  <path class="arrow" d="M 515,240 L 528,240" marker-end="url(#p2-dim)"/>
+</svg>
+</div>
+
+<p>
+The structural claim: a forecast that survives critique from four lenses it
+does not share, plus a lens whose sole job is to name shared assumptions, is
+more robust than a forecast produced by a single model talking to itself. This
+is a <strong>heuristic ensemble</strong>, not a formal mixture model (see §6).
+</p>
+
+<h2 id="sec-3"><span class="num">04</span>The pipeline</h2>
+
+<div class="svg-frame flow">
+<svg viewBox="0 0 760 1080" xmlns="http://www.w3.org/2000/svg" aria-label="Extrapolate pipeline">
+  <defs>
+    <marker id="pp-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#f59e0b"/></marker>
+    <marker id="pp-dim"   viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5a6473"/></marker>
+  </defs>
+
+  <rect class="box" x="80" y="20" width="600" height="74" rx="2"/>
+  <text class="label-eyebrow" x="100" y="44">STEP 1 · SETUP</text>
+  <text class="label-code"    x="100" y="66">acquire_lock()  ·  single-writer mutex in extrapolation.db</text>
+  <text class="label-code"    x="100" y="82">start_run(dichotomy, generators, critics, topic_scope)</text>
+  <path class="arrow-primary" d="M 380,96 L 380,114" marker-end="url(#pp-amber)"/>
+
+  <rect class="box" x="80" y="116" width="600" height="78" rx="2"/>
+  <text class="label-eyebrow" x="100" y="140">STEP 2 · ENUMERATE SCOPE</text>
+  <text class="label-code"    x="100" y="162">load_topic(slug)  ·  keep ACTIVE topics with posterior &gt; 0.05</text>
+  <text class="label-small"   x="100" y="180">pass existing conditionalPredictions to ideators (avoid dups)</text>
+  <path class="arrow-primary" d="M 380,196 L 380,214" marker-end="url(#pp-amber)"/>
+
+  <rect class="box-sub" x="80" y="216" width="600" height="150" rx="2"/>
+  <text class="label-eyebrow" x="100" y="240">STEP 3 · PARALLEL IDEATION</text>
+  <text class="label-small"   x="286" y="240">2 Haiku sub-agents · 1 message · concurrent</text>
+
+  <rect x="130" y="258" width="200" height="58" rx="2" fill="rgba(134,239,172,0.05)" stroke="#86efac"/>
+  <text class="label-eyebrow-green" x="150" y="278">GEN A (Haiku)</text>
+  <text class="label-small" x="150" y="294">persona X · 3–5 proposals</text>
+  <text class="label-small" x="150" y="308">per (topic, hypothesis)</text>
+
+  <rect x="430" y="258" width="200" height="58" rx="2" fill="rgba(251,191,36,0.05)" stroke="#fbbf24"/>
+  <text class="label-eyebrow" x="450" y="278" fill="#fbbf24">GEN B (Haiku)</text>
+  <text class="label-small" x="450" y="294">persona Y · 3–5 proposals</text>
+  <text class="label-small" x="450" y="308">per (topic, hypothesis)</text>
+
+  <path class="arrow" d="M 230,316 Q 230,340 380,340" marker-end="url(#pp-dim)"/>
+  <path class="arrow" d="M 530,316 Q 530,340 380,340" marker-end="url(#pp-dim)"/>
+  <text class="label-small" x="310" y="358">all_proposals (merged)</text>
+  <path class="arrow-primary" d="M 380,368 L 380,386" marker-end="url(#pp-amber)"/>
+
+  <rect class="box" x="80" y="388" width="600" height="166" rx="2"/>
+  <text class="label-eyebrow" x="100" y="412">STEP 4 · VETTING</text>
+  <text class="label-small"   x="200" y="412">Sonnet · parent · sequential</text>
+  <text class="label-main"    x="100" y="436">5 sub-checks per proposal</text>
+  <g font-size="10" font-family="JetBrains Mono, monospace">
+    <text x="100" y="458" class="label-small">1 · falsifiable</text>
+    <text x="100" y="474" class="label-small">2 · deadline realistic vs topic horizon</text>
+    <text x="100" y="490" class="label-small">3 · not a duplicate (&lt;70% semantic overlap)</text>
+    <text x="100" y="506" class="label-small">4 · probability direction consistent with CPT</text>
+    <text x="100" y="522" class="label-small">5 · in scope</text>
+  </g>
+  <text class="label-small" x="100" y="544">verdict ∈ {APPROVE · MODIFY · REJECT}  ·  all logged regardless</text>
+  <path class="arrow-primary" d="M 380,556 L 380,574" marker-end="url(#pp-amber)"/>
+
+  <rect class="box-sub" x="80" y="576" width="600" height="136" rx="2"/>
+  <text class="label-eyebrow" x="100" y="600">STEP 5 · PARALLEL CRITIQUE</text>
+  <text class="label-small"   x="308" y="600">5 Opus sub-agents · 1 message · concurrent</text>
+
+  <g>
+    <rect x="104" y="614" width="96" height="36" rx="2" fill="rgba(125,211,252,0.06)" stroke="#7dd3fc"/>
+    <text x="152" y="636" text-anchor="middle" fill="#7dd3fc" font-size="11" font-weight="600">BLUE</text>
+    <rect x="216" y="614" width="96" height="36" rx="2" fill="rgba(252,165,165,0.06)" stroke="#fca5a5"/>
+    <text x="264" y="636" text-anchor="middle" fill="#fca5a5" font-size="11" font-weight="600">RED</text>
+    <rect x="328" y="614" width="96" height="36" rx="2" fill="rgba(196,181,253,0.06)" stroke="#c4b5fd"/>
+    <text x="376" y="636" text-anchor="middle" fill="#c4b5fd" font-size="11" font-weight="600">VIOLET</text>
+    <rect x="440" y="614" width="96" height="36" rx="2" fill="rgba(252,211,77,0.06)" stroke="#fcd34d"/>
+    <text x="488" y="636" text-anchor="middle" fill="#fcd34d" font-size="11" font-weight="600">OCHRE</text>
+    <rect x="552" y="614" width="96" height="36" rx="2" fill="rgba(148,163,184,0.06)" stroke="#94a3b8"/>
+    <text x="600" y="636" text-anchor="middle" fill="#94a3b8" font-size="11" font-weight="600">GRAY</text>
+  </g>
+  <text class="label-small" x="100" y="676">per-prediction verdicts ∈ {APPROVE · MODIFY · DROP · NEUTRAL}</text>
+  <text class="label-small" x="100" y="692">+ portfolio_narrative  +  blind_spots[]</text>
+  <path class="arrow-primary" d="M 380,714 L 380,732" marker-end="url(#pp-amber)"/>
+
+  <rect class="box" x="80" y="734" width="600" height="96" rx="2"/>
+  <text class="label-eyebrow" x="100" y="758">STEP 6 · CONSENSUS RULE</text>
+  <text class="label-small"   x="230" y="758">deterministic · anti-veto</text>
+  <text class="label-code"    x="100" y="784">vet ∈ {APPROVE, MODIFY}  AND  n_drop ≤ 1    ⇒  write</text>
+  <text class="label-small"   x="100" y="808">one objection does not kill. two concurrent objections do.</text>
+  <path class="arrow-primary" d="M 380,832 L 380,850" marker-end="url(#pp-amber)"/>
+
+  <rect class="box" x="80" y="852" width="600" height="90" rx="2"/>
+  <text class="label-eyebrow" x="100" y="876">STEP 7 · WRITE</text>
+  <text class="label-code"    x="100" y="898">process_conditional_prediction()</text>
+  <text class="label-code"    x="100" y="914">   → add_conditional_prediction()  →  save_topic()</text>
+  <text class="label-small"   x="100" y="932">append-only · new cp_NNN · never overwrites</text>
+  <path class="arrow-primary" d="M 380,944 L 380,962" marker-end="url(#pp-amber)"/>
+
+  <rect class="box" x="80" y="964" width="600" height="86" rx="2"/>
+  <text class="label-eyebrow" x="100" y="988">STEP 8 · FINALIZE</text>
+  <text class="label-code"    x="100" y="1010">log_portfolio_snapshot() per critic</text>
+  <text class="label-code"    x="100" y="1026">finish_run(status="COMPLETED", duration, tokens, cost)</text>
+  <text class="label-code"    x="100" y="1042">release_lock(run_id)</text>
+</svg>
+</div>
+
+<h2 id="sec-4"><span class="num">05</span>Data flow: source of truth vs. audit trail</h2>
+
+<p>Two stores are touched. They have different roles.</p>
+
+<div class="svg-frame flow">
+<svg viewBox="0 0 720 460" xmlns="http://www.w3.org/2000/svg" aria-label="Data flow between topic JSON and audit DB">
+  <defs>
+    <marker id="df-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#f59e0b"/></marker>
+    <marker id="df-dim"   viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5a6473"/></marker>
+  </defs>
+
+  <rect class="box-substrate" x="40" y="28" width="320" height="120" rx="2"/>
+  <text class="label-eyebrow" x="58" y="52">TOPIC JSON · source of truth</text>
+  <text class="label-code"  x="58" y="84">conditionalPredictions[]</text>
+  <text class="label-small" x="58" y="104">append-only · cp_NNN sequential IDs</text>
+  <text class="label-small" x="58" y="124">canonical · JSON wins over DB</text>
+  <text class="label-small" x="58" y="140">read via load_topic() · write via save_topic()</text>
+
+  <rect class="box-sub" x="420" y="48" width="260" height="80" rx="2"/>
+  <text class="label-eyebrow" x="438" y="72">ONLY WRITE PATH</text>
+  <text class="label-code"  x="438" y="94">process_conditional_</text>
+  <text class="label-code"  x="458" y="108">  prediction()</text>
+  <text class="label-small" x="438" y="124">engine-gated · never direct edit</text>
+
+  <path class="arrow-primary" d="M 418,88 L 362,88" marker-end="url(#df-amber)"/>
+
+  <path class="arrow" d="M 550,128 L 550,192" marker-end="url(#df-dim)"/>
+  <text class="label-small" x="558" y="162">also writes</text>
+  <text class="label-small" x="558" y="176">audit row</text>
+
+  <rect class="box-db" x="40" y="194" width="640" height="246" rx="2"/>
+  <text class="label-eyebrow-green" x="58" y="218">extrapolation.db · SQLite · WAL</text>
+  <text class="label-small" x="270" y="218">audit + analytics only · never canonical</text>
+
+  <g>
+    <rect x="58" y="246" width="180" height="36" rx="2" class="box-soft"/>
+    <text class="label-code"  x="72" y="264">agent_runs</text>
+    <text class="label-small" x="72" y="276">one row per sweep</text>
+
+    <rect x="248" y="246" width="180" height="36" rx="2" class="box-soft"/>
+    <text class="label-code"  x="262" y="264">ideations</text>
+    <text class="label-small" x="262" y="276">EVERY proposal (incl. rejected)</text>
+
+    <rect x="438" y="246" width="224" height="36" rx="2" class="box-soft"/>
+    <text class="label-code"  x="452" y="264">vetting</text>
+    <text class="label-small" x="452" y="276">EVERY Sonnet verdict + reason</text>
+
+    <rect x="58" y="292" width="180" height="36" rx="2" class="box-soft"/>
+    <text class="label-code"  x="72" y="310">critic_verdicts</text>
+    <text class="label-small" x="72" y="322">5 × every proposal</text>
+
+    <rect x="248" y="292" width="180" height="36" rx="2" class="box-soft"/>
+    <text class="label-code"  x="262" y="310">meta_lint</text>
+    <text class="label-small" x="262" y="322">portfolio narratives</text>
+
+    <rect x="438" y="292" width="224" height="36" rx="2" class="box-soft"/>
+    <text class="label-code"  x="452" y="310">approved_predictions</text>
+    <text class="label-small" x="452" y="322">link back to cp_NNN in JSON</text>
+
+    <rect x="58" y="338" width="180" height="36" rx="2" class="box-soft"/>
+    <text class="label-code"  x="72" y="356">portfolio_snapshots</text>
+    <text class="label-small" x="72" y="368">per-run time series</text>
+
+    <rect x="248" y="338" width="414" height="36" rx="2" class="box-soft"/>
+    <text class="label-code"  x="262" y="356">sweep_lock</text>
+    <text class="label-small" x="262" y="368">single-writer mutex · enforces serial runs</text>
+  </g>
+
+  <text class="label-small" x="58" y="396">Reconstruction guarantee: from the DB alone you can recover every</text>
+  <text class="label-small" x="58" y="412">proposal ever made, every verdict, every critic's narrative, and</text>
+  <text class="label-small" x="58" y="428">the link back to the approved prediction ID in the JSON.</text>
+</svg>
+</div>
+
+<p><strong>Important invariants:</strong></p>
+<ul>
+  <li><strong>Topic JSON is canonical.</strong> If the DB and the JSON disagree, the JSON wins.</li>
+  <li><strong>Sub-agents never write.</strong> They return structured JSON. The parent does all DB and topic writes. This prevents SQLite lock contention and keeps the audit trail linear.</li>
+  <li><strong>Everything is logged, including rejections.</strong> The ratio of ideations to approvals is itself a signal — a generator producing 80% rejects is telling you something.</li>
+</ul>
+
+<h2 id="sec-5"><span class="num">06</span>Bayes in this system — what's real, what's judgment</h2>
+
+<div class="callout">
+  <div class="callout-label">Orientation</div>
+  <strong>The Bayesian machinery lives at the topic level, in the engine.</strong>
+  That's where Bayes' rule actually fires. This section clarifies what the
+  extrapolate skill adds on top of that Bayesian core — and what it does not
+  claim to do. It is a layering statement, not a denial.
+</div>
+
+<h3><span class="num">6.1</span>The Bayesian core — what the engine does</h3>
+<p>
+Each topic is a <strong>proper Bayesian inference object</strong>. The engine
+maintains, for each topic:
+</p>
+<ul>
+  <li><strong>Design priors</strong> — initial P(H_i) set when the topic is created, recorded as the first entry of <code>posteriorHistory</code>.</li>
+  <li><strong>Per-indicator likelihood ratios</strong> — <code>lr_range</code>, <code>lr_confidence</code>, and <code>lr_basis</code> on each indicator, grounded in reference-class reasoning or domain literature.</li>
+  <li><strong>A current posterior</strong> — <code>model.hypotheses[].posterior</code>, updated mechanically every time <code>apply_indicator_effect()</code> combines new LRs with the current state via <code>bayesian_update()</code>.</li>
+  <li><strong>A posterior trajectory</strong> — every update appends to <code>posteriorHistory[]</code>, so the full Bayesian path is auditable.</li>
+  <li><strong>Hypothesis admissibility</strong> — <code>_eliminate_expired_hypotheses()</code> zeroes out any hypothesis whose <code>resolution_deadline</code> has passed without being satisfied, treating time-elapse as falsifying evidence.</li>
+</ul>
+<p>
+This is not metaphorical Bayes. It is Bayes' rule applied under governor gating,
+with dual-pass updates for <code>lr_range</code> intervals, geometric-mean
+normalization, and explosion caps in log space. The governor blocks unsafe
+updates (low-confidence likelihoods on ALERT-classified topics, sensitivity
+failures, etc.) before they commit.
+</p>
+
+<h3><span class="num">6.2</span>What the extrapolate skill adds</h3>
+<p>
+The skill is a <strong>forecast-generation layer</strong> stacked on top of the
+Bayesian core. It reads the current posterior state — specifically, which
+hypotheses are still active with posterior &gt; 0.05 — and asks language-model
+lenses to propose conditional predictions of the form
+<code>P(observable event | hypothesis H_cond is true)</code>. It vets these
+forecasts for falsifiability and scope, subjects them to critique from lenses
+that don't share the generator's prior, and writes the survivors to the topic
+as <code>conditionalPredictions[]</code>.
+</p>
+<p>
+The elicited <code>conditional_probability</code> is subjective — it's whatever
+the language model judged, constrained to (0.10, 0.90) to prevent phantom
+precision. It is <em>not</em> derived from data, frequency, or a formal
+reference class. It's a forecast from a named lens, which the system tracks
+precisely so it can be scored later.
+</p>
+
+<h3><span class="num">6.3</span>What the skill does not do (scope clarity)</h3>
+<ul>
+  <li><strong>The skill does not update posteriors.</strong> Writing a conditional prediction does not change <code>model.hypotheses[].posterior</code> — only the engine does that, and only on indicator firings.</li>
+  <li><strong>The skill does not average lenses.</strong> The two generators are not weighted by model evidence; they are picked by the operator. Convergence between lenses is tracked in <code>lens_agreement</code> as metadata — it is not combined into a mixture probability.</li>
+  <li><strong>The consensus rule is a veto threshold, not a likelihood ratio.</strong> "≤ 1 critic DROPs" is a heuristic. A prediction that survives 4 APPROVE + 1 DROP writes identically to 5 APPROVE, even though the information content differs.</li>
+</ul>
+<p>
+These are deliberate scope boundaries. The skill sits <em>on top of</em> Bayes,
+not inside it — which is why the Bayesian engine can never be corrupted by a
+forecast-generation error.
+</p>
+
+<h3><span class="num">6.4</span>How forecasts re-enter the Bayesian core</h3>
+
+<p>
+Forecasts don't affect posteriors at write-time — but they close a <em>second</em>
+Bayesian loop when they resolve. That loop updates the system's estimate of
+each lens's reliability (source trust), which is itself a Bayesian quantity
+maintained in the source ledger.
+</p>
+
+<div class="svg-frame feedback">
+<svg viewBox="0 0 720 440" xmlns="http://www.w3.org/2000/svg" aria-label="Write-time vs resolution-time coupling">
+  <defs>
+    <marker id="wt-amber" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#f59e0b"/></marker>
+    <marker id="wt-green" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#86efac"/></marker>
+  </defs>
+
+  <text class="label-eyebrow" x="40" y="34">WRITE-TIME · extrapolate skill</text>
+  <text class="label-eyebrow-green" x="400" y="34">RESOLUTION-TIME · scoring</text>
+
+  <rect class="box-sub" x="40" y="62" width="280" height="70" rx="2"/>
+  <text class="label-main" x="56" y="86">elicit P(pred | H_cond)</text>
+  <text class="label-small" x="56" y="104">from LLM, per lens</text>
+  <text class="label-small" x="56" y="120">subjective judgment, NOT data-derived</text>
+
+  <path class="arrow-primary" d="M 322,96 L 398,96" marker-end="url(#wt-amber)"/>
+  <text class="label-small" x="330" y="88">time passes</text>
+
+  <rect class="box" x="400" y="62" width="280" height="60" rx="2"/>
+  <text class="label-main"  x="416" y="86">observe outcome at deadline</text>
+  <text class="label-small" x="416" y="104">(resolution criterion checked)</text>
+
+  <path class="arrow-feedback" d="M 540,122 L 540,146" marker-end="url(#wt-green)"/>
+
+  <rect class="box" x="400" y="148" width="280" height="60" rx="2"/>
+  <text class="label-code"  x="416" y="172">Brier((P, outcome))</text>
+  <text class="label-small" x="416" y="190">calibration score per prediction</text>
+
+  <path class="arrow-feedback" d="M 540,208 L 540,232" marker-end="url(#wt-green)"/>
+
+  <rect class="box" x="400" y="234" width="280" height="60" rx="2"/>
+  <text class="label-main"  x="416" y="258">update source trust</text>
+  <text class="label-small" x="416" y="276">per-lens calibration ledger</text>
+
+  <path class="arrow-feedback" d="M 540,294 L 540,318" marker-end="url(#wt-green)"/>
+
+  <rect class="box" x="400" y="320" width="280" height="60" rx="2"/>
+  <text class="label-code"  x="416" y="344">conditional_calibration_</text>
+  <text class="label-code"  x="436" y="358">  report()</text>
+  <text class="label-small" x="416" y="374">per-topic, per-lens metrics</text>
+
+  <path class="arrow-feedback" d="M 400,350 Q 180,350 180,138" marker-end="url(#wt-green)"/>
+  <text class="label-eyebrow-green" x="60" y="210">FEEDBACK</text>
+  <text class="label-small" x="60" y="228">next run weights</text>
+  <text class="label-small" x="60" y="244">well-calibrated</text>
+  <text class="label-small" x="60" y="260">lenses higher;</text>
+  <text class="label-small" x="60" y="276">biased ones drop</text>
+  <text class="label-small" x="60" y="292">out of portfolios</text>
+</svg>
+</div>
+
+<p>
+<code>sweep_conditional_predictions()</code> resolves each forecast as its
+deadline passes. <code>conditional_calibration_report()</code> produces Brier
+and calibration metrics per lens, per topic. Over many runs, a lens that is
+systematically overconfident or systematically biased gets detected — not by
+introspection in the skill itself, but by empirical scoring against outcomes.
+Those scores update the source-trust ledger, which is itself a Bayesian
+inference about lens reliability.
+</p>
+
+<div class="callout">
+  <div class="callout-label">The layering, stated plainly</div>
+  Bayes' rule fires in <strong>two</strong> places in this system, both at the
+  topic / source level: (1) the engine updates topic posteriors from indicator
+  likelihoods, and (2) the scoring layer updates source-trust posteriors from
+  resolved forecasts. The extrapolate skill sits <em>between</em> these two
+  Bayesian layers as a forecast-generation step. It does not do Bayes itself,
+  but every forecast it produces is anchored to one Bayesian object (a topic
+  hypothesis) and scored later to update another (a lens's trust). That's the
+  honest Bayesian story: a forecasting layer wrapped by two Bayesian inference
+  loops, not a non-Bayesian system.
+</div>
+
+<h3><span class="num">6.5</span>What is genuinely epistemic about this pipeline</h3>
+
+<p>Three things, stated plainly:</p>
+
+<ol>
+  <li><strong>Adversarial decomposition.</strong> Separating generation and critique, and requiring that generators cannot critique their own output, removes a specific failure mode: a single model endorsing its own proposals because they follow its prior. It does not remove shared-prior failures across all six personas — which is why GRAY exists as a universal skeptic.</li>
+  <li><strong>Blind-spot surfacing.</strong> Each critic returns not only per-prediction verdicts but a portfolio-level <code>blind_spots[]</code> list. These are structural observations — <em>"this portfolio assumes institutional continuity"</em> — that an operator can read independently of whether any individual prediction passed.</li>
+  <li><strong>Audit completeness.</strong> Every proposal, every verdict, every reasoning string is persisted. A skeptical operator can reconstruct, months later, why a particular prediction was written and what the critics said. This is the single strongest epistemic property of the system: it is inspectable.</li>
+</ol>
+
+<h2 id="sec-6"><span class="num">07</span>Known limitations</h2>
+
+<table>
+  <thead>
+    <tr><th>Limitation</th><th>Consequence</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Lenses are not statistically independent</td>                       <td>Multi-lens agreement overcounts evidence</td></tr>
+    <tr><td>Elicited probabilities are subjective</td>                          <td>No frequentist guarantees on calibration</td></tr>
+    <tr><td>Dedup is semantic overlap, not rigorous</td>                        <td>Near-duplicates can slip through</td></tr>
+    <tr><td>Consensus is a veto rule, not a posterior</td>                      <td>Information in APPROVE/MODIFY ratios discarded</td></tr>
+    <tr><td>Persona prompts are authored, not learned</td>                      <td>Generator behavior drifts with prompt changes</td></tr>
+    <tr><td>Critique is single-round</td>                                        <td>Critics do not see each other's objections</td></tr>
+    <tr><td>Sub-agents see no parent context</td>                                <td>Cannot use conversation state for continuity</td></tr>
+  </tbody>
+</table>
+
+<p>
+These are not bugs. They are the price paid for a pipeline that is cheap,
+parallelizable, auditable, and deterministic at the DB layer.
+</p>
+
+<h2 id="sec-7"><span class="num">08</span>Operator guarantees</h2>
+
+<p>Because of how the pipeline is structured, a few things are guaranteed.</p>
+
+<ul>
+  <li><strong>No silent overwrites.</strong> Predictions are append-only (new <code>cp_NNN</code> IDs). A prior extrapolation cannot be clobbered by a later one.</li>
+  <li><strong>No posterior contamination.</strong> The skill cannot update topic posteriors. It writes only to <code>conditionalPredictions[]</code> via a dedicated pipeline function.</li>
+  <li><strong>Lock exclusivity.</strong> <code>sweep_lock</code> enforces a single active run. Concurrent invocations abort immediately.</li>
+  <li><strong>Full reconstruction.</strong> From the DB alone (without any topic JSON), you can recover: every proposal ever generated, every verdict ever rendered, every critic's narrative for every run, and the link back to the approved prediction ID.</li>
+</ul>
+
+<h2 id="sec-8"><span class="num">09</span>Running it</h2>
+
+<pre><code>/extrapolate generators=GREEN,AMBER
+/extrapolate generators=RED,OCHRE topics=hormuz-closure,calibration-fed-rate-2026</code></pre>
+
+<p><strong>Arguments:</strong></p>
+<ul>
+  <li><code>generators=X,Y</code> — required, exactly 2 from {GREEN, AMBER, BLUE, RED, VIOLET, OCHRE}</li>
+  <li><code>topics=all</code> or <code>topics=slug1,slug2</code> — optional, defaults to all ACTIVE topics</li>
+</ul>
+
+<p>
+The pipeline <strong>aborts with a clear message</strong> if: generator count ≠ 2,
+any generator is not in the allowed set, generators are identical, estimated
+cost exceeds $10 before meta-critique, or the sweep lock is already held.
+</p>
+
+<div class="footer-meta">
+  <div>Source · METHODOLOGY_EXTRAPOLATE.md</div>
+  <div>NROL-αΩ · v0.5</div>
+</div>
+
+</div>
