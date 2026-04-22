@@ -164,8 +164,11 @@
 
     function parsePostsMarkdown(markdown) {
         const posts = [];
-        // Normalize line endings to LF only
-        const normalized = markdown.replace(/\r\n/g, '\n');
+        // Normalize line endings to LF, then strip HTML comments so any
+        // ## example blocks inside comments don't leak into POSTS.
+        const normalized = markdown
+            .replace(/\r\n/g, '\n')
+            .replace(/<!--[\s\S]*?-->/g, '');
         const sections = normalized.split(/^## /m).slice(1);
 
         for (const section of sections) {
