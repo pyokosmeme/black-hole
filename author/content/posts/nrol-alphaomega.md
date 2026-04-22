@@ -368,6 +368,33 @@ body.light-mode .nrol-doc svg marker path { fill: var(--doc-dim); }
   .nrol-doc .hero-meta { flex-direction: column; gap: 6px; }
   .nrol-doc pre { font-size: 10.5px; padding: 12px 14px; }
   .nrol-doc .legend { grid-template-columns: 1fr; }
+
+  /* SVG diagrams: preserve native width so labels stay legible, and
+     scroll horizontally past the viewport. Without this, width:100%
+     shrinks a 560–960px diagram to 340px of unreadable text. */
+  .nrol-doc .svg-frame {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .nrol-doc .svg-frame svg {
+    width: auto;
+    max-width: none;
+    height: auto;
+    min-width: 640px;
+  }
+  .nrol-doc .svg-frame::-webkit-scrollbar { height: 6px; }
+  .nrol-doc .svg-frame::-webkit-scrollbar-track { background: transparent; }
+  .nrol-doc .svg-frame::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--amber) 40%, transparent);
+    border-radius: 3px;
+  }
+
+  /* Tables need a readable min-width too */
+  .nrol-doc table { min-width: 480px; }
+
+  /* TOC tighten */
+  .nrol-doc .nrol-toc { padding: 12px 14px; }
+  .nrol-doc .nrol-toc a { font-size: 10.5px; }
 }
 </style>
 
