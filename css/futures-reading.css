@@ -122,6 +122,10 @@ body:has(.post-view.active) .main-content {
     padding-bottom: 0 !important;
     max-width: none !important;
     margin: 0 !important;
+    /* Clip any grid-item overflow (e.g. when a post's title/content pushes
+       .post-view wider than its grid column). Without this, body scrollWidth
+       grows past the viewport and mobile browsers show horizontal scroll. */
+    overflow-x: hidden;
 }
 
 @media (max-width: 600px) {
@@ -136,14 +140,24 @@ body:has(.post-view.active) .main-content {
 
 .main-content {
     display: grid;
-    grid-template-columns: 100%;
+    /* minmax(0, 1fr) — the 0 minimum lets the column shrink below its
+       items' min-content, so long non-wrapping text in a post can't
+       push the grid (and therefore the body) wider than the viewport. */
+    grid-template-columns: minmax(0, 1fr);
     align-items: start;
 }
 
 .index-view, .post-view {
     grid-column: 1;
     grid-row: 1;
-    transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), 
+    /* Force grid items to the grid cell width. Without explicit width:100%
+       and min-width:0, chromium sizes the flex-container post-view by its
+       min-content, which for a post with long non-wrapping text (or wide
+       default padding before breakpoints resolve) ends up wider than the
+       viewport — expanding the body to ~516px on a 375px phone. */
+    width: 100%;
+    min-width: 0;
+    transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1),
                 transform 0.5s cubic-bezier(0.4, 0, 0.2, 1),
                 visibility 0.5s;
 }
