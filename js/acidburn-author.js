@@ -207,7 +207,7 @@
         if (!list) return;
         
         list.innerHTML = POSTS.map(post => `
-            <a href="#post/${post.slug}" class="post-card" data-slug="${post.slug}">
+            <a href="/p/${post.slug}" class="post-card" data-slug="${post.slug}">
                 <div class="post-meta">
                     <span class="post-date">${post.date || ''}</span>
                     <div class="post-tags">

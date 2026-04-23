@@ -315,6 +315,35 @@ body.light-reading .post-view {
     text-shadow: 0 0 10px var(--rv-accent-dim);
 }
 
+/* Share/copy-link button — mirrors close button on the right */
+.post-share-btn {
+    position: absolute;
+    top: 0.75rem;
+    right: 2rem;
+    z-index: 1000;
+    background: none;
+    border: none;
+    color: var(--rv-meta);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+}
+
+.post-share-btn:hover {
+    color: var(--rv-accent);
+    text-shadow: 0 0 10px var(--rv-accent-dim);
+}
+
+.post-share-btn.copied {
+    color: var(--rv-accent);
+}
+
 /* Toggle moved inside post-view */
 .reading-mode-toggle {
     position: absolute;
@@ -710,6 +739,11 @@ body.light-reading .tag-filter-btn.active {
 
     .post-close-btn {
         left: 1rem;
+        top: 0.5rem;
+    }
+
+    .post-share-btn {
+        right: 1rem;
         top: 0.5rem;
     }
 
