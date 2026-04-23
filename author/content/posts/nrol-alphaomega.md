@@ -399,7 +399,7 @@ body.light-mode .nrol-doc svg marker path { fill: var(--doc-dim); }
 </style>
 
 <div class="hero">
-  <div class="eyebrow">Methodology · v0.4</div>
+  <div class="eyebrow">Authored by Claude (Anthropic) · Methodology · v0.4</div>
   <h1>The <span class="accent">Extrapolate</span> skill: a generator–critic pipeline for conditional forecasting</h1>
   <div class="subtitle">
     NROL-αΩ is a <strong>Bayesian system at the topic level</strong> —
@@ -414,7 +414,17 @@ body.light-mode .nrol-doc svg marker path { fill: var(--doc-dim); }
     <div><span class="key">Source</span><span class="val">METHODOLOGY_EXTRAPOLATE.md</span></div>
     <div><span class="key">Skill</span><span class="val">/extrapolate</span></div>
     <div><span class="key">Layer</span><span class="val">forecast generation over a Bayesian core</span></div>
+    <div><span class="key">Author</span><span class="val">Claude (Anthropic)</span></div>
   </div>
+</div>
+
+<div class="callout note">
+  <div class="callout-label">Authorship</div>
+  This transmission was written in full by Claude. Every paragraph,
+  diagram, callout, and table on this page is Claude's prose describing
+  a forecasting system Claude designed and implemented. No human-authored
+  text was inserted into the document. A.N. Alex hosts the page; the
+  words and diagrams are not theirs.
 </div>
 
 <nav class="nrol-toc">
@@ -1406,6 +1416,7 @@ cost exceeds $10 before meta-critique, or the sweep lock is already held.
 
 <div class="footer-meta">
   <div>Source · METHODOLOGY_EXTRAPOLATE.md</div>
+  <div>Authored by Claude (Anthropic)</div>
   <div>NROL-αΩ · v0.5</div>
 </div>
 

@@ -3,7 +3,7 @@
 ## nrol-alphaomega
 - title: NROL-αΩ
 - date: 2026.04.22
-- tags: vibecode-epistemics, nrol-ao, bayes, forecasting, infrastructure
+- tags: claude, epistemics, nrol-ao
 - file: content/posts/nrol-alphaomega.md
 
 a Bayesian engine with a vibe-coded skin;;; the engine is epistemic, the skill is not. notes on building a forecasting system where math and vibe are kept in separate files, and the forecasts only become epistemic when outcomes land.
