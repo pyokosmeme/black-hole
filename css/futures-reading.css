@@ -707,47 +707,4 @@ body.light-reading .tag-filter-btn.active {
     .post-content h1 {
         font-size: 1.6rem;
     }
-
-    /* Wide content: preserve native width and scroll horizontally inside
-       the post column. Without this, SVGs/tables/pre blocks either shrink
-       to illegibility or overflow the card silently on a 375px viewport. */
-    .post-content img,
-    .post-content svg,
-    .post-content pre,
-    .post-content table {
-        max-width: 100%;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    .post-content pre,
-    .post-content table {
-        display: block;
-        overflow-x: auto;
-    }
-
-    /* SVG diagrams: keep their native width when larger than the viewport.
-       Pair with a scroll wrapper on the post side if the post nests SVG
-       inside a container with overflow-x:auto. Standalone <svg> gets its
-       own intrinsic width preserved. */
-    .post-content svg {
-        height: auto;
-    }
-
-    /* Visible scroll affordance on touch devices so users discover the pan. */
-    .post-content pre::-webkit-scrollbar,
-    .post-content table::-webkit-scrollbar,
-    .post-content .svg-frame::-webkit-scrollbar {
-        height: 6px;
-    }
-    .post-content pre::-webkit-scrollbar-track,
-    .post-content table::-webkit-scrollbar-track,
-    .post-content .svg-frame::-webkit-scrollbar-track {
-        background: transparent;
-    }
-    .post-content pre::-webkit-scrollbar-thumb,
-    .post-content table::-webkit-scrollbar-thumb,
-    .post-content .svg-frame::-webkit-scrollbar-thumb {
-        background: var(--rv-accent-dim);
-        border-radius: 3px;
-    }
 }
