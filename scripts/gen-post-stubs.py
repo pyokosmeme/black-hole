@@ -1,11 +1,11 @@
 """
-Generate per-transmission OG stub pages at p/<slug>.html.
+Generate per-transmission OG stub pages at p/<stub_dir>/<slug>.html.
 
 Each stub carries Open Graph tags specific to the post (title, excerpt, URL)
 so link scrapers (Bluesky, Twitter, etc.) render a per-post card. Real
-browsers are redirected to the SPA route /#post/<slug>.
+browsers are redirected to the SPA route <page>#post/<slug>.
 
-Run after editing author/content/posts.md:
+Run after editing any posts.md:
     python scripts/gen-post-stubs.py
 """
 
@@ -14,14 +14,20 @@ import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-POSTS_MD = ROOT / "author" / "content" / "posts.md"
-OUT_DIR = ROOT / "p"
 SITE = "https://lastnpcalex.agency"
 DEFAULT_IMAGE = f"{SITE}/img/banner.png"
 
+# Each entry: (posts_md_path, stub_subdir, redirect_page)
+# stub_subdir="" means stubs go directly in p/
+SOURCES = [
+    ("author/content/posts.md",   "",        "/"),
+    ("futures/content/posts.md",  "futures", "/futures.html"),
+    ("maps/content/posts.md",     "maps",    "/maps.html"),
+    ("ams/content/posts.md",      "ams",     "/ams.html"),
+]
+
 
 def parse_posts(md_text: str):
-    # Strip HTML comments so example blocks don't leak in.
     md_text = re.sub(r"<!--[\s\S]*?-->", "", md_text)
     sections = re.split(r"^## ", md_text, flags=re.MULTILINE)[1:]
     posts = []
@@ -58,7 +64,7 @@ STUB = """<!DOCTYPE html>
 <meta property="og:site_name" content="lastnpcalex.agency">
 <meta property="og:title" content="{title}">
 <meta property="og:description" content="{desc}">
-<meta property="og:url" content="{site}/p/{slug}">
+<meta property="og:url" content="{stub_url}">
 <meta property="og:image" content="{image}">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
@@ -66,19 +72,19 @@ STUB = """<!DOCTYPE html>
 <meta name="twitter:title" content="{title}">
 <meta name="twitter:description" content="{desc}">
 <meta name="twitter:image" content="{image}">
-<link rel="canonical" href="{site}/#post/{slug}">
-<meta http-equiv="refresh" content="0;url=/#post/{slug}">
-<script>window.location.replace('/#post/{slug}');</script>
+<link rel="canonical" href="{site}{page}#post/{slug}">
+<meta http-equiv="refresh" content="0;url={page}#post/{slug}">
+<script>window.location.replace('{page}#post/{slug}');</script>
 <style>body{{background:#0a0a1a;color:#0ff;font-family:monospace;padding:2rem;}}</style>
 </head>
 <body>
-<p>Redirecting to transmission… <a href="/#post/{slug}">continue manually</a>.</p>
+<p>Redirecting to transmission… <a href="{page}#post/{slug}">continue manually</a>.</p>
 </body>
 </html>
 """
 
 
-def build_stub(post: dict) -> str:
+def build_stub(post: dict, stub_url: str, page: str) -> str:
     title = post.get("title", post["slug"])
     excerpt = post.get("excerpt", "")
     if len(excerpt) > 300:
@@ -87,31 +93,52 @@ def build_stub(post: dict) -> str:
         title=html.escape(title, quote=True),
         desc=html.escape(excerpt, quote=True),
         slug=post["slug"],
+        stub_url=stub_url,
         site=SITE,
+        page=page,
         image=DEFAULT_IMAGE,
     )
 
 
 def main():
-    md_text = POSTS_MD.read_text(encoding="utf-8")
-    posts = parse_posts(md_text)
-    OUT_DIR.mkdir(exist_ok=True)
+    out_root = ROOT / "p"
+    out_root.mkdir(exist_ok=True)
 
-    existing = {p.name for p in OUT_DIR.glob("*.html")}
-    current = set()
-    for post in posts:
-        slug = post["slug"]
-        fname = f"{slug}.html"
-        current.add(fname)
-        (OUT_DIR / fname).write_text(build_stub(post), encoding="utf-8")
-        print(f"  wrote p/{fname}")
+    for posts_rel, subdir, page in SOURCES:
+        posts_md = ROOT / posts_rel
+        if not posts_md.exists():
+            continue
 
-    stale = existing - current
-    for name in stale:
-        (OUT_DIR / name).unlink()
-        print(f"  removed stale p/{name}")
+        out_dir = out_root / subdir if subdir else out_root
+        out_dir.mkdir(parents=True, exist_ok=True)
 
-    print(f"done: {len(posts)} stub(s)")
+        # Stub URL prefix for this section
+        stub_prefix = f"{SITE}/p/{subdir}" if subdir else f"{SITE}/p"
+
+        md_text = posts_md.read_text(encoding="utf-8")
+        posts = parse_posts(md_text)
+
+        existing = {p.name for p in out_dir.glob("*.html")} if subdir else set()
+        current = set()
+
+        for post in posts:
+            slug = post["slug"]
+            fname = f"{slug}.html"
+            current.add(fname)
+            stub_url = f"{stub_prefix}/{slug}"
+            (out_dir / fname).write_text(
+                build_stub(post, stub_url, page), encoding="utf-8"
+            )
+            label = f"p/{subdir}/{fname}" if subdir else f"p/{fname}"
+            print(f"  wrote {label}")
+
+        stale = existing - current
+        for name in stale:
+            (out_dir / name).unlink()
+            label = f"p/{subdir}/{name}" if subdir else f"p/{name}"
+            print(f"  removed stale {label}")
+
+    print("done")
 
 
 if __name__ == "__main__":

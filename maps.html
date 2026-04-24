@@ -60,9 +60,10 @@
     </script>
     <script>
      window.PAGE_CONFIG = {
-      configPath: 'maps/config.json',  // path to config.json
-      contentDir: 'maps/',              // base path for content files
-      titleSuffix: 'Charts and maps based on the writing of A.N. Alex'   // appended to page title
+      configPath: 'maps/config.json',
+      contentDir: 'maps/',
+      titleSuffix: 'Charts and maps based on the writing of A.N. Alex',
+      stubBasePath: '/p/maps'
      };
      </script>
      <script src="js/acidburn-author.js"></script>
@@ -168,6 +169,7 @@
         <!-- Post View -->
         <article class="post-view" id="post-view">
             <button class="post-close-btn" onclick="showIndex()" title="Close transmission">✕ CLOSE</button>
+            <button class="post-share-btn" id="post-share-btn" title="Copy shareable link">⎘ COPY LINK</button>
             <div class="post-view-meta">
                 <div class="post-view-date" id="post-view-date"></div>
                 <div class="post-view-tags" id="post-view-tags"></div>
@@ -212,6 +214,36 @@
         const check = setInterval(() => {
             if (!window.AcidburnAuthor) return;
             clearInterval(check);
+
+            // Copy-link button
+            const shareBtn = document.getElementById('post-share-btn');
+            if (shareBtn) {
+                shareBtn.addEventListener('click', async () => {
+                    const h = window.location.hash;
+                    if (!h.startsWith('#post/')) return;
+                    const slug = h.replace('#post/', '');
+                    const stubBase = (window.PAGE_CONFIG && window.PAGE_CONFIG.stubBasePath) || '/p';
+                    const url = `${window.location.origin}${stubBase}/${slug}`;
+                    const orig = shareBtn.textContent;
+                    try {
+                        await navigator.clipboard.writeText(url);
+                        shareBtn.textContent = '✓ COPIED';
+                    } catch {
+                        const ta = document.createElement('textarea');
+                        ta.value = url;
+                        document.body.appendChild(ta);
+                        ta.select();
+                        try { document.execCommand('copy'); } catch {}
+                        document.body.removeChild(ta);
+                        shareBtn.textContent = '✓ COPIED';
+                    }
+                    shareBtn.classList.add('copied');
+                    setTimeout(() => {
+                        shareBtn.textContent = orig;
+                        shareBtn.classList.remove('copied');
+                    }, 1600);
+                });
+            }
 
             const tagCheck = setInterval(() => {
                 const posts = window.AcidburnAuthor.getPosts();

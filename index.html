@@ -256,7 +256,8 @@
                     const h = window.location.hash;
                     if (!h.startsWith('#post/')) return;
                     const slug = h.replace('#post/', '');
-                    const url = `${window.location.origin}/p/${slug}`;
+                    const stubBase = (window.PAGE_CONFIG && window.PAGE_CONFIG.stubBasePath) || '/p';
+                    const url = `${window.location.origin}${stubBase}/${slug}`;
                     const orig = shareBtn.textContent;
                     try {
                         await navigator.clipboard.writeText(url);

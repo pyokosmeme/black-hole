@@ -28,6 +28,7 @@
     const CONFIG_PATH = PAGE.configPath || 'author/config.json';
     const CONTENT_DIR = PAGE.contentDir || 'author/';
     const TITLE_SUFFIX = PAGE.titleSuffix || 'transmissions';
+    const STUB_BASE = PAGE.stubBasePath || '/p';
 
     // ═══════════════════════════════════════════════════════════════
     // STATE
@@ -207,7 +208,7 @@
         if (!list) return;
         
         list.innerHTML = POSTS.map(post => `
-            <a href="/p/${post.slug}" class="post-card" data-slug="${post.slug}">
+            <a href="${STUB_BASE}/${post.slug}" class="post-card" data-slug="${post.slug}">
                 <div class="post-meta">
                     <span class="post-date">${post.date || ''}</span>
                     <div class="post-tags">
