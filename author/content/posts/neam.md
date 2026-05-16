@@ -445,12 +445,8 @@ This vector <em>M<sub>t</sub></em> ∈ ℝ<sup>d</sup> represents the aggregate 
 </p>
 
 <p>
-In a standard Large Language Model, this is the exact function of the <strong>Unembedding Matrix</strong>, which projects the final latent vector back into the vocabulary space to generate discrete logits. In our framework, we use an unembedding vector <em>w</em> to project the market's latent state into the continuous "vocabulary" of price drift. Thus, our scalar magnetization is <em>w<sup>T</sup> M<sub>t</sub></em>:
+In a standard Large Language Model, this is the exact function of the <strong>Unembedding Matrix</strong>, which projects the final latent vector back into the vocabulary space to generate discrete logits. In our framework, we use an unembedding vector <em>w</em> to project the market's latent state into the continuous "vocabulary" of price drift. Thus, our scalar magnetization is <em>w<sup>T</sup> M<sub>t</sub></em>.
 </p>
-
-<div class="eq-block">
-<em>μ</em><sub>t</sub> =  <em>w</em><sup>T</sup> <em>M</em><sub>t</sub>
-</div>
 
 
 <h3 id="sec-drift"><span class="num">7.2</span> Attention Price Clearing</h3>
