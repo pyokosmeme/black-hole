@@ -510,11 +510,11 @@ This proves that the <em>O(N<sup>2</sup> HHI<sub>t</sub>)</em> scaling coefficie
 <h3 id="sec-sde"><span class="num">7.4</span> The NEAM Stochastic Differential Equation</h3>
 
 <p>
-With the drift and the variance floor of the localized attention probabilities established, we can synthesize the complete Stochastic Differential Equation. To do so, we must formally transition from intensive network coordinates to extensive market volume.
+With the drift and the variance floor of the localized attention probabilities established, we can synthesize the complete Stochastic Differential Equation. In classical statistical mechanics, passing from continuous microscopic updates to a macroscopic equation of motion is formally structured via a <strong>Langevin equation</strong>. The Langevin framework explicitly splits the physical forces acting on a system into two distinct parts: a systemic, state-dependent force driving the trajectory, and an ambient, background thermal bath representing uncoordinated fluctuations.
 </p>
 
 <p>
-We define the extensive <strong>Aggregate Excess Demand Vector</strong> (&mathbf;D<sub>t</sub>) as the total sum of all individual agent action vectors. By definition, this scales directly with the population size <em>N</em> and the mean-field magnetization:
+To map this physics architecture to a financial asset, we must transition from intensive network coordinates to extensive market volume. We define the extensive <strong>Aggregate Excess Demand Vector</strong> (&mathbf;D<sub>t</sub>) as the total sum of all individual agent action vectors. By definition, this scales directly with the population size <em>N</em> and maps the mean-field magnetization to the systemic force of our Langevin system:
 </p>
 
 <div class="eq-block">
@@ -522,7 +522,7 @@ We define the extensive <strong>Aggregate Excess Demand Vector</strong> (&mathbf
 </div>
 
 <p>
-Because market impact is driven by this total extensive order flow crossed with Kyle's depth parameter <em>λ</em>, the deterministic drift is governed by the scalar projection <em>λ (w<sup>T</sup> &mathbf;D<sub>t</sub>)</em>. Taking the square root of the corresponding extensive variance floor yields a standard deviation scaling as <em>O(N √HHI<sub>t</sub>)</em>. Adding a baseline idiosyncratic noise parameter (<em>σ<sub>v</sub></em>) to capture ambient market temperature, we arrive at the final Non-Equilibrium Attention Market (NEAM) equation:
+Because market impact is driven by this total extensive order flow crossed with Kyle's depth parameter <em>λ</em>, the deterministic drift of the asset is governed by the scalar projection <em>λ (w<sup>T</sup> &mathbf;D<sub>t</sub>)</em>. The background thermal bath—the residual variance of independent private shocks—is bounded by our extensive variance floor, yielding a diffusion coefficient scaling as <em>σ<sub>v</sub> N √HHI<sub>t</sub></em>. Synthesizing these systemic and thermal forces, we arrive at the final Non-Equilibrium Attention Market (NEAM) equation:
 </p>
 
 <div class="eq-block">
@@ -534,34 +534,16 @@ By expressing the entire system through the extensive scaling of <em>&mathbf;D<s
 </p>
 
 <ol>
-  <li><strong>The High-Entropy Baseline:</strong> When attention is highly diversified, <em>HHI<sub>t</sub> ≈ 1/N</em>. The covariance cross-terms within <em>&mathbf;D<sub>t</sub></em> are negligible, and the diffusion coefficient simplifies cleanly to <em>σ<sub>v</sub> √N</em>. The price undergoes standard, tranquil Brownian motion representing the random walk of independent actors.</li>
+  <li><strong>The High-Entropy Baseline:</strong> When attention is highly diversified, <em>HHI<sub>t</sub> ≈ 1/N</em>. The covariance cross-terms within the aggregate demand vector are negligible, and the diffusion coefficient simplifies cleanly to <em>σ<sub>v</sub> √N</em>. The price undergoes standard, tranquil Brownian motion representing the random walk of independent actors in a stable fluid.</li>
   <li><strong>The Critical Phase Transition:</strong> As thermodynamic friction forces the attention network to collapse, the <em>HHI<sub>t</sub></em> spikes toward 1.0. Simultaneously, endogenous imitation causes agent correlations to ignite, meaning the true macroscopic variance breaks past the <em>O(N<sup>2</sup> HHI<sub>t</sub>)</em> floor and explodes toward its global extensive ceiling of <em>O(N<sup>2</sup>)</em>, causing the diffusion coefficient to scale linearly with <em>N</em>.</li>
 </ol>
 
 <p>
-At this critical juncture, the market is structurally compromised. The next exogenous macroeconomic shock (d<em>W<sub>t</sub></em>)—even if minor—is multiplied by a massive, highly correlated <em>O(N)</em> network factor. The market maker's liquidity is instantly overwhelmed, and the scalar price <em>S<sub>t</sub></em> violently gaps downward to clear the one-sided demand.
+At this critical juncture, the market is structurally compromised. The next exogenous macroeconomic shock (d<em>W<sub>t</sub></em>)—even if minor—is multiplied by a massive, highly correlated <em>O(N)</em> network factor. The market maker's liquidity is instantly overwhelmed, and the scalar price <em>S<sub>t</sub></em> violently gapping downward to clear the one-sided demand.
 </p>
 
 <p>
 It is worth noting an internal consistency choice regarding the explicit population parameter <em>N</em> in our diffusion coefficient. While we explicitly preserve <em>N</em> to ground the SDE in the extensive volume of the total aggregate demand vector <em>&mathbf;D<sub>t</sub></em>, this normalization remains a modeling specification; in a strictly intensive asset pricing framework, <em>N</em> can be entirely absorbed into the baseline noise parameter <em>σ<sub>v</sub></em>. Ultimately, the system's absolute population scale is secondary to the geometric scaling of the <em>HHI<sub>t</sub></em>, which serves as the true structural governor of the non-equilibrium volatility dynamics.
-</p>
-
-<h2 id="sec-fat"><span class="num">08</span> Endogenous fat tails for sale, never used</h2>
-
-<p>
-In traditional quantitative finance, fat tails (leptokurtosis) and volatility clustering are treated as exogenous mysteries that need to be patched over. The NEAM SDE requires no such ad-hoc adjustments. The heavy tails observed in empirical asset returns are revealed to be the direct macroscopic artifacts of bounded agents constantly shifting their attention structure.
-</p>
-
-<p>
-The mathematical engine for this phenomenon lives directly within the phase boundaries shown in Section 7.3. Real market dynamics are defined by a meta-deliberation process: the system moves through intermittent periods of calm where agent updates are largely uncoordinated (The Independent Phase), anchoring the price to its minimum <em>O(N √HHI<sub>t</sub>)</em> volatility floor. However, because gradient updates on the query-key weights (<em>W<sub>Q</sub>, W<sub>K</sub></em>) operate on a slower, continuous timescale, the attention matrix slowly drifts toward alignment. 
-</p>
-
-<p>
-When the network crosses the critical threshold into the Correlated Herd Phase, the variance breaks free from its structural floor and surges toward the <em>O(N)</em> global covariance ceiling. Because the system lingers in these non-equilibrium steady states before thermodynamic friction forces a clearing collapse, volatility naturally clusters in time. 
-</p>
-
-<p>
-The switching dynamics between these two geometric phases transform what would be a standard Gaussian random walk into a heavy-tailed distribution. The extreme price gaps, so-called "Black Swan" events that classical finance deems 1-in-a-billion-year anomalies, are deterministic pile-ups of network learning in the NEAM framework.
 </p>
 
 <h2 id="sec-concl"><span class="num">09</span> Conclusion and summary</h2>
