@@ -289,7 +289,7 @@ In non-equilibrium statistical mechanics, when detailed balance is broken, the s
 </p>
 
 <p>
-Because the attention matrix <em>A</em> is row-stochastic (∑<sub>j</sub> <em>p<sub>ij</sub></em> = 1) but strictly non-symmetric and not doubly stochastic, this Markov chain will converge to a unique stationary distribution <em>π</em> over the agents, where:
+Because the attention matrix <em>p</em> is row-stochastic (∑<sub>j</sub> <em>p<sub>ij</sub></em> = 1) but strictly non-symmetric and not doubly stochastic, this Markov chain will converge to a unique stationary distribution <em>π</em> over the agents, where:
 </p>
 
 <div class="eq-block">
@@ -359,7 +359,7 @@ We formally invoke the <strong>adiabatic approximation</strong>, and assume a se
 </div>
 
 <p>
-As the institutional agents (or predatory algorithms) successfully extract capital, they become systemic attractors. Because the stationary distribution <em>π</em> satisfies <em>π<sup>T</sup>A = π<sup>T</sup></em>, as the columns of <em>A</em> associated with dominant agents grow larger (representing more agents attending to them), the Perron-Frobenius eigenvector <em>π</em> naturally concentrates its mass on those dominant nodes. Simultaneously, the asymmetry between <em>p<sub>ij</sub></em> (Retail watching Institutions) and <em>p<sub>ji</sub></em> (Institutions ignoring Retail) grows extreme.
+As the institutional agents (or predatory algorithms) successfully extract capital, they become systemic attractors. Because the stationary distribution <em>π</em> satisfies <em>π<sup>T</sup>p = π<sup>T</sup></em>, as the columns of <em>p</em> associated with dominant agents grow larger (representing more agents attending to them), the Perron-Frobenius eigenvector <em>π</em> naturally concentrates its mass on those dominant nodes. Simultaneously, the asymmetry between <em>p<sub>ij</sub></em> (Retail watching Institutions) and <em>p<sub>ji</sub></em> (Institutions ignoring Retail) grows extreme.
 </p>
 
 <p>
@@ -445,16 +445,13 @@ This vector <em>M<sub>t</sub></em> ∈ ℝ<sup>d</sup> represents the aggregate 
 </p>
 
 <p>
-In a standard Large Language Model, this is the exact function of the <strong>Unembedding Matrix</strong>, which projects the final latent vector back into the vocabulary space to generate discrete logits. In our framework, we use an unembedding vector <em>w</em> to project the market's latent state into the continuous "vocabulary" of price drift. Thus, our scalar magnetization is <em>w<sup>T</sup> M<sub>t</sub></em>.
-</p>
-
-<p>
-Following the established price-clearing relationship, the deterministic drift rate (<em>μ<sub>t</sub></em>) of the asset price is simply this scalar magnetization scaled by the market depth parameter <em>λ</em>:
+In a standard Large Language Model, this is the exact function of the <strong>Unembedding Matrix</strong>, which projects the final latent vector back into the vocabulary space to generate discrete logits. In our framework, we use an unembedding vector <em>w</em> to project the market's latent state into the continuous "vocabulary" of price drift. Thus, our scalar magnetization is <em>w<sup>T</sup> M<sub>t</sub></em>:
 </p>
 
 <div class="eq-block">
 <em>μ</em><sub>t</sub> = <em>λ</em> (<em>w</em><sup>T</sup> <em>M</em><sub>t</sub>)
 </div>
+
 
 <h3 id="sec-drift"><span class="num">7.2</span> Attention Price Clearing</h3>
 
