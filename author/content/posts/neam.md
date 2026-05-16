@@ -482,7 +482,7 @@ Statistically, the variance of a weighted sum scales with the sum of the squared
 In the continuous limit of a Stochastic Differential Equation, this variance maps directly to the system's <strong>diffusion term</strong>. Because the diffusion coefficient (the standard deviation) represents the square root of this variance, the structural volatility for our price equation must scale as <em>O(N √HHI<sub>t</sub>)</em>.
 </p>
 
-<h3 id="sec-sde"><span class="num">7.4</span>(Bal?)-Black-Scholes</h3>
+<h3 id="sec-sde"><span class="num">7.4</span>The Non-Equilibrium Attention Market Equation</h3>
 
 <p>
 With both the first moment (drift) and second moment (diffusion) pulled from the physics of the attention network, using a standard econophysics playbook, we can finally synthesize the complete Stochastic Differential Equation. 
@@ -495,10 +495,6 @@ Because the diffusion coefficient of an SDE is the standard deviation (the squar
 <div class="eq-block">
 d<em>S<sub>t</sub></em> = [ <em>λ</em> (<em>w<sup>T</sup> M<sub>t</sub></em>) ] <em>S<sub>t</sub></em> dt + [ <em>σ<sub>v</sub> N √HHI<sub>t</sub></em> ] <em>S<sub>t</sub></em> d<em>W<sub>t</sub></em>
 </div>
-
-<p>
-Given the foundational work by Mathias Bal on attention transformers, I propose we call this the Bal-Black-Scholes equation.
-</p>
 
 <p>
 Whatever we call it, this equation bridges Bal's Spin Transformers with observable market phenomena. It formally dictates two distinct market regimes:
@@ -542,7 +538,7 @@ And thus, to answer our questions that started this endeavor:
     <p><em>The system breaks detailed balance and enters a non-equilibrium steady state. The resulting non-reciprocal updates generate a strictly positive entropy production rate (Π), driving the network toward structural fragility and spontaneous attention collapse.</em></p>
   </li>
   <li>What are the consequences if we use the tools of econophysics and apply it to Bal's spin transformers?
-    <p><strong>By calculating the first and second moments of the attention network via a Kramers-Moyal expansion, we find the drift (via continuous magnetization and an unembedding vector) and the diffusion (via the Herfindahl-Hirschman Index), deriving a testable Non-Equilibrium Attention Market (NEAM) SDE (Bal-Black-Scholes).</strong></p>
+    <p><strong>By calculating the first and second moments of the attention network via a Kramers-Moyal expansion, we find the drift (via continuous magnetization and an unembedding vector) and the diffusion (via the Herfindahl-Hirschman Index), deriving a testable Non-Equilibrium Attention Market (NEAM) SDE.</strong></p>
   </li>
 </ol>
 
