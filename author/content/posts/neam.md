@@ -565,7 +565,7 @@ It is worth noting an internal consistency choice regarding the explicit populat
 <h2 id="sec-tails"><span class="num">08</span> Endogenous Fat Tails for Sale, Never Used</h2>
 
 <p>
-In traditional quantitative finance, fat tails (leptokurtosis) and volatility clustering are treated as exogenous mysteries—conveniently patched over by manually injecting jump-diffusion terms or ARCH/GARCH processes into the simulation. The NEAM SDE requires no such ad-hoc adjustments. The heavy tails observed in empirical asset returns are revealed to be the direct macroscopic artifacts of bounded agents constantly shifting their attention structure.
+In traditional quantitative finance, fat tails (leptokurtosis) and volatility clustering are treated as exogenous mysteries that are patched manually. In the NEAM SDE framework, heavy tails observed in empirical asset returns are the direct macroscopic artifacts of bounded agents constantly shifting their attention structure.
 </p>
 
 <p>
@@ -577,7 +577,7 @@ When the network crosses the critical threshold into the Correlated Herd Phase, 
 </p>
 
 <p>
-The switching dynamics between these two geometric phases transform what would be a standard Gaussian random walk into a heavy-tailed distribution. The extreme price gaps—the "Black Swan" events that classical finance deems 1-in-a-billion-year anomalies—are shown to be predictable, deterministic pile-ups of network learning.
+The switching dynamics between these two geometric phases transform what would be a standard Gaussian random walk into a heavy-tailed distribution. Black Swan events, extreme pricing events that classical finance deems 1-in-a-billion-year anomalies, are direct consequences of network learning and non-equilibrium attention market dynamics.
 </p>
 
 <h2 id="sec-concl"><span class="num">09</span> Conclusion and summary</h2>
