@@ -5,7 +5,22 @@
    NEAM transmission · scoped styles
    Extends .nrol-doc base. Palette inherits from NROL-αΩ vars.
    ════════════════════════════════════════════════════════════════ */
+/* Equation blocks — Unified global color rules override to fix whatever qwen did to the style sheet */
+.nrol-doc .eq-block,
+.nrol-doc .eq-block em,
+.nrol-doc .eq-block sub,
+.nrol-doc .eq-block sup {
+  color: var(--cyan) !important; /* Forces global theme matching */
+  font-style: normal; /* Optional: keeps math characters crisp */
+}
 
+.nrol-doc .eq-block {
+  text-align: center;
+  margin: 18px 0;
+  padding: 12px 0;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+}
 /* Equation blocks — var(--cyan) for dark mode, overridden for light */
 .nrol-doc .eq-block {
   text-align: center;
