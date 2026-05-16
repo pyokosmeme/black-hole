@@ -3,10 +3,10 @@
 ## neam
 - title: NON-EQUILIBRIUM ATTENTION MARKETS
 - date: 2026.05.16
-- tags: econophysics, spin-transformers, neam, bal
+- tags: econophysics, spin-transformers, neam
 - file: content/posts/neam.md
 
-Continuous Ising states and asymmetric coupling recover Bal's spin transformers via MaxEnt softmax. The consequence: a modified Black-Scholes SDE where volatility is an endogenous function of attention concentration, and crashes are deterministic phase transitions — not fat-tail luck. Includes an interactive simulation of the attention collapse.
+Continuous Ising states and asymmetric coupling recover Bal's spin transformers via MaxEnt softmax. The consequence: a SDE where volatility is an endogenous function of attention concentration, and crashes are deterministic phase transitions rather than fat-tail luck.
 
 ## nrol-alphaomega
 - title: NROL-αΩ
