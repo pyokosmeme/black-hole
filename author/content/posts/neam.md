@@ -570,7 +570,7 @@ And thus, to answer our questions that started this endeavor:
   </li>
 </ol>
 
-<h2 id="sec-refs"><span class="num">11</span> References</h2>
+<h2 id="sec-refs"><span class="num">10</span> References</h2>
 
 <h3>Foundational texts</h3>
 <p><em>Note: The following foundational texts were published independently on Mathias Bal's academic blog and form the basis of the spin transformer explorations recreated in this work.</em></p>
