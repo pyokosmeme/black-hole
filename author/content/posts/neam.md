@@ -449,7 +449,7 @@ In a standard Large Language Model, this is the exact function of the <strong>Un
 </p>
 
 <div class="eq-block">
-<em>μ</em><sub>t</sub> = <em>λ</em> (<em>w</em><sup>T</sup> <em>M</em><sub>t</sub>)
+<em>μ</em><sub>t</sub> =  <em>w</em><sup>T</sup> <em>M</em><sub>t</sub>
 </div>
 
 
