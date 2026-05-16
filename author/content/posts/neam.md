@@ -505,31 +505,45 @@ By evaluating this complete expansion, we can look directly at the exact asympto
 This proves that the <em>O(N<sup>2</sup> HHI<sub>t</sub>)</em> scaling coefficient derived from the first term acts as the fundamental <strong>structural floor</strong> of market volatility. The HHI explicitly dictates the minimum level of macroeconomic diffusion guaranteed by the network geometry, while the latent covariance cross-terms dictate the explosive ceiling when herd coordination ignites.
 </p>
 
-<h3 id="sec-sde"><span class="num">7.4</span>The Non-Equilibrium Attention Market Equation</h3>
+
+
+<h3 id="sec-sde"><span class="num">7.4</span> The NEAM Stochastic Differential Equation</h3>
 
 <p>
-With both the first moment (drift) and second moment (diffusion) pulled from the physics of the attention network, using a standard econophysics playbook, we can finally synthesize the complete Stochastic Differential Equation. 
+With the drift and the variance floor of the localized attention probabilities established, we can synthesize the complete Stochastic Differential Equation. To do so, we must formally transition from intensive network coordinates to extensive market volume.
 </p>
 
 <p>
-Because the diffusion coefficient of an SDE is the standard deviation (the square root of the variance), we take the square root of our HHI scaling factor. We add a variance parameter (<em>σ<sub>v</sub></em>) to represent ambient market noise, the spiritual equivalent of adding an ambient thermal noise term a la Langevin separation of noise. Thus, we arrive at the final Non-Equilibrium Attention Market (NEAM) equation:
+We define the extensive <strong>Aggregate Excess Demand Vector</strong> (&mathbf;D<sub>t</sub>) as the total sum of all individual agent action vectors. By definition, this scales directly with the population size <em>N</em> and the mean-field magnetization:
 </p>
 
 <div class="eq-block">
-d<em>S<sub>t</sub></em> = [ <em>λ</em> (<em>w<sup>T</sup> M<sub>t</sub></em>) ] <em>S<sub>t</sub></em> dt + [ <em>σ<sub>v</sub> N √HHI<sub>t</sub></em> ] <em>S<sub>t</sub></em> d<em>W<sub>t</sub></em>
+&mathbf;D<sub>t</sub> = ∑<sub>i=1</sub><sup>N</sup> <em>x<sub>i</sub></em><sup>(t)</sup> = <em>N M<sub>t</sub></em>
 </div>
 
 <p>
-Whatever we call it, this equation bridges Bal's Spin Transformers with observable market phenomena. It formally dictates two distinct market regimes:
+Because market impact is driven by this total extensive order flow crossed with Kyle's depth parameter <em>λ</em>, the deterministic drift is governed by the scalar projection <em>λ (w<sup>T</sup> &mathbf;D<sub>t</sub>)</em>. Taking the square root of the corresponding extensive variance floor yields a standard deviation scaling as <em>O(N √HHI<sub>t</sub>)</em>. Adding a baseline idiosyncratic noise parameter (<em>σ<sub>v</sub></em>) to capture ambient market temperature, we arrive at the final Non-Equilibrium Attention Market (NEAM) equation:
+</p>
+
+<div class="eq-block">
+d<em>S<sub>t</sub></em> = [ <em>λ</em> (<em>w<sup>T</sup> &mathbf;D<sub>t</sub></em>) ] <em>S<sub>t</sub></em> dt + [ <em>σ<sub>v</sub> N √HHI<sub>t</sub></em> ] <em>S<sub>t</sub></em> d<em>W<sub>t</sub></em>
+</div>
+
+<p>
+By expressing the entire system through the extensive scaling of <em>&mathbf;D<sub>t</sub></em> and the structural boundary of the <em>HHI<sub>t</sub></em>, the SDE elegantly encapsulates two distinct thermodynamic states:
 </p>
 
 <ol>
-  <li><strong>The High-Entropy Regime (Stable Market):</strong> When attention is highly diversified, <em>HHI<sub>t</sub> ≈ 1/N</em>. The diffusion coefficient simplifies to <em>σ<sub>v</sub> √N</em>. The system acts as a standard random walk, absorbing exogenous macroeconomic shocks (d<em>W<sub>t</sub></em>) smoothly. </li>
-  <li><strong>The Critical Phase Transition (Flash Crash):</strong> When thermodynamic friction forces the Softmax attention to collapse, the HHI violently spikes toward 1.0. The diffusion coefficient instantly scales up to <em>O(N)</em>, meaning <strong>the variance explodes by a massive factor of <em>N</em></strong>. </li>
+  <li><strong>The High-Entropy Baseline:</strong> When attention is highly diversified, <em>HHI<sub>t</sub> ≈ 1/N</em>. The covariance cross-terms within <em>&mathbf;D<sub>t</sub></em> are negligible, and the diffusion coefficient simplifies cleanly to <em>σ<sub>v</sub> √N</em>. The price undergoes standard, tranquil Brownian motion representing the random walk of independent actors.</li>
+  <li><strong>The Critical Phase Transition:</strong> As thermodynamic friction forces the attention network to collapse, the <em>HHI<sub>t</sub></em> spikes toward 1.0. Simultaneously, endogenous imitation causes agent correlations to ignite, meaning the true macroscopic variance breaks past the <em>O(N<sup>2</sup> HHI<sub>t</sub>)</em> floor and explodes toward its global extensive ceiling of <em>O(N<sup>2</sup>)</em>, causing the diffusion coefficient to scale linearly with <em>N</em>.</li>
 </ol>
 
 <p>
-At that critical moment, the market is structurally compromised. The next exogenous macroeconomic shock (d<em>W<sub>t</sub></em>), no matter how mathematically trivial, is multiplied by a massive, perfectly correlated <em>O(N)</em> factor. The market maker's liquidity is instantly overwhelmed, and the scalar price <em>S<sub>t</sub></em> violently gaps to clear the one-sided demand. 
+At this critical juncture, the market is structurally compromised. The next exogenous macroeconomic shock (d<em>W<sub>t</sub></em>)—even if minor—is multiplied by a massive, highly correlated <em>O(N)</em> network factor. The market maker's liquidity is instantly overwhelmed, and the scalar price <em>S<sub>t</sub></em> violently gaps downward to clear the one-sided demand.
+</p>
+
+<p>
+It is worth noting an internal consistency choice regarding the explicit population parameter <em>N</em> in our diffusion coefficient. While we explicitly preserve <em>N</em> to ground the SDE in the extensive volume of the total aggregate demand vector <em>&mathbf;D<sub>t</sub></em>, this normalization remains a modeling specification; in a strictly intensive asset pricing framework, <em>N</em> can be entirely absorbed into the baseline noise parameter <em>σ<sub>v</sub></em>. Ultimately, the system's absolute population scale is secondary to the geometric scaling of the <em>HHI<sub>t</sub></em>, which serves as the true structural governor of the non-equilibrium volatility dynamics.
 </p>
 
 <h2 id="sec-fat"><span class="num">08</span> Endogenous fat tails for sale, never used</h2>
