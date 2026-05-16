@@ -555,7 +555,7 @@ By expressing the entire system through this explicit Langevin decomposition, th
 </ol>
 
 <p>
-At this critical juncture, the market is structurally compromised. The next exogenous macroeconomic shock (d<em>W<sub>t</sub></em>)—even if minor—is multiplied by a massive, highly correlated <em>O(N)</em> network factor. The market maker's liquidity is instantly overwhelmed, and the scalar price <em>S<sub>t</sub></em> violently gapping downward to clear the one-sided demand.
+At this critical juncture, the market is structurally compromised. The next exogenous macroeconomic shock (d<em>W<sub>t</sub></em>)—even if minor—is multiplied by a massive, highly correlated <em>O(N)</em> network factor. The market maker's liquidity is instantly overwhelmed, and the scalar price <em>S<sub>t</sub></em> gaps violently downward to clear the one-sided demand.
 </p>
 
 <p>
