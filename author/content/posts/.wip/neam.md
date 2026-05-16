@@ -105,7 +105,7 @@ To those ends, we have two bridging questions to answer:
 </ol>
 
 <p>
-We will see that we recover Bal's spin transformers (<a href="https://mcbal.github.io">Bal, 2021</a>). Which raises a new question: <strong>What are the consequences if we use the tools of econophysics and apply it to Bal's spin transformers?</strong>
+We will see that we recover Bal's spin transformers (<a href="https://mcbal.github.io">Bal, 2021</a>). Which raises a new question: <strong>If we use the tools of econophysics and apply it to Bal's spin transformers, what are the consequences?</strong>
 </p>
 
 <p>
