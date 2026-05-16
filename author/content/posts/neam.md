@@ -301,7 +301,7 @@ As an aside, softmax attention with finite <em>β</em> gives <em>p<sub>ij</sub> 
 </p>
 
 <p>
-To calculate this, we look at the attention weights, <em>p<sub>ij</sub></em>, that is how Agent <em>i</em> shifts to match Agent <em>j</em> through their interaction. The probability flux from agent <em>i</em> to agent <em>j</em> (<em>J<sub>ij</sub> = π<sub>i</sub>A<sub>ij</sub></em>) is not equal to the reverse flux (<em>J<sub>ji</sub> = π<sub>j</sub>p<sub>ji</sub></em>).
+To calculate this, we look at the attention weights, <em>p<sub>ij</sub></em>, that is how Agent <em>i</em> shifts to match Agent <em>j</em> through their interaction. The probability flux from agent <em>i</em> to agent <em>j</em> (<em>J<sub>ij</sub> = π<sub>i</sub>p<sub>ij</sub></em>) is not equal to the reverse flux (<em>J<sub>ji</sub> = π<sub>j</sub>p<sub>ji</sub></em>).
 </p>
 
 <p>
@@ -309,7 +309,7 @@ This persistent imbalance means the market acts as a driven non-equilibrium syst
 </p>
 
 <div class="eq-block">
-<em>Π</em> = ½ ∑<sub>i,j</sub> (<em>J<sub>ij</sub></em> − <em>J<sub>ji</sub></em>) ln(<em>J<sub>ij</sub></em> / <em>J<sub>ji</sub></em>) = ½ ∑<sub>i,j</sub> (<em>π<sub>i</sub></em><em>p<sub>ij</sub></em> − <em>π<sub>j</sub></em><em>p<sub>ji</sub></em>) ln(<em>π<sub>i</sub></em><em>A<sub>ij</sub></em> / <em>π<sub>j</sub></em><em>p<sub>ji</sub></em>)
+<em>Π</em> = ½ ∑<sub>i,j</sub> (<em>J<sub>ij</sub></em> − <em>J<sub>ji</sub></em>) ln(<em>J<sub>ij</sub></em> / <em>J<sub>ji</sub></em>) = ½ ∑<sub>i,j</sub> (<em>π<sub>i</sub></em><em>p<sub>ij</sub></em> − <em>π<sub>j</sub></em><em>p<sub>ji</sub></em>) ln(<em>π<sub>i</sub></em><em>p<sub>ij</sub></em> / <em>π<sub>j</sub></em><em>p<sub>ji</sub></em>)
 </div>
 
 <p>
@@ -355,11 +355,11 @@ We formally invoke the <strong>adiabatic approximation</strong>, and assume a se
 </p>
 
 <div class="eq-block">
-<em>Π</em><sub>t</sub> = ½ ∑<sub>i,j</sub> (<em>π<sub>i</sub></em><em>A<sub>ij</sub></em> − <em>π<sub>j</sub></em><em>A<sub>ji</sub></em>) ln(<em>π<sub>i</sub></em><em>A<sub>ij</sub></em> / <em>π<sub>j</sub></em><em>A<sub>ji</sub></em>)
+<em>Π</em><sub>t</sub> = ½ ∑<sub>i,j</sub> (<em>π<sub>i</sub></em><em>p<sub>ij</sub></em> − <em>π<sub>j</sub></em><em>p<sub>ji</sub></em>) ln(<em>π<sub>i</sub></em><em>p<sub>ij</sub></em> / <em>π<sub>j</sub></em><em>p<sub>ji</sub></em>)
 </div>
 
 <p>
-As the institutional agents (or predatory algorithms) successfully extract capital, they become systemic attractors. Because the stationary distribution <em>π</em> satisfies <em>π<sup>T</sup>A = π<sup>T</sup></em>, as the columns of <em>A</em> associated with dominant agents grow larger (representing more agents attending to them), the Perron-Frobenius eigenvector <em>π</em> naturally concentrates its mass on those dominant nodes. Simultaneously, the asymmetry between <em>A<sub>ij</sub></em> (Retail watching Institutions) and <em>A<sub>ji</sub></em> (Institutions ignoring Retail) grows extreme.
+As the institutional agents (or predatory algorithms) successfully extract capital, they become systemic attractors. Because the stationary distribution <em>π</em> satisfies <em>π<sup>T</sup>A = π<sup>T</sup></em>, as the columns of <em>A</em> associated with dominant agents grow larger (representing more agents attending to them), the Perron-Frobenius eigenvector <em>π</em> naturally concentrates its mass on those dominant nodes. Simultaneously, the asymmetry between <em>p<sub>ij</sub></em> (Retail watching Institutions) and <em>p<sub>ji</sub></em> (Institutions ignoring Retail) grows extreme.
 </p>
 
 <p>
