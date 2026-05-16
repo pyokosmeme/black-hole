@@ -510,11 +510,19 @@ This proves that the <em>O(N<sup>2</sup> HHI<sub>t</sub>)</em> scaling coefficie
 <h3 id="sec-sde"><span class="num">7.4</span> The NEAM Stochastic Differential Equation</h3>
 
 <p>
-With the drift and the variance floor of the localized attention probabilities established, we can synthesize the complete Stochastic Differential Equation. In classical statistical mechanics, passing from continuous microscopic updates to a macroscopic equation of motion is formally structured via a <strong>Langevin equation</strong>. The Langevin framework explicitly splits the physical forces acting on a system into two distinct parts: a systemic, state-dependent force driving the trajectory, and an ambient, background thermal bath representing uncoordinated fluctuations.
+With the drift and the variance floor of the localized attention probabilities established, we can synthesize the complete macroscopic picture. In statistical mechanics, passing from continuous microscopic updates to a macroscopic observable is rigorously formalized via the <strong>Langevin equation</strong>. For a macroscopic state variable <em>X</em>, the classical Langevin architecture takes the explicit form:
+</p>
+
+<div class="eq-block">
+d<em>X</em> = <em>F</em><sub>sys</sub>(<em>X</em>) dt + <em>Γ</em><sub>fluc</sub> d<em>W<sub>t</sub></em>
+</div>
+
+<p>
+Where <em>F</em><sub>sys</sub> represents the deterministic, systemic forces acting on the particle, and <em>Γ</em><sub>fluc</sub> represents the coupling to a stochastic thermal bath. To map this architecture to our asset price <em>S<sub>t</sub></em>, we must define how these physical forces translate to extensive market structures.
 </p>
 
 <p>
-To map this physics architecture to a financial asset, we must transition from intensive network coordinates to extensive market volume. We define the extensive <strong>Aggregate Excess Demand Vector</strong> (&mathbf;D<sub>t</sub>) as the total sum of all individual agent action vectors. By definition, this scales directly with the population size <em>N</em> and maps the mean-field magnetization to the systemic force of our Langevin system:
+First, we formalize the systemic force <em>F</em><sub>sys</sub> by transitioning from intensive network coordinates to extensive market volume. We define the extensive <strong>Aggregate Excess Demand Vector</strong> (&mathbf;D<sub>t</sub>) as the total sum of all individual agent action vectors, scaling directly with population size <em>N</em> and the mean-field magnetization:
 </p>
 
 <div class="eq-block">
@@ -522,7 +530,15 @@ To map this physics architecture to a financial asset, we must transition from i
 </div>
 
 <p>
-Because market impact is driven by this total extensive order flow crossed with Kyle's depth parameter <em>λ</em>, the deterministic drift of the asset is governed by the scalar projection <em>λ (w<sup>T</sup> &mathbf;D<sub>t</sub>)</em>. The background thermal bath—the residual variance of independent private shocks—is bounded by our extensive variance floor, yielding a diffusion coefficient scaling as <em>σ<sub>v</sub> N √HHI<sub>t</sub></em>. Synthesizing these systemic and thermal forces, we arrive at the final Non-Equilibrium Attention Market (NEAM) equation:
+Because market impact is driven by this total extensive order flow crossed with Kyle's depth parameter <em>λ</em>, the deterministic systemic force driving price drift is governed precisely by the scalar projection <em>λ (w<sup>T</sup> &mathbf;D<sub>t</sub>)</em>. 
+</p>
+
+<p>
+Second, we define the thermal bath coupling <em>Γ</em><sub>fluc</sub>. The background fluctuations—the residual variance of independent private shocks—are bounded by our extensive variance floor from Section 7.3. This forces the stochastic noise to couple directly to the network geometry, scaling as <em>σ<sub>v</sub> N √HHI<sub>t</sub></em>, where <em>σ<sub>v</sub></em> acts as the ambient market temperature. 
+</p>
+
+<p>
+By substituting these explicit physical forces directly into the Langevin template, the final Non-Equilibrium Attention Market (NEAM) Stochastic Differential Equation appears:
 </p>
 
 <div class="eq-block">
@@ -530,11 +546,11 @@ d<em>S<sub>t</sub></em> = [ <em>λ</em> (<em>w<sup>T</sup> &mathbf;D<sub>t</sub>
 </div>
 
 <p>
-By expressing the entire system through the extensive scaling of <em>&mathbf;D<sub>t</sub></em> and the structural boundary of the <em>HHI<sub>t</sub></em>, the SDE elegantly encapsulates two distinct thermodynamic states:
+By expressing the entire system through this explicit Langevin decomposition, the SDE elegantly encapsulates two distinct thermodynamic states:
 </p>
 
 <ol>
-  <li><strong>The High-Entropy Baseline:</strong> When attention is highly diversified, <em>HHI<sub>t</sub> ≈ 1/N</em>. The covariance cross-terms within the aggregate demand vector are negligible, and the diffusion coefficient simplifies cleanly to <em>σ<sub>v</sub> √N</em>. The price undergoes standard, tranquil Brownian motion representing the random walk of independent actors in a stable fluid.</li>
+  <li><strong>The High-Entropy Baseline:</strong> When attention is highly diversified, <em>HHI<sub>t</sub> ≈ 1/N</em>. The covariance cross-terms within the aggregate demand vector are negligible, and the diffusion coefficient simplifies cleanly to <em>σ<sub>v</sub> √N</em>. The price undergoes standard, tranquil Brownian motion—the physical equivalent of a heavy particle buffeted by a stable, uncoordinated fluid.</li>
   <li><strong>The Critical Phase Transition:</strong> As thermodynamic friction forces the attention network to collapse, the <em>HHI<sub>t</sub></em> spikes toward 1.0. Simultaneously, endogenous imitation causes agent correlations to ignite, meaning the true macroscopic variance breaks past the <em>O(N<sup>2</sup> HHI<sub>t</sub>)</em> floor and explodes toward its global extensive ceiling of <em>O(N<sup>2</sup>)</em>, causing the diffusion coefficient to scale linearly with <em>N</em>.</li>
 </ol>
 
