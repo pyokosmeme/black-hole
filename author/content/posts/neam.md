@@ -636,10 +636,4 @@ And thus, to answer our questions that started this endeavor:
   <li>Zaklan, G., Westerhoff, F., &amp; Stauffer, D. (2009). Analysing tax evasion dynamics via the Ising model. <em>Journal of Economic Interaction and Coordination</em>, 4(1), 1–14. <a href="https://doi.org/10.1007/s11403-008-0043-5">doi</a></li>
 </ul>
 
-<div class="footer-meta">
-  <div>Source · Non-Equilibrium Attention Markets</div>
-  <div>Framework · Bal spin transformers → NEAM</div>
-  <div>Econophysics · 2026</div>
-</div>
-
 </div>
