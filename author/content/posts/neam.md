@@ -94,7 +94,9 @@ body.light-reading .nrol-doc .eq-block {
 <h2 id="sec-intro"><span class="num">01</span> Introduction</h2>
 
 <p>
-If you need evidence of the value of the Ising model, this is not the post for you — you're late to the stage and the world has already been swallowed by statistical mechanics — instead, this post seeks to expand your study from mere statistical mechanics, into the regime of attention transformers. From that point, we propose Non-Equilibrium Attention Markets. To that end, we have two bridge questions:
+If you need evidence of the value of the Ising model, this is not the post for you — you're late to the stage and the world has already been swallowed by statistical mechanics — instead, this post seeks to expand your study from mere statistical mechanics, into the regime of attention transformers. We present this as an argument, not as a peer-reviewed paper. We are gesturing in, what seems to be, a promising vector of inquiry. With that in mind, we will sketch our proposal for a Non-Equilibrium Attention Market framework.
+   
+To those ends, we have two bridging questions to answer:
 </p>
 
 <ol>
