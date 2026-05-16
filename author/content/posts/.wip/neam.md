@@ -380,38 +380,19 @@ The agents are no longer acting as independent random variables; they are acting
 
 <h2 id="sec-bbs"><span class="num">07</span> Attention Econophysics</h2>
 
-<p></p>
-
-<h2 id="sec-bbs"><span class="num">07</span> Bal-Black-Scholes</h2>
-
+<p>
 Ok, so what we have is a justified arugment about the overall dynamics regarding entropy and attention markets, but markets are about prices? We will proceed by following the elephant path of econophysics. If buy and sell (spin up or spin down) is our model, then the magnetization of the spin glass becomes aggregate excess demand. In physics, we call this the order parameter. Once we have demand, or an order parameter, we then identify the price clearing mechanism with the core assumption that the percentage change in price is strictly proportional to the excess demand:
+</p>
 
 
 <div class="eq-block">
-<mfrac>
-    <mrow>
-      <mi>&Delta;</mi>
-      <msub>
-        <mi>S</mi>
-        <mi>t</mi>
-      </msub>
-    </mrow>
-    <msub>
-      <mi>S</mi>
-      <mi>t</mi>
-    </msub>
-  </mfrac>
-  <mo>=</mo>
-  <mi>&lambda;</mi>
-  <mo>&middot;</mo>
-  <msub>
-    <mi>M</mi>
-    <mi>t</mi>
-  </msub>
+Δ<em>S<sub>t</sub></em> / <em>S<sub>t</sub></em> = <em>λ</em> · <em>M<sub>t</sub></em>
 </div>
 
 
-After we have the oder parameter, the price clearing mechanism, and our model, we must show how the microscopic randomness of the spins scales up to the macroscopic volatility of the price. In physics, passing from microscopic jump probabilities to a continuous differential equation is done via the Kramers-Moyal expansion (finding the first and second moments).
+<p>
+With the order parameter and the price-clearing mechanism established, the final step is to determine how the microscopic randomness of the agents scales up to macroscopic market volatility. In statistical mechanics, passing from discrete microscopic jump probabilities to a continuous Stochastic Differential Equation is achieved via the Kramers-Moyal expansion—calculating the first (drift) and second (diffusion) moments of the macroscopic system.
+</p>
 
 <h3><span class="num">7.1</span> Magnetization</h3>
 <p>
@@ -439,6 +420,11 @@ Because the aggregate order flow is determined by the covariance of the agents' 
 </p>
 
 <h3><span class="num">7.1</span> Magnetization and market memory (the drift term)</h3>
+
+
+
+
+<h2 id="sec-bbs"><span class="num">08</span> Bal-Black-Scholes</h2>
 
 <p>
 Before we write the final equation, we must address the most canonical observable in any spin system: <strong>Magnetization</strong>.
