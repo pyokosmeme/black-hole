@@ -111,7 +111,7 @@ Our goal today is to slouch towards a stochastic differential equation governing
 </p>
 
 <p>
-Before we begin, it is worth nothing this is not the Ising explainer, which I will never write, but the way forward is dangerous, so take this sampling of literature on the application of Ising models in economics:
+Before we begin, it is worth noting this is not the Ising explainer, which I will never write, but the way forward is dangerous, so take this sampling of literature on the application of Ising models in economics:
 </p>
 
 <ul>
@@ -378,7 +378,7 @@ Claim: <em>the market cannot sustain infinite entropy production.</em> As <em>Π
 </ol>
 
 <p>
-In either scenario, the attention of the entire network "snaps" onto a single signal or a small cluster of agents, or into a phasechange that is tracked (not caused) by <em>Π<sub>t</sub></em>. In statistical mechanics, this is a <strong>Phase Transition</strong> via spontaneous symmetry breaking. In finance, this is a <strong>Herd</strong>.
+In either scenario, the attention of the entire network "snaps" onto a single signal or a small cluster of agents, or into a phase change that is tracked (not caused) by <em>Π<sub>t</sub></em>. In statistical mechanics, this is a <strong>Phase Transition</strong> via spontaneous symmetry breaking. In finance, this is a <strong>Herd</strong>.
 </p>
 
 <p>
@@ -390,7 +390,7 @@ So, we argue: the market cannot sustain infinite entropy production. As <em>Π<s
 </p>
 
 <p>
-The moment the attention distribution collapses, we can quantify this using a standard economic tool: the systemic Herfindahl-Hirschman Index (HHI). The HHI the stationary distribution <em>π</em> violently spikes from its diversified baseline (<em>≈ 1/N</em>) toward its maximum (<em>1.0</em>).
+The moment the attention distribution collapses, we can quantify this using a standard economic tool, the systemic Herfindahl-Hirschman Index (HHI), which we calculate for the distribution <em>π</em> and see it violently spikes from its diversified baseline (<em>≈ 1/N</em>) toward its maximum (<em>1.0</em>).
 </p>
 
 <div class="eq-block">
@@ -449,6 +449,10 @@ In a standard Large Language Model, this is the exact function of the <strong>Un
 <p>
 Following the established price-clearing relationship, the deterministic drift rate (<em>μ<sub>t</sub></em>) of the asset price is simply this scalar magnetization scaled by the market depth parameter <em>λ</em>:
 </p>
+
+<div class="eq-block">
+<em>μ</em><sub>t</sub> = <em>λ</em> (<em>w</em><sup>T</sup> <em>M</em><sub>t</sub>)
+</div>
 
 <h3 id="sec-drift"><span class="num">7.2</span> Attention Price Clearing</h3>
 
@@ -524,11 +528,6 @@ Whatever we call it, this equation bridges Bal's Spin Transformers with observab
 
 <p>
 At that critical moment, the market is structurally compromised. The next exogenous macroeconomic shock (d<em>W<sub>t</sub></em>), no matter how mathematically trivial, is multiplied by a massive, perfectly correlated <em>O(N)</em> factor. The market maker's liquidity is instantly overwhelmed, and the scalar price <em>S<sub>t</sub></em> violently gaps to clear the one-sided demand. 
-</p>
-
-
-<p>
-Consequently, the diffusion coefficient (the standard deviation) for our price equation must scale as <em>O(N √HHI<sub>t</sub>)</em>.
 </p>
 
 <h2 id="sec-fat"><span class="num">08</span> Endogenous fat tails for sale, never used</h2>
