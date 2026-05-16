@@ -60,7 +60,7 @@ body.light-reading .nrol-doc .eq-block {
 <h2 id="sec-intro"><span class="num">01</span> Introduction</h2>
 
 <p>
-If you need evidence of the value of the Ising model, this is not the post for you — you're late to the stage and the world has already been swallowed by statistical mechanics — instead, this post seeks to expand your study from mere statistical mechanics, into the regime of attention transformers, and from that point, propose a Non-Equilibrium Attention Market. To that end, we have two bridge questions:
+If you need evidence of the value of the Ising model, this is not the post for you — you're late to the stage and the world has already been swallowed by statistical mechanics — instead, this post seeks to expand your study from mere statistical mechanics, into the regime of attention transformers. From that point, we propose Non-Equilibrium Attention Markets. To that end, we have two bridge questions:
 </p>
 
 <ol>
@@ -73,11 +73,11 @@ We will see that we recover Bal's spin transformers (<a href="https://mcbal.gith
 </p>
 
 <p>
-Our goal today is to gesture towards a possible solution toward that question.
+Our goal today is to slouch towards a stochastic differential equation governing attention markets, where the market created by agents is a large dimensional vector space, and the interactions are asymmetric, forcing the system into non-equilibrium.
 </p>
 
 <p>
-While this is not the Ising explainer, which I will never write, here is a sampling of the robust literature on the application of Ising models as applied to economics:
+Before we begin, it is worth nothing this is not the Ising explainer, which I will never write, but the way forward is dangerous, so take this sampling of literature on the application of Ising models in economics:
 </p>
 
 <ul>
@@ -92,11 +92,11 @@ While this is not the Ising explainer, which I will never write, here is a sampl
 <h2 id="sec-state"><span class="num">02</span> State agent attention</h2>
 
 <p>
-Let's drop the <em>cut</em> as they may say someday, and drop ourselves right to the heart of it: the Ising model is a discrete lattice of particles, each particle has two states (buy or sell), particles only interact with their nearest neighbors, the state space of that system yields surprising results if we have infinitely many particles on our lattice, and combined this model yields tractable insight to technosocial systems across scales and fussy physical details.
+Let's drop the <em>cut</em> as they may say someday, and drop ourselves right to the heart of it: the Ising model is a discrete lattice of particles, each particle has two states (buy or sell), particles only interact with their nearest neighbors, the state space of that system yields surprising results if we have infinitely many particles on our lattice. Combined this model yields tractable insight into technosocial systems. Across scales and fussy physical details, it just works.
 </p>
 
 <p>
-Instead, let's assume that our trader, our agent, labeled with index <em>i</em> has an internal state represented by a vector <em>x</em> at time <em>t</em>, and this vector lives in a <em>d</em>-dimensional vector space, thus:
+Instead of limiting ourselves to the binary, let's instead assume that our trader, our agent, labeled with index <em>i</em> has an internal state represented by a vector <em>x</em> at time <em>t</em>. This vector lives in a <em>d</em>-dimensional vector space:
 </p>
 
 <div class="eq-block">
@@ -104,7 +104,7 @@ Instead, let's assume that our trader, our agent, labeled with index <em>i</em> 
 </div>
 
 <p>
-What is this vector space? It is defined as the embeddings of all states for all agents, such that the matrix <em>X</em> ∈ ℝ<sup>N × d</sup>, which is the "hidden state" of all <em>N</em> agents.
+What is this vector space? It is defined as the embeddings of all states for all agents, such that the matrix <em>X</em> ∈ ℝ<sup>N × d</sup> and is identified as the "hidden state" of all <em>N</em> agents.
 </p>
 
 <p>
@@ -154,7 +154,7 @@ Let <em>p<sub>j</sub></em> be the probability that Agent <em>i</em> pays attenti
 </p>
 
 <p>
-How do we calculate this? Well, let's just use Jaynes' Principle of Maximum Entropy (MaxEnt). There are many ways to think of MaxEnt. Jaynes might say a bounded agent should assume nothing beyond what is strictly known, and that the agent seeks a distribution that maximizes Shannon Entropy. Another way to think about it, is, I believe more intuitive: diffusion is a tendency of systems, unless otherwise constrained, and it is simply a better prior to assume diffusion under constraint, thus MaxEnt. Either way, we have the well-travelled path: <strong>we must maximize Shannon entropy</strong>.
+How do we calculate this? Well, let's just use Jaynes' Principle of Maximum Entropy (MaxEnt). There are many ways to think of MaxEnt. Jaynes might say a bounded agent should assume nothing beyond what is strictly known, and that the agent seeks a distribution that maximizes Shannon Entropy. Another way to think about it, is, I believe more intuitive, namely diffusion is a tendency of systems, unless otherwise constrained, and it is simply a better prior to assume diffusion under constraint, thus MaxEnt. Either way, we have the well-travelled path: <strong>we must maximize Shannon entropy</strong>.
 </p>
 
 <p>
@@ -225,7 +225,7 @@ Attention(<em>Q,K,V</em>) = Softmax(<em>QK</em><sup>T</sup> / √<em>d<sub>k</su
 <h2 id="sec-baleq"><span class="num">05</span> Bal's non-equilibrium attention market</h2>
 
 <p>
-In a classical physical spin system (like an Ising model) and in classical Efficient Market Hypothesis (EMH), systems are assumed to eventually reach Thermodynamic Equilibrium.
+In a classical physical spin system (Ising model) and in classical Efficient Market Hypothesis (EMH), systems are assumed to eventually reach Thermodynamic Equilibrium.
 </p>
 
 <p>
@@ -249,23 +249,23 @@ In non-equilibrium statistical mechanics, when detailed balance is broken, the s
 </p>
 
 <p>
-<strong>As we are not mere alchemists, we need a way to calculate this dissipation.</strong> Let's start by defining a Markovian random walk on the <em>attention graph</em>. Imagine a marginal "packet of influence" traversing the network. If this influence is currently localized at Agent <em>i</em>, it transitions to Agent <em>j</em> with probability <em>A<sub>ij</sub></em>. The agents themselves form the discrete state space of the system.
+<strong>As we are not mere alchemists, we need a way to calculate this dissipation.</strong> Let's start by defining a Markovian random walk on the <em>attention graph</em>. Imagine a marginal "packet of influence" traversing the network. If this influence is currently localized at Agent <em>i</em>, it transitions to Agent <em>j</em> with probability <em>p<sub>ij</sub></em>. The agents themselves form the discrete state space of the system.
 </p>
 
 <p>
-Because the attention matrix <em>A</em> is row-stochastic (∑<sub>j</sub> <em>A<sub>ij</sub></em> = 1) but strictly non-symmetric and not doubly stochastic, this Markov chain will converge to a unique stationary distribution <em>π</em> over the agents, where:
+Because the attention matrix <em>A</em> is row-stochastic (∑<sub>j</sub> <em>p<sub>ij</sub></em> = 1) but strictly non-symmetric and not doubly stochastic, this Markov chain will converge to a unique stationary distribution <em>π</em> over the agents, where:
 </p>
 
 <div class="eq-block">
-<em>π</em><sup>T</sup> <em>A</em> = <em>π</em><sup>T</sup>
+<em>π</em><sup>T</sup> <em>p</em> = <em>π</em><sup>T</sup>
 </div>
 
 <p>
-As an aside, softmax attention with finite <em>β</em> gives <em>A<sub>ij</sub> &gt; 0</em> everywhere, which guarantees ergodicity, and thus secures the unique stationary distribution. The vector <em>π</em> represents the steady-state systemic influence of each agent.
+As an aside, softmax attention with finite <em>β</em> gives <em>p<sub>ij</sub> &gt; 0</em> everywhere, which guarantees ergodicity, and thus secures the unique stationary distribution. The vector <em>π</em> represents the steady-state systemic influence of each agent.
 </p>
 
 <p>
-To calculate this, we look at the attention weights, <em>A<sub>ij</sub></em>, that is how Agent <em>i</em> shifts to match Agent <em>j</em> through their interaction. The probability flux from agent <em>i</em> to agent <em>j</em> (<em>J<sub>ij</sub> = π<sub>i</sub>A<sub>ij</sub></em>) is not equal to the reverse flux (<em>J<sub>ji</sub> = π<sub>j</sub>A<sub>ji</sub></em>).
+To calculate this, we look at the attention weights, <em>p<sub>ij</sub></em>, that is how Agent <em>i</em> shifts to match Agent <em>j</em> through their interaction. The probability flux from agent <em>i</em> to agent <em>j</em> (<em>J<sub>ij</sub> = π<sub>i</sub>A<sub>ij</sub></em>) is not equal to the reverse flux (<em>J<sub>ji</sub> = π<sub>j</sub>p<sub>ji</sub></em>).
 </p>
 
 <p>
@@ -273,11 +273,11 @@ This persistent imbalance means the market acts as a driven non-equilibrium syst
 </p>
 
 <div class="eq-block">
-<em>Π</em> = ½ ∑<sub>i,j</sub> (<em>J<sub>ij</sub></em> − <em>J<sub>ji</sub></em>) ln(<em>J<sub>ij</sub></em> / <em>J<sub>ji</sub></em>) = ½ ∑<sub>i,j</sub> (<em>π<sub>i</sub></em><em>A<sub>ij</sub></em> − <em>π<sub>j</sub></em><em>A<sub>ji</sub></em>) ln(<em>π<sub>i</sub></em><em>A<sub>ij</sub></em> / <em>π<sub>j</sub></em><em>A<sub>ji</sub></em>)
+<em>Π</em> = ½ ∑<sub>i,j</sub> (<em>J<sub>ij</sub></em> − <em>J<sub>ji</sub></em>) ln(<em>J<sub>ij</sub></em> / <em>J<sub>ji</sub></em>) = ½ ∑<sub>i,j</sub> (<em>π<sub>i</sub></em><em>p<sub>ij</sub></em> − <em>π<sub>j</sub></em><em>p<sub>ji</sub></em>) ln(<em>π<sub>i</sub></em><em>A<sub>ij</sub></em> / <em>π<sub>j</sub></em><em>p<sub>ji</sub></em>)
 </div>
 
 <p>
-Because <em>π<sub>i</sub>A<sub>ij</sub> ≠ π<sub>j</sub>A<sub>ji</sub></em>, the logarithmic term is non-zero, yielding a strictly positive entropy production rate (<em>Π &gt; 0</em>).
+Because <em>π<sub>i</sub>p<sub>ij</sub> ≠ π<sub>j</sub>p<sub>ji</sub></em>, the logarithmic term is non-zero, yielding a strictly positive entropy production rate (<em>Π &gt; 0</em>).
 </p>
 
 <p>
@@ -336,32 +336,27 @@ Claim: <em>the market cannot sustain infinite entropy production.</em> As <em>Π
 
 <ol>
   <li><strong>Self-organized criticality.</strong> If you continuously drive a system away from equilibrium by injecting a constant flux of either energy or material, the system eventually reaches a state of Self-Organized Criticality (<a href="https://doi.org/10.1103/PhysRevLett.59.381">Bak, Tang, &amp; Wiesenfeld, 1987</a>). Imagine you are a sandpile. Dropping a single grain of sand at a time, you are never in equilibrium. The pile gets steeper and steeper. The continuous entropy production rate <em>Π<sub>t</sub></em> acts precisely like the constant injection of sand, steadily driving the market to a critical slope where even a tiny perturbation causes the system to avalanche.</li>
-  <li><strong>Geometric explosion.</strong> Suppose an asymmetry between Retail agents represented by Alice, and Institutional agents represented by Bob. Alice is bleeding capital to Bob, but Alice isn't an idiot and won't just bleed out. In the terms of an attention agent: gradient descent trains weight matrices to adjust, to change, until Alice's Query matrices better align to the attention of Bob's with winning Key vectors. But look at softmax again with the physics lens:
+  <li><strong>Geometric explosion and Phase Transisitions</strong> Suppose an asymmetry between Retail agents represented by Alice, and Institutional agents represented by Bob. Alice is bleeding capital to Bob, but Alice isn't an idiot and won't just bleed out. In the terms of an attention agent: gradient descent trains weight matrices to adjust, to change, until Alice's Query matrices better align to the attention of Bob's with winning Key vectors. But look at softmax again with the physics lens:
     <div class="eq-block">
-    <em>p<sub>j</sub></em> = exp(<em>β E<sub>ij</sub></em>) / ∑<sub>k</sub> exp(<em>β E<sub>ik</sub></em>)
+    <em>p<sub>ij</sub></em> = exp(<em>β E<sub>ij</sub></em>) / ∑<sub>k</sub> exp(<em>β E<sub>ik</sub></em>)
     </div>
-    An arithmetic increase in alignment between Alice and Bob creates a geometric explosion in probability weight, because of that exponential.</li>
-  <li><strong>Phase transition.</strong> As the local field generated by the dominant agents (<em>q<sub>i</sub> · k<sub>j</sub></em>) grows larger relative to the noise, the exponential function in softmax abruptly dominates the denominator. The diverse, high-entropy attention distribution spontaneously collapses.</li>
+    An arithmetic increase in alignment between Alice and Bob creates a geometric explosion in probability weight, because of that exponential. As the local field generated by the dominant agents (<em>q<sub>i</sub> · k<sub>j</sub></em>) grows larger relative to the noise, the exponential function in softmax abruptly dominates the denominator. The diverse, high-entropy attention distribution spontaneously collapses.</li>
 </ol>
 
 <p>
-The attention of the entire network "snaps" onto a single signal or a small cluster of agents. In statistical mechanics, this is a <strong>Phase Transition</strong> via spontaneous symmetry breaking. In finance, this is a <strong>Herd</strong>.
+In either scenario, the attention of the entire network "snaps" onto a single signal or a small cluster of agents, or into a phase change. In statistical mechanics, this is a <strong>Phase Transition</strong> via spontaneous symmetry breaking. In finance, this is a <strong>Herd</strong>.
 </p>
 
 <p>
-When attention is uniform, agents act as independent random variables, and we can see that market shocks are smoothed out in a usual Brownian motion argument. An efficient market, nearly. But, after softmax phase transitions, agents are perfectly correlated, so exogenous noise causes every single agent to react in the exact same direction simultaneously.
+In this case, the Brownian motion of an efficient market is replaced with strong correlation, making this a strongly justified, though not rigorously demonstrated, claim!
 </p>
 
 <p>
-So, a justified claim!
+So, we argue: the market cannot sustain infinite entropy production. As <em>Π<sub>t</sub></em> increases, the system becomes structurally fragile, setting the stage for a mechanical crash.
 </p>
 
 <p>
-And so we can argue, the market cannot sustain infinite entropy production. As <em>Π<sub>t</sub></em> increases, the system becomes structurally fragile, setting the stage for a mechanical crash.
-</p>
-
-<p>
-The moment the attention distribution collapses, the systemic Herfindahl-Hirschman Index (HHI) of the stationary distribution <em>π</em> violently spikes from its diversified baseline (<em>≈ 1/N</em>) toward its maximum (<em>1.0</em>).
+The moment the attention distribution collapses, we can quantify this using a standard economic tool: the systemic Herfindahl-Hirschman Index (HHI). The HHI the stationary distribution <em>π</em> violently spikes from its diversified baseline (<em>≈ 1/N</em>) toward its maximum (<em>1.0</em>).
 </p>
 
 <div class="eq-block">
@@ -383,8 +378,42 @@ The agents are no longer acting as independent random variables; they are acting
   </div>
 </div>
 
+<h2 id="sec-bbs"><span class="num">07</span> Attention Econophysics</h2>
+
+<p></p>
+
 <h2 id="sec-bbs"><span class="num">07</span> Bal-Black-Scholes</h2>
 
+Ok, so what we have is a justified arugment about the overall dynamics regarding entropy and attention markets, but markets are about prices? We will proceed by following the elephant path of econophysics. If buy and sell (spin up or spin down) is our model, then the magnetization of the spin glass becomes aggregate excess demand. In physics, we call this the order parameter. Once we have demand, or an order parameter, we then identify the price clearing mechanism with the core assumption that the percentage change in price is strictly proportional to the excess demand:
+
+
+<div class="eq-block">
+<mfrac>
+    <mrow>
+      <mi>&Delta;</mi>
+      <msub>
+        <mi>S</mi>
+        <mi>t</mi>
+      </msub>
+    </mrow>
+    <msub>
+      <mi>S</mi>
+      <mi>t</mi>
+    </msub>
+  </mfrac>
+  <mo>=</mo>
+  <mi>&lambda;</mi>
+  <mo>&middot;</mo>
+  <msub>
+    <mi>M</mi>
+    <mi>t</mi>
+  </msub>
+</div>
+
+
+After we have the oder parameter, the price clearing mechanism, and our model, we must show how the microscopic randomness of the spins scales up to the macroscopic volatility of the price. In physics, passing from microscopic jump probabilities to a continuous differential equation is done via the Kramers-Moyal expansion (finding the first and second moments).
+
+<h3><span class="num">7.1</span> Magnetization</h3>
 <p>
 Ok, but this is supposed to be a prediction about economics right? To quote a friend, "value plus discounted," that is to say: we would like to determine a value, or an asset price. I'm not an economist, however, so what I mean is: there's some variable in the system, some expected value, and it is an observable and we would like to know its value. In a market, like the stock market, I know about two things: what is the price I paid, what is the price I hope to get? That is, I would love to predict the price on the market, and the continuous evolutions of that price.
 </p>
