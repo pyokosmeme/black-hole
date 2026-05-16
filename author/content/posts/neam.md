@@ -464,22 +464,38 @@ We now have our order parameter (excess demand). The next step in the econophysi
 This provides the deterministic drift rate (<em>μ<sub>t</sub></em>) of our asset price. Unlike classical finance where drift is a static constant, here it is dynamically driven by the network's structural memory. If the network aligns into a bullish subspace, the drift organically updates to reflect that momentum.
 </p>
 
-<h3 id="sec-vol"><span class="num">7.3</span> Attention concentration as volatility</h3>
+
+
+<h3 id="sec-vol"><span class="num">7.3</span> Attention concentration and the variance expansion</h3>
 
 <p>
-With the drift established, we must show how the microscopic randomness of the agents scales up to macroscopic market volatility. 
+With the drift established, we must determine how the microscopic randomness of the agents scales up to macroscopic market volatility. The aggregate order flow is a weighted sum of the agents' intents, where the weights are the stationary attention probabilities <em>π<sub>j</sub></em>. 
 </p>
 
 <p>
-The aggregate order flow is a weighted sum of the agents' intents. Weights are stationary attention probabilities <em>π<sub>j</sub></em>. Thus, macroscopic variance is explicitly dictated by the network's concentration. 
+To evaluate this rigorously, we write out the explicit variance of this weighted sum, expanding it into individual variance components and cross-agent covariance terms:
 </p>
 
-<p>
-Statistically, the variance of a weighted sum scales with the sum of the squared weights. Since the sum of the squared attention probabilities (∑ <em>π<sub>j</sub></em><sup>2</sup>) is the literal mathematical definition of the Herfindahl-Hirschman Index, the variance of the market's aggregate demand scales strictly as <em>O(N<sup>2</sup> HHI<sub>t</sub>)</em>. 
-</p>
+<div class="eq-block">
+Var(∑<sub>j=1</sub><sup>N</sup> <em>π<sub>j</sub> v<sub>j</sub></em>) = ∑<sub>j=1</sub><sup>N</sup> <em>π<sub>j</sub></em><sup>2</sup> Var(<em>v<sub>j</sub></em>) + ∑<sub>j≠k</sub> <em>π<sub>j</sub> π<sub>k</sub></em> Cov(<em>v<sub>j</sub>, v<sub>k</sub></em>)
+</div>
 
 <p>
-In the continuous limit of a Stochastic Differential Equation, this variance maps directly to the system's <strong>diffusion term</strong>. Because the diffusion coefficient (the standard deviation) represents the square root of this variance, the structural volatility for our price equation must scale as <em>O(N √HHI<sub>t</sub>)</em>.
+By analyzing this complete expansion, we can evaluate the exact asymptotic limits of the system to see precisely where the Herfindahl-Hirschman Index (HHI) governs the dynamics:
+</p>
+
+<ul>
+  <li><strong>The Independent Phase (High Entropy):</strong> When the market is fragmented, agents act on private, idiosyncratic information. Their strategies are completely uncorrelated, meaning Cov(<em>v<sub>j</sub>, v<sub>k</sub></em>) = 0 for all <em>j ≠ k</em>. The entire right-hand covariance block vanishes, leaving:
+    <div class="eq-block">Var(∑ <em>π<sub>j</sub> v<sub>j</sub></em>) = <em>σ</em><sup>2</sup> ∑<sub>j=1</sub><sup>N</sup> <em>π<sub>j</sub></em><sup>2</sup> = <em>σ</em><sup>2</sup> HHI<sub>t</sub></div>
+    In this regime, the HHI is not an approximation; it is a technically exact identity mapping network concentration to aggregate variance.
+  </li>
+  <li><strong>The Monopolistic Phase (Localized Concentration):</strong> If a single dominant agent or systemic algorithm captures near-total attention, the distribution approaches <em>π<sub>1</sub> → 1</em> and <em>π<sub>j&gt;1</sub> → 0</em>. The weight products <em>π<sub>j</sub> π<sub>k</sub></em> for the cross-terms drop to zero because the marginal agents carry no weight. Here, the HHI approaches 1.0, and the total variance cleanly matches the HHI baseline again, capping out at <em>σ</em><sup>2</sup> due to geometric concentration alone.</li>
+  <li><strong>The Correlated Herd Phase (The Covariance Explosion):</strong> The bound breaks away from the pure HHI line when attention remains distributed across multiple nodes, but those nodes begin actively imitating one another, forcing Cov(<em>v<sub>j</sub>, v<sub>k</sub></em>) → <em>σ</em><sup>2</sup>. Because the remaining weight products sum to <em>1 - HHI</em>, the variance surges to its global ceiling of <em>σ</em><sup>2</sup>.
+  </li>
+</ul>
+
+<p>
+This shows the <em>O(N<sup>2</sup> HHI<sub>t</sub>)</em> scaling coefficient derived from the first term acts as the fundamental <strong>structural floor</strong> of market volatility. The HHI explicitly dictates the minimum level of macroeconomic diffusion guaranteed by the network geometry, while the latent covariance cross-terms dictate the explosive ceiling when herd coordination ignites.
 </p>
 
 <h3 id="sec-sde"><span class="num">7.4</span>The Non-Equilibrium Attention Market Equation</h3>
