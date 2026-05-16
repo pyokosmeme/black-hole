@@ -10,8 +10,27 @@
 .nrol-doc .eq-block em,
 .nrol-doc .eq-block sub,
 .nrol-doc .eq-block sup {
-  color: var(--cyan) !important; /* Forces global theme matching */
-  font-style: normal; /* Optional: keeps math characters crisp */
+  color: var(--cyan) !important;
+}
+
+/* Light mode overrides — Forces all math sub-elements to shift together */
+body.light-mode .nrol-doc .eq-block,
+body.light-mode .nrol-doc .eq-block em,
+body.light-mode .nrol-doc .eq-block sub,
+body.light-mode .nrol-doc .eq-block sup,
+body.light-reading .nrol-doc .eq-block,
+body.light-reading .nrol-doc .eq-block em,
+body.light-reading .nrol-doc .eq-block sub,
+body.light-reading .nrol-doc .eq-block sup {
+  color: #bf00ff !important; /* High-contrast color for light backgrounds */
+}
+
+.nrol-doc .eq-block {
+  text-align: center;
+  margin: 18px 0;
+  padding: 12px 0;
+  font-size: 14px;
+  letter-spacing: 0.04em;
 }
 
 .nrol-doc .eq-block {
