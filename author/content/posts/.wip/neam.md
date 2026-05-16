@@ -515,13 +515,13 @@ And thus, to answer our questions that started this endeavor:
 <h2 id="sec-refs"><span class="num">11</span> References</h2>
 
 <h3>Foundational texts</h3>
-<p><em>Note: The following foundational texts were published independently on Mathias Bal's academic blog and form the basis of the Spin-Transformer physical translation presented in this work.</em></p>
+<p><em>Note: The following foundational texts were published independently on Mathias Bal's academic blog and form the basis of the spin transformer explorations recreated in this work.</em></p>
 
 <ul>
-  <li>Bal, M. C. (2020). <em>Transformers are secretly collectives of spin systems</em>. <a href="https://mcbal.github.io">mcbal.github.io</a></li>
-  <li>Bal, M. C. (2020). <em>Entropy production in non-equilibrium neural networks</em>. <a href="https://mcbal.github.io">mcbal.github.io</a></li>
-  <li>Bal, M. C. (2020). <em>Transformers from Spin Models: Approximate Free Energy Minimization</em>. <a href="https://mcbal.github.io">mcbal.github.io</a></li>
-  <li>Bal, M. C. (2020). <em>Spin Model Transformers</em>. <a href="https://mcbal.github.io">mcbal.github.io</a></li>
+  <li>Bal, M. C. (2021). <em>Transformers Are Secretly Collectives of Spin Systems</em>. <a href="https://mcbal.github.io/post/transformers-are-secretly-collectives-of-spin-systems/">mcbal.github.io</a></li>
+  <li>Bal, M. C. (2021). <em>Transformers from Spin Models: Approximate Free Energy Minimization</em>. <a href="https://mcbal.github.io/post/transformers-from-spin-models-approximate-free-energy-minimization/">mcbal.github.io</a></li>
+  <li>Bal, M. C. (2023). <em>Spin-Model Transformers</em>. <a href="https://mcbal.github.io/post/spin-model-transformers/">mcbal.github.io</a></li>
+  <li>Bal, M. C. (2026). <em>Entropy Production in Non-Equilibrium Neural Networks</em>. <a href="https://mcbal.github.io/tag/statistical-physics/">mcbal.github.io</a></li>
 </ul>
 
 <h3>Academic references</h3>
@@ -531,11 +531,14 @@ And thus, to answer our questions that started this endeavor:
   <li>Balduzzi, D., Racaniere, S., Martens, J., Foerster, J., Tuyls, K., &amp; Graepel, T. (2018). The Mechanics of n-Player Differentiable Games. <em>PMLR</em>, 80. <a href="https://doi.org/10.48550/arxiv.1802.05642">doi</a></li>
   <li>Black, F., &amp; Scholes, M. (1973). The Pricing of Options and Corporate Liabilities. <em>Journal of Political Economy</em>, 81(3), 637–654. <a href="https://doi.org/10.1086/260062">doi</a></li>
   <li>Bornholdt, S. (2001). Expectation bubbles in a spin model of markets: Intermittency from frustration across scales. <em>Int. J. Mod. Phys. C</em>, 12(5), 667–674. <a href="https://doi.org/10.1142/S0129183101001845">doi</a></li>
+  <li>Bouchaud, J.-P., Mezard, M., &amp; Potters, M. (2002). Statistical properties of stock order books: Empirical results and models. <em>Quantitative Finance</em>, 2(4), 251–256. <a href="https://doi.org/10.1088/1469-7688/2/4/302">doi</a></li>
   <li>Brock, W. A., &amp; Durlauf, S. N. (2001). Discrete Choice with Social Interactions. <em>The Review of Economic Studies</em>, 68(2), 235–260. <a href="https://doi.org/10.1111/1467-937x.00168">doi</a></li>
   <li>Cont, R., &amp; Bouchaud, J.-P. (1998). Herd Behavior and Aggregate Fluctuations in Financial Markets. <em>SSRN Electronic Journal</em>. <a href="https://doi.org/10.2139/ssrn.58468">doi</a></li>
   <li>Galam, S. (2008). Sociophysics: A Review of Galam Models. <em>International Journal of Modern Physics C</em>, 19(3), 409–440. <a href="https://doi.org/10.1142/s0129183108012297">doi</a></li>
+  <li>Gardiner, C. W. (1985). <em>Handbook of Stochastic Methods for Physics, Chemistry and the Natural Sciences</em>. Springer-Verlag. <a href="https://doi.org/10.1007/978-3-662-02452-2">doi</a></li>
   <li>Jaynes, E. T. (1957). Information Theory and Statistical Mechanics. <em>Physical Review</em>, 106(4), 620–630. <a href="https://doi.org/10.1103/physrev.106.620">doi</a></li>
   <li>Kyle, A. S. (1985). Continuous Auctions and Insider Trading. <em>Econometrica</em>, 53(6), 1315. <a href="https://doi.org/10.2307/1913210">doi</a></li>
+  <li>Risken, H. (1989). <em>The Fokker-Planck Equation: Methods of Solution and Applications</em>. Springer-Verlag. <a href="https://doi.org/10.1007/978-3-642-61544-3">doi</a></li>
   <li>Schnakenberg, J. (1976). Network theory of microscopic and macroscopic behavior of master equation systems. <em>Reviews of Modern Physics</em>, 48(4), 571–585. <a href="https://doi.org/10.1103/RevModPhys.48.571">doi</a></li>
   <li>Shannon, C. E. (1948). A Mathematical Theory of Communication. <em>Bell System Technical Journal</em>, 27(3), 379–423. <a href="https://doi.org/10.1002/j.1538-7305.1948.tb01338.x">doi</a></li>
   <li>Sornette, D. (2014). Physics and Financial Economics (1776-2014): Puzzles, Ising and Agent-Based models. <em>Rep. Prog. Phys.</em>, 77(6), 062001. <a href="https://doi.org/10.1088/0034-4885/77/6/062001">doi</a></li>
