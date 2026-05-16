@@ -604,7 +604,7 @@ And thus, to answer our questions that started this endeavor:
   <li>Bal, M. C. (2021). <em>Transformers Are Secretly Collectives of Spin Systems</em>. <a href="https://mcbal.github.io/post/transformers-are-secretly-collectives-of-spin-systems/">mcbal.github.io</a></li>
   <li>Bal, M. C. (2021). <em>Transformers from Spin Models: Approximate Free Energy Minimization</em>. <a href="https://mcbal.github.io/post/transformers-from-spin-models-approximate-free-energy-minimization/">mcbal.github.io</a></li>
   <li>Bal, M. C. (2023). <em>Spin-Model Transformers</em>. <a href="https://mcbal.github.io/post/spin-model-transformers/">mcbal.github.io</a></li>
-  <li>Bal, M. C. (2026). <em>Entropy Production in Non-Equilibrium Neural Networks</em>. <a href="https://mcbal.github.io/tag/statistical-physics/">mcbal.github.io</a></li>
+  <li>Bal, M. C. (2026). <em>Entropy Production in Non-Equilibrium Neural Networks</em>. <a href="https://mcbal.github.io/post/entropy-production-in-non-equilibrium-neural-networks/">mcbal.github.io</a></li>
 </ul>
 
 <h3> Academic References</h3>
