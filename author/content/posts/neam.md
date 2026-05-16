@@ -158,7 +158,7 @@ In standard spin glass physics — the Ising model — each nearest neighbor int
 </div>
 
 <p>
-But we have a problem! Transformers do not let vectors (spins/agents) interact directly. Rather, they project states through three distinct learned weights: <em>W<sub>Q</sub></em>, <em>W<sub>K</sub></em>, <em>W<sub>V</sub></em> ∈ ℝ<sup>d × d<sub>attn</sub></sup>. These <em>d<sub>attn</sub> × d</em> matrices, the Query, Key, and Value, are projections that we will assign to economic terms (for interpretation's sake), alongside their mathematical values:
+But we have a problem! Transformers do not let vectors (spins/agents) interact directly. Rather, they project states through three distinct learned weights: <em>W<sub>Q</sub></em>, <em>W<sub>K</sub></em>, <em>W<sub>V</sub></em> ∈ ℝ<sup>d<sub>attn</sub> × d</sup>. These <em>d<sub>attn</sub> × d</em> matrices, the Query, Key, and Value, are projections that we will assign to economic terms (for interpretation's sake), alongside their mathematical values:
 </p>
 
 <ul>
