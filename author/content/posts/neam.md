@@ -554,7 +554,7 @@ And thus, to answer our questions that started this endeavor:
     <p><em>The system breaks detailed balance and enters a non-equilibrium steady state. The resulting non-reciprocal updates generate a strictly positive entropy production rate (Π), driving the network toward structural fragility and spontaneous attention collapse.</em></p>
   </li>
   <li>What are the consequences if we use the tools of econophysics and apply it to Bal's spin transformers?
-    <p><strong>By calculating the first and second moments of the attention network via a Kramers-Moyal expansion, we find the drift (via continuous magnetization and an unembedding vector) and the diffusion (via the Herfindahl-Hirschman Index), deriving a testable Non-Equilibrium Attention Market (NEAM) SDE.</strong></p>
+    <p><strong>We directly find the drift (via continuous magnetization and an unembedding vector) and the diffusion (via the Herfindahl-Hirschman Index), deriving a testable Non-Equilibrium Attention Market (NEAM) SDE.</strong></p>
   </li>
 </ol>
 
