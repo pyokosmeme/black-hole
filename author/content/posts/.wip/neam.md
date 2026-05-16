@@ -441,17 +441,21 @@ The aggregate order flow is a weighted sum of the agents' intents. Weights are s
 </p>
 
 <p>
-Statistically, the variance of a weighted sum scales with the sum of the squared weights. Since the sum of the squared attention probabilities (∑ <em>π<sub>j</sub></em><sup>2</sup>) is the mathematical definition of the Herfindahl-Hirschman Index, the variance of the market's aggregate demand scales strictly as <em>O(N<sup>2</sup> HHI<sub>t</sub>)</em>. 
+Statistically, the variance of a weighted sum scales with the sum of the squared weights. Since the sum of the squared attention probabilities (∑ <em>π<sub>j</sub></em><sup>2</sup>) is the literal mathematical definition of the Herfindahl-Hirschman Index, the variance of the market's aggregate demand scales strictly as <em>O(N<sup>2</sup> HHI<sub>t</sub>)</em>. 
+</p>
+
+<p>
+In the continuous limit of a Stochastic Differential Equation, this variance maps directly to the system's <strong>diffusion term</strong>. Because the diffusion coefficient (the standard deviation) represents the square root of this variance, the structural volatility for our price equation must scale as <em>O(N √HHI<sub>t</sub>)</em>.
 </p>
 
 <h3 id="sec-sde"><span class="num">7.4</span>(Bal?)-Black-Scholes</h3>
 
 <p>
-With both the first moment (drift) and second moment (diffusion) rigorously micro-founded from the physics of the attention network, we can finally synthesize the complete Stochastic Differential Equation. 
+With both the first moment (drift) and second moment (diffusion) pulled from the physics of the attention network, using a standard econophysics playbook, we can finally synthesize the complete Stochastic Differential Equation. 
 </p>
 
 <p>
-Because the diffusion coefficient of an SDE is the standard deviation (the square root of the variance), we take the square root of our HHI scaling factor. Adding a baseline idiosyncratic variance parameter (<em>σ<sub>v</sub></em>) to represent ambient market noise, we arrive at the final Non-Equilibrium Attention Market (NEAM) equation:
+Because the diffusion coefficient of an SDE is the standard deviation (the square root of the variance), we take the square root of our HHI scaling factor. We a baseline idiosyncratic variance parameter (<em>σ<sub>v</sub></em>) to represent ambient market noise, the spiritual equivalent of adding an ambient thermal noise term a la Langevin separation of noise. Thus, we arrive at the final Non-Equilibrium Attention Market (NEAM) equation:
 </p>
 
 <div class="eq-block">
@@ -459,7 +463,11 @@ d<em>S<sub>t</sub></em> = [ <em>λ</em> (<em>w<sup>T</sup> M<sub>t</sub></em>) ]
 </div>
 
 <p>
-This equation is the mathematical payoff of the entire framework, seamlessly bridging Bal's Spin Transformers with observable market phenomena. It formally dictates two distinct market regimes:
+Given the foundational work by Mathias Bal on attention transformers, I propose we call this the Bal-Black-Scholes equation.
+</p>
+
+<p>
+Whatever we call it, this equation bridges Bal's Spin Transformers with observable market phenomena. It formally dictates two distinct market regimes:
 </p>
 
 <ol>
@@ -468,117 +476,12 @@ This equation is the mathematical payoff of the entire framework, seamlessly bri
 </ol>
 
 <p>
-At this critical moment, the market is structurally compromised. The next exogenous macroeconomic shock (d<em>W<sub>t</sub></em>), no matter how mathematically trivial, is multiplied by a massive, perfectly correlated <em>O(N)</em> factor. The market maker's liquidity is instantly overwhelmed, and the scalar price <em>S<sub>t</sub></em> violently gaps to clear the one-sided demand. 
+At that critical moment, the market is structurally compromised. The next exogenous macroeconomic shock (d<em>W<sub>t</sub></em>), no matter how mathematically trivial, is multiplied by a massive, perfectly correlated <em>O(N)</em> factor. The market maker's liquidity is instantly overwhelmed, and the scalar price <em>S<sub>t</sub></em> violently gaps to clear the one-sided demand. 
 </p>
-
-
 
 
 <p>
 Consequently, the diffusion coefficient (the standard deviation) for our price equation must scale as <em>O(N √HHI<sub>t</sub>)</em>.
-</p>
-
-<p>
-Ok, but this is supposed to be a prediction about economics right? To quote a friend, "value plus discounted," that is to say: we would like to determine a value, or an asset price. I'm not an economist, however, so what I mean is: there's some variable in the system, some expected value, and it is an observable and we would like to know its value. In a market, like the stock market, I know about two things: what is the price I paid, what is the price I hope to get? That is, I would love to predict the price on the market, and the continuous evolutions of that price.
-</p>
-
-<p>
-Call that the macroscopic price <em>S<sub>t</sub></em>. In standard quantitative finance, the classical Black-Scholes framework allows us to find this price. It relies on Geometric Brownian Motion (GBM):
-</p>
-
-<div class="eq-block">
-d<em>S<sub>t</sub></em> = <em>μ S<sub>t</sub></em> dt + <em>σ S<sub>t</sub></em> d<em>W<sub>t</sub></em>
-</div>
-
-<p>
-Black-Scholes assumes homoskedasticity, or that volatility (<em>σ</em>) is an exogenous constant, and the market is a passive vessel reacting to the random macroeconomic effects of Current Thing (d<em>W<sub>t</sub></em>).
-</p>
-
-<p>
-The Non-Equilibrium Attention Market (NEAM) completely rewrites the diffusion term. To bridge the gap between our agents' latent vectors and the scalar price <em>S<sub>t</sub></em>, we map the aggregate intent of the network to market microstructure. Using the standard <a href="https://doi.org/10.2307/1913210">Kyle (1985)</a> Market Impact Model, price changes are driven by aggregate order flow crossing a market maker's finite liquidity (<em>λ</em>).
-</p>
-
-<p>
-Because the aggregate order flow is determined by the covariance of the agents' intents, macroscopic volatility is explicitly scaled by the network's market-wide concentration, captured by the Herfindahl-Hirschman Index of the stationary distribution <em>π</em>. We assume that agents' orders are linear functions of their attended signals, meaning the correlation structure of their orders directly follows the market-wide HHI of the attention stationary distribution (HHI(<em>π</em>)). Concretely: in the uniform case, they watch the market average and their orders are independent; in the collapsed case, every agent watches the same dominant signal, making them perfectly correlated. Specifically, the aggregate variance of <em>N</em> perfectly correlated agents scales with <em>N<sup>2</sup> HHI<sub>t</sub></em>. Because volatility represents the standard deviation (the diffusion coefficient), taking the square root yields the <em>O(N √HHI<sub>t</sub>)</em> scaling factor.
-</p>
-
-<h3><span class="num">7.1</span> Magnetization and market memory (the drift term)</h3>
-
-
-
-
-<h2 id="sec-bbs"><span class="num">08</span> Bal-Black-Scholes</h2>
-
-<p>
-Before we write the final equation, we must address the most canonical observable in any spin system: <strong>Magnetization</strong>.
-</p>
-
-<p>
-In a standard Ising model, magnetization is the average of all the discrete spins, representing the net polarity of the material. In our Non-Equilibrium Attention Market framework, the Bal transformers, the Magnetization (<em>M<sub>t</sub></em>) is the mean field of all agent state vectors:
-</p>
-
-<div class="eq-block">
-<em>M</em><sub>t</sub> = (1/N) ∑<sub>i=1</sub><sup>N</sup> <em>x<sub>i</sub></em><sup>(t)</sup>
-</div>
-
-<p>
-This vector <em>M<sub>t</sub></em> ∈ ℝ<sup>d</sup> represents the aggregate momentum and risk-posture of the entire market. To translate this into a scalar drift for our price equation, we apply a fixed pricing projection vector <em>w</em>:
-</p>
-
-<div class="eq-block">
-<em>μ</em><sub>t</sub> = <em>w</em><sup>T</sup> <em>M</em><sub>t</sub>
-</div>
-
-<p>
-We must explicitly acknowledge that <em>w</em> serves as an ad hoc model closure; it simply parameterizes that "some linear combination of the mean field matters" and requires empirical identification to be properly calibrated.
-</p>
-
-<p>
-In classical Black-Scholes, the drift (<em>μ</em>) is a static constant (usually the risk-free rate). The market has no memory; it is a Markov process. But in the NEAM framework, the drift <em>μ<sub>t</sub></em> is a dynamic, state-dependent variable. Because agents update their internal states (<em>x<sub>i</sub></em>) based on historical learning and attention, the Magnetization retains structural memory. If the network aligns into a bullish subspace, the drift organically updates to reflect that momentum.
-</p>
-
-<p>
-Therefore, our model extracts the two defining features of a market directly from the microscopic spin states:
-</p>
-
-<ol>
-  <li><strong>The Trend (<em>μ<sub>t</sub></em>):</strong> Derived from the macroscopic <em>Magnetization</em> of the state vectors.</li>
-  <li><strong>The Volatility (<em>σ<sub>t</sub></em>):</strong> Derived from the <em>Herfindahl-Hirschman Index</em> (HHI) of the attention matrix.</li>
-</ol>
-
-<h3><span class="num">7.2</span> The NEAM stochastic differential equation</h3>
-
-<p>
-With both the drift and diffusion terms micro-founded, we can formulate the complete Stochastic Differential Equation.
-</p>
-
-<p>
-Because the aggregate order flow is determined by the covariance of the agents' intents, macroscopic volatility is explicitly scaled by the network's Herfindahl-Hirschman Index, and the drift is driven by Magnetization.
-</p>
-
-<p>
-The NEAM Stochastic Differential Equation becomes:
-</p>
-
-<div class="eq-block">
-d<em>S<sub>t</sub></em> = <em>μ(M</em><sub>t</sub><em>)</em> <em>S<sub>t</sub></em> dt + (<em>λ σ<sub>v</sub> N √HHI<sub>t</sub></em>) <em>S<sub>t</sub></em> d<em>W<sub>t</sub></em>
-</div>
-
-<p>
-(Where <em>λ</em> is Kyle's inverse liquidity parameter, <em>σ<sub>v</sub></em> is baseline idiosyncratic intent variance, and <em>N</em> is the total number of agents).
-</p>
-
-<p>
-And thus:
-</p>
-
-<ol>
-  <li><strong>The High-Entropy Regime:</strong> When attention is diversified and HHI<sub>t</sub> ≈ 1/N, the diffusion multiplier simplifies. The system acts as a standard random walk, absorbing exogenous macroeconomic shocks (d<em>W<sub>t</sub></em>) smoothly. Because the diffusion coefficient scales as O(√N), the variance per unit time scales as O(N).</li>
-  <li><strong>The Critical Phase Transition:</strong> When the thermodynamic friction (<em>Π<sub>t</sub></em>) forces the Softmax attention to collapse, the HHI violently spikes toward 1.0. The diffusion multiplier instantly scales up from O(√N) to O(N), meaning the variance jumps dramatically from O(N) to O(N<sup>2</sup>). The ratio of variance between regimes is a factor of N, generating a severe crash amplification.</li>
-</ol>
-
-<p>
-At that precise moment, the market is critically susceptible. The next exogenous macroeconomic shock (d<em>W<sub>t</sub></em>), no matter how mathematically trivial, is multiplied by a massive, perfectly correlated O(N) factor. The market maker's liquidity is instantly overwhelmed, and the scalar price <em>S<sub>t</sub></em> violently gaps to clear the one-sided demand.
 </p>
 
 <h2 id="sec-fat"><span class="num">08</span> Endogenous fat tails for sale, never used</h2>
@@ -599,16 +502,15 @@ And thus, to answer our questions that started this endeavor:
 
 <ol>
   <li>What happens if we make the fundamental states of the Ising model continuous?
-    <p><em>With a few assumptions, we are able to derive, from MaxEnt, the attention mechanism.</em></p>
+    <p><em>By applying Jaynes' Principle of Maximum Entropy to continuous spin states, the canonical Boltzmann distribution naturally emerges as the standard Softmax attention mechanism.</em></p>
   </li>
   <li>What happens if these interactions are not symmetric?
-    <p><em>We get non-equilibrium thermodynamics, and constant dissipation causes volatility, and collapsed phase changes.</em></p>
+    <p><em>The system breaks detailed balance and enters a non-equilibrium steady state. The resulting non-reciprocal updates generate a strictly positive entropy production rate (Π), driving the network toward structural fragility and spontaneous attention collapse.</em></p>
   </li>
   <li>What are the consequences if we use the tools of econophysics and apply it to Bal's spin transformers?
-    <p><strong>We can strongly justify, if not outright derive, modifications to Black-Scholes equation, yielding a testable Non-Equilibrium Attention Market (NEAM).</strong></p>
+    <p><strong>By calculating the first and second moments of the attention network via a Kramers-Moyal expansion, we find the drift (via continuous magnetization and an unembedding vector) and the diffusion (via the Herfindahl-Hirschman Index), deriving a testable Non-Equilibrium Attention Market (NEAM) SDE (Bal-Black-Scholes).</strong></p>
   </li>
 </ol>
-
 
 <h2 id="sec-refs"><span class="num">11</span> References</h2>
 
