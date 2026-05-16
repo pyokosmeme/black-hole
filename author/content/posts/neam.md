@@ -210,39 +210,7 @@ body.light-reading .nrol-doc .eq-block {
 }
 </style>
 
-<div class="hero">
-  <div class="eyebrow">Speculative Econophysics · From Spin Transformers to Market Crashes</div>
-  <h1>Non-Equilibrium <span class="accent">Attention</span> Markets</h1>
-  <div class="subtitle">
-    Given Mathias Bal's spin transformers framework, what are the consequences
-    for econophysics? Continuous states, asymmetric coupling, and a MaxEnt
-    derivation of softmax attention yield a modified Black-Scholes SDE where
-    volatility is a function of attention concentration — and crashes are
-    deterministic phase transitions, not fat-tail luck.
-  </div>
-  <div class="hero-meta">
-    <div><span class="key">Framework</span><span class="val">Bal spin transformers → NEAM</span></div>
-    <div><span class="key">Bridge</span><span class="val">Ising → QKV → softmax → SDE</span></div>
-    <div><span class="key">Claim</span><span class="val">crashes as phase transitions, not exogenous shocks</span></div>
-  </div>
-</div>
-
-<nav class="nrol-toc">
-  <div class="toc-label">Contents</div>
-  <ol>
-    <li><a href="#sec-intro">Introduction</a></li>
-    <li><a href="#sec-state">State agent attention</a></li>
-    <li><a href="#sec-path">Three-fold path</a></li>
-    <li><a href="#sec-jaynes">Enter Jaynes, suddenly Boltzmann appears</a></li>
-    <li><a href="#sec-baleq">Bal's non-equilibrium attention market</a></li>
-    <li><a href="#sec-network">Network dynamics in your lightcone</a></li>
-    <li><a href="#sec-bbs">Bal-Black-Scholes</a></li>
-    <li><a href="#sec-fat">Endogenous fat tails for sale, never used</a></li>
-    <li><a href="#sec-concl">Conclusion and summary</a></li>
-    <li><a href="#sec-sim">Dynamic simulation</a></li>
-    <li><a href="#sec-refs">References</a></li>
-  </ol>
-</nav>
+<h1>Non-Equilibrium Attention Markets</h1>
 
 <h2 id="sec-intro"><span class="num">01</span>Introduction</h2>
 
