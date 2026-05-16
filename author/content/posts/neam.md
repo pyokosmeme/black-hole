@@ -125,7 +125,7 @@ Before we begin, it is worth noting this is not the Ising explainer, which I wil
   <li>Zaklan, G., Westerhoff, F., &amp; Stauffer, D. (2009). <a href="https://doi.org/10.1007/s11403-008-0043-5">"Analysing tax evasion dynamics via the Ising model."</a> Journal of Economic Interaction and Coordination, 4(1), 1-14.</li>
 </ul>
 
-<h2 id="sec-state"><span class="num">02</span> State agent attention</h2>
+<h2 id="sec-state"><span class="num">02</span> State Agent Attention</h2>
 
 <p>
 Let's drop the <em>cut</em> as they may say someday, and drop ourselves right to the heart of it: the Ising model is a discrete lattice of particles, each particle has two states (buy or sell), particles only interact with their nearest neighbors, the state space of that system yields surprising results if we have infinitely many particles on our lattice. Combined this model yields tractable insight into technosocial systems. Across scales and fussy physical details, it just works.
@@ -147,7 +147,7 @@ What is this vector space? It is defined as the embeddings of all states for all
 <strong>TL;DR</strong> Agents have continuous internal states <em>d</em>, and if we have <em>N</em> agents, the totality of the market is represented by an <em>N × d</em> matrix <em>X</em>.
 </p>
 
-<h2 id="sec-path"><span class="num">03</span> Three-fold path</h2>
+<h2 id="sec-path"><span class="num">03</span> Three-fold Path</h2>
 
 <p>
 In standard spin glass physics — the Ising model — each nearest neighbor interacts with a symmetric coupling (think of it as a scalar weight describing how two neighborly agents <em>s<sub>i</sub></em> and <em>s<sub>j</sub></em> interact, but it doesn't matter the order of the interaction, hence symmetric). The energy of this interaction would be <em>−s<sub>i</sub> J<sub>ij</sub> s<sub>j</sub></em>. Our agents, our states of spin, are given by <em>d</em>-dimensional vectors, though the energy is directly analogous:
@@ -183,7 +183,7 @@ This matrix multiplication yields our spin coupling matrix, <em>J = W<sub>Q</sub
 Ok so what? We have some slightly more complex agentic model, we have an asymmetric coupling, we have an equation for an "energy." At this point, nothing seems like transformers except via fiat, via assumption. <strong>And this is where Jaynes enters (<a href="https://doi.org/10.1103/physrev.106.620">Jaynes, 1957</a>).</strong>
 </p>
 
-<h2 id="sec-jaynes"><span class="num">04</span> Enter Jaynes, suddenly Boltzmann appears</h2>
+<h2 id="sec-jaynes"><span class="num">04</span> Enter Jaynes, Suddenly Boltzmann Appears</h2>
 
 <p>
 Let <em>p<sub>j</sub></em> be the probability that Agent <em>i</em> pays attention to Agent <em>j</em>. By "paid attention" we mean whatever is exchanged via the Q, K, V interactions; all we really care about is that the state of agent <em>i</em> changes via interactions with agent <em>j</em>, and <em>j</em> likewise changes but perhaps not in equal measure. If we find the optimal attention distribution <em>P</em> = {<em>p</em><sub>1</sub>, <em>p</em><sub>2</sub>, …, <em>p</em><sub>N</sub>} then we have the probability of how a market change of state occurs.
@@ -258,7 +258,7 @@ If we update across <em>all</em> states (the market) then this is just attention
 Attention(<em>Q,K,V</em>) = Softmax(<em>QK</em><sup>T</sup> / √<em>d<sub>k</sub></em>) <em>V</em>
 </div>
 
-<h2 id="sec-baleq"><span class="num">05</span> Bal's non-equilibrium attention market</h2>
+<h2 id="sec-baleq"><span class="num">05</span> No Equilibrium</h2>
 
 <p>
 In a classical physical spin system (Ising model) and in classical Efficient Market Hypothesis (EMH), systems are assumed to eventually reach Thermodynamic Equilibrium.
@@ -320,7 +320,7 @@ Because <em>π<sub>i</sub>p<sub>ij</sub> ≠ π<sub>j</sub>p<sub>ji</sub></em>, 
 Thus, an asymmetric attention market is constantly dissipating thermodynamic heat. It is precisely this persistent, microscopic entropy production—driven by the fact that agents have asymmetric attention—that prevents the market from ever settling into a thermal equilibrium. The system is continuously forced to search for stability, driving the violent reconfigurations of the attention distribution (<em>P<sub>t</sub></em>). Macroscopically, this should be observable as volatility spikes.
 </p>
 
-<h2 id="sec-network"><span class="num">06</span> Network dynamics in your lightcone</h2>
+<h2 id="sec-network"><span class="num">06</span> Network Dynamics In Your Lightcone</h2>
 
 <p>
 To understand what happens next, we must let the clock run (ergo add time, ergo we're in the lightcones now). The market does not just update its internal states (<em>x<sub>i</sub></em>); the agents are adaptive. They actively update their Query and Key projections (<em>W<sub>Q</sub></em>, <em>W<sub>K</sub></em>) to minimize their local free energy.
@@ -330,7 +330,7 @@ To understand what happens next, we must let the clock run (ergo add time, ergo 
 This adaptation creates a dangerous feedback loop fueled by the Entropy Production Rate (<em>Π</em>).
 </p>
 
-<h3><span class="num">6.1</span> Gradient descent</h3>
+<h3><span class="num">6.1</span> Gradient Descent</h3>
 
 <p>
 Agents adjust their projections based on historical success. If Alice loses money to Bob, Alice updates her Query vector to pay <em>closer</em> attention to Bob's Key vector in the next time step.
@@ -344,7 +344,7 @@ Meanwhile, Bob updates his Key vector to become more deceptive, or updates his Q
 Mathematically, the agents are performing stochastic gradient descent on their weight matrices. Because the agents have different objective functions and computational bounds, the asymmetry of the coupling matrix <em>J = W<sub>Q</sub><sup>T</sup> W<sub>K</sub></em> <strong>amplifies over time</strong>. For an understanding of how non-symmetric game dynamics amplify over time, see the mechanics of <em>n</em>-player differentiable games (<a href="https://doi.org/10.48550/arxiv.1802.05642">Balduzzi et al., 2018</a>).
 </p>
 
-<h3><span class="num">6.2</span> The accumulation of thermodynamic friction</h3>
+<h3><span class="num">6.2</span> The Accumulation of Thermodynamic Friction</h3>
 
 <p>
 As the non-reciprocity amplifies, the system is driven further and further away from detailed balance.
@@ -414,7 +414,7 @@ The agents are no longer acting as independent random variables; they are acting
   </div>
 </div>
 
-<h2 id="sec-bbs"><span class="num">07</span> Attention Econophysics</h2>
+<h2 id="sec-bbs"><span class="num">07</span> Non-Equilibrium Attention Markets</h2>
 
 <p>
 Ok, so we have established our justifications for the overall dynamics regarding entropy and attention markets, but markets are about prices. Where are our prices? We will proceed by following the econophysics elephant path. If buy and sell (spin up or spin down) is our model, then the magnetization of the spin glass becomes aggregate excess demand. In physics, we call this the order parameter. Once we have demand, or an order parameter, we then identify the price clearing mechanism with the core assumption that the percentage change in price is strictly proportional to the excess demand:
@@ -580,7 +580,7 @@ When the network crosses the critical threshold into the Correlated Herd Phase, 
 The switching dynamics between these two geometric phases transform what would be a standard Gaussian random walk into a heavy-tailed distribution. Black Swan events, extreme pricing events that classical finance deems 1-in-a-billion-year anomalies, are direct consequences of network learning and non-equilibrium attention market dynamics.
 </p>
 
-<h2 id="sec-concl"><span class="num">09</span> Conclusion and summary</h2>
+<h2 id="sec-concl"><span class="num">09</span> Conclusion and Summary</h2>
 
 <p>
 <strong>Non-Reciprocity</strong> generates a strictly positive <strong>Entropy Production Rate (<em>Π<sub>t</sub></em>)</strong>. Agents adapting to this non-equilibrium environment causes the <strong>stationary distribution (<em>π</em>) to concentrate</strong>. The concentrated signals trigger a <strong>Phase Transition</strong> in the bounded MaxEnt Softmax algorithm, causing <strong>Attention Collapse</strong>. The HHI spike multiplies the covariance of the aggregate order flow, exploding the diffusion term in the <strong>NEAM SDE</strong>, resulting in a <strong>Flash Crash</strong>.
@@ -604,7 +604,7 @@ And thus, to answer our questions that started this endeavor:
 
 <h2 id="sec-refs"><span class="num">10</span> References</h2>
 
-<h3>Foundational texts</h3>
+<h3> Foundational Texts</h3>
 <p><em>Note: The following foundational texts were published independently on Mathias Bal's academic blog and form the basis of the spin transformer explorations recreated in this work.</em></p>
 
 <ul>
@@ -614,7 +614,7 @@ And thus, to answer our questions that started this endeavor:
   <li>Bal, M. C. (2026). <em>Entropy Production in Non-Equilibrium Neural Networks</em>. <a href="https://mcbal.github.io/tag/statistical-physics/">mcbal.github.io</a></li>
 </ul>
 
-<h3>Academic references</h3>
+<h3> Academic References</h3>
 
 <ul>
   <li>Bak, P., Tang, C., &amp; Wiesenfeld, K. (1987). Self-organized criticality: An explanation of the 1/f noise. <em>Physical Review Letters</em>, 59(4), 381–384. <a href="https://doi.org/10.1103/PhysRevLett.59.381">doi</a></li>
