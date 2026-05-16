@@ -103,7 +103,7 @@ If you need evidence of the value of the Ising model, this is not the post for y
 </ol>
 
 <p>
-We will see that we recover Bal's spin transformers (<a href="https://mcbal.github.io">Bal, 2020</a>). Which raises a new question: <strong>What are the consequences if we use the tools of econophysics and apply it to Bal's spin transformers?</strong>
+We will see that we recover Bal's spin transformers (<a href="https://mcbal.github.io">Bal, 2021</a>). Which raises a new question: <strong>What are the consequences if we use the tools of econophysics and apply it to Bal's spin transformers?</strong>
 </p>
 
 <p>
