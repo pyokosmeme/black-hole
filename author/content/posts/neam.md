@@ -522,15 +522,15 @@ Where <em>F</em><sub>sys</sub> represents the deterministic, systemic forces act
 </p>
 
 <p>
-First, we formalize the systemic force <em>F</em><sub>sys</sub> by transitioning from intensive network coordinates to extensive market volume. We define the extensive <strong>Aggregate Excess Demand Vector</strong> (&mathbf;D<sub>t</sub>) as the total sum of all individual agent action vectors, scaling directly with population size <em>N</em> and the mean-field magnetization:
+First, we formalize the systemic force <em>F</em><sub>sys</sub> by transitioning from intensive network coordinates to extensive market volume. We define the extensive <strong>Aggregate Excess Demand Vector</strong> (<strong>D</strong><sub>t</sub>) as the total sum of all individual agent action vectors, scaling directly with population size <em>N</em> and the mean-field magnetization:
 </p>
 
 <div class="eq-block">
-&mathbf;D<sub>t</sub> = ∑<sub>i=1</sub><sup>N</sup> <em>x<sub>i</sub></em><sup>(t)</sup> = <em>N M<sub>t</sub></em>
+<strong>D</strong><sub>t</sub> = ∑<sub>i=1</sub><sup>N</sup> <em>x<sub>i</sub></em><sup>(t)</sup> = <em>N M<sub>t</sub></em>
 </div>
 
 <p>
-Because market impact is driven by this total extensive order flow crossed with Kyle's depth parameter <em>λ</em>, the deterministic systemic force driving price drift is governed precisely by the scalar projection <em>λ (w<sup>T</sup> &mathbf;D<sub>t</sub>)</em>. 
+Because market impact is driven by this total extensive order flow crossed with Kyle's depth parameter <em>λ</em>, the deterministic systemic force driving price drift is governed precisely by the scalar projection <em>λ (w<sup>T</sup> <strong>D</strong><sub>t</sub>)</em>. 
 </p>
 
 <p>
@@ -542,7 +542,7 @@ By substituting these explicit physical forces directly into the Langevin templa
 </p>
 
 <div class="eq-block">
-d<em>S<sub>t</sub></em> = [ <em>λ</em> (<em>w<sup>T</sup> &mathbf;D<sub>t</sub></em>) ] <em>S<sub>t</sub></em> dt + [ <em>σ<sub>v</sub> N √HHI<sub>t</sub></em> ] <em>S<sub>t</sub></em> d<em>W<sub>t</sub></em>
+d<em>S<sub>t</sub></em> = [ <em>λ</em> (<em>w<sup>T</sup> <strong>D</strong><sub>t</sub></em>) ] <em>S<sub>t</sub></em> dt + [ <em>σ<sub>v</sub> N √HHI<sub>t</sub></em> ] <em>S<sub>t</sub></em> d<em>W<sub>t</sub></em>
 </div>
 
 <p>
@@ -559,7 +559,7 @@ At this critical juncture, the market is structurally compromised. The next exog
 </p>
 
 <p>
-It is worth noting an internal consistency choice regarding the explicit population parameter <em>N</em> in our diffusion coefficient. While we explicitly preserve <em>N</em> to ground the SDE in the extensive volume of the total aggregate demand vector <em>&mathbf;D<sub>t</sub></em>, this normalization remains a modeling specification; in a strictly intensive asset pricing framework, <em>N</em> can be entirely absorbed into the baseline noise parameter <em>σ<sub>v</sub></em>. Ultimately, the system's absolute population scale is secondary to the geometric scaling of the <em>HHI<sub>t</sub></em>, which serves as the true structural governor of the non-equilibrium volatility dynamics.
+It is worth noting an internal consistency choice regarding the explicit population parameter <em>N</em> in our diffusion coefficient. While we explicitly preserve <em>N</em> to ground the SDE in the extensive volume of the total aggregate demand vector <em><strong>D</strong><sub>t</sub></em>, this normalization remains a modeling specification; in a strictly intensive asset pricing framework, <em>N</em> can be entirely absorbed into the baseline noise parameter <em>σ<sub>v</sub></em>. Ultimately, the system's absolute population scale is secondary to the geometric scaling of the <em>HHI<sub>t</sub></em>, which serves as the true structural governor of the non-equilibrium volatility dynamics.
 </p>
 
 <h2 id="sec-tails"><span class="num">08</span> Endogenous Fat Tails for Sale, Never Used</h2>
