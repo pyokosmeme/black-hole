@@ -562,6 +562,24 @@ At this critical juncture, the market is structurally compromised. The next exog
 It is worth noting an internal consistency choice regarding the explicit population parameter <em>N</em> in our diffusion coefficient. While we explicitly preserve <em>N</em> to ground the SDE in the extensive volume of the total aggregate demand vector <em>&mathbf;D<sub>t</sub></em>, this normalization remains a modeling specification; in a strictly intensive asset pricing framework, <em>N</em> can be entirely absorbed into the baseline noise parameter <em>σ<sub>v</sub></em>. Ultimately, the system's absolute population scale is secondary to the geometric scaling of the <em>HHI<sub>t</sub></em>, which serves as the true structural governor of the non-equilibrium volatility dynamics.
 </p>
 
+<h2 id="sec-tails"><span class="num">08</span> Endogenous Fat Tails for Sale, Never Used</h2>
+
+<p>
+In traditional quantitative finance, fat tails (leptokurtosis) and volatility clustering are treated as exogenous mysteries—conveniently patched over by manually injecting jump-diffusion terms or ARCH/GARCH processes into the simulation. The NEAM SDE requires no such ad-hoc adjustments. The heavy tails observed in empirical asset returns are revealed to be the direct macroscopic artifacts of bounded agents constantly shifting their attention structure.
+</p>
+
+<p>
+The mathematical engine for this phenomenon lives directly within the phase boundaries derived in Section 7.3. Real market dynamics are defined by a meta-deliberation process: the system moves through intermittent periods of calm where agent updates are largely uncoordinated (The Independent Phase), anchoring the price to its minimum <em>O(N √HHI<sub>t</sub>)</em> volatility floor. However, because gradient updates on the query-key weights (<em>W<sub>Q</sub>, W<sub>K</sub></em>) operate on a slower, continuous timescale, the attention matrix slowly drifts toward alignment. 
+</p>
+
+<p>
+When the network crosses the critical threshold into the Correlated Herd Phase, the variance breaks free from its structural floor and surges toward the <em>O(N)</em> global covariance ceiling. Because the system lingers in these non-equilibrium steady states before thermodynamic friction forces a clearing collapse, volatility naturally clusters in time. 
+</p>
+
+<p>
+The switching dynamics between these two geometric phases transform what would be a standard Gaussian random walk into a heavy-tailed distribution. The extreme price gaps—the "Black Swan" events that classical finance deems 1-in-a-billion-year anomalies—are shown to be predictable, deterministic pile-ups of network learning.
+</p>
+
 <h2 id="sec-concl"><span class="num">09</span> Conclusion and summary</h2>
 
 <p>
