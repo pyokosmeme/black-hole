@@ -6,159 +6,6 @@
    Extends .nrol-doc base. Palette inherits from NROL-αΩ vars.
    ════════════════════════════════════════════════════════════════ */
 
-.neam-sim-wrapper {
-  margin: 28px 0 36px;
-  border: 0.5px solid var(--doc-faint);
-  border-left: 2px solid var(--amber);
-  background: var(--doc-code-bg);
-  overflow: hidden;
-}
-.neam-sim-wrapper .sim-label {
-  display: inline-block;
-  font-size: 9px;
-  letter-spacing: 0.3em;
-  text-transform: uppercase;
-  color: var(--amber);
-  margin: 14px 14px 0;
-  padding: 2px 10px;
-  border: 0.5px solid var(--amber);
-}
-.neam-sim-wrapper .sim-sublabel {
-  font-size: 9px;
-  color: var(--doc-dim);
-  margin: 6px 14px 0;
-  letter-spacing: 0.1em;
-}
-
-/* Dashboard container inside the sim */
-.neam-dashboard {
-  width: 100%;
-  max-width: 900px;
-  margin: 14px auto 14px;
-  font-family: 'JetBrains Mono','IBM Plex Mono',monospace;
-  --sim-bg: #020617;
-  --sim-panel: #0f172a;
-  --sim-border: #1e293b;
-  --sim-text: #e2e8f0;
-  --sim-muted: #64748b;
-  --sim-accent: #fbbf24;
-  --sim-bull: #86efac;
-  --sim-bear: #fca5a5;
-  --sim-grid: #1e293b;
-  --sim-line: #94a3b8;
-  color: var(--sim-text);
-}
-body.light-mode .neam-dashboard {
-  --sim-bg: #f5f0e8;
-  --sim-panel: #ede9e0;
-  --sim-border: #d6d0c4;
-  --sim-text: #1c1917;
-  --sim-muted: #78716c;
-  --sim-accent: #b45309;
-  --sim-bull: #15803d;
-  --sim-bear: #b91c1c;
-  --sim-grid: #d6d3d1;
-  --sim-line: #57534e;
-}
-
-.neam-dashboard .dash-card {
-  background: var(--sim-panel);
-  border-radius: 12px;
-  border: 1px solid var(--sim-border);
-  padding: 20px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-}
-.neam-dashboard .dash-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 18px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--sim-border);
-}
-.neam-dashboard .dash-header h2 {
-  margin: 0;
-  font-size: 1.15rem;
-  font-weight: 600;
-  color: var(--sim-text);
-  letter-spacing: -0.02em;
-  border: none;
-  padding: 0;
-}
-.neam-dashboard .dash-controls {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  background: var(--sim-bg);
-  padding: 12px 18px;
-  border-radius: 10px;
-  border: 1px solid var(--sim-border);
-  margin-bottom: 18px;
-}
-.neam-dashboard .slider-wrap { flex-grow: 1; display: flex; flex-direction: column; gap: 6px; }
-.neam-dashboard .slider-label {
-  font-size: 0.75rem;
-  color: var(--sim-muted);
-  font-weight: 500;
-}
-.neam-dashboard input[type="range"] {
-  width: 100%;
-  accent-color: var(--sim-accent);
-  cursor: pointer;
-}
-.neam-dashboard .hhi-val {
-  font-size: 1.15rem;
-  font-family: monospace;
-  font-weight: 700;
-  color: var(--sim-accent);
-  background: color-mix(in srgb, var(--sim-accent) 12%, transparent);
-  padding: 6px 12px;
-  border-radius: 6px;
-  border: 1px solid color-mix(in srgb, var(--sim-accent) 20%, transparent);
-  min-width: 100px;
-  text-align: right;
-}
-.neam-dashboard .viz-panel {
-  background: var(--sim-bg);
-  border-radius: 10px;
-  border: 1px solid var(--sim-border);
-  position: relative;
-  overflow: hidden;
-}
-.neam-dashboard .viz-panel + .viz-panel { margin-top: 16px; }
-.neam-dashboard #neam-canvas { height: 400px; width: 100%; cursor: grab; display: block; }
-.neam-dashboard #neam-canvas:active { cursor: grabbing; }
-.neam-dashboard .chart-legend {
-  position: absolute;
-  top: 16px;
-  left: 20px;
-  font-size: 0.7rem;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  pointer-events: none;
-  z-index: 10;
-}
-.neam-dashboard .legend-item {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--sim-muted);
-}
-.neam-dashboard .legend-color {
-  width: 12px;
-  height: 4px;
-  border-radius: 2px;
-}
-.neam-dashboard .hint-text {
-  position: absolute;
-  bottom: 10px;
-  right: 14px;
-  font-size: 0.65rem;
-  color: var(--sim-muted);
-  pointer-events: none;
-}
-
 /* Equation blocks — var(--cyan) for dark mode, overridden for light */
 .nrol-doc .eq-block {
   text-align: center;
@@ -205,14 +52,12 @@ body.light-reading .nrol-doc .eq-block {
 
 @media (max-width: 640px) {
   .nrol-doc .pt-phases { grid-template-columns: 1fr; }
-  .neam-dashboard #neam-canvas { height: 280px; }
-  .neam-dashboard .dash-card { padding: 12px; }
 }
 </style>
 
 <h1>Non-Equilibrium Attention Markets</h1>
 
-<h2 id="sec-intro"><span class="num">01</span>Introduction</h2>
+<h2 id="sec-intro"><span class="num">01</span> Introduction</h2>
 
 <p>
 If you need evidence of the value of the Ising model, this is not the post for you — you're late to the stage and the world has already been swallowed by statistical mechanics — instead, this post seeks to expand your study from mere statistical mechanics, into the regime of attention transformers, and from that point, propose a Non-Equilibrium Attention Market. To that end, we have two bridge questions:
@@ -244,7 +89,7 @@ While this is not the Ising explainer, which I will never write, here is a sampl
   <li>Zaklan, G., Westerhoff, F., &amp; Stauffer, D. (2009). <a href="https://doi.org/10.1007/s11403-008-0043-5">"Analysing tax evasion dynamics via the Ising model."</a> Journal of Economic Interaction and Coordination, 4(1), 1-14.</li>
 </ul>
 
-<h2 id="sec-state"><span class="num">02</span>State agent attention</h2>
+<h2 id="sec-state"><span class="num">02</span> State agent attention</h2>
 
 <p>
 Let's drop the <em>cut</em> as they may say someday, and drop ourselves right to the heart of it: the Ising model is a discrete lattice of particles, each particle has two states (buy or sell), particles only interact with their nearest neighbors, the state space of that system yields surprising results if we have infinitely many particles on our lattice, and combined this model yields tractable insight to technosocial systems across scales and fussy physical details.
@@ -266,7 +111,7 @@ What is this vector space? It is defined as the embeddings of all states for all
 <strong>TL;DR</strong> Agents have continuous internal states <em>d</em>, and if we have <em>N</em> agents, the totality of the market is represented by an <em>N × d</em> matrix <em>X</em>.
 </p>
 
-<h2 id="sec-path"><span class="num">03</span>Three-fold path</h2>
+<h2 id="sec-path"><span class="num">03</span> Three-fold path</h2>
 
 <p>
 In standard spin glass physics — the Ising model — each nearest neighbor interacts with a symmetric coupling (think of it as a scalar weight describing how two neighborly agents <em>s<sub>i</sub></em> and <em>s<sub>j</sub></em> interact, but it doesn't matter the order of the interaction, hence symmetric). The energy of this interaction would be <em>−s<sub>i</sub> J<sub>ij</sub> s<sub>j</sub></em>. Our agents, our states of spin, are given by <em>d</em>-dimensional vectors, though the energy is directly analogous:
@@ -302,7 +147,7 @@ This matrix multiplication yields our spin coupling matrix, <em>J = W<sub>Q</sub
 Ok so what? We have some slightly more complex agentic model, we have an asymmetric coupling, we have an equation for an "energy." At this point, nothing seems like transformers except via fiat, via assumption. <strong>And this is where Jaynes enters (<a href="https://doi.org/10.1103/physrev.106.620">Jaynes, 1957</a>).</strong>
 </p>
 
-<h2 id="sec-jaynes"><span class="num">04</span>Enter Jaynes, suddenly Boltzmann appears</h2>
+<h2 id="sec-jaynes"><span class="num">04</span> Enter Jaynes, suddenly Boltzmann appears</h2>
 
 <p>
 Let <em>p<sub>j</sub></em> be the probability that Agent <em>i</em> pays attention to Agent <em>j</em>. By "paid attention" we mean whatever is exchanged via the Q, K, V interactions; all we really care about is that the state of agent <em>i</em> changes via interactions with agent <em>j</em>, and <em>j</em> likewise changes but perhaps not in equal measure. If we find the optimal attention distribution <em>P</em> = {<em>p</em><sub>1</sub>, <em>p</em><sub>2</sub>, …, <em>p</em><sub>N</sub>} then we have the probability of how a market change of state occurs.
@@ -377,7 +222,7 @@ If we update across <em>all</em> states (the market) then this is just attention
 Attention(<em>Q,K,V</em>) = Softmax(<em>QK</em><sup>T</sup> / √<em>d<sub>k</sub></em>) <em>V</em>
 </div>
 
-<h2 id="sec-baleq"><span class="num">05</span>Bal's non-equilibrium attention market</h2>
+<h2 id="sec-baleq"><span class="num">05</span> Bal's non-equilibrium attention market</h2>
 
 <p>
 In a classical physical spin system (like an Ising model) and in classical Efficient Market Hypothesis (EMH), systems are assumed to eventually reach Thermodynamic Equilibrium.
@@ -439,7 +284,7 @@ Because <em>π<sub>i</sub>A<sub>ij</sub> ≠ π<sub>j</sub>A<sub>ji</sub></em>, 
 Thus, an asymmetric attention market is constantly dissipating thermodynamic heat. It is precisely this persistent, microscopic entropy production—driven by the fact that agents have asymmetric attention—that prevents the market from ever settling into a thermal equilibrium. The system is continuously forced to search for stability, driving the violent reconfigurations of the attention distribution (<em>P<sub>t</sub></em>). Macroscopically, this should be observable as volatility spikes.
 </p>
 
-<h2 id="sec-network"><span class="num">06</span>Network dynamics in your lightcone</h2>
+<h2 id="sec-network"><span class="num">06</span> Network dynamics in your lightcone</h2>
 
 <p>
 To understand what happens next, we must let the clock run (ergo add time, ergo we're in the lightcones now). The market does not just update its internal states (<em>x<sub>i</sub></em>); the agents are adaptive. They actively update their Query and Key projections (<em>W<sub>Q</sub></em>, <em>W<sub>K</sub></em>) to minimize their local free energy.
@@ -449,7 +294,7 @@ To understand what happens next, we must let the clock run (ergo add time, ergo 
 This adaptation creates a dangerous feedback loop fueled by the Entropy Production Rate (<em>Π</em>).
 </p>
 
-<h3><span class="num">6.1</span>Gradient descent</h3>
+<h3><span class="num">6.1</span> Gradient descent</h3>
 
 <p>
 Agents adjust their projections based on historical success. If Alice loses money to Bob, Alice updates her Query vector to pay <em>closer</em> attention to Bob's Key vector in the next time step.
@@ -463,7 +308,7 @@ Meanwhile, Bob updates his Key vector to become more deceptive, or updates his Q
 Mathematically, the agents are performing stochastic gradient descent on their weight matrices. Because the agents have different objective functions and computational bounds, the asymmetry of the coupling matrix <em>J = W<sub>Q</sub><sup>T</sup> W<sub>K</sub></em> <strong>amplifies over time</strong>. For an understanding of how non-symmetric game dynamics amplify over time, see the mechanics of <em>n</em>-player differentiable games (<a href="https://doi.org/10.48550/arxiv.1802.05642">Balduzzi et al., 2018</a>).
 </p>
 
-<h3><span class="num">6.2</span>The accumulation of thermodynamic friction</h3>
+<h3><span class="num">6.2</span> The accumulation of thermodynamic friction</h3>
 
 <p>
 As the non-reciprocity amplifies, the system is driven further and further away from detailed balance.
@@ -538,7 +383,7 @@ The agents are no longer acting as independent random variables; they are acting
   </div>
 </div>
 
-<h2 id="sec-bbs"><span class="num">07</span>Bal-Black-Scholes</h2>
+<h2 id="sec-bbs"><span class="num">07</span> Bal-Black-Scholes</h2>
 
 <p>
 Ok, but this is supposed to be a prediction about economics right? To quote a friend, "value plus discounted," that is to say: we would like to determine a value, or an asset price. I'm not an economist, however, so what I mean is: there's some variable in the system, some expected value, and it is an observable and we would like to know its value. In a market, like the stock market, I know about two things: what is the price I paid, what is the price I hope to get? That is, I would love to predict the price on the market, and the continuous evolutions of that price.
@@ -564,7 +409,7 @@ The Non-Equilibrium Attention Market (NEAM) completely rewrites the diffusion te
 Because the aggregate order flow is determined by the covariance of the agents' intents, macroscopic volatility is explicitly scaled by the network's market-wide concentration, captured by the Herfindahl-Hirschman Index of the stationary distribution <em>π</em>. We assume that agents' orders are linear functions of their attended signals, meaning the correlation structure of their orders directly follows the market-wide HHI of the attention stationary distribution (HHI(<em>π</em>)). Concretely: in the uniform case, they watch the market average and their orders are independent; in the collapsed case, every agent watches the same dominant signal, making them perfectly correlated. Specifically, the aggregate variance of <em>N</em> perfectly correlated agents scales with <em>N<sup>2</sup> HHI<sub>t</sub></em>. Because volatility represents the standard deviation (the diffusion coefficient), taking the square root yields the <em>O(N √HHI<sub>t</sub>)</em> scaling factor.
 </p>
 
-<h3><span class="num">7.1</span>Magnetization and market memory (the drift term)</h3>
+<h3><span class="num">7.1</span> Magnetization and market memory (the drift term)</h3>
 
 <p>
 Before we write the final equation, we must address the most canonical observable in any spin system: <strong>Magnetization</strong>.
@@ -603,7 +448,7 @@ Therefore, our model extracts the two defining features of a market directly fro
   <li><strong>The Volatility (<em>σ<sub>t</sub></em>):</strong> Derived from the <em>Herfindahl-Hirschman Index</em> (HHI) of the attention matrix.</li>
 </ol>
 
-<h3><span class="num">7.2</span>The NEAM stochastic differential equation</h3>
+<h3><span class="num">7.2</span> The NEAM stochastic differential equation</h3>
 
 <p>
 With both the drift and diffusion terms micro-founded, we can formulate the complete Stochastic Differential Equation.
@@ -638,13 +483,13 @@ And thus:
 At that precise moment, the market is critically susceptible. The next exogenous macroeconomic shock (d<em>W<sub>t</sub></em>), no matter how mathematically trivial, is multiplied by a massive, perfectly correlated O(N) factor. The market maker's liquidity is instantly overwhelmed, and the scalar price <em>S<sub>t</sub></em> violently gaps to clear the one-sided demand.
 </p>
 
-<h2 id="sec-fat"><span class="num">08</span>Endogenous fat tails for sale, never used</h2>
+<h2 id="sec-fat"><span class="num">08</span> Endogenous fat tails for sale, never used</h2>
 
 <p>
 In classical finance, a crash is modeled as an extreme, "fat tail" anomaly drawn from a static normal distribution. It is a purely exogenous stroke of bad luck. In the Bal-Black-Scholes, or NEAM, framework a crash is not a random variable, but a deterministic phase transition caused by the network's bounded agents spontaneously aligning their attention to survive in a non-reciprocal learning environment. The extreme leptokurtosis (fat tails) and volatility clustering observed in empirical market data are the direct, measurable artifacts of bounded agents collapsing their attention, thus this proposed SDE provides a micro-founded mechanism capable of generating the observed leptokurtosis.
 </p>
 
-<h2 id="sec-concl"><span class="num">09</span>Conclusion and summary</h2>
+<h2 id="sec-concl"><span class="num">09</span> Conclusion and summary</h2>
 
 <p>
 <strong>Non-Reciprocity</strong> generates a strictly positive <strong>Entropy Production Rate (<em>Π<sub>t</sub></em>)</strong>. Agents adapting to this non-equilibrium environment causes the <strong>stationary distribution (<em>π</em>) to concentrate</strong>. The concentrated signals trigger a <strong>Phase Transition</strong> in the bounded MaxEnt Softmax algorithm, causing <strong>Attention Collapse</strong>. The HHI spike multiplies the covariance of the aggregate order flow, exploding the diffusion term in the <strong>NEAM SDE</strong>, resulting in a <strong>Flash Crash</strong>.
@@ -666,280 +511,8 @@ And thus, to answer our questions that started this endeavor:
   </li>
 </ol>
 
-<h2 id="sec-sim"><span class="num">10</span>Dynamic simulation</h2>
 
-<div class="neam-sim-wrapper">
-  <div class="sim-label">Dynamic Simulation · NEAM Phase Transition</div>
-  <div class="sim-sublabel">Drag the slider to drive thermodynamic friction. Watch attention collapse and volatility explode.</div>
-
-  <div class="neam-dashboard">
-    <div class="dash-card">
-      <div class="dash-header">
-        <h2>Spin Glass 2.0: Non-Equilibrium Attention Market</h2>
-      </div>
-
-      <div class="dash-controls">
-        <div class="slider-wrap">
-          <span class="slider-label">THERMODYNAMIC FRICTION (ATTENTION COLLAPSE)</span>
-          <input type="range" id="neam-friction" min="0" max="1" step="0.01" value="0">
-        </div>
-        <div class="hhi-val">HHI: <span id="neam-hhi">0.040</span></div>
-      </div>
-
-      <div class="viz-panel">
-        <canvas id="neam-canvas"></canvas>
-        <div class="hint-text">Click and drag to rotate manifold</div>
-      </div>
-
-      <div class="viz-panel">
-        <div class="chart-legend">
-          <div class="legend-item">
-            <div class="legend-color" id="legend-bull"></div>
-            <span>NEAM Price Action</span>
-          </div>
-          <div class="legend-item">
-            <div class="legend-color" id="legend-bs" style="background: transparent; border-top: 2px dashed var(--sim-line);"></div>
-            <span>Classical Black-Scholes</span>
-          </div>
-        </div>
-        <svg id="neam-chart" height="280"></svg>
-      </div>
-    </div>
-  </div>
-</div>
-
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-  }
-}
-</script>
-<script src="https://d3js.org/d3.v7.min.js"></script>
-
-<script type="module">
-(function() {
-  import * as THREE from 'three';
-  import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-
-  const N = 25;
-  let friction = 0;
-  let priceBS = 100, priceNEAM = 100;
-  const mu = 0.0001, sigma_v = 0.003, lambda = 0.12;
-  const maxCandles = 60, ticksPerCandle = 8;
-  let currentTick = 0, candleData = [];
-  let currentCandle = { open: 100, high: 100, low: 100, close: 100, bs: 100 };
-
-  function simVar(name) {
-    return getComputedStyle(document.querySelector('.neam-dashboard'))
-      .getPropertyValue(name).trim();
-  }
-
-  const canvas = document.getElementById('neam-canvas');
-  const scene = new THREE.Scene();
-
-  const camera = new THREE.PerspectiveCamera(45, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
-  camera.position.set(0, 8, 30);
-
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-  renderer.setSize(canvas.clientWidth, canvas.clientHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-
-  const controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true;
-  controls.enablePan = false;
-
-  scene.add(new THREE.AmbientLight(0xffffff, 0.2));
-  const blueLight = new THREE.PointLight(0x7dd3fc, 60, 50);
-  blueLight.position.set(15, 10, 15);
-  scene.add(blueLight);
-  const redLight = new THREE.PointLight(0xfca5a5, 60, 50);
-  redLight.position.set(-15, -10, -15);
-  scene.add(redLight);
-
-  const manifoldGeo = new THREE.TorusKnotGeometry(7, 2.5, 180, 40, 3, 5);
-  const originalPos = manifoldGeo.attributes.position.clone();
-  const manifoldMat = new THREE.MeshPhysicalMaterial({
-    color: 0x1e293b, emissive: 0x1e293b, emissiveIntensity: 0.8,
-    wireframe: true, transparent: true, opacity: 0.35, roughness: 0.2
-  });
-  const manifold = new THREE.Mesh(manifoldGeo, manifoldMat);
-  scene.add(manifold);
-
-  const nodes = [];
-  const sphereGeo = new THREE.SphereGeometry(1, 24, 24);
-  const domMat = new THREE.MeshStandardMaterial({ color: 0xfca5a5, emissive: 0xfca5a5, emissiveIntensity: 0.9 });
-  const retMat = new THREE.MeshStandardMaterial({ color: 0x7dd3fc, emissive: 0x7dd3fc, emissiveIntensity: 0.6 });
-
-  const domMesh = new THREE.Mesh(sphereGeo, domMat);
-  domMesh.scale.set(1.5, 1.5, 1.5);
-  scene.add(domMesh);
-  nodes.push({ mesh: domMesh, isDominant: true });
-
-  for (let i = 1; i < N; i++) {
-    const mesh = new THREE.Mesh(sphereGeo, retMat);
-    mesh.scale.set(0.4, 0.4, 0.4);
-    scene.add(mesh);
-    nodes.push({ mesh, isDominant: false, vertexIndex: Math.floor(Math.random() * originalPos.count) });
-  }
-
-  const lineGeo = new THREE.BufferGeometry();
-  const linePositions = new Float32Array((N - 1) * 2 * 3);
-  lineGeo.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
-  const lineMat = new THREE.LineBasicMaterial({ color: 0x7dd3fc, transparent: true, opacity: 0.4 });
-  const lines = new THREE.LineSegments(lineGeo, lineMat);
-  scene.add(lines);
-
-  function updateLinks() {
-    const pos = lines.geometry.attributes.position.array;
-    let idx = 0;
-    const dp = nodes[0].mesh.position;
-    for (let i = 1; i < N; i++) {
-      const rp = nodes[i].mesh.position;
-      pos[idx++] = rp.x; pos[idx++] = rp.y; pos[idx++] = rp.z;
-      pos[idx++] = dp.x; pos[idx++] = dp.y; pos[idx++] = dp.z;
-    }
-    lines.geometry.attributes.position.needsUpdate = true;
-  }
-
-  const svgEl = document.getElementById('neam-chart');
-  const cWidth = svgEl.clientWidth || 860;
-  const cHeight = 280;
-  const margin = { top: 20, right: 50, bottom: 20, left: 10 };
-  const iW = cWidth - margin.left - margin.right;
-  const iH = cHeight - margin.top - margin.bottom;
-
-  const xScale = d3.scaleLinear().domain([0, maxCandles]).range([0, iW]);
-  let yScale = d3.scaleLinear().domain([95, 105]).range([iH, 0]);
-
-  const svgChart = d3.select(svgEl).attr('viewBox', `0 0 ${cWidth} ${cHeight}`);
-  const chartG = svgChart.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
-  const yAxisG = svgChart.append('g').attr('transform', `translate(${cWidth - margin.right},${margin.top})`);
-
-  const lineBS = d3.line().x((d, i) => xScale(i)).y(d => yScale(d.bs)).curve(d3.curveMonotoneX);
-  const pathBS = chartG.append('path').attr('fill', 'none').attr('stroke-width', 2).attr('stroke-dasharray', '4,4').attr('opacity', 0.6);
-
-  const candleWidth = (iW / maxCandles) * 0.7;
-
-  document.getElementById('neam-friction').addEventListener('input', function(e) {
-    friction = parseFloat(e.target.value);
-  });
-
-  function animate() {
-    requestAnimationFrame(animate);
-    const time = Date.now() * 0.0015;
-
-    const cBull = simVar('--sim-bull') || '#86efac';
-    const cBear = simVar('--sim-bear') || '#fca5a5';
-    const cGrid = simVar('--sim-grid') || '#1e293b';
-    const cMuted = simVar('--sim-muted') || '#64748b';
-    const cLine = simVar('--sim-line') || '#94a3b8';
-
-    document.getElementById('legend-bull').style.background = cBull;
-
-    const minHHI = 1 / N;
-    const curHHI = minHHI + friction * (1 - minHHI);
-    document.getElementById('neam-hhi').innerText = curHHI.toFixed(3);
-
-    const pos = manifoldGeo.attributes.position;
-    const oArr = originalPos.array, pArr = pos.array;
-    for (let i = 0; i < originalPos.count; i++) {
-      const ix = i*3, iy = i*3+1, iz = i*3+2;
-      const x = oArr[ix], y = oArr[iy], z = oArr[iz];
-      const fold = Math.sin(x*0.4 + time) * Math.cos(y*0.4 - time) * Math.sin(z*0.4 + time*0.5);
-      const disp = fold * (1 + friction * 4);
-      const len = Math.sqrt(x*x + y*y + z*z) || 1;
-      pArr[ix] = x + (x/len) * disp;
-      pArr[iy] = y + (y/len) * disp;
-      pArr[iz] = z + (z/len) * disp;
-    }
-    pos.needsUpdate = true;
-
-    const vs = 1.0 - (friction * 0.75);
-    manifold.scale.set(vs, vs, vs);
-    manifold.rotation.x += 0.002;
-    manifold.rotation.y += 0.003;
-
-    nodes[0].mesh.scale.setScalar(1.5 + (friction * 2.5));
-    lineMat.opacity = 0.2 + (friction * 0.6);
-    lineMat.color.lerpColors(new THREE.Color(0x7dd3fc), new THREE.Color(0xfca5a5), friction * 0.8);
-
-    const vTmp = new THREE.Vector3();
-    for (let i = 1; i < N; i++) {
-      const n = nodes[i], vi = n.vertexIndex;
-      vTmp.set(pArr[vi*3], pArr[vi*3+1], pArr[vi*3+2]);
-      vTmp.multiplyScalar(vs);
-      vTmp.applyEuler(manifold.rotation);
-      n.mesh.position.copy(vTmp);
-    }
-
-    updateLinks();
-    controls.update();
-    renderer.render(scene, camera);
-
-    const dW = (Math.random()+Math.random()+Math.random()+Math.random()+Math.random()+Math.random()-3) / Math.sqrt(0.5);
-    priceBS += (mu * priceBS) + (sigma_v * priceBS * dW);
-    const neamVol = lambda * N * Math.sqrt(curHHI);
-    priceNEAM += (mu * priceNEAM) + (sigma_v * neamVol * priceNEAM * dW);
-
-    currentCandle.close = priceNEAM;
-    currentCandle.high = Math.max(currentCandle.high, priceNEAM);
-    currentCandle.low = Math.min(currentCandle.low, priceNEAM);
-    currentCandle.bs = priceBS;
-
-    currentTick++;
-    if (currentTick >= ticksPerCandle) {
-      candleData.push({...currentCandle});
-      if (candleData.length > maxCandles) candleData.shift();
-      currentTick = 0;
-      currentCandle = { open: priceNEAM, high: priceNEAM, low: priceNEAM, close: priceNEAM, bs: priceBS };
-    }
-
-    const dd = [...candleData, currentCandle];
-    if (dd.length > 0) {
-      const yMax = d3.max(dd, d => Math.max(d.high, d.bs));
-      const yMin = d3.min(dd, d => Math.min(d.low, d.bs));
-      const pad = (yMax - yMin) * 0.1 || 1;
-      yScale.domain([yMin - pad, yMax + pad]);
-      const yAxis = d3.axisRight(yScale).ticks(5).tickSize(-iW);
-      yAxisG.call(yAxis);
-      yAxisG.select('.domain').remove();
-      yAxisG.selectAll('.tick line').attr('stroke', cGrid).attr('stroke-dasharray', '2,2');
-      yAxisG.selectAll('.tick text').attr('fill', cMuted).attr('x', 8);
-    }
-    pathBS.attr('d', lineBS(dd)).attr('stroke', cLine);
-
-    const candles = chartG.selectAll('.candle').data(dd);
-    const ce = candles.enter().append('g').attr('class', 'candle');
-    ce.append('line').attr('class', 'wick');
-    ce.append('rect').attr('class', 'body');
-    const ac = ce.merge(candles);
-    ac.select('.wick')
-      .attr('x1', (d,i) => xScale(i)).attr('x2', (d,i) => xScale(i))
-      .attr('y1', d => yScale(d.high)).attr('y2', d => yScale(d.low))
-      .attr('stroke', d => d.close >= d.open ? cBull : cBear).attr('stroke-width', 1.5);
-    ac.select('.body')
-      .attr('x', (d,i) => xScale(i) - candleWidth/2)
-      .attr('y', d => yScale(Math.max(d.open, d.close)))
-      .attr('width', candleWidth)
-      .attr('height', d => Math.max(1, Math.abs(yScale(d.open) - yScale(d.close))))
-      .attr('fill', d => d.close >= d.open ? cBull : cBear).attr('rx', 2);
-    candles.exit().remove();
-  }
-
-  animate();
-
-  window.addEventListener('resize', () => {
-    const w = canvas.clientWidth, h = canvas.clientHeight;
-    camera.aspect = w / h;
-    camera.updateProjectionMatrix();
-    renderer.setSize(w, h);
-  });
-})();
-</script>
-
-<h2 id="sec-refs"><span class="num">11</span>References</h2>
+<h2 id="sec-refs"><span class="num">11</span> References</h2>
 
 <h3>Foundational texts</h3>
 <p><em>Note: The following foundational texts were published independently on Mathias Bal's academic blog and form the basis of the Spin-Transformer physical translation presented in this work.</em></p>
