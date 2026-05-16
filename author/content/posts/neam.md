@@ -349,7 +349,7 @@ As the non-reciprocity amplifies, the system is driven further and further away 
 </p>
 
 <p>
-Recall the Schnakenberg entropy production rate for the stationary distribution <em>π</em>:
+We formally invoke the <strong>adiabatic approximation</strong>, and assume a separation of timescales: the microscopic attention dynamics relax to their non-equilibrium steady state instantaneously relative to the much slower timescale of macro-weight updates via gradient learning. This allows us to compute a well-defined instantaneous entropy production rate <em>Π<sub>t</sub></em> at any given market cross-section via the Schnakenberg formula for the stationary distribution <em>π</em>:
 </p>
 
 <div class="eq-block">
@@ -369,8 +369,8 @@ Claim: <em>the market cannot sustain infinite entropy production.</em> As <em>Π
 </p>
 
 <ol>
-  <li><strong>Self-organized criticality.</strong> If you continuously drive a system away from equilibrium by injecting a constant flux of either energy or material, the system eventually reaches a state of Self-Organized Criticality (<a href="https://doi.org/10.1103/PhysRevLett.59.381">Bak, Tang, &amp; Wiesenfeld, 1987</a>). Imagine you are a sandpile. Dropping a single grain of sand at a time, you are never in equilibrium. The pile gets steeper and steeper. The continuous entropy production rate <em>Π<sub>t</sub></em> acts precisely like the constant injection of sand, steadily driving the market to a critical slope where even a tiny perturbation causes the system to avalanche.</li>
-  <li><strong>Geometric explosion and Phase Transisitions</strong> Suppose an asymmetry between Retail agents represented by Alice, and Institutional agents represented by Bob. Alice is bleeding capital to Bob, but Alice isn't an idiot and won't just bleed out. In the terms of an attention agent: gradient descent trains weight matrices to adjust, to change, until Alice's Query matrices better align to the attention of Bob's with winning Key vectors. But look at softmax again with the physics lens:
+  <li><strong>Self-organized criticality.</strong> If you continuously drive a system away from equilibrium by injecting a constant flux of either energy or material, the system eventually reaches a state of Self-Organized Criticality (<a href="https://doi.org/10.1103/PhysRevLett.59.381">Bak, Tang, &amp; Wiesenfeld, 1987</a>). Imagine you are a sandpile. Dropping a single grain of sand at a time, you are never in equilibrium. The pile gets steeper and steeper. The continuous entropy production rate <em>Π<sub>t</sub></em> measures the constant injection of sand, steadily driving the market to a critical slope, where even a tiny perturbation causes the system to avalanche.</li>
+  <li><strong>Geometric explosion and Phase Transitions</strong> Suppose an asymmetry between Retail agents represented by Alice, and Institutional agents represented by Bob. Alice is bleeding capital to Bob, but Alice isn't an idiot and won't just bleed out. In the terms of an attention agent: gradient descent trains weight matrices to adjust, to change, until Alice's Query matrices better align to the attention of Bob's with winning Key vectors. But look at softmax again with the physics lens:
     <div class="eq-block">
     <em>p<sub>ij</sub></em> = exp(<em>β E<sub>ij</sub></em>) / ∑<sub>k</sub> exp(<em>β E<sub>ik</sub></em>)
     </div>
@@ -378,7 +378,7 @@ Claim: <em>the market cannot sustain infinite entropy production.</em> As <em>Π
 </ol>
 
 <p>
-In either scenario, the attention of the entire network "snaps" onto a single signal or a small cluster of agents, or into a phase change. In statistical mechanics, this is a <strong>Phase Transition</strong> via spontaneous symmetry breaking. In finance, this is a <strong>Herd</strong>.
+In either scenario, the attention of the entire network "snaps" onto a single signal or a small cluster of agents, or into a phasechange that is tracked (not caused) by <em>Π<sub>t</sub></em>. In statistical mechanics, this is a <strong>Phase Transition</strong> via spontaneous symmetry breaking. In finance, this is a <strong>Herd</strong>.
 </p>
 
 <p>
@@ -425,7 +425,7 @@ Ok, so what we have is a justified arugment about the overall dynamics regarding
 
 
 <p>
-Now the order parameter and the price-clearing mechanism established, and our next step is to determine how the microscopic randomness of the agents scales up to macroscopic market volatility. In statistical mechanics, passing from discrete microscopic jump probabilities to a continuous Stochastic Differential Equation is achieved via the Kramers-Moyal expansion—calculating the first (drift) and second (diffusion) moments of the macroscopic system.
+Now the order parameter and the price-clearing mechanism established, and our next step is to determine how the microscopic randomness of the agents scales up to macroscopic market volatility. In statistical mechanics, passing from discrete microscopic jump probabilities to a continuous Stochastic Differential Equation is achieved via the Kramers-Moyal expansion—calculating the first (drift) and second (diffusion) moments of the macroscopic system. Here, however, we will use the tools of econophysics to identify the first and second moments directly.
 </p>
 
 <h3><span class="num">7.1</span> Magnetization</h3>
