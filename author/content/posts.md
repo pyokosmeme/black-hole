@@ -6,7 +6,7 @@
 - tags: econophysics, spin-transformers, neam
 - file: content/posts/neam.md
 
-Continuous Ising states and asymmetric coupling recover Bal's spin transformers via MaxEnt softmax. The consequence: a SDE where volatility is an endogenous function of attention concentration, and crashes are deterministic phase transitions rather than fat-tail luck.
+Continuous Ising states and asymmetric coupling recover Bal's spin transformers and softmax via MaxEnt. The consequence: a SDE where volatility is an endogenous function of attention concentration, and crashes are deterministic phase transitions rather than fat-tail luck.
 
 ## nrol-alphaomega
 - title: NROL-αΩ
