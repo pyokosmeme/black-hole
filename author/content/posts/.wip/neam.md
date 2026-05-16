@@ -391,10 +391,93 @@ Ok, so what we have is a justified arugment about the overall dynamics regarding
 
 
 <p>
-With the order parameter and the price-clearing mechanism established, the final step is to determine how the microscopic randomness of the agents scales up to macroscopic market volatility. In statistical mechanics, passing from discrete microscopic jump probabilities to a continuous Stochastic Differential Equation is achieved via the Kramers-Moyal expansion—calculating the first (drift) and second (diffusion) moments of the macroscopic system.
+Now the order parameter and the price-clearing mechanism established, and our next step is to determine how the microscopic randomness of the agents scales up to macroscopic market volatility. In statistical mechanics, passing from discrete microscopic jump probabilities to a continuous Stochastic Differential Equation is achieved via the Kramers-Moyal expansion—calculating the first (drift) and second (diffusion) moments of the macroscopic system.
 </p>
 
 <h3><span class="num">7.1</span> Magnetization</h3>
+
+<p>
+In a standard Ising model, magnetization is the average of all the discrete spins, representing the net polarity of the system. In our Non-Equilibrium Attention Market framework, the agents possess continuous states. Therefore, the Magnetization (<em>M<sub>t</sub></em>) is the continuous mean field of all agent state vectors:
+</p>
+
+<div class="eq-block">
+<em>M<sub>t</sub></em> = (1/N) ∑<sub>i=1</sub><sup>N</sup> <em>x<sub>i</sub></em><sup>(t)</sup>
+</div>
+
+<p>
+This vector <em>M<sub>t</sub></em> ∈ ℝ<sup>d</sup> represents the aggregate momentum and risk-posture of the entire market. To apply the standard econophysics machinery, we must translate this high-dimensional latent state into a scalar expectation (the excess demand). 
+</p>
+
+<p>
+In a standard Large Language Model, this is the exact function of the <strong>Unembedding Matrix</strong>, which projects the final latent vector back into the vocabulary space to generate discrete logits. In our framework, we use an unembedding vector <em>w</em> to project the market's latent state into the continuous "vocabulary" of price drift. Thus, our scalar magnetization is <em>w<sup>T</sup> M<sub>t</sub></em>.
+</p>
+
+<p>
+Following the established price-clearing relationship, the deterministic drift rate (<em>μ<sub>t</sub></em>) of the asset price is simply this scalar magnetization scaled by the market depth parameter <em>λ</em>:
+</p>
+
+<h3 id="sec-drift"><span class="num">7.2</span> Attention Price Clearing</h3>
+
+<p>
+We now have our order parameter (excess demand). The next step in the econophysics playbook is identifying the price clearing mechanism. Using the standard Kyle (1985) market impact model, the percentage change in price is strictly proportional to the excess demand crossed with a market depth parameter <em>λ</em>:
+</p>
+
+<div class="eq-block">
+Δ<em>S<sub>t</sub></em> / <em>S<sub>t</sub></em> = <em>λ</em> · (<em>w<sup>T</sup> M<sub>t</sub></em>)
+</div>
+
+<p>
+This provides the deterministic drift rate (<em>μ<sub>t</sub></em>) of our asset price. Unlike classical finance where drift is a static constant, here it is dynamically driven by the network's structural memory. If the network aligns into a bullish subspace, the drift organically updates to reflect that momentum.
+</p>
+
+<h3 id="sec-vol"><span class="num">7.3</span> Attention concentration as volatility</h3>
+
+<p>
+With the drift established, we must show how the microscopic randomness of the agents scales up to macroscopic market volatility. 
+</p>
+
+<p>
+The aggregate order flow is a weighted sum of the agents' intents. Weights are stationary attention probabilities <em>π<sub>j</sub></em>. Thus, macroscopic variance is explicitly dictated by the network's concentration. 
+</p>
+
+<p>
+Statistically, the variance of a weighted sum scales with the sum of the squared weights. Since the sum of the squared attention probabilities (∑ <em>π<sub>j</sub></em><sup>2</sup>) is the mathematical definition of the Herfindahl-Hirschman Index, the variance of the market's aggregate demand scales strictly as <em>O(N<sup>2</sup> HHI<sub>t</sub>)</em>. 
+</p>
+
+<h3 id="sec-sde"><span class="num">7.4</span>(Bal?)-Black-Scholes</h3>
+
+<p>
+With both the first moment (drift) and second moment (diffusion) rigorously micro-founded from the physics of the attention network, we can finally synthesize the complete Stochastic Differential Equation. 
+</p>
+
+<p>
+Because the diffusion coefficient of an SDE is the standard deviation (the square root of the variance), we take the square root of our HHI scaling factor. Adding a baseline idiosyncratic variance parameter (<em>σ<sub>v</sub></em>) to represent ambient market noise, we arrive at the final Non-Equilibrium Attention Market (NEAM) equation:
+</p>
+
+<div class="eq-block">
+d<em>S<sub>t</sub></em> = [ <em>λ</em> (<em>w<sup>T</sup> M<sub>t</sub></em>) ] <em>S<sub>t</sub></em> dt + [ <em>σ<sub>v</sub> N √HHI<sub>t</sub></em> ] <em>S<sub>t</sub></em> d<em>W<sub>t</sub></em>
+</div>
+
+<p>
+This equation is the mathematical payoff of the entire framework, seamlessly bridging Bal's Spin Transformers with observable market phenomena. It formally dictates two distinct market regimes:
+</p>
+
+<ol>
+  <li><strong>The High-Entropy Regime (Stable Market):</strong> When attention is highly diversified, <em>HHI<sub>t</sub> ≈ 1/N</em>. The diffusion coefficient simplifies to <em>σ<sub>v</sub> √N</em>. The system acts as a standard random walk, absorbing exogenous macroeconomic shocks (d<em>W<sub>t</sub></em>) smoothly. </li>
+  <li><strong>The Critical Phase Transition (Flash Crash):</strong> When thermodynamic friction forces the Softmax attention to collapse, the HHI violently spikes toward 1.0. The diffusion coefficient instantly scales up to <em>O(N)</em>, meaning <strong>the variance explodes by a massive factor of <em>N</em></strong>. </li>
+</ol>
+
+<p>
+At this critical moment, the market is structurally compromised. The next exogenous macroeconomic shock (d<em>W<sub>t</sub></em>), no matter how mathematically trivial, is multiplied by a massive, perfectly correlated <em>O(N)</em> factor. The market maker's liquidity is instantly overwhelmed, and the scalar price <em>S<sub>t</sub></em> violently gaps to clear the one-sided demand. 
+</p>
+
+
+
+
+<p>
+Consequently, the diffusion coefficient (the standard deviation) for our price equation must scale as <em>O(N √HHI<sub>t</sub>)</em>.
+</p>
+
 <p>
 Ok, but this is supposed to be a prediction about economics right? To quote a friend, "value plus discounted," that is to say: we would like to determine a value, or an asset price. I'm not an economist, however, so what I mean is: there's some variable in the system, some expected value, and it is an observable and we would like to know its value. In a market, like the stock market, I know about two things: what is the price I paid, what is the price I hope to get? That is, I would love to predict the price on the market, and the continuous evolutions of that price.
 </p>
