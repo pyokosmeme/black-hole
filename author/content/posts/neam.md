@@ -415,7 +415,7 @@ The agents are no longer acting as independent random variables; they are acting
 <h2 id="sec-bbs"><span class="num">07</span> Attention Econophysics</h2>
 
 <p>
-Ok, so what we have is a justified arugment about the overall dynamics regarding entropy and attention markets, but markets are about prices? We will proceed by following the elephant path of econophysics. If buy and sell (spin up or spin down) is our model, then the magnetization of the spin glass becomes aggregate excess demand. In physics, we call this the order parameter. Once we have demand, or an order parameter, we then identify the price clearing mechanism with the core assumption that the percentage change in price is strictly proportional to the excess demand:
+Ok, so we have established our justifications for the overall dynamics regarding entropy and attention markets, but markets are about prices. Where are our prices? We will proceed by following the econophysics elephant path. If buy and sell (spin up or spin down) is our model, then the magnetization of the spin glass becomes aggregate excess demand. In physics, we call this the order parameter. Once we have demand, or an order parameter, we then identify the price clearing mechanism with the core assumption that the percentage change in price is strictly proportional to the excess demand:
 </p>
 
 
@@ -466,14 +466,14 @@ This provides the deterministic drift rate (<em>μ<sub>t</sub></em>) of our asse
 
 
 
-<h3 id="sec-vol"><span class="num">7.3</span> Attention concentration and the variance expansion</h3>
+<h3 id="sec-vol"><span class="num">7.3</span> Concentration</h3>
 
 <p>
 With the drift established, we must determine how the microscopic randomness of the agents scales up to macroscopic market volatility. The aggregate order flow is a weighted sum of the agents' intents, where the weights are the stationary attention probabilities <em>π<sub>j</sub></em>. 
 </p>
 
 <p>
-To evaluate this rigorously, we write out the explicit variance of this weighted sum, expanding it into individual variance components and cross-agent covariance terms:
+To evaluate this rigorously, we expand the explicit variance of this weighted sum into individual variance components and cross-agent covariance terms:
 </p>
 
 <div class="eq-block">
@@ -481,21 +481,22 @@ Var(∑<sub>j=1</sub><sup>N</sup> <em>π<sub>j</sub> v<sub>j</sub></em>) = ∑<s
 </div>
 
 <p>
-By analyzing this complete expansion, we can evaluate the exact asymptotic limits of the system to see precisely where the Herfindahl-Hirschman Index (HHI) governs the dynamics:
+Because market impact is driven by the total extensive order flow (<em>N</em> · ∑ <em>π<sub>j</sub> v<sub>j</sub></em>) rather than its sample average, the variance scales extensively with <em>N</em><sup>2</sup>, yielding the <em>O(N<sup>2</sup> HHI<sub>t</sub>)</em> structural floor and a diffusion coefficient of <em>σ<sub>v</sub> N √HHI<sub>t</sub></em>.
+</p>
+
+<p>
+By evaluating this complete expansion, we can look directly at the exact asymptotic limits of the system to see precisely where the Herfindahl-Hirschman Index (HHI) governs the dynamics:
 </p>
 
 <ul>
-  <li><strong>The Independent Phase (High Entropy):</strong> When the market is fragmented, agents act on private, idiosyncratic information. Their strategies are completely uncorrelated, meaning Cov(<em>v<sub>j</sub>, v<sub>k</sub></em>) = 0 for all <em>j ≠ k</em>. The entire right-hand covariance block vanishes, leaving:
-    <div class="eq-block">Var(∑ <em>π<sub>j</sub> v<sub>j</sub></em>) = <em>σ</em><sup>2</sup> ∑<sub>j=1</sub><sup>N</sup> <em>π<sub>j</sub></em><sup>2</sup> = <em>σ</em><sup>2</sup> HHI<sub>t</sub></div>
-    In this regime, the HHI is not an approximation; it is a technically exact identity mapping network concentration to aggregate variance.
-  </li>
-  <li><strong>The Monopolistic Phase (Localized Concentration):</strong> If a single dominant agent or systemic algorithm captures near-total attention, the distribution approaches <em>π<sub>1</sub> → 1</em> and <em>π<sub>j&gt;1</sub> → 0</em>. The weight products <em>π<sub>j</sub> π<sub>k</sub></em> for the cross-terms drop to zero because the marginal agents carry no weight. Here, the HHI approaches 1.0, and the total variance cleanly matches the HHI baseline again, capping out at <em>σ</em><sup>2</sup> due to geometric concentration alone.</li>
-  <li><strong>The Correlated Herd Phase (The Covariance Explosion):</strong> The bound breaks away from the pure HHI line when attention remains distributed across multiple nodes, but those nodes begin actively imitating one another, forcing Cov(<em>v<sub>j</sub>, v<sub>k</sub></em>) → <em>σ</em><sup>2</sup>. Because the remaining weight products sum to <em>1 - HHI</em>, the variance surges to its global ceiling of <em>σ</em><sup>2</sup>.
+  <li><strong>The Independent Phase (High Entropy):</strong> When the market is fragmented, agents act on private, idiosyncratic information. Their strategies are completely uncorrelated, meaning Cov(<em>v<sub>j</sub>, v<sub>k</sub></em>) = 0 for all <em>j ≠ k</em>. The covariance block vanishes, leaving the aggregate extensive variance to simplify cleanly to <em>σ</em><sup>2</sup> <em>N</em><sup>2</sup> HHI<sub>t</sub>. If attention is uniform (<em>π<sub>j</sub> = 1/N</em>), the HHI is <em>1/N</em>, and the total variance becomes <em>σ</em><sup>2</sup> <em>N</em>—the correct physical limit for a cumulative random walk of independent buyers and sellers.</li>
+  <li><strong>The Monopolistic Phase (Localized Concentration):</strong> If a single dominant agent or systemic algorithm captures near-total attention, the distribution approaches <em>π<sub>1</sub> → 1</em> and <em>π<sub>j&gt;1</sub> → 0</em>. The weight products for the cross-terms drop to zero because the marginal agents carry no weight. Here, the HHI approaches 1.0, and the total variance cleanly matches the HHI baseline again, capping out at <em>σ</em><sup>2</sup> <em>N</em><sup>2</sup> due to geometric concentration alone.</li>
+  <li><strong>The Correlated Herd Phase (The Covariance Explosion):</strong> The bound breaks away from the pure HHI line when attention remains distributed across multiple nodes, but those nodes begin actively imitating one another, forcing Cov(<em>v<sub>j</sub>, v<sub>k</sub></em>) → <em>σ</em><sup>2</sup>. Because the remaining weight products sum to <em>1 - HHI</em>, the variance surges to its global extensive ceiling of <em>σ</em><sup>2</sup> <em>N</em><sup>2</sup>.
   </li>
 </ul>
 
 <p>
-This shows the <em>O(N<sup>2</sup> HHI<sub>t</sub>)</em> scaling coefficient derived from the first term acts as the fundamental <strong>structural floor</strong> of market volatility. The HHI explicitly dictates the minimum level of macroeconomic diffusion guaranteed by the network geometry, while the latent covariance cross-terms dictate the explosive ceiling when herd coordination ignites.
+This proves that the <em>O(N<sup>2</sup> HHI<sub>t</sub>)</em> scaling coefficient derived from the first term acts as the fundamental <strong>structural floor</strong> of market volatility. The HHI explicitly dictates the minimum level of macroeconomic diffusion guaranteed by the network geometry, while the latent covariance cross-terms dictate the explosive ceiling when herd coordination ignites.
 </p>
 
 <h3 id="sec-sde"><span class="num">7.4</span>The Non-Equilibrium Attention Market Equation</h3>
@@ -505,7 +506,7 @@ With both the first moment (drift) and second moment (diffusion) pulled from the
 </p>
 
 <p>
-Because the diffusion coefficient of an SDE is the standard deviation (the square root of the variance), we take the square root of our HHI scaling factor. We a baseline idiosyncratic variance parameter (<em>σ<sub>v</sub></em>) to represent ambient market noise, the spiritual equivalent of adding an ambient thermal noise term a la Langevin separation of noise. Thus, we arrive at the final Non-Equilibrium Attention Market (NEAM) equation:
+Because the diffusion coefficient of an SDE is the standard deviation (the square root of the variance), we take the square root of our HHI scaling factor. We add a variance parameter (<em>σ<sub>v</sub></em>) to represent ambient market noise, the spiritual equivalent of adding an ambient thermal noise term a la Langevin separation of noise. Thus, we arrive at the final Non-Equilibrium Attention Market (NEAM) equation:
 </p>
 
 <div class="eq-block">
@@ -533,7 +534,19 @@ Consequently, the diffusion coefficient (the standard deviation) for our price e
 <h2 id="sec-fat"><span class="num">08</span> Endogenous fat tails for sale, never used</h2>
 
 <p>
-In classical finance, a crash is modeled as an extreme, "fat tail" anomaly drawn from a static normal distribution. It is a purely exogenous stroke of bad luck. In the Bal-Black-Scholes, or NEAM, framework a crash is not a random variable, but a deterministic phase transition caused by the network's bounded agents spontaneously aligning their attention to survive in a non-reciprocal learning environment. The extreme leptokurtosis (fat tails) and volatility clustering observed in empirical market data are the direct, measurable artifacts of bounded agents collapsing their attention, thus this proposed SDE provides a micro-founded mechanism capable of generating the observed leptokurtosis.
+In traditional quantitative finance, fat tails (leptokurtosis) and volatility clustering are treated as exogenous mysteries that need to be patched over. The NEAM SDE requires no such ad-hoc adjustments. The heavy tails observed in empirical asset returns are revealed to be the direct macroscopic artifacts of bounded agents constantly shifting their attention structure.
+</p>
+
+<p>
+The mathematical engine for this phenomenon lives directly within the phase boundaries shown in Section 7.3. Real market dynamics are defined by a meta-deliberation process: the system moves through intermittent periods of calm where agent updates are largely uncoordinated (The Independent Phase), anchoring the price to its minimum <em>O(N √HHI<sub>t</sub>)</em> volatility floor. However, because gradient updates on the query-key weights (<em>W<sub>Q</sub>, W<sub>K</sub></em>) operate on a slower, continuous timescale, the attention matrix slowly drifts toward alignment. 
+</p>
+
+<p>
+When the network crosses the critical threshold into the Correlated Herd Phase, the variance breaks free from its structural floor and surges toward the <em>O(N)</em> global covariance ceiling. Because the system lingers in these non-equilibrium steady states before thermodynamic friction forces a clearing collapse, volatility naturally clusters in time. 
+</p>
+
+<p>
+The switching dynamics between these two geometric phases transform what would be a standard Gaussian random walk into a heavy-tailed distribution. The extreme price gaps, so-called "Black Swan" events that classical finance deems 1-in-a-billion-year anomalies, are deterministic pile-ups of network learning in the NEAM framework.
 </p>
 
 <h2 id="sec-concl"><span class="num">09</span> Conclusion and summary</h2>
