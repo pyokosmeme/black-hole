@@ -17,3 +17,10 @@ canvas/
 !futures/content/**/*.md
 !author/content/**/*.md
 !author/bio.md
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
