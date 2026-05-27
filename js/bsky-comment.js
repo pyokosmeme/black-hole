@@ -27,29 +27,37 @@ const pdsCache = new Map();
 async function discoverPds(did) {
   if (pdsCache.has(did)) return pdsCache.get(did);
 
-  // Try the DID document
+  // Fetch DID document to find PDS endpoint
   try {
-    const res = await fetch(`${BSKY_PUBLIC}/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(did)}`);
-    if (!res.ok) {
-      // Fallback: try DID document directly
-      const didDocRes = await fetch(`https://plc.directory/${did.replace('did:plc:', '')}`);
-      if (didDocRes.ok) {
-        const doc = await didDocRes.json();
-        const atp = (doc.services || []).find(s => s.id === '#atproto_pds');
-        const pds = atp?.serviceEndpoint || 'https://bsky.social';
-        pdsCache.set(did, pds);
-        return pds;
-      }
-      return 'https://bsky.social';
+    let doc = null;
+
+    // did:plc → PLC directory
+    if (did.startsWith('did:plc:')) {
+      const res = await fetch(`https://plc.directory/${did.replace('did:plc:', '')}`);
+      if (res.ok) doc = await res.json();
     }
-    const data = await res.json();
-    const services = data.didDoc?.services || [];
-    const atp = services.find(s => s.type === 'AtprotoPersistentHandle');
-    const pds = atp?.serviceEndpoint || 'https://bsky.social';
+    // did:web → fetch .well-known/did.json
+    else if (did.startsWith('did:web:')) {
+      const host = did.replace('did:web:', '');
+      const res = await fetch(`https://${host}/.well-known/did.json`);
+      if (res.ok) doc = await res.json();
+    }
+
+    if (doc) {
+      const atp = (doc.service || []).find(
+        s => s.id === '#atproto_pds' || s.type === 'AtprotoPersistentHandle'
+      );
+      if (atp?.serviceEndpoint) {
+        pdsCache.set(did, atp.serviceEndpoint);
+        return atp.serviceEndpoint;
+      }
+    }
+
+    // Fallback: most users are on bsky.social
+    const pds = 'https://bsky.social';
     pdsCache.set(did, pds);
     return pds;
   } catch {
-    // Most users are on bsky.social
     const pds = 'https://bsky.social';
     pdsCache.set(did, pds);
     return pds;
