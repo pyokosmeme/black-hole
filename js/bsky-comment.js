@@ -6,7 +6,7 @@
  *   agency.lastnpcalex.like   — like on a comment
  *
  * Indexing: constellation.microcosm.blue (backlink index)
- * Fetching: slingshot.wisp.place (PDS cache)
+ * Fetching: user's own PDS (discovered via DID document)
  *
  * @module bs ky-comment
  */
@@ -14,8 +14,47 @@
 import { xrpc } from './bsky-auth.js';
 
 const CONSTELLATION = 'https://constellation.microcosm.blue';
-const SLINGSHOT = 'https://slingshot.wisp.place';
 const BSKY_PUBLIC = 'https://public.api.bsky.app';
+
+// PDS endpoint cache — avoids repeated DNS lookups
+const pdsCache = new Map();
+
+/**
+ * Discover a DID's PDS endpoint from the Bluesky AppView.
+ * @param {string} did
+ * @returns {string} PDS URL
+ */
+async function discoverPds(did) {
+  if (pdsCache.has(did)) return pdsCache.get(did);
+
+  // Try the DID document
+  try {
+    const res = await fetch(`${BSKY_PUBLIC}/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(did)}`);
+    if (!res.ok) {
+      // Fallback: try DID document directly
+      const didDocRes = await fetch(`https://plc.directory/${did.replace('did:plc:', '')}`);
+      if (didDocRes.ok) {
+        const doc = await didDocRes.json();
+        const atp = (doc.services || []).find(s => s.id === '#atproto_pds');
+        const pds = atp?.serviceEndpoint || 'https://bsky.social';
+        pdsCache.set(did, pds);
+        return pds;
+      }
+      return 'https://bsky.social';
+    }
+    const data = await res.json();
+    const services = data.didDoc?.services || [];
+    const atp = services.find(s => s.type === 'AtprotoPersistentHandle');
+    const pds = atp?.serviceEndpoint || 'https://bsky.social';
+    pdsCache.set(did, pds);
+    return pds;
+  } catch {
+    // Most users are on bsky.social
+    const pds = 'https://bsky.social';
+    pdsCache.set(did, pds);
+    return pds;
+  }
+}
 
 const COMMENT_TYPE = 'agency.lastnpcalex.comment';
 const LIKE_TYPE = 'agency.lastnpcalex.like';
@@ -131,13 +170,15 @@ export async function getLikeBacklinks(subjectDid, limit = 500) {
 }
 
 /**
- * Fetch a record from Slingshot cache.
+ * Fetch a record directly from the user's PDS (supports CORS).
+ * Discovers PDS endpoint from the DID's document.
  * @param {string} did
  * @param {string} collection
  * @param {string} rkey
  */
 export async function fetchRecord(did, collection, rkey) {
-  const url = `${SLINGSHOT}/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(did)}&collection=${encodeURIComponent(collection)}&rkey=${encodeURIComponent(rkey)}`;
+  const pds = await discoverPds(did);
+  const url = `${pds}/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(did)}&collection=${encodeURIComponent(collection)}&rkey=${encodeURIComponent(rkey)}`;
   const res = await fetch(url);
   if (!res.ok) return null;
   return res.json();
