@@ -1,0 +1,14 @@
+{
+  "client_id": "https://lastnpcalex.agency/client-metadata.json",
+  "client_name": "Black Hole Transmissions",
+  "client_uri": "https://lastnpcalex.agency",
+  "redirect_uris": [
+    "https://lastnpcalex.agency/test-bsky.html"
+  ],
+  "scope": "atproto transition:generic",
+  "grant_types": ["authorization_code", "refresh_token"],
+  "response_types": ["code"],
+  "token_endpoint_auth_method": "none",
+  "application_type": "web",
+  "dpop_bound_access_tokens": true
+}

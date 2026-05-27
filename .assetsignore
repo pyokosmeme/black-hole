@@ -1,0 +1,41 @@
+# Dev/tooling — not served to the browser
+.claude/
+.gemini/
+.git/
+.github/
+canvas/
+attached_files/
+scripts/
+src/
+author/.old/
+
+# Build artifacts
+*.pyc
+__pycache__/
+
+# This ignore file itself
+.assetsignore
+
+# Config files
+wrangler.toml
+CLAUDE.md
+GEMINI.md
+TRANSMISSIONS.md
+
+# Python scripts
+*.py
+
+# Notebooks
+*.ipynb
+
+# Node stuff (if any)
+node_modules/
+package.json
+package-lock.json
+
+# Old JSX experiments
+author/acid-burn.jsx
+author/author-node.jsx
+author/cyber-landing.jsx
+author/README.md
+author/effects/

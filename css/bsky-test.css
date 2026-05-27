@@ -1,0 +1,287 @@
+/* ATproto test page — acidburn aesthetic */
+
+.bsky-test {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: var(--space-lg);
+  font-family: 'Share Tech Mono', 'VT323', monospace;
+  color: #e8ecf0;
+}
+
+.bsky-test h1 {
+  font-size: var(--text-xl);
+  color: var(--cyan);
+  text-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+  margin-bottom: var(--space-xs);
+}
+
+.bsky-test .subtitle {
+  color: var(--doc-fg-muted, #b8c0cc);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-lg);
+  border-bottom: 1px solid #2a3140;
+  padding-bottom: var(--space-md);
+}
+
+/* Panels */
+.panel {
+  background: rgba(10, 13, 20, 0.8);
+  border: 1px solid #2a3140;
+  border-left: 2px solid var(--cyan);
+  padding: var(--space-md);
+  margin-bottom: var(--space-lg);
+}
+
+.panel h2 {
+  font-size: var(--text-base);
+  color: var(--purple, #bf00ff);
+  margin-top: 0;
+  margin-bottom: var(--space-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  font-size: 12px;
+}
+
+/* Auth panel */
+.auth-row {
+  display: flex;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
+}
+
+.auth-row input {
+  flex: 1;
+  background: #0a0d14;
+  border: 1px solid #2a3140;
+  color: #e8ecf0;
+  padding: 8px 12px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: var(--text-sm);
+}
+
+.auth-row input:focus {
+  outline: none;
+  border-color: var(--cyan);
+  box-shadow: 0 0 8px rgba(0, 255, 255, 0.2);
+}
+
+.btn {
+  background: transparent;
+  border: 1px solid var(--cyan);
+  color: var(--cyan);
+  padding: 8px 16px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.btn:hover {
+  background: rgba(0, 255, 255, 0.1);
+  box-shadow: 0 0 12px rgba(0, 255, 255, 0.3);
+}
+
+.btn.btn-sm {
+  padding: 4px 10px;
+  font-size: 10px;
+}
+
+.btn.btn-danger {
+  border-color: #fca5a5;
+  color: #fca5a5;
+}
+
+.btn.btn-danger:hover {
+  background: rgba(252, 165, 165, 0.1);
+  box-shadow: 0 0 12px rgba(252, 165, 165, 0.3);
+}
+
+.session-info {
+  font-size: 11px;
+  color: #5a6473;
+  margin-top: var(--space-xs);
+}
+
+.session-info .did {
+  color: var(--green, #00ff88);
+  word-break: break-all;
+}
+
+/* Comment form */
+.comment-form textarea {
+  width: 100%;
+  background: #0a0d14;
+  border: 1px solid #2a3140;
+  color: #e8ecf0;
+  padding: 10px 12px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: var(--text-sm);
+  resize: vertical;
+  min-height: 80px;
+  margin-bottom: var(--space-xs);
+  box-sizing: border-box;
+}
+
+.comment-form textarea:focus {
+  outline: none;
+  border-color: var(--cyan);
+}
+
+.comment-form select {
+  background: #0a0d14;
+  border: 1px solid #2a3140;
+  color: #e8ecf0;
+  padding: 6px 10px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: var(--text-xs);
+  margin-bottom: var(--space-xs);
+}
+
+/* Comment display */
+.comment-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.comment-card {
+  background: rgba(10, 13, 20, 0.6);
+  border: 0.5px solid #2a3140;
+  padding: 12px 14px;
+  position: relative;
+}
+
+.comment-card .comment-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  font-size: 10px;
+}
+
+.comment-card .comment-author {
+  color: var(--purple, #bf00ff);
+  text-decoration: none;
+}
+
+.comment-card .comment-author:hover {
+  color: var(--magenta, #ff00ff);
+}
+
+.comment-card .comment-time {
+  color: #5a6473;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.comment-card .comment-text {
+  color: #b8c0cc;
+  font-size: 12px;
+  line-height: 1.6;
+  margin-bottom: 10px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.comment-card .comment-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.comment-card .like-btn {
+  background: none;
+  border: none;
+  color: #5a6473;
+  font-size: 10px;
+  cursor: pointer;
+  font-family: 'Share Tech Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 2px 6px;
+  transition: color 0.15s;
+}
+
+.comment-card .like-btn:hover {
+  color: var(--pink, #ff0099);
+}
+
+.comment-card .like-btn.liked {
+  color: var(--pink, #ff0099);
+}
+
+.comment-card .delete-btn {
+  background: none;
+  border: none;
+  color: #5a6473;
+  font-size: 10px;
+  cursor: pointer;
+  font-family: 'Share Tech Mono', monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 2px 6px;
+  transition: color 0.15s;
+}
+
+.comment-card .delete-btn:hover {
+  color: #fca5a5;
+}
+
+/* Status messages */
+.status {
+  font-size: 11px;
+  padding: 8px 12px;
+  margin-top: var(--space-xs);
+  border-left: 2px solid #2a3140;
+  color: #5a6473;
+}
+
+.status.error {
+  border-left-color: #fca5a5;
+  color: #fca5a5;
+}
+
+.status.success {
+  border-left-color: var(--green, #00ff88);
+  color: var(--green, #00ff88);
+}
+
+.status.loading {
+  border-left-color: var(--cyan);
+  color: var(--cyan);
+}
+
+/* Fetch controls */
+.fetch-row {
+  display: flex;
+  gap: var(--space-xs);
+  margin-bottom: var(--space-sm);
+  align-items: center;
+}
+
+.fetch-row input {
+  flex: 1;
+  background: #0a0d14;
+  border: 1px solid #2a3140;
+  color: #e8ecf0;
+  padding: 6px 10px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: var(--text-xs);
+}
+
+.fetch-row input:focus {
+  outline: none;
+  border-color: var(--cyan);
+}
+
+.empty-state {
+  color: #5a6473;
+  font-size: 11px;
+  font-style: italic;
+  padding: var(--space-md);
+  text-align: center;
+}

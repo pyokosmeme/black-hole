@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ATproto Comment Test</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/acidburn.css">
+  <link rel="stylesheet" href="css/bsky-test.css">
+  <script type="module">
+    import * as Auth from './js/bsky-auth.js';
+    import * as Comment from './js/bsky-comment.js';
+
+    const SITE_DID = 'did:plc:ccxl3ictrlvtrrgh5swvvg47';
+
+    // ── DOM ──
+    const $ = s => document.querySelector(s);
+    function status(el, msg, type = '') {
+      el.textContent = msg;
+      el.className = 'status ' + type;
+    }
+
+    // ── Auth ──
+    function updateAuthUI() {
+      const session = Auth.getSession();
+      const el = $('#auth-status');
+
+      if (session) {
+        status(el, `@${session.handle} (${session.did.slice(0, 20)}...)`, 'success');
+        $('#auth-form').style.display = 'none';
+        $('#logout-btn').style.display = 'inline-block';
+      } else {
+        status(el, 'Enter handle + app password to sign in');
+        $('#auth-form').style.display = 'flex';
+        $('#logout-btn').style.display = 'none';
+      }
+    }
+
+    $('#login-btn').addEventListener('click', async () => {
+      const handle = $('#handle-input').value.trim();
+      const pw = $('#pw-input').value;
+      const el = $('#auth-status');
+
+      if (!handle || !pw) return status(el, 'Handle and password required', 'error');
+
+      status(el, 'connecting...', 'loading');
+      try {
+        const { authToken } = await Auth.login(handle, pw);
+        window._authToken = authToken;
+        window._pds = Auth.getSession().pds;
+        window._did = Auth.getSession().did;
+        status(el, 'connected', 'success');
+        updateAuthUI();
+      } catch (e) {
+        status(el, 'Login failed: ' + e.message, 'error');
+      }
+    });
+
+    $('#logout-btn').addEventListener('click', () => {
+      Auth.logout();
+      delete window._authToken;
+      delete window._pds;
+      delete window._did;
+      updateAuthUI();
+    });
+
+    // ── Post Comment ──
+    $('#post-comment-btn').addEventListener('click', async () => {
+      const msg = $('#comment-input').value.trim();
+      const post = $('#post-select').value;
+      const el = $('#comment-status');
+
+      if (!msg) return status(el, 'Message required', 'error');
+      if (!window._authToken) return status(el, 'Sign in first', 'error');
+
+      status(el, 'posting...', 'loading');
+      try {
+        const result = await Comment.post(
+          window._authToken, window._pds, window._did,
+          msg, post, SITE_DID
+        );
+        status(el, 'posted! uri: ' + result.uri, 'success');
+        $('#comment-input').value = '';
+      } catch (e) {
+        status(el, 'Error: ' + e.message, 'error');
+      }
+    });
+
+    // ── Fetch Comments ──
+    $('#fetch-btn').addEventListener('click', () => loadComments());
+
+    async function loadComments() {
+      const post = $('#post-id-input').value.trim() || 'test';
+      const list = $('#comment-list');
+      const el = $('#fetch-status');
+
+      status(el, 'fetching...', 'loading');
+      list.innerHTML = '';
+
+      try {
+        const comments = await Comment.loadComments(post, SITE_DID);
+
+        if (!comments.length) {
+          list.innerHTML = '<div class="empty-state">no comments yet — be the first</div>';
+          status(el, '0 comments', 'success');
+          return;
+        }
+
+        // Fetch like data
+        const uris = comments.map(c => c.uri);
+        const { counts, byUser } = await Comment.loadLikes(uris, SITE_DID);
+
+        comments.forEach(c => {
+          const card = createCard(c, counts.get(c.uri) || 0,
+            byUser.get(window._did)?.has(c.uri), byUser);
+          list.appendChild(card);
+        });
+
+        status(el, comments.length + ' comments', 'success');
+      } catch (e) {
+        status(el, 'Error: ' + e.message, 'error');
+      }
+    }
+
+    function createCard(c, likes, isLiked, byUserMap) {
+      const card = document.createElement('div');
+      card.className = 'comment-card';
+
+      const author = c.authorHandle || c.author.slice(0, 20);
+      const time = new Date(c.createdAt).toLocaleString('en-US', {
+        year: 'numeric', month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      });
+
+      const isOwn = window._did === c.author;
+
+      card.innerHTML = `
+        <div class="comment-header">
+          <a class="comment-author" href="https://bsky.app/profile/${c.authorHandle || c.author}" target="_blank">@${author}</a>
+          <span class="comment-time">${time}</span>
+        </div>
+        <div class="comment-text">${escHtml(c.message)}</div>
+        <div class="comment-actions">
+          <button class="like-btn ${isLiked ? 'liked' : ''}" data-uri="${c.uri}">♥ ${likes}</button>
+          ${isOwn ? `<button class="delete-btn" data-uri="${c.uri}">✕ DELETE</button>` : ''}
+        </div>
+      `;
+
+      // Like
+      card.querySelector('.like-btn').addEventListener('click', async (e) => {
+        if (!window._authToken) {
+          e.target.textContent = '♥ ' + likes + ' (sign in)';
+          return;
+        }
+        try {
+          if (isLiked) {
+            // Unlike
+            const userLikes = byUserMap.get(window._did);
+            const likeUri = findLikeUri(userLikes, c.uri);
+            if (likeUri) await Comment.unlike(window._authToken, window._pds, likeUri);
+            e.target.textContent = '♥ ' + (likes - 1);
+            e.target.classList.remove('liked');
+          } else {
+            await Comment.like(window._authToken, window._pds, window._did, c.uri, SITE_DID);
+            e.target.textContent = '♥ ' + (likes + 1);
+            e.target.classList.add('liked');
+          }
+        } catch (err) {
+          console.error('Like failed:', err);
+          e.target.textContent = '♥ ' + likes + ' (err)';
+        }
+      });
+
+      // Delete
+      card.querySelector('.delete-btn')?.addEventListener('click', async (e) => {
+        if (!confirm('Delete this comment?')) return;
+        try {
+          await Comment.remove(window._authToken, window._pds, c.uri);
+          card.remove();
+        } catch (err) {
+          console.error('Delete failed:', err);
+        }
+      });
+
+      return card;
+    }
+
+    function findLikeUri(userLikeSet, targetUri) {
+      // We need the actual like URI. Since we only track targetURIs in byUserMap,
+      // we need to look up the like record. For simplicity, query all likes.
+      // TODO: store like URIs when creating them.
+      return null; // Will be implemented when we persist like URIs
+    }
+
+    function escHtml(s) {
+      const d = document.createElement('div');
+      d.textContent = s;
+      return d.innerHTML;
+    }
+
+    // ── Init ──
+    updateAuthUI();
+  </script>
+</head>
+<body>
+  <div class="bsky-test">
+    <h1>ATproto Comment Test</h1>
+    <div class="subtitle">
+      Constellation backlinks · custom records · PDS-hosted data<br>
+      Record types: <code>agency.lastnpcalex.comment</code>, <code>agency.lastnpcalex.like</code>
+    </div>
+
+    <!-- Auth -->
+    <div class="panel" id="auth-panel">
+      <h2>◈ Authenticate</h2>
+      <div class="auth-row" id="auth-form">
+        <input type="text" id="handle-input" placeholder="handle.bsky.social" style="flex:1">
+        <input type="password" id="pw-input" placeholder="app password" style="flex:1">
+        <button class="btn" id="login-btn">SIGN IN</button>
+      </div>
+      <button class="btn btn-sm btn-danger" id="logout-btn" style="display:none">LOGOUT</button>
+      <div class="status" id="auth-status"></div>
+      <div style="font-size:10px;color:#5a6473;margin-top:8px">
+        App passwords: bsky.app → Settings → Security → App Passwords
+      </div>
+    </div>
+
+    <!-- Post Comment -->
+    <div class="panel">
+      <h2>◈ Post Comment</h2>
+      <div class="comment-form">
+        <label style="font-size:10px;color:#5a6473;text-transform:uppercase;letter-spacing:0.15em;">Post ID</label>
+        <select id="post-select">
+          <option value="test">test</option>
+          <option value="neam">neam</option>
+          <option value="vectoralism-signal">vectoralism-signal</option>
+        </select>
+        <textarea id="comment-input" placeholder="leave a comment..." rows="3"></textarea>
+        <button class="btn" id="post-comment-btn">POST</button>
+      </div>
+      <div class="status" id="comment-status"></div>
+    </div>
+
+    <!-- Display -->
+    <div class="panel">
+      <h2>◈ Comments</h2>
+      <div class="fetch-row">
+        <input type="text" id="post-id-input" value="test" placeholder="post ID">
+        <button class="btn" id="fetch-btn">FETCH</button>
+      </div>
+      <div id="comment-list"></div>
+      <div class="status" id="fetch-status"></div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,25 @@
+name = "black-hole"
+main = "src/index.js"
+compatibility_date = "2025-05-27"
+
+# Route: all requests to lastnpcalex.agency hit this worker
+# Subdomains are NOT routed (no wildcard)
+routes = [
+  { pattern = "lastnpcalex.agency", zone_name = "lastnpcalex.agency" },
+  { pattern = "lastnpcalex.agency/*", zone_name = "lastnpcalex.agency" },
+]
+
+# Static assets served by the worker
+assets = { binding = "ASSETS" }
+
+# Pages/assets directory: the repo root IS the asset directory
+# This means every file in the repo root is a candidate for serving
+assets.directory = "."
+
+# Only serve these file types (everything else falls through to worker logic)
+assets.not_found_handling = "single-page-application"
+
+[vars]
+# Site config
+SITE_NAME = "lastnpcalex.agency"
+SITE_DID = "did:plc:ccxl3ictrlvtrrgh5swvvg47"
