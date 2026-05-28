@@ -104,15 +104,17 @@ async function listRecords(repo, collection, limit = 100) {
  * Post a comment via the DPoP proxy.
  * @param {string} message
  * @param {string} subjectUri - synthetic transmission AT-URI
+ * @param {string} [replyTo] - AT-URI of parent comment (for threading)
  * @returns {{ uri: string, cid: string }}
  */
-export async function post(message, subjectUri) {
+export async function post(message, subjectUri, replyTo) {
   const rec = {
     $type: COMMENT_TYPE,
     subject: subjectUri,
     message,
     createdAt: new Date().toISOString(),
   };
+  if (replyTo) rec.replyTo = replyTo;
   const res = await fetch(`${API}/createRecord`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

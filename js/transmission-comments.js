@@ -1,16 +1,11 @@
 /**
  * transmission-comments.js — collapsed comments widget for transmissions.
- *
- * Usage:
- *   import { mount } from './js/transmission-comments.js';
- *   mount(document.querySelector('.nrol-doc'), {
- *     slug: 'neam',
- *     authorDid: 'did:plc:ccxl3ictrlvtrrgh5swvvg47',
- *   });
  */
 
 import * as Auth from './bsky-auth.js';
 import * as Comment from './bsky-comment.js';
+
+const MAX_CHARS = 500;
 
 function el(tag, attrs = {}, ...children) {
   const node = document.createElement(tag);
@@ -35,45 +30,42 @@ function fmtTime(iso) {
 }
 
 export async function mount(container, { slug, authorDid }) {
-  console.log('[tx-mount] called with slug:', slug, 'did:', authorDid);
   const subjectUri = Comment.transmissionUri(authorDid, slug);
-  console.log('[tx-mount] subjectUri:', subjectUri);
 
+  // Summary line
   const summary = el('summary', { class: 'tx-comments-summary' },
     el('span', { class: 'tx-comments-label' }, '[ TRANSMIT RESPONSE ]'),
     el('span', { class: 'tx-comments-count', 'data-count': '' }, '')
   );
 
+  // Body sections
   const authBar = el('div', { class: 'tx-comments-auth' });
-  const list = el('div', { class: 'tx-comments-list' }, 'loading...');
+  const list = el('div', { class: 'tx-comments-list', id: 'tx-list' }, 'loading...');
   const form = el('div', { class: 'tx-comments-form' });
 
+  // Body wrapper
   const body = el('div', { class: 'tx-comments-body' },
     el('div', { class: 'tx-comments-inner' }, authBar, list, form)
   );
-  const block = el('details', { class: 'tx-comments-block' },
-    summary,
-    body
-  );
+
+  const block = el('details', { class: 'tx-comments-block' }, summary, body);
   container.appendChild(block);
 
   let session = null;
   let hides = new Map();
+  let replyToUri = null;  // for threading
 
   async function refresh() {
     list.innerHTML = '';
     list.textContent = 'loading...';
-    console.log('[tx-refresh] loading comments for:', subjectUri);
     try {
       const [comments, hideMap] = await Promise.all([
         Comment.loadComments(subjectUri),
         Comment.loadHides(authorDid),
       ]);
-      console.log('[tx-refresh] got', comments.length, 'comments,', hideMap.size, 'hides');
       hides = hideMap;
       renderComments(comments);
     } catch (e) {
-      console.error('[tx-refresh] error:', e);
       list.textContent = 'error: ' + e.message;
     }
   }
@@ -81,30 +73,114 @@ export async function mount(container, { slug, authorDid }) {
   function renderComments(comments) {
     const isAdmin = session?.did === authorDid;
     const visible = comments.filter(c => isAdmin || !hides.has(c.uri));
-    summary.querySelector('.tx-comments-count').textContent = ` ${visible.length}`;
+    summary.querySelector('.tx-comments-count').textContent = ' ' + visible.length;
 
     list.innerHTML = '';
     if (!visible.length) {
       list.appendChild(el('div', { class: 'tx-comments-empty' }, 'no signal received yet'));
       return;
     }
+
+    // Build a map for quick parent lookup
+    const byUri = new Map(comments.map(c => [c.uri, c]));
+
+    // Separate roots from replies
+    const roots = comments.filter(c => !c.replyTo || !byUri.has(c.replyTo));
+    const replies = comments.filter(c => c.replyTo && byUri.has(c.replyTo));
+
     for (const c of comments) {
       if (!isAdmin && hides.has(c.uri)) continue;
-      list.appendChild(renderCard(c, isAdmin));
+      if (c.replyTo && byUri.has(c.replyTo)) {
+        // Rendered as child of parent — skip here, handle below
+        continue;
+      }
+      const card = renderCard(c, isAdmin, byUri);
+      list.appendChild(card);
+
+      // Render direct replies under this comment
+      const children = replies.filter(r => r.replyTo === c.uri);
+      for (const child of children) {
+        list.appendChild(renderReply(child, isAdmin));
+      }
     }
   }
 
-  function renderCard(c, isAdmin) {
+  function renderCard(c, isAdmin, byUri) {
     const hidden = hides.has(c.uri);
-    const card = el('article', { class: 'tx-comment' + (hidden ? ' tx-comment-hidden' : '') });
+    const cls = 'tx-comment' + (hidden ? ' tx-comment-hidden' : '');
+    const card = el('article', { class: cls });
     const author = c.authorHandle || c.author.slice(0, 24);
 
     card.appendChild(el('header', { class: 'tx-comment-head' },
       el('a', {
         class: 'tx-comment-author',
         href: `https://bsky.app/profile/${c.authorHandle || c.author}`,
-        target: '_blank',
-        rel: 'noopener',
+        target: '_blank', rel: 'noopener',
+      }, '@' + author),
+      el('time', { class: 'tx-comment-time' }, fmtTime(c.createdAt)),
+      hidden ? el('span', { class: 'tx-comment-hidden-tag' }, '[HIDDEN]') : null,
+    ));
+
+    card.appendChild(el('div', { class: 'tx-comment-body' }, c.message));
+
+    // Actions
+    const actions = el('footer', { class: 'tx-comment-actions' });
+    const replyBtn = el('button', { class: 'tx-reply-btn' }, '[ reply ]');
+    replyBtn.onclick = (e) => {
+      e.stopPropagation();
+      replyToUri = c.uri;
+      setReplyIndicator('@' + author);
+      focusTextarea();
+    };
+    actions.appendChild(replyBtn);
+
+    if (isAdmin) {
+      const modBtn = el('button', { class: 'tx-mod-btn' });
+      modBtn.textContent = hidden ? '[ UNHIDE ]' : '[ HIDE ]';
+      modBtn.onclick = async () => {
+        modBtn.disabled = true;
+        try {
+          if (hidden) {
+            const hideUri = hides.get(c.uri);
+            if (hideUri) {
+              await Comment.unhide(hideUri);
+              hides.delete(c.uri);
+            }
+          } else {
+            const r = await Comment.hide(c.uri);
+            if (r?.uri) {
+              hides.set(c.uri, r.uri);
+            }
+          }
+          refresh();
+        } catch (e) {
+          modBtn.disabled = false;
+          modBtn.textContent = 'err: ' + e.message;
+        }
+      };
+      actions.appendChild(modBtn);
+    }
+
+    card.appendChild(actions);
+    return card;
+  }
+
+  function renderReply(c, isAdmin) {
+    const hidden = hides.has(c.uri);
+    const cls = 'tx-comment tx-comment--reply' + (hidden ? ' tx-comment-hidden' : '');
+    const card = el('article', { class: cls });
+    const author = c.authorHandle || c.author.slice(0, 24);
+
+    // Reply-to indicator
+    card.appendChild(el('span', { class: 'tx-comment-reply-to' },
+      're: @' + (c.authorHandle || c.author.slice(0, 24))
+    ));
+
+    card.appendChild(el('header', { class: 'tx-comment-head' },
+      el('a', {
+        class: 'tx-comment-author',
+        href: `https://bsky.app/profile/${c.authorHandle || c.author}`,
+        target: '_blank', rel: 'noopener',
       }, '@' + author),
       el('time', { class: 'tx-comment-time' }, fmtTime(c.createdAt)),
       hidden ? el('span', { class: 'tx-comment-hidden-tag' }, '[HIDDEN]') : null,
@@ -113,29 +189,51 @@ export async function mount(container, { slug, authorDid }) {
     card.appendChild(el('div', { class: 'tx-comment-body' }, c.message));
 
     if (isAdmin) {
-      const btn = el('button', {
-        class: 'tx-mod-btn',
-        onclick: async () => {
-          btn.disabled = true;
-          try {
-            if (hidden) {
-              await Comment.unhide(hides.get(c.uri));
-              hides.delete(c.uri);
-            } else {
-              const r = await Comment.hide(c.uri);
-              hides.set(c.uri, r.uri);
-            }
-            refresh();
-          } catch (e) {
-            btn.disabled = false;
-            btn.textContent = 'err: ' + e.message;
+      const actions = el('footer', { class: 'tx-comment-actions' });
+      const modBtn = el('button', { class: 'tx-mod-btn' });
+      modBtn.textContent = hidden ? '[ UNHIDE ]' : '[ HIDE ]';
+      modBtn.onclick = async () => {
+        modBtn.disabled = true;
+        try {
+          if (hidden) {
+            const hideUri = hides.get(c.uri);
+            if (hideUri) await Comment.unhide(hideUri);
+            hides.delete(c.uri);
+          } else {
+            const r = await Comment.hide(c.uri);
+            if (r?.uri) hides.set(c.uri, r.uri);
           }
-        },
-      }, hidden ? '[ UNHIDE ]' : '[ HIDE ]');
-      card.appendChild(el('footer', { class: 'tx-comment-actions' }, btn));
+          refresh();
+        } catch (e) {
+          modBtn.disabled = false;
+          modBtn.textContent = 'err: ' + e.message;
+        }
+      };
+      actions.appendChild(modBtn);
+      card.appendChild(actions);
     }
 
     return card;
+  }
+
+  function setReplyIndicator(author) {
+    let indicator = form.querySelector('.tx-reply-indicator');
+    if (!indicator) {
+      indicator = el('span', { class: 'tx-reply-indicator' });
+      form.insertBefore(indicator, form.firstChild);
+    }
+    indicator.textContent = 'replying to ' + author + ' ...';
+  }
+
+  function clearReplyIndicator() {
+    const indicator = form.querySelector('.tx-reply-indicator');
+    if (indicator) indicator.remove();
+    replyToUri = null;
+  }
+
+  function focusTextarea() {
+    const ta = form.querySelector('.tx-form-text');
+    if (ta) ta.focus();
   }
 
   function renderAuth() {
@@ -174,28 +272,29 @@ export async function mount(container, { slug, authorDid }) {
     }
   }
 
-  const MAX_CHARS = 500;
-
   function renderForm() {
     form.innerHTML = '';
     if (!session) return;
+
     const textarea = el('textarea', {
-      class: 'tx-form-text', placeholder: 'transmit your response...', rows: '3',
+      class: 'tx-form-text',
+      placeholder: replyToUri ? 'replying...' : 'transmit your response...',
+      rows: '3',
     });
     const counter = el('span', { class: 'tx-form-counter' }, '0/' + MAX_CHARS);
     const submit = el('button', {
       class: 'tx-form-submit',
       onclick: async () => {
         const msg = textarea.value.trim();
-        if (!msg) return;
-        if (msg.length > MAX_CHARS) return;
+        if (!msg || msg.length > MAX_CHARS) return;
         submit.disabled = true;
         submit.textContent = 'transmitting...';
         try {
-          await Comment.post(msg, subjectUri);
+          await Comment.post(msg, subjectUri, replyToUri || undefined);
           textarea.value = '';
           counter.textContent = '0/' + MAX_CHARS;
           counter.classList.remove('tx-form-counter-warn');
+          clearReplyIndicator();
           submit.disabled = false;
           submit.textContent = 'transmit';
           refresh();
@@ -206,13 +305,25 @@ export async function mount(container, { slug, authorDid }) {
         }
       },
     }, 'transmit');
+
+    // Textarea input handler
     textarea.addEventListener('input', () => {
-      const remaining = MAX_CHARS - textarea.value.length;
-      counter.textContent = remaining < 0 ? textarea.value.length + '/' + MAX_CHARS : textarea.value.length + '/' + MAX_CHARS;
+      const len = textarea.value.length;
+      const remaining = MAX_CHARS - len;
+      counter.textContent = len + '/' + MAX_CHARS;
       if (remaining <= 50) counter.classList.add('tx-form-counter-warn');
       else counter.classList.remove('tx-form-counter-warn');
-      if (remaining <= 0) { textarea.value = textarea.value.slice(0, MAX_CHARS); counter.textContent = MAX_CHARS + '/' + MAX_CHARS; }
+      if (len > MAX_CHARS) {
+        textarea.value = textarea.value.slice(0, MAX_CHARS);
+        counter.textContent = MAX_CHARS + '/' + MAX_CHARS;
+      }
     });
+
+    // Show reply indicator if replying
+    if (replyToUri) {
+      // Will be set by the reply button click
+    }
+
     const formRow = el('div', { class: 'tx-form-row' }, submit, counter);
     form.appendChild(textarea);
     form.appendChild(formRow);
