@@ -216,7 +216,7 @@ async function handleCallback(request, env) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `DPoP ${dpopProof}`,
+        'DPoP': dpopProof,
       },
       body: tokenBody.toString(),
     });
