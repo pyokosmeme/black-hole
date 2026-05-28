@@ -213,37 +213,7 @@
       import { mount as mountComments } from './js/transmission-comments.js';
 
       const SITE_DID = 'did:plc:ccxl3ictrlvtrrgh5swvvg47';
-
-      function mountForSlug(slug) {
-        const postContent = document.getElementById('post-content');
-        if (!postContent || !slug) return;
-        // Clear any prior mount (post navigation reuses the container)
-        postContent.querySelectorAll('.tx-comments-block').forEach(n => n.remove());
-        const host = document.createElement('div');
-        postContent.appendChild(host);
-        mountComments(host, { slug, authorDid: SITE_DID });
-      }
-
-      const ready = setInterval(() => {
-        if (!window.AcidburnAuthor) return;
-        clearInterval(ready);
-        const origLoadPost = window.AcidburnAuthor.loadPost;
-        window.AcidburnAuthor.loadPost = async function (slug) {
-          await origLoadPost(slug);
-          mountForSlug(slug);
-        };
-        // Direct-link load (refresh on #post/slug)
-        const h = window.location.hash;
-        if (h.startsWith('#post/')) {
-          const slug = h.replace('#post/', '');
-          const wait = setInterval(() => {
-            if (document.getElementById('post-content')?.innerHTML.trim()) {
-              clearInterval(wait);
-              mountForSlug(slug);
-            }
-          }, 80);
-        }
-      }, 50);
+      window.__TRANSMISSION_COMMENTS = { mountComments, SITE_DID };
     </script>
 
     <script>
@@ -264,10 +234,23 @@
                 el.textContent = (post ? (post.title || slug) : slug).toUpperCase();
             }
 
+            async function mountComments(slug) {
+                const tc = window.__TRANSMISSION_COMMENTS;
+                if (!tc) { console.log('[tx] mountComments: __TRANSMISSION_COMMENTS not ready'); return; }
+                const postContent = document.getElementById('post-content');
+                if (!postContent) { console.log('[tx] mountComments: no post-content element'); return; }
+                postContent.querySelectorAll('.tx-comments-block').forEach(n => n.remove());
+                const host = document.createElement('div');
+                postContent.appendChild(host);
+                console.log('[tx] mounting widget for slug:', slug);
+                await tc.mountComments(host, { slug, authorDid: tc.SITE_DID });
+            }
+
             window.AcidburnAuthor.loadPost = async function(slug) {
                 await origLoadPost(slug);
                 setTitle(slug);
                 if (window.AcidburnMode) window.AcidburnMode.setMode(window.AcidburnMode.getMode());
+                mountComments(slug);
             };
             window.showIndex = function() {
                 origShowIndex();
@@ -275,14 +258,19 @@
                 if (window.AcidburnMode) window.AcidburnMode.setMode(window.AcidburnMode.getMode());
             };
 
-            // Handle direct-link load (refresh on #post/slug)
+            // Handle direct-link load — AcidburnAuthor.init() calls handleHashChange()
+            // which calls our patched loadPost (which mounts comments).
+            // But the setTitle needs to run for the header bar:
             const hash = window.location.hash;
             if (hash.startsWith('#post/')) {
                 const slug = hash.replace('#post/', '');
                 const wait = setInterval(() => {
                     if (window.AcidburnAuthor.getPosts().length) {
                         clearInterval(wait);
-                        setTitle(slug);
+                        // Post content is being loaded by handleHashChange → loadPost.
+                        // Our patched loadPost handles setTitle + mountComments.
+                        // Just ensure the mode toggle is set:
+                        if (window.AcidburnMode) window.AcidburnMode.setMode(window.AcidburnMode.getMode());
                     }
                 }, 50);
             }

@@ -19,6 +19,7 @@
 
 const CONSTELLATION = 'https://constellation.microcosm.blue';
 const BSKY_PUBLIC = 'https://public.api.bsky.app';
+const BSKY_SOCIAL = 'https://bsky.social';
 const API = '/api/bsky';
 
 const COMMENT_TYPE = 'agency.lastnpcalex.comment';
@@ -78,10 +79,31 @@ async function discoverPds(did) {
 }
 
 /**
+ * Query the appview for all records in a collection for a given repo.
+ * Paginates through all cursors.
+ */
+async function listRecords(repo, collection, limit = 100) {
+  const results = [];
+  let cursor = undefined;
+  do {
+    const url = new URL(`${BSKY_PUBLIC}/xrpc/com.atproto.repo.listRecords`);
+    url.searchParams.set('repo', repo);
+    url.searchParams.set('collection', collection);
+    url.searchParams.set('limit', String(limit));
+    if (cursor) url.searchParams.set('cursor', cursor);
+    const res = await fetch(url.toString());
+    if (!res.ok) throw new Error(`listRecords failed: ${res.status}`);
+    const data = await res.json();
+    results.push(...(data.records || []));
+    cursor = data.cursor;
+  } while (cursor);
+  return results;
+}
+
+/**
  * Post a comment via the DPoP proxy.
- * @param {string} message - Comment text
- * @param {string} post - Post slug
- * @param {string} subjectDid - Site owner DID
+ * @param {string} message
+ * @param {string} subjectUri - synthetic transmission AT-URI
  * @returns {{ uri: string, cid: string }}
  */
 export async function post(message, subjectUri) {
@@ -91,18 +113,15 @@ export async function post(message, subjectUri) {
     message,
     createdAt: new Date().toISOString(),
   };
-
   const res = await fetch(`${API}/createRecord`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ collection: COMMENT_TYPE, record: rec }),
   });
-
   if (!res.ok) {
     const err = await res.json();
     throw new Error(err.error || 'Post failed');
   }
-
   return res.json();
 }
 
@@ -222,17 +241,21 @@ export async function getLikeBacklinks(subjectDid, limit = 500) {
 }
 
 /**
- * Fetch a record directly from the user's PDS (supports CORS).
+ * Fetch a single record via the appview (no PLC directory needed).
+ * Uses bsky.social listRecords with rkey filter.
  * @param {string} did
  * @param {string} collection
  * @param {string} rkey
  */
 export async function fetchRecord(did, collection, rkey) {
-  const pds = await discoverPds(did);
-  const url = `${pds}/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(did)}&collection=${encodeURIComponent(collection)}&rkey=${encodeURIComponent(rkey)}`;
-  const res = await fetch(url);
+  const url = new URL(`${BSKY_SOCIAL}/xrpc/com.atproto.repo.listRecords`);
+  url.searchParams.set('repo', did);
+  url.searchParams.set('collection', collection);
+  url.searchParams.set('rkey', rkey);
+  const res = await fetch(url.toString());
   if (!res.ok) return null;
-  return res.json();
+  const data = await res.json();
+  return (data.records || [])[0] || null;
 }
 
 /**
@@ -288,14 +311,15 @@ export async function loadComments(subjectUri) {
 }
 
 /**
- * Fetch all hide records authored by adminDid. Returns Map<commentUri, hideUri>.
- * Only records in the admin's own repo count — anyone can publish hides,
- * but only the site admin's hides are honored.
+ * Fetch all hide records. Returns Map<commentUri, hideUri>.
+ * Uses appview listRecords — no PLC directory needed.
  */
 export async function loadHides(adminDid) {
-  const pds = await discoverPds(adminDid);
-  const url = `${pds}/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(adminDid)}&collection=${encodeURIComponent(HIDE_TYPE)}&limit=100`;
-  const res = await fetch(url);
+  const url = new URL(`${BSKY_SOCIAL}/xrpc/com.atproto.repo.listRecords`);
+  url.searchParams.set('repo', adminDid);
+  url.searchParams.set('collection', HIDE_TYPE);
+  url.searchParams.set('limit', '100');
+  const res = await fetch(url.toString());
   if (!res.ok) return new Map();
   const { records = [] } = await res.json();
   const map = new Map();
