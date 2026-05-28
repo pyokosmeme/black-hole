@@ -174,22 +174,28 @@ export async function mount(container, { slug, authorDid }) {
     }
   }
 
+  const MAX_CHARS = 500;
+
   function renderForm() {
     form.innerHTML = '';
     if (!session) return;
     const textarea = el('textarea', {
       class: 'tx-form-text', placeholder: 'transmit your response...', rows: '3',
     });
+    const counter = el('span', { class: 'tx-form-counter' }, '0/' + MAX_CHARS);
     const submit = el('button', {
       class: 'tx-form-submit',
       onclick: async () => {
         const msg = textarea.value.trim();
         if (!msg) return;
+        if (msg.length > MAX_CHARS) return;
         submit.disabled = true;
         submit.textContent = 'transmitting...';
         try {
           await Comment.post(msg, subjectUri);
           textarea.value = '';
+          counter.textContent = '0/' + MAX_CHARS;
+          counter.classList.remove('tx-form-counter-warn');
           submit.disabled = false;
           submit.textContent = 'transmit';
           refresh();
@@ -200,8 +206,16 @@ export async function mount(container, { slug, authorDid }) {
         }
       },
     }, 'transmit');
+    textarea.addEventListener('input', () => {
+      const remaining = MAX_CHARS - textarea.value.length;
+      counter.textContent = remaining < 0 ? textarea.value.length + '/' + MAX_CHARS : textarea.value.length + '/' + MAX_CHARS;
+      if (remaining <= 50) counter.classList.add('tx-form-counter-warn');
+      else counter.classList.remove('tx-form-counter-warn');
+      if (remaining <= 0) { textarea.value = textarea.value.slice(0, MAX_CHARS); counter.textContent = MAX_CHARS + '/' + MAX_CHARS; }
+    });
+    const formRow = el('div', { class: 'tx-form-row' }, submit, counter);
     form.appendChild(textarea);
-    form.appendChild(submit);
+    form.appendChild(formRow);
   }
 
   // Init
