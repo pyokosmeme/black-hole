@@ -161,6 +161,7 @@ async function handleLogin(request, env) {
     }
     const parData = await parRes.json();
     const authorizeUrl = new URL('/oauth/authorize', authServer);
+    authorizeUrl.searchParams.set('client_id', CLIENT_ID);
     authorizeUrl.searchParams.set('request_uri', parData.request_uri);
     authorizeUrl.searchParams.set('iss', new URL(CLIENT_ID).origin);
     return jsonResponse({ redirect_url: authorizeUrl.toString() }, 200, request);
