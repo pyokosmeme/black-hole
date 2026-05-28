@@ -39,8 +39,9 @@ author/cyber-landing.jsx
 author/README.md
 author/effects/
 
-# Worker source — handled by Workers Builds, not static assets
+# Worker source — handled by Wrangler, not static assets
 _worker.bundle
 _worker.js
+api.js
 functions/
 dist/
