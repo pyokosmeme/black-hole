@@ -41,7 +41,5 @@ author/effects/
 
 # Worker source — handled by Wrangler, not static assets
 _worker.bundle
-_worker.js
-api.js
 functions/
 dist/
