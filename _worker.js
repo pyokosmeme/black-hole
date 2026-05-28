@@ -133,16 +133,36 @@ async function handleLogin(request, env) {
       handle, did, pds, createdAt: Date.now(),
     };
     await env.SESSIONS.put(`state:${state}`, JSON.stringify(stateData), { expirationTtl: 900 });
-    const url = new URL('/oauth/authorize', authServer);
-    url.searchParams.set('response_type', 'code');
-    url.searchParams.set('client_id', CLIENT_ID);
-    url.searchParams.set('redirect_uri', stateData.redirectUri);
-    url.searchParams.set('scope', SCOPE);
-    url.searchParams.set('state', state);
-    url.searchParams.set('code_challenge', challenge);
-    url.searchParams.set('code_challenge_method', 'S256');
-    url.searchParams.set('dpop_jkt', thumbprint);
-    return jsonResponse({ redirect_url: url.toString() }, 200, request);
+
+    // Pushed Authorization Request (PAR) — bsky.social requires it
+    const parUrl = `${authServer}/oauth/par`;
+    const parDpop = await createDpopProof(keyPair.privateKey, keyPair.publicKey, 'POST', parUrl, null);
+    const parBody = new URLSearchParams({
+      client_id: CLIENT_ID,
+      redirect_uri: stateData.redirectUri,
+      response_type: 'code',
+      scope: SCOPE,
+      state,
+      code_challenge: challenge,
+      code_challenge_method: 'S256',
+    });
+    const parRes = await fetch(parUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `DPoP ${parDpop}`,
+      },
+      body: parBody.toString(),
+    });
+    if (!parRes.ok) {
+      const err = await parRes.text();
+      throw new Error(`PAR failed (${parRes.status}): ${err.slice(0, 200)}`);
+    }
+    const parData = await parRes.json();
+    const authorizeUrl = new URL('/oauth/authorize', authServer);
+    authorizeUrl.searchParams.set('request_uri', parData.request_uri);
+    authorizeUrl.searchParams.set('iss', authServer);
+    return jsonResponse({ redirect_url: authorizeUrl.toString() }, 200, request);
   } catch (e) {
     return jsonResponse({ error: e.message }, 500, request);
   }

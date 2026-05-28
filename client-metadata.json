@@ -1,7 +1,7 @@
 {
   "client_id": "https://black-hole.ex-astris-umbra.workers.dev/client-metadata.json",
   "client_name": "Black Hole Transmissions",
-  "client_uri": "https://lastnpcalex.agency",
+  "client_uri": "https://black-hole.ex-astris-umbra.workers.dev",
   "redirect_uris": [
     "https://lastnpcalex.agency/api/oauth/callback",
     "https://lastnpcalex.agency/test-bsky.html",
