@@ -217,7 +217,10 @@
     </script>
 
     <script>
-    // Populate #post-view-title on post open; clear on close. Mirrors futures.html.
+    // Post view chrome: title bar + mode toggle + comments widget.
+    // NOTE: handleHashChange() inside acidburn-author.js calls the LOCAL
+    // loadPost, not window.AcidburnAuthor.loadPost. So we can't rely on
+    // patching loadPost alone — we use a hashchange listener + DOM observer.
     (function() {
         const check = setInterval(() => {
             if (!window.AcidburnAuthor) return;
@@ -234,11 +237,11 @@
                 el.textContent = (post ? (post.title || slug) : slug).toUpperCase();
             }
 
-            async function mountComments(slug) {
+            async function mountWidget(slug) {
                 const tc = window.__TRANSMISSION_COMMENTS;
-                if (!tc) { console.log('[tx] mountComments: __TRANSMISSION_COMMENTS not ready'); return; }
+                if (!tc) { console.log('[tx] mountWidget: __TRANSMISSION_COMMENTS not ready'); return; }
                 const postContent = document.getElementById('post-content');
-                if (!postContent) { console.log('[tx] mountComments: no post-content element'); return; }
+                if (!postContent) { console.log('[tx] mountWidget: no post-content element'); return; }
                 postContent.querySelectorAll('.tx-comments-block').forEach(n => n.remove());
                 const host = document.createElement('div');
                 postContent.appendChild(host);
@@ -246,11 +249,18 @@
                 await tc.mountComments(host, { slug, authorDid: tc.SITE_DID });
             }
 
+            function getSlugFromHash() {
+                const h = window.location.hash;
+                if (h.startsWith('#post/')) return h.replace('#post/', '');
+                return null;
+            }
+
+            // Patch public API for programmatic calls (e.g. post card clicks)
             window.AcidburnAuthor.loadPost = async function(slug) {
                 await origLoadPost(slug);
                 setTitle(slug);
                 if (window.AcidburnMode) window.AcidburnMode.setMode(window.AcidburnMode.getMode());
-                mountComments(slug);
+                mountWidget(slug);
             };
             window.showIndex = function() {
                 origShowIndex();
@@ -258,21 +268,30 @@
                 if (window.AcidburnMode) window.AcidburnMode.setMode(window.AcidburnMode.getMode());
             };
 
-            // Handle direct-link load — AcidburnAuthor.init() calls handleHashChange()
-            // which calls our patched loadPost (which mounts comments).
-            // But the setTitle needs to run for the header bar:
-            const hash = window.location.hash;
-            if (hash.startsWith('#post/')) {
-                const slug = hash.replace('#post/', '');
+            // Hash-change listener for direct-link loads and manual navigation.
+            // This is the reliable path because handleHashChange() bypasses our patch.
+            window.addEventListener('hashchange', () => {
+                const slug = getSlugFromHash();
+                if (slug) {
+                    setTitle(slug);
+                    mountWidget(slug);
+                } else {
+                    setTitle(null);
+                }
+            });
+
+            // Handle initial hash on page load (no hashchange event fires for the first load)
+            const slug = getSlugFromHash();
+            if (slug) {
+                // Wait for post content to be populated, then mount widget
                 const wait = setInterval(() => {
-                    if (window.AcidburnAuthor.getPosts().length) {
+                    if (document.getElementById('post-content')?.innerHTML.trim()) {
                         clearInterval(wait);
-                        // Post content is being loaded by handleHashChange → loadPost.
-                        // Our patched loadPost handles setTitle + mountComments.
-                        // Just ensure the mode toggle is set:
+                        setTitle(slug);
                         if (window.AcidburnMode) window.AcidburnMode.setMode(window.AcidburnMode.getMode());
+                        mountWidget(slug);
                     }
-                }, 50);
+                }, 80);
             }
 
             // Copy-link button: copies the shareable /p/<slug> URL

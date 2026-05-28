@@ -35,7 +35,9 @@ function fmtTime(iso) {
 }
 
 export async function mount(container, { slug, authorDid }) {
+  console.log('[tx-mount] called with slug:', slug, 'did:', authorDid);
   const subjectUri = Comment.transmissionUri(authorDid, slug);
+  console.log('[tx-mount] subjectUri:', subjectUri);
 
   const summary = el('summary', { class: 'tx-comments-summary' },
     el('span', { class: 'tx-comments-label' }, '[ TRANSMIT RESPONSE ]'),
@@ -58,14 +60,17 @@ export async function mount(container, { slug, authorDid }) {
   async function refresh() {
     list.innerHTML = '';
     list.textContent = 'loading...';
+    console.log('[tx-refresh] loading comments for:', subjectUri);
     try {
       const [comments, hideMap] = await Promise.all([
         Comment.loadComments(subjectUri),
         Comment.loadHides(authorDid),
       ]);
+      console.log('[tx-refresh] got', comments.length, 'comments,', hideMap.size, 'hides');
       hides = hideMap;
       renderComments(comments);
     } catch (e) {
+      console.error('[tx-refresh] error:', e);
       list.textContent = 'error: ' + e.message;
     }
   }
