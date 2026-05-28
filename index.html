@@ -175,6 +175,7 @@
                 <div class="post-view-tags" id="post-view-tags"></div>
             </div>
             <div class="post-content" id="post-content"></div>
+            <div id="post-comments-host"></div>
         </article>
 
         <!-- Footer -->
@@ -238,15 +239,16 @@
             }
 
             async function mountWidget(slug) {
+                if (!slug) return;
                 const tc = window.__TRANSMISSION_COMMENTS;
-                if (!tc) { console.log('[tx] mountWidget: __TRANSMISSION_COMMENTS not ready'); return; }
-                const postContent = document.getElementById('post-content');
-                if (!postContent) { console.log('[tx] mountWidget: no post-content element'); return; }
-                postContent.querySelectorAll('.tx-comments-block').forEach(n => n.remove());
-                const host = document.createElement('div');
-                postContent.appendChild(host);
-                console.log('[tx] mounting widget for slug:', slug);
-                await tc.mountComments(host, { slug, authorDid: tc.SITE_DID });
+                if (!tc) return;
+                const host = document.getElementById('post-comments-host');
+                if (!host || host._txMounted) return;
+                host._txMounted = true;
+                host.innerHTML = '';
+                const el = document.createElement('div');
+                host.appendChild(el);
+                await tc.mountComments(el, { slug, authorDid: tc.SITE_DID });
             }
 
             function getSlugFromHash() {
@@ -266,42 +268,44 @@
                 origShowIndex();
                 setTitle(null);
                 if (window.AcidburnMode) window.AcidburnMode.setMode(window.AcidburnMode.getMode());
+                const host = document.getElementById('post-comments-host');
+                if (host) { host.innerHTML = ''; host._txMounted = false; }
             };
 
             // Hash-change listener for direct-link loads and manual navigation.
             // This is the reliable path because handleHashChange() bypasses our patch.
             window.addEventListener('hashchange', () => {
                 const slug = getSlugFromHash();
+                const host = document.getElementById('post-comments-host');
                 if (slug) {
                     setTitle(slug);
-                    // Delay mount until post content is actually populated.
-                    // loadPost sets window.location.hash which fires this handler
-                    // BEFORE the markdown is rendered (wiping any premature mount).
-                    // Guard: only mount once content stabilizes.
+                    if (host) { host.innerHTML = ''; host._txMounted = false; }
                     const wc = setInterval(() => {
                         const pc = document.getElementById('post-content');
-                        if (pc?.innerHTML.trim() && !pc.querySelector('.tx-comments-block')) {
+                        const host = document.getElementById('post-comments-host');
+                        if (pc?.innerHTML.trim() && host && !host._txMounted) {
                             clearInterval(wc);
-                            // Small delay to ensure markdown render is fully settled
-                            setTimeout(() => mountWidget(slug), 100);
+                            mountWidget(slug);
                         }
                     }, 80);
                 } else {
                     setTitle(null);
+                    if (host) { host.innerHTML = ''; host._txMounted = false; }
                 }
             });
 
             // Handle initial hash on page load (no hashchange event fires for the first load)
-            const slug = getSlugFromHash();
-            if (slug) {
+            const hash = window.location.hash;
+            if (hash.startsWith('#post/')) {
+                const slug = hash.replace('#post/', '');
                 const wait = setInterval(() => {
                     const pc = document.getElementById('post-content');
-                    if (pc?.innerHTML.trim() && !pc.querySelector('.tx-comments-block')) {
+                    const host = document.getElementById('post-comments-host');
+                    if (pc?.innerHTML.trim() && host && !host._txMounted) {
                         clearInterval(wait);
                         setTitle(slug);
                         if (window.AcidburnMode) window.AcidburnMode.setMode(window.AcidburnMode.getMode());
-                        // Delay to ensure markdown render is settled
-                        setTimeout(() => mountWidget(slug), 100);
+                        mountWidget(slug);
                     }
                 }, 80);
             }

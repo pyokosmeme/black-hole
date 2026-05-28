@@ -48,9 +48,12 @@ export async function mount(container, { slug, authorDid }) {
   const list = el('div', { class: 'tx-comments-list' }, 'loading...');
   const form = el('div', { class: 'tx-comments-form' });
 
+  const body = el('div', { class: 'tx-comments-body' },
+    el('div', { class: 'tx-comments-inner' }, authBar, list, form)
+  );
   const block = el('details', { class: 'tx-comments-block' },
     summary,
-    el('div', { class: 'tx-comments-body' }, authBar, list, form)
+    body
   );
   container.appendChild(block);
 
