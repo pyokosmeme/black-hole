@@ -280,6 +280,7 @@ async function handleDeleteRecord(request, env) {
 export default {
   async fetch(request, env) {
     const path = new URL(request.url).pathname;
+    if (path === '/api/test') return new Response(JSON.stringify({ worker: 'running' }));
     if (path === '/api/oauth/login') return handleLogin(request, env);
     if (path === '/api/oauth/callback') return handleCallback(request, env);
     if (path === '/api/oauth/logout') return handleLogout(request, env);
