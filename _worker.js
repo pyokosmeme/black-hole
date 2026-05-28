@@ -218,15 +218,18 @@ async function handleCallback(request, env) {
       body: tokenBody.toString(),
     });
     // Handle DPoP nonce challenge
+    console.log('[token] status:', tokenRes.status, 'dpop-nonce:', tokenRes.headers.get('dpop-nonce'), 'www-auth:', tokenRes.headers.get('www-authenticate'));
     if (tokenRes.status === 428 || (tokenRes.headers.get('www-authenticate') || '').includes('use_dpop_nonce')) {
       const nonce = tokenRes.headers.get('dpop-nonce');
       if (nonce) {
+        console.log('[token] retrying with nonce:', nonce);
         const dpopProofWithNonce = await createDpopProof(privateKey, publicKey, 'POST', tokenUrl, null, nonce);
         tokenRes = await fetch(tokenUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'DPoP': dpopProofWithNonce },
           body: tokenBody.toString(),
         });
+        console.log('[token] retry status:', tokenRes.status);
       }
     }
     if (!tokenRes.ok) {
