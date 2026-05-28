@@ -87,10 +87,19 @@ async function generatePkce() {
 async function resolveHandle(handle) {
   const res = await fetch(`${BSKY_PUBLIC}/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(handle)}`);
   if (!res.ok) throw new Error(`Handle resolution failed: ${res.status}`);
-  const data = await res.json();
-  const services = data.didDoc?.services || [];
-  const atp = services.find(s => s.type === 'AtprotoPersistentHandle');
-  return { did: data.did, pds: atp?.serviceEndpoint || 'https://bsky.social' };
+  const { did } = await res.json();
+  let doc = null;
+  if (did.startsWith('did:plc:')) {
+    const r = await fetch(`https://plc.directory/${did}`);
+    if (r.ok) doc = await r.json();
+  } else if (did.startsWith('did:web:')) {
+    const host = did.slice('did:web:'.length);
+    const r = await fetch(`https://${host}/.well-known/did.json`);
+    if (r.ok) doc = await r.json();
+  }
+  const svc = (doc?.service || []).find(s => s.id === '#atproto_pds' || s.type === 'AtprotoPersonalDataServer');
+  const pds = svc?.serviceEndpoint || 'https://bsky.social';
+  return { did, pds };
 }
 
 async function discoverAuthServer(pds) {
