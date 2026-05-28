@@ -145,6 +145,7 @@ async function handleLogin(request, env) {
       state,
       code_challenge: challenge,
       code_challenge_method: 'S256',
+      dpop_jkt: thumbprint,
     });
     const parRes = await fetch(parUrl, {
       method: 'POST',
@@ -161,7 +162,7 @@ async function handleLogin(request, env) {
     const parData = await parRes.json();
     const authorizeUrl = new URL('/oauth/authorize', authServer);
     authorizeUrl.searchParams.set('request_uri', parData.request_uri);
-    authorizeUrl.searchParams.set('iss', authServer);
+    authorizeUrl.searchParams.set('iss', new URL(CLIENT_ID).origin);
     return jsonResponse({ redirect_url: authorizeUrl.toString() }, 200, request);
   } catch (e) {
     return jsonResponse({ error: e.message }, 500, request);
