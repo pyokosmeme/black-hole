@@ -16,8 +16,7 @@ __pycache__/
 # This ignore file itself
 .assetsignore
 
-# Config files
-wrangler.toml
+# Config files (wrangler.toml is needed by Workers Builds)
 CLAUDE.md
 GEMINI.md
 TRANSMISSIONS.md
