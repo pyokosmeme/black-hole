@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head><title>OAuth Diagnostic</title></head>
+<body>
+<h1>OAuth Diagnostic</h1>
+<pre id="log"></pre>
+<script type="module">
+const $ = id => document.getElementById(id);
+const log = s => $('log').textContent += s + '\n';
+
+log('=== OAuth Diagnostic ===');
+log('URL: ' + location.href);
+log('Params: ' + JSON.stringify(Object.fromEntries(new URLSearchParams(location.search))));
+
+// Check API endpoints
+log('\n--- API Endpoints ---');
+try {
+  const res = await fetch('/api/oauth/session');
+  log('session: ' + res.status + ' ' + await res.text());
+} catch(e) { log('session: ' + e.message); }
+
+// Check client-metadata.json
+log('\n--- Client Metadata ---');
+try {
+  const res = await fetch('/client-metadata.json');
+  log('client-metadata: ' + res.status + ' ' + await res.text());
+} catch(e) { log('client-metadata: ' + e.message); }
+
+// Check login
+log('\n--- Login Test ---');
+try {
+  const res = await fetch('/api/oauth/login', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({handle: 'lastnpcalex.bsky.social'})
+  });
+  log('login: ' + res.status + ' ' + await res.text());
+} catch(e) { log('login: ' + e.message); }
+
+log('\n--- Cookies ---');
+log(document.cookie || '(none - HttpOnly cookies not accessible from JS)');
+</script>
+</body>
+</html>
