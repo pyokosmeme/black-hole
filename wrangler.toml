@@ -1,5 +1,5 @@
 name = "black-hole"
-main = "dist/worker/index.js"
+main = "_worker.bundle"
 compatibility_date = "2025-12-15"
 
 # Static assets

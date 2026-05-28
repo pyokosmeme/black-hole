@@ -41,5 +41,6 @@ author/README.md
 author/effects/
 
 # Compiled Pages Functions and source — handled by Worker, not static assets
+_worker.bundle
 functions/
 dist/
