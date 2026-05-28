@@ -280,13 +280,46 @@ async function handleDeleteRecord(request, env) {
 export default {
   async fetch(request, env) {
     const path = new URL(request.url).pathname;
-    if (path === '/api/test') return new Response(JSON.stringify({ worker: 'running' }));
-    if (path === '/api/oauth/login') return handleLogin(request, env);
-    if (path === '/api/oauth/callback') return handleCallback(request, env);
-    if (path === '/api/oauth/logout') return handleLogout(request, env);
-    if (path === '/api/oauth/session') return handleSession(request, env);
-    if (path === '/api/bsky/createRecord') return handleCreateRecord(request, env);
-    if (path === '/api/bsky/deleteRecord') return handleDeleteRecord(request, env);
-    return env.ASSETS.fetch(request);
+    // Diagnostic: add header to all responses
+    const diags = new Headers();
+    diags.set('X-Worker-Path', path);
+
+    if (path === '/api/test') {
+      return new Response(JSON.stringify({ worker: 'running', path }), { headers: diags });
+    }
+    if (path === '/api/oauth/login') {
+      const res = await handleLogin(request, env);
+      res.headers.set('X-Worker-Path', path);
+      return res;
+    }
+    if (path === '/api/oauth/callback') {
+      const res = await handleCallback(request, env);
+      res.headers.set('X-Worker-Path', path);
+      return res;
+    }
+    if (path === '/api/oauth/logout') {
+      const res = await handleLogout(request, env);
+      res.headers.set('X-Worker-Path', path);
+      return res;
+    }
+    if (path === '/api/oauth/session') {
+      const res = await handleSession(request, env);
+      res.headers.set('X-Worker-Path', path);
+      return res;
+    }
+    if (path === '/api/bsky/createRecord') {
+      const res = await handleCreateRecord(request, env);
+      res.headers.set('X-Worker-Path', path);
+      return res;
+    }
+    if (path === '/api/bsky/deleteRecord') {
+      const res = await handleDeleteRecord(request, env);
+      res.headers.set('X-Worker-Path', path);
+      return res;
+    }
+    // Fallback: serve static assets
+    const assetRes = await env.ASSETS.fetch(request);
+    assetRes.headers.set('X-Worker-Path', path);
+    return assetRes;
   },
 };
