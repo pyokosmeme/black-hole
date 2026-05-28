@@ -200,10 +200,10 @@ async function handleCallback(request, env) {
       createdAt: Date.now(),
     };
     await env.SESSIONS.put(`session:${sessionId}`, JSON.stringify(sessionData), { expirationTtl: SESSION_MAX_AGE });
-    const cookie = `session=${sessionId}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${SESSION_MAX_AGE}`;
+    const cookie = `session=${sessionId}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${SESSION_MAX_AGE}`;
     return new Response(null, {
       status: 302,
-      headers: { Location: `${url.origin}/test-bsky.html?logged_in=1`, 'Set-Cookie': cookie },
+      headers: { Location: `${url.origin}/test-bsky.html?logged_in=1&sid=${sessionId}`, 'Set-Cookie': cookie },
     });
   } catch (e) {
     return jsonResponse({ error: e.message }, 500, request);
