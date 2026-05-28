@@ -5,7 +5,18 @@ const SCOPE = 'atproto';
 const BSKY_PUBLIC = 'https://public.api.bsky.app';
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
 const STATE_TTL = 15 * 60 * 1000;
-const ORIGIN = 'https://lastnpcalex.agency';
+const DEFAULT_ORIGIN = 'https://lastnpcalex.agency';
+
+function corsHeaders(request) {
+  const origin = (request.headers.get('Origin') || DEFAULT_ORIGIN);
+  return {
+    'Access-Control-Allow-Origin': origin,
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Cookie',
+    'Access-Control-Allow-Credentials': 'true',
+    'Access-Control-Expose-Headers': 'Location',
+  };
+}
 
 function base64url(bytes) {
   return btoa(String.fromCharCode(...new Uint8Array(bytes)))
@@ -87,16 +98,12 @@ async function discoverAuthServer(pds) {
   }
 }
 
-function jsonResponse(data, status, methods = 'GET, POST, OPTIONS') {
+function jsonResponse(data, status, request) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: {
+    headers: Object.assign({}, corsHeaders(request || { headers: { get: () => DEFAULT_ORIGIN } }), {
       'Content-Type': 'application/json',
-      'Access-Control-Allow-Origin': ORIGIN,
-      'Access-Control-Allow-Methods': methods,
-      'Access-Control-Allow-Headers': 'Content-Type, Cookie',
-      'Access-Control-Allow-Credentials': 'true',
-    },
+    }),
   });
 }
 
@@ -105,7 +112,7 @@ function jsonResponse(data, status, methods = 'GET, POST, OPTIONS') {
 async function handleLogin(request, env) {
   const body = await request.json();
   const handle = body?.handle;
-  if (!handle) return jsonResponse({ error: 'Handle required' }, 400);
+  if (!handle) return jsonResponse({ error: 'Handle required' }, 400, request);
   try {
     const { did, pds } = await resolveHandle(handle);
     const authServer = await discoverAuthServer(pds);
@@ -119,9 +126,10 @@ async function handleLogin(request, env) {
     ]);
     const thumbprint = await jwkThumbprint(keyPair.publicKey);
     const state = crypto.randomUUID();
+    const redirectOrigin = request.headers.get('origin') || DEFAULT_ORIGIN;
     const stateData = {
       codeVerifier: verifier, privateKeyJwk, publicKeyJwk, authServer,
-      redirectUri: `${request.headers.get('origin') || ORIGIN}/api/oauth/callback`,
+      redirectUri: `${redirectOrigin}/api/oauth/callback`,
       handle, did, pds, createdAt: Date.now(),
     };
     await env.SESSIONS.put(`state:${state}`, JSON.stringify(stateData), { expirationTtl: 900 });
@@ -134,9 +142,9 @@ async function handleLogin(request, env) {
     url.searchParams.set('code_challenge', challenge);
     url.searchParams.set('code_challenge_method', 'S256');
     url.searchParams.set('dpop_jkt', thumbprint);
-    return new Response(null, { status: 302, headers: { Location: url.toString() } });
+    return jsonResponse({ redirect_url: url.toString() }, 200, request);
   } catch (e) {
-    return jsonResponse({ error: e.message }, 500);
+    return jsonResponse({ error: e.message }, 500, request);
   }
 }
 
@@ -152,14 +160,14 @@ async function handleCallback(request, env) {
       headers: { Location: `${url.origin}/test-bsky.html?auth_error=${encodeURIComponent(errorDescription || error)}` },
     });
   }
-  if (!code || !state) return jsonResponse({ error: 'Missing code or state' }, 400);
+  if (!code || !state) return jsonResponse({ error: 'Missing code or state' }, 400, request);
   try {
     const stateRaw = await env.SESSIONS.get(`state:${state}`);
-    if (!stateRaw) return jsonResponse({ error: 'Invalid state' }, 400);
+    if (!stateRaw) return jsonResponse({ error: 'Invalid state' }, 400, request);
     const stateData = JSON.parse(stateRaw);
     if (Date.now() - stateData.createdAt > STATE_TTL) {
       await env.SESSIONS.delete(`state:${state}`);
-      return jsonResponse({ error: 'State expired' }, 400);
+      return jsonResponse({ error: 'State expired' }, 400, request);
     }
     const { privateKey, publicKey } = await importKeyPair(stateData.privateKeyJwk, stateData.publicKeyJwk);
     const tokenUrl = `${stateData.authServer}/oauth/token`;
@@ -179,7 +187,7 @@ async function handleCallback(request, env) {
     });
     if (!tokenRes.ok) {
       const err = await tokenRes.text();
-      return jsonResponse({ error: `Token exchange failed: ${err}` }, 500);
+      return jsonResponse({ error: `Token exchange failed: ${err}` }, 500, request);
     }
     const tokenData = await tokenRes.json();
     await env.SESSIONS.delete(`state:${state}`);
@@ -198,7 +206,7 @@ async function handleCallback(request, env) {
       headers: { Location: `${url.origin}/test-bsky.html?logged_in=1`, 'Set-Cookie': cookie },
     });
   } catch (e) {
-    return jsonResponse({ error: e.message }, 500);
+    return jsonResponse({ error: e.message }, 500, request);
   }
 }
 
@@ -206,31 +214,21 @@ async function handleLogout(request, env) {
   const cookie = request.headers.get('Cookie') || '';
   const match = cookie.match(/session=([^;]+)/);
   if (match) await env.SESSIONS.delete(`session:${match[1]}`);
-  const clear = 'session=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0';
-  return new Response(JSON.stringify({ logged_out: true }), {
-    status: 200,
-    headers: {
-      'Content-Type': 'application/json', 'Set-Cookie': clear,
-      'Access-Control-Allow-Origin': ORIGIN,
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Cookie',
-      'Access-Control-Allow-Credentials': 'true',
-    },
-  });
+  return jsonResponse({ logged_out: true }, 200, request);
 }
 
 async function handleSession(request, env) {
   const session = await getSession(env, request);
-  if (!session) return jsonResponse({ error: 'Not authenticated' }, 401);
+  if (!session) return jsonResponse({ error: 'Not authenticated' }, 401, request);
   return jsonResponse({
     did: session.did, handle: session.handle,
     pds: session.pds, loggedInAt: session.createdAt,
-  });
+  }, 200, request);
 }
 
 async function handleCreateRecord(request, env) {
   const session = await getSession(env, request);
-  if (!session) return jsonResponse({ error: 'Not authenticated' }, 401, 'POST, OPTIONS');
+  if (!session) return jsonResponse({ error: 'Not authenticated' }, 401, request);
   const { privateKey, publicKey } = await importKeyPair(session.privateKeyJwk, session.publicKeyJwk);
   const body = await request.json();
   const url = `${session.pds}/xrpc/com.atproto.repo.createRecord`;
@@ -246,14 +244,14 @@ async function handleCreateRecord(request, env) {
   });
   if (!res.ok) {
     const err = await res.text();
-    return jsonResponse({ error: err }, res.status, 'POST, OPTIONS');
+    return jsonResponse({ error: err }, res.status, request);
   }
-  return jsonResponse(await res.json(), 200, 'POST, OPTIONS');
+  return jsonResponse(await res.json(), 200, request);
 }
 
 async function handleDeleteRecord(request, env) {
   const session = await getSession(env, request);
-  if (!session) return jsonResponse({ error: 'Not authenticated' }, 401, 'POST, OPTIONS');
+  if (!session) return jsonResponse({ error: 'Not authenticated' }, 401, request);
   const { privateKey, publicKey } = await importKeyPair(session.privateKeyJwk, session.publicKeyJwk);
   const body = await request.json();
   const [, repo, collection, rkey] = body.uri.replace('at://', '').split('/');
@@ -270,9 +268,9 @@ async function handleDeleteRecord(request, env) {
   });
   if (!res.ok) {
     const err = await res.text();
-    return jsonResponse({ error: err }, res.status, 'POST, OPTIONS');
+    return jsonResponse({ error: err }, res.status, request);
   }
-  return jsonResponse({ deleted: true }, 200, 'POST, OPTIONS');
+  return jsonResponse({ deleted: true }, 200, request);
 }
 
 // ── Worker entry point ──
@@ -280,6 +278,10 @@ async function handleDeleteRecord(request, env) {
 export default {
   async fetch(request, env) {
     const path = new URL(request.url).pathname;
+
+    if (request.method === 'OPTIONS' && path.startsWith('/api/')) {
+      return new Response(null, { status: 204, headers: corsHeaders(request) });
+    }
 
     if (path === '/api/oauth/login') return handleLogin(request, env);
     if (path === '/api/oauth/callback') return handleCallback(request, env);

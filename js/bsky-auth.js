@@ -24,13 +24,9 @@ export async function login(handle) {
     body: JSON.stringify({ handle }),
   });
 
-  if (res.status === 302) {
-    // Follow redirect to PDS
-    window.location.assign(res.headers.get('location'));
-  }
-
-  const err = await res.json();
-  throw new Error(err.error || 'Login failed');
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Login failed');
+  window.location.assign(data.redirect_url);
 }
 
 /**
