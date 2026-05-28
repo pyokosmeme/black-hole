@@ -191,7 +191,6 @@ async function handleCallback(request, env) {
     });
   }
   if (!code || !state) return jsonResponse({ error: 'Missing code or state' }, 400, request);
-  if (!code || !state) return jsonResponse({ error: 'Missing code or state' }, 400, request);
   try {
     console.log('[callback] state:', state, 'code:', code?.slice(0, 20) + '...');
     const stateRaw = await env.SESSIONS.get(`state:${state}`);
