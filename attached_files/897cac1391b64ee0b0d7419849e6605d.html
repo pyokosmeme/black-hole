@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEAM 3D Phase Transition</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+    <style>
+        :root {
+            --bg-main: #020617;
+            --bg-panel: #0f172a;
+            --border-color: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #64748b;
+            --accent: #38bdf8;
+            --bullish: #10b981;
+            --bearish: #ef4444;
+            --bs-line: #94a3b8;
+            --grid-line: #1e293b;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            margin: 0;
+            padding: 2vh 2vw;
+            display: flex;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+
+        .dashboard {
+            width: 100%;
+            max-width: 1000px;
+            background: var(--bg-panel);
+            padding: 24px;
+            border-radius: 16px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+            border: 1px solid var(--border-color);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 16px;
+        }
+
+        h2 { margin: 0; font-size: 1.5rem; font-weight: 600; letter-spacing: -0.025em; }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            background: var(--bg-main);
+            padding: 16px 24px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 24px;
+        }
+
+        .slider-container { flex-grow: 1; display: flex; flex-direction: column; gap: 8px; }
+        .slider-label { font-size: 0.875rem; color: var(--text-muted); font-weight: 500; }
+        input[type="range"] { width: 100%; accent-color: var(--accent); cursor: pointer; }
+
+        .hhi-display {
+            font-size: 1.5rem; font-family: monospace; font-weight: 700; color: var(--accent);
+            background: rgba(56, 189, 248, 0.1); padding: 8px 16px;
+            border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.2); min-width: 120px; text-align: right;
+        }
+
+        .viz-container { display: flex; flex-direction: column; gap: 24px; }
+        
+        .viz-panel {
+            background: var(--bg-main);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #canvas-container { height: 450px; cursor: grab; }
+        #canvas-container:active { cursor: grabbing; }
+
+        svg { width: 100%; display: block; padding: 16px; box-sizing: border-box; }
+
+        .chart-legend {
+            position: absolute; top: 24px; left: 24px; font-size: 0.8rem;
+            display: flex; flex-direction: column; gap: 6px; pointer-events: none;
+            z-index: 10;
+        }
+        .legend-item { display: flex; align-items: center; gap: 8px; color: var(--text-muted); }
+        .legend-color { width: 12px; height: 4px; border-radius: 2px; }
+        
+        .hint {
+            position: absolute; bottom: 12px; right: 16px;
+            font-size: 0.75rem; color: var(--text-muted); pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard">
+    <div class="header">
+        <h2>Spin Glass 2.0: Non-Equilibrium Attention Market</h2>
+    </div>
+    
+    <div class="controls">
+        <div class="slider-container">
+            <span class="slider-label">THERMODYNAMIC FRICTION (ATTENTION COLLAPSE)</span>
+            <input type="range" id="friction" min="0" max="1" step="0.01" value="0">
+        </div>
+        <div class="hhi-display">HHI: <span id="hhi-val">0.050</span></div>
+    </div>
+
+    <div class="viz-container">
+        <div class="viz-panel">
+            <div id="canvas-container"></div>
+            <div class="hint">Click and drag to rotate manifold</div>
+        </div>
+        
+        <div class="viz-panel">
+            <div class="chart-legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--bullish);"></div>
+                    <span>NEAM Price Action</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="border-top: 2px dashed var(--bs-line); background: transparent;"></div>
+                    <span>Classical Baseline</span>
+                </div>
+            </div>
+            <svg id="chart" height="300"></svg>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    // --- System & Macro Parameters ---
+    const N = 25; 
+    let friction = 0; 
+    
+    let priceBS = 100, priceNEAM = 100;
+    const mu = 0.0001, sigma_v = 0.003, lambda = 0.12; 
+    
+    const maxCandles = 60, ticksPerCandle = 8;
+    let currentTick = 0, candleData = [];
+    let currentCandle = { open: priceNEAM, high: priceNEAM, low: priceNEAM, close: priceNEAM, bs: priceBS };
+
+    // ==========================================
+    // 1. THREE.JS 3D SCENE SETUP
+    // ==========================================
+    const container = document.getElementById('canvas-container');
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x020617, 0.015);
+
+    const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+    camera.position.set(0, 8, 30);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setSize(container.clientWidth, container.clientHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    container.appendChild(renderer.domElement);
+
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.enablePan = false;
+
+    // --- Lighting ---
+    scene.add(new THREE.AmbientLight(0xffffff, 0.2));
+    const blueLight = new THREE.PointLight(0x38bdf8, 80, 50);
+    blueLight.position.set(15, 10, 15);
+    scene.add(blueLight);
+
+    const redLight = new THREE.PointLight(0xef4444, 80, 50);
+    redLight.position.set(-15, -10, -15);
+    scene.add(redLight);
+
+    // --- Dynamic Spongy Manifold (Quark Gluon Plasma Vacua) ---
+    // Using a high-res Torus Knot to give that folded topological shape
+    const manifoldGeo = new THREE.TorusKnotGeometry(7, 2.5, 180, 40, 3, 5);
+    // Store original vertices for clean mathematical displacement
+    const originalPos = manifoldGeo.attributes.position.clone();
+    
+    const manifoldMat = new THREE.MeshPhysicalMaterial({
+        color: 0x0f172a, 
+        emissive: 0x1e293b,
+        emissiveIntensity: 0.8,
+        wireframe: true, 
+        transparent: true,
+        opacity: 0.35,
+        roughness: 0.2
+    });
+    const manifold = new THREE.Mesh(manifoldGeo, manifoldMat);
+    scene.add(manifold);
+
+    // --- Network Nodes ---
+    const nodes = [];
+    const sphereGeo = new THREE.SphereGeometry(1, 32, 32);
+    
+    const domMat = new THREE.MeshStandardMaterial({ color: 0xef4444, emissive: 0xef4444, emissiveIntensity: 0.9 });
+    const retMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x38bdf8, emissiveIntensity: 0.6 });
+
+    // Dominant Node (Index 0) stays in the center
+    const domMesh = new THREE.Mesh(sphereGeo, domMat);
+    domMesh.scale.set(1.5, 1.5, 1.5);
+    scene.add(domMesh);
+    nodes.push({ mesh: domMesh, isDominant: true });
+
+    // Retail Nodes tethered to the manifold
+    for (let i = 1; i < N; i++) {
+        const mesh = new THREE.Mesh(sphereGeo, retMat);
+        mesh.scale.set(0.4, 0.4, 0.4);
+        // Assign a random vertex index on the manifold for this node to "ride"
+        const vIdx = Math.floor(Math.random() * originalPos.count);
+        scene.add(mesh);
+        nodes.push({ mesh, isDominant: false, vertexIndex: vIdx });
+    }
+
+    // --- Connectors (Links) ---
+    const lineGeo = new THREE.BufferGeometry();
+    const linePositions = new Float32Array((N - 1) * 2 * 3); 
+    lineGeo.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
+    const lineMat = new THREE.LineBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.4 });
+    const lines = new THREE.LineSegments(lineGeo, lineMat);
+    scene.add(lines);
+
+    function updateLinks() {
+        const positions = lines.geometry.attributes.position.array;
+        let index = 0;
+        const domPos = nodes[0].mesh.position;
+
+        for (let i = 1; i < N; i++) {
+            const retPos = nodes[i].mesh.position;
+            positions[index++] = retPos.x;
+            positions[index++] = retPos.y;
+            positions[index++] = retPos.z;
+            positions[index++] = domPos.x;
+            positions[index++] = domPos.y;
+            positions[index++] = domPos.z;
+        }
+        lines.geometry.attributes.position.needsUpdate = true;
+    }
+
+    // Handle Window Resize
+    window.addEventListener('resize', () => {
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+    });
+
+    // ==========================================
+    // 2. D3 CANDLESTICK CHART SETUP
+    // ==========================================
+    const chartWidth = 950, chartHeight = 300;
+    const margin = {top: 20, right: 50, bottom: 20, left: 10};
+    const innerWidth = chartWidth - margin.left - margin.right;
+    const innerHeight = chartHeight - margin.top - margin.bottom;
+
+    const svgChart = d3.select("#chart").attr("viewBox", `0 0 ${chartWidth} ${chartHeight}`);
+    const chartG = svgChart.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+    
+    const xScale = d3.scaleLinear().domain([0, maxCandles]).range([0, innerWidth]);
+    let yScale = d3.scaleLinear().domain([95, 105]).range([innerHeight, 0]);
+    const yAxisG = svgChart.append("g").attr("transform", `translate(${chartWidth - margin.right},${margin.top})`);
+
+    const lineBS = d3.line().x((d, i) => xScale(i)).y(d => yScale(d.bs)).curve(d3.curveMonotoneX);
+    const pathBS = chartG.append("path").attr("fill", "none").attr("stroke", "var(--bs-line)")
+                         .attr("stroke-width", 2).attr("stroke-dasharray", "4,4").attr("opacity", 0.6);
+
+    const candleWidth = (innerWidth / maxCandles) * 0.7;
+
+    // --- Slider Listener ---
+    document.getElementById("friction").addEventListener("input", function(e) {
+        friction = parseFloat(e.target.value);
+    });
+
+    // ==========================================
+    // 3. MAIN SIMULATION & RENDER LOOP
+    // ==========================================
+    function animate() {
+        requestAnimationFrame(animate);
+        const time = Date.now() * 0.0015; // Drive the spongy animation speed
+
+        // --- HHI Math ---
+        const minHHI = 1 / N;
+        const currentHHI = minHHI + friction * (1 - minHHI);
+        document.getElementById("hhi-val").innerText = currentHHI.toFixed(3);
+
+        // --- 3D Vertex Displacement (The "Spongy Folding" Effect) ---
+        const pos = manifoldGeo.attributes.position;
+        const origArr = originalPos.array;
+        const posArr = pos.array;
+        
+        // Fast array iteration for real-time vertex displacement
+        for(let i = 0; i < originalPos.count; i++) {
+            const ix = i*3, iy = i*3+1, iz = i*3+2;
+            const x = origArr[ix], y = origArr[iy], z = origArr[iz];
+            
+            // 3D Sine wave interference pattern creates the folds
+            const fold = Math.sin(x*0.4 + time) * Math.cos(y*0.4 - time) * Math.sin(z*0.4 + time*0.5);
+            // Higher friction causes deeper, more violent folds
+            const displacement = fold * (1 + friction * 4); 
+            
+            // Push vertices outward/inward along their approximate normal vector
+            const len = Math.sqrt(x*x + y*y + z*z) || 1;
+            posArr[ix] = x + (x/len) * displacement;
+            posArr[iy] = y + (y/len) * displacement;
+            posArr[iz] = z + (z/len) * displacement;
+        }
+        pos.needsUpdate = true;
+
+        // --- Vacua Expansion/Contraction ---
+        // Low HHI (0) -> Expanded Vacua (Scale 1.0)
+        // High HHI (1) -> Collapsed Vacua (Scale 0.25)
+        const vacuaScale = 1.0 - (friction * 0.75); 
+        manifold.scale.set(vacuaScale, vacuaScale, vacuaScale);
+        
+        manifold.rotation.x += 0.002;
+        manifold.rotation.y += 0.003;
+
+        // --- Node & Link Updates ---
+        const domNode = nodes[0];
+        domNode.mesh.scale.setScalar(1.5 + (friction * 2.5)); // Dominant core grows
+        
+        lineMat.opacity = 0.2 + (friction * 0.6);
+        lineMat.color.lerpColors(new THREE.Color(0x38bdf8), new THREE.Color(0xef4444), friction * 0.8);
+
+        const vTemp = new THREE.Vector3();
+        for (let i = 1; i < N; i++) {
+            const n = nodes[i];
+            const vIdx = n.vertexIndex;
+            
+            // Get the displaced vertex position
+            vTemp.set(posArr[vIdx*3], posArr[vIdx*3+1], posArr[vIdx*3+2]);
+            // Apply the vacua scale
+            vTemp.multiplyScalar(vacuaScale);
+            // Apply the manifold rotation so nodes stick to the surface as it spins
+            vTemp.applyEuler(manifold.rotation);
+            
+            n.mesh.position.copy(vTemp);
+        }
+
+        updateLinks(); 
+        controls.update();
+        renderer.render(scene, camera);
+
+        // --- SDE Financial Math ---
+        const dW = (Math.random() + Math.random() + Math.random() + Math.random() + Math.random() + Math.random() - 3) / Math.sqrt(0.5);
+        priceBS = priceBS + (mu * priceBS) + (sigma_v * priceBS * dW);
+        const neamVolMultiplier = lambda * N * Math.sqrt(currentHHI);
+        priceNEAM = priceNEAM + (mu * priceNEAM) + (sigma_v * neamVolMultiplier * priceNEAM * dW);
+
+        currentCandle.close = priceNEAM;
+        currentCandle.high = Math.max(currentCandle.high, priceNEAM);
+        currentCandle.low = Math.min(currentCandle.low, priceNEAM);
+        currentCandle.bs = priceBS;
+
+        currentTick++;
+        if (currentTick >= ticksPerCandle) {
+            candleData.push({...currentCandle});
+            if (candleData.length > maxCandles) candleData.shift();
+            currentTick = 0;
+            currentCandle = { open: priceNEAM, high: priceNEAM, low: priceNEAM, close: priceNEAM, bs: priceBS };
+        }
+
+        // --- Update D3 Chart ---
+        const drawData = [...candleData, currentCandle];
+        if (drawData.length > 0) {
+            const yMax = d3.max(drawData, d => Math.max(d.high, d.bs));
+            const yMin = d3.min(drawData, d => Math.min(d.low, d.bs));
+            const padding = (yMax - yMin) * 0.1 || 1;
+            yScale.domain([yMin - padding, yMax + padding]);
+
+            const yAxis = d3.axisRight(yScale).ticks(5).tickSize(-innerWidth);
+            yAxisG.call(yAxis);
+            yAxisG.select(".domain").remove();
+            yAxisG.selectAll(".tick line").attr("stroke", "var(--grid-line)").attr("stroke-dasharray", "2,2");
+            yAxisG.selectAll(".tick text").attr("fill", "var(--text-muted)").attr("x", 8);
+        }
+
+        pathBS.attr("d", lineBS(drawData));
+
+        const candles = chartG.selectAll(".candle").data(drawData);
+        const candleEnter = candles.enter().append("g").attr("class", "candle");
+        candleEnter.append("line").attr("class", "wick");
+        candleEnter.append("rect").attr("class", "body");
+
+        const allCandles = candleEnter.merge(candles);
+        allCandles.select(".wick")
+            .attr("x1", (d, i) => xScale(i)).attr("x2", (d, i) => xScale(i))
+            .attr("y1", d => yScale(d.high)).attr("y2", d => yScale(d.low))
+            .attr("stroke", d => d.close >= d.open ? "var(--bullish)" : "var(--bearish)")
+            .attr("stroke-width", 1.5);
+
+        allCandles.select(".body")
+            .attr("x", (d, i) => xScale(i) - candleWidth / 2)
+            .attr("y", d => yScale(Math.max(d.open, d.close)))
+            .attr("width", candleWidth)
+            .attr("height", d => Math.max(1, Math.abs(yScale(d.open) - yScale(d.close))))
+            .attr("fill", d => d.close >= d.open ? "var(--bullish)" : "var(--bearish)")
+            .attr("rx", 2);
+
+        candles.exit().remove();
+    }
+
+    animate();
+</script>
+</body>
+</html>
