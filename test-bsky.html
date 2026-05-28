@@ -191,17 +191,20 @@
     }
 
     // ── Init ──
-    // Check for auth error from callback
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('auth_error')) {
-      status($('#auth-status'), 'Auth error: ' + urlParams.get('auth_error'), 'error');
-      // Clean URL
-      history.replaceState(null, '', location.pathname);
-    } else if (urlParams.get('logged_in')) {
-      history.replaceState(null, '', location.pathname);
-    }
-
-    checkAuth();
+    (async () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('auth_error')) {
+        status($('#auth-status'), 'Auth error: ' + urlParams.get('auth_error'), 'error');
+        history.replaceState(null, '', location.pathname);
+      } else if (urlParams.get('logged_in')) {
+        const sid = urlParams.get('sid');
+        if (sid) {
+          await fetch(`/api/oauth/setCookie?sid=${encodeURIComponent(sid)}`);
+        }
+        history.replaceState(null, '', location.pathname);
+      }
+      checkAuth();
+    })();
   </script>
 </head>
 <body>

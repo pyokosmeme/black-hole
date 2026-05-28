@@ -209,7 +209,10 @@ async function handleCallback(request, env) {
     const cookie = `session=${sessionId}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${SESSION_MAX_AGE}`;
     return new Response(null, {
       status: 302,
-      headers: { Location: `${url.origin}/test-bsky.html?logged_in=1&sid=${sessionId}`, 'Set-Cookie': cookie },
+      headers: {
+        'Location': `${url.origin}/test-bsky.html?logged_in=1&sid=${sessionId}`,
+        'Set-Cookie': cookie,
+      },
     });
   } catch (e) {
     return jsonResponse({ error: e.message }, 500, request);
@@ -230,6 +233,22 @@ async function handleSession(request, env) {
     did: session.did, handle: session.handle,
     pds: session.pds, loggedInAt: session.createdAt,
   }, 200, request);
+}
+
+async function handleSetCookie(request, env) {
+  const url = new URL(request.url);
+  const sid = url.searchParams.get('sid');
+  if (!sid) return jsonResponse({ error: 'Missing sid' }, 400, request);
+  const raw = await env.SESSIONS.get(`session:${sid}`);
+  if (!raw) return jsonResponse({ error: 'Invalid session' }, 404, request);
+  const cookie = `session=${sid}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${SESSION_MAX_AGE}`;
+  return new Response(JSON.stringify({ ok: true }), {
+    status: 200,
+    headers: Object.assign({}, corsHeaders(request), {
+      'Content-Type': 'application/json',
+      'Set-Cookie': cookie,
+    }),
+  });
 }
 
 async function handleCreateRecord(request, env) {
@@ -293,6 +312,7 @@ export default {
     if (path === '/api/oauth/callback') return handleCallback(request, env);
     if (path === '/api/oauth/logout') return handleLogout(request, env);
     if (path === '/api/oauth/session') return handleSession(request, env);
+    if (path === '/api/oauth/setCookie') return handleSetCookie(request, env);
     if (path === '/api/bsky/createRecord') return handleCreateRecord(request, env);
     if (path === '/api/bsky/deleteRecord') return handleDeleteRecord(request, env);
 
