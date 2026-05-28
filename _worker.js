@@ -217,26 +217,24 @@ async function handleCallback(request, env) {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'DPoP': dpopProof },
       body: tokenBody.toString(),
     });
-    // Handle DPoP nonce challenge
-    console.log('[token] status:', tokenRes.status, 'dpop-nonce:', tokenRes.headers.get('dpop-nonce'), 'www-auth:', tokenRes.headers.get('www-authenticate'));
-    if (tokenRes.status === 428 || (tokenRes.headers.get('www-authenticate') || '').includes('use_dpop_nonce')) {
-      const nonce = tokenRes.headers.get('dpop-nonce');
-      if (nonce) {
-        console.log('[token] retrying with nonce:', nonce);
-        const dpopProofWithNonce = await createDpopProof(privateKey, publicKey, 'POST', tokenUrl, null, nonce);
-        tokenRes = await fetch(tokenUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'DPoP': dpopProofWithNonce },
-          body: tokenBody.toString(),
-        });
-        console.log('[token] retry status:', tokenRes.status);
-      }
+    let tokenText = await tokenRes.text();
+    const nonce = tokenRes.headers.get('dpop-nonce');
+    console.log('[token] status:', tokenRes.status, 'dpop-nonce:', nonce, 'body:', tokenText.slice(0, 200));
+    if (!tokenRes.ok && tokenText.includes('use_dpop_nonce') && nonce) {
+      console.log('[token] retrying with nonce:', nonce);
+      const dpopProofWithNonce = await createDpopProof(privateKey, publicKey, 'POST', tokenUrl, null, nonce);
+      tokenRes = await fetch(tokenUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'DPoP': dpopProofWithNonce },
+        body: tokenBody.toString(),
+      });
+      tokenText = await tokenRes.text();
+      console.log('[token] retry status:', tokenRes.status, 'body:', tokenText.slice(0, 200));
     }
     if (!tokenRes.ok) {
-      const err = await tokenRes.text();
-      return jsonResponse({ error: `Token exchange failed: ${err}` }, 500, request);
+      return jsonResponse({ error: `Token exchange failed: ${tokenText}` }, 500, request);
     }
-    const tokenData = await tokenRes.json();
+    const tokenData = JSON.parse(tokenText);
     await env.SESSIONS.delete(`state:${state}`);
     const sessionId = crypto.randomUUID();
     const sessionData = {
