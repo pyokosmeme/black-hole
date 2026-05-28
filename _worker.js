@@ -303,27 +303,44 @@ async function handleSetCookie(request, env) {
   });
 }
 
+async function dpopFetch(privateKey, publicKey, accessToken, method, url, bodyJson) {
+  const doFetch = async (nonce) => {
+    const proof = await createDpopProof(privateKey, publicKey, method, url, accessToken, nonce);
+    return fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `DPoP ${accessToken}`,
+        'DPoP': proof,
+      },
+      body: bodyJson ? JSON.stringify(bodyJson) : undefined,
+    });
+  };
+  let res = await doFetch();
+  if (!res.ok) {
+    const text = await res.text();
+    const nonce = res.headers.get('dpop-nonce');
+    if (text.includes('use_dpop_nonce') && nonce) {
+      res = await doFetch(nonce);
+      const retryText = await res.text();
+      return { ok: res.ok, status: res.status, text: retryText };
+    }
+    return { ok: false, status: res.status, text };
+  }
+  return { ok: true, status: res.status, text: await res.text() };
+}
+
 async function handleCreateRecord(request, env) {
   const session = await getSession(env, request);
   if (!session) return jsonResponse({ error: 'Not authenticated' }, 401, request);
   const { privateKey, publicKey } = await importKeyPair(session.privateKeyJwk, session.publicKeyJwk);
   const body = await request.json();
   const url = `${session.pds}/xrpc/com.atproto.repo.createRecord`;
-  const dpopProof = await createDpopProof(privateKey, publicKey, 'POST', url, session.accessToken);
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `DPoP ${session.accessToken}`,
-      'DPoP': dpopProof,
-    },
-    body: JSON.stringify({ repo: session.did, collection: body.collection, rkey: body.rkey, record: body.record }),
+  const result = await dpopFetch(privateKey, publicKey, session.accessToken, 'POST', url, {
+    repo: session.did, collection: body.collection, rkey: body.rkey, record: body.record,
   });
-  if (!res.ok) {
-    const err = await res.text();
-    return jsonResponse({ error: err }, res.status, request);
-  }
-  return jsonResponse(await res.json(), 200, request);
+  if (!result.ok) return jsonResponse({ error: result.text }, result.status, request);
+  return jsonResponse(JSON.parse(result.text), 200, request);
 }
 
 async function handleDeleteRecord(request, env) {
@@ -333,20 +350,10 @@ async function handleDeleteRecord(request, env) {
   const body = await request.json();
   const [, repo, collection, rkey] = body.uri.replace('at://', '').split('/');
   const url = `${session.pds}/xrpc/com.atproto.repo.deleteRecord`;
-  const dpopProof = await createDpopProof(privateKey, publicKey, 'POST', url, session.accessToken);
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `DPoP ${session.accessToken}`,
-      'DPoP': dpopProof,
-    },
-    body: JSON.stringify({ repo, collection, rkey }),
+  const result = await dpopFetch(privateKey, publicKey, session.accessToken, 'POST', url, {
+    repo, collection, rkey,
   });
-  if (!res.ok) {
-    const err = await res.text();
-    return jsonResponse({ error: err }, res.status, request);
-  }
+  if (!result.ok) return jsonResponse({ error: result.text }, result.status, request);
   return jsonResponse({ deleted: true }, 200, request);
 }
 
