@@ -48,7 +48,7 @@ async function createDpopProof(privateKey, publicKey, method, url, accessToken) 
     exp: Math.floor(Date.now() / 1000) + 60,
     aud: new URL(url).origin,
     htm: method,
-    url,
+    htu: url,
   };
   if (accessToken) {
     const ath = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(accessToken));
