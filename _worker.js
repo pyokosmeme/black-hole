@@ -34,8 +34,8 @@ async function getSession(env, request) {
 
 async function importKeyPair(privateKeyJwk, publicKeyJwk) {
   return {
-    privateKey: await crypto.subtle.importKey('jwk', privateKeyJwk, { name: 'ECDSA', hash: 'SHA-256' }, true, ['sign']),
-    publicKey: await crypto.subtle.importKey('jwk', publicKeyJwk, { name: 'ECDSA', hash: 'SHA-256' }, true, ['verify']),
+    privateKey: await crypto.subtle.importKey('jwk', { kty: 'EC', crv: 'P-256', alg: 'ES256', ...privateKeyJwk }, { name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign']),
+    publicKey: await crypto.subtle.importKey('jwk', { kty: 'EC', crv: 'P-256', alg: 'ES256', ...publicKeyJwk }, { name: 'ECDSA', namedCurve: 'P-256' }, true, ['verify']),
   };
 }
 
@@ -124,6 +124,13 @@ async function handleLogin(request, env) {
       crypto.subtle.exportKey('jwk', keyPair.privateKey),
       crypto.subtle.exportKey('jwk', keyPair.publicKey),
     ]);
+    // Ensure JWKs have all required fields for re-import
+    privateKeyJwk.kty = 'EC';
+    privateKeyJwk.crv = 'P-256';
+    privateKeyJwk.alg = 'ES256';
+    publicKeyJwk.kty = 'EC';
+    publicKeyJwk.crv = 'P-256';
+    publicKeyJwk.alg = 'ES256';
     const thumbprint = await jwkThumbprint(keyPair.publicKey);
     const state = crypto.randomUUID();
     const redirectOrigin = request.headers.get('origin') || DEFAULT_ORIGIN;
