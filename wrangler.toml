@@ -1,5 +1,4 @@
 name = "black-hole"
-main = "worker.js"
 compatibility_date = "2025-12-15"
 
 # Static assets
