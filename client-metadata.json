@@ -3,6 +3,7 @@
   "client_name": "Black Hole Transmissions",
   "client_uri": "https://lastnpcalex.agency",
   "redirect_uris": [
+    "https://lastnpcalex.agency/api/oauth/callback",
     "https://lastnpcalex.agency/test-bsky.html"
   ],
   "scope": "atproto transition:generic",

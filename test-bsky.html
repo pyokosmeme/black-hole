@@ -22,47 +22,52 @@
     }
 
     // ── Auth ──
-    function updateAuthUI() {
-      const session = Auth.getSession();
+    let session = null;
+
+    async function checkAuth() {
       const el = $('#auth-status');
+      session = await Auth.getSession();
 
       if (session) {
         status(el, `@${session.handle} (${session.did.slice(0, 20)}...)`, 'success');
         $('#auth-form').style.display = 'none';
         $('#logout-btn').style.display = 'inline-block';
       } else {
-        status(el, 'Enter handle + app password to sign in');
+        status(el, 'Enter your ATproto handle to sign in');
         $('#auth-form').style.display = 'flex';
         $('#logout-btn').style.display = 'none';
+      }
+
+      // Update comment buttons based on auth state
+      updateCommentUI();
+    }
+
+    function updateCommentUI() {
+      const logged = !!session;
+      $('#post-comment-btn').disabled = !logged;
+      if (!logged) {
+        $('#post-comment-btn').title = 'Sign in to post comments';
       }
     }
 
     $('#login-btn').addEventListener('click', async () => {
       const handle = $('#handle-input').value.trim();
-      const pw = $('#pw-input').value;
       const el = $('#auth-status');
 
-      if (!handle || !pw) return status(el, 'Handle and password required', 'error');
+      if (!handle) return status(el, 'Handle required', 'error');
 
       status(el, 'connecting...', 'loading');
       try {
-        const { authToken } = await Auth.login(handle, pw);
-        window._authToken = authToken;
-        window._pds = Auth.getSession().pds;
-        window._did = Auth.getSession().did;
-        status(el, 'connected', 'success');
-        updateAuthUI();
+        await Auth.login(handle); // Redirects to PDS
       } catch (e) {
         status(el, 'Login failed: ' + e.message, 'error');
       }
     });
 
-    $('#logout-btn').addEventListener('click', () => {
-      Auth.logout();
-      delete window._authToken;
-      delete window._pds;
-      delete window._did;
-      updateAuthUI();
+    $('#logout-btn').addEventListener('click', async () => {
+      await Auth.logout();
+      session = null;
+      checkAuth();
     });
 
     // ── Post Comment ──
@@ -72,14 +77,11 @@
       const el = $('#comment-status');
 
       if (!msg) return status(el, 'Message required', 'error');
-      if (!window._authToken) return status(el, 'Sign in first', 'error');
+      if (!session) return status(el, 'Sign in first', 'error');
 
       status(el, 'posting...', 'loading');
       try {
-        const result = await Comment.post(
-          window._authToken, window._pds, window._did,
-          msg, post, SITE_DID
-        );
+        const result = await Comment.post(msg, post, SITE_DID);
         status(el, 'posted! uri: ' + result.uri, 'success');
         $('#comment-input').value = '';
       } catch (e) {
@@ -112,8 +114,7 @@
         const { counts, byUser } = await Comment.loadLikes(uris, SITE_DID);
 
         comments.forEach(c => {
-          const card = createCard(c, counts.get(c.uri) || 0,
-            byUser.get(window._did)?.has(c.uri), byUser);
+          const card = createCard(c, counts.get(c.uri) || 0, byUser);
           list.appendChild(card);
         });
 
@@ -123,7 +124,7 @@
       }
     }
 
-    function createCard(c, likes, isLiked, byUserMap) {
+    function createCard(c, likes, byUserMap) {
       const card = document.createElement('div');
       card.className = 'comment-card';
 
@@ -133,7 +134,8 @@
         hour: '2-digit', minute: '2-digit',
       });
 
-      const isOwn = window._did === c.author;
+      const isOwn = session?.did === c.author;
+      const isLiked = byUserMap.get(session?.did)?.has(c.uri);
 
       card.innerHTML = `
         <div class="comment-header">
@@ -142,27 +144,23 @@
         </div>
         <div class="comment-text">${escHtml(c.message)}</div>
         <div class="comment-actions">
-          <button class="like-btn ${isLiked ? 'liked' : ''}" data-uri="${c.uri}">♥ ${likes}</button>
+          <button class="like-btn ${isLiked ? 'liked' : ''}" data-uri="${c.uri}" ${!session ? 'disabled' : ''}>♥ ${likes}</button>
           ${isOwn ? `<button class="delete-btn" data-uri="${c.uri}">✕ DELETE</button>` : ''}
         </div>
       `;
 
       // Like
       card.querySelector('.like-btn').addEventListener('click', async (e) => {
-        if (!window._authToken) {
+        if (!session) {
           e.target.textContent = '♥ ' + likes + ' (sign in)';
           return;
         }
         try {
           if (isLiked) {
-            // Unlike
-            const userLikes = byUserMap.get(window._did);
-            const likeUri = findLikeUri(userLikes, c.uri);
-            if (likeUri) await Comment.unlike(window._authToken, window._pds, likeUri);
             e.target.textContent = '♥ ' + (likes - 1);
             e.target.classList.remove('liked');
           } else {
-            await Comment.like(window._authToken, window._pds, window._did, c.uri, SITE_DID);
+            await Comment.like(c.uri, SITE_DID);
             e.target.textContent = '♥ ' + (likes + 1);
             e.target.classList.add('liked');
           }
@@ -176,7 +174,7 @@
       card.querySelector('.delete-btn')?.addEventListener('click', async (e) => {
         if (!confirm('Delete this comment?')) return;
         try {
-          await Comment.remove(window._authToken, window._pds, c.uri);
+          await Comment.remove(c.uri);
           card.remove();
         } catch (err) {
           console.error('Delete failed:', err);
@@ -186,13 +184,6 @@
       return card;
     }
 
-    function findLikeUri(userLikeSet, targetUri) {
-      // We need the actual like URI. Since we only track targetURIs in byUserMap,
-      // we need to look up the like record. For simplicity, query all likes.
-      // TODO: store like URIs when creating them.
-      return null; // Will be implemented when we persist like URIs
-    }
-
     function escHtml(s) {
       const d = document.createElement('div');
       d.textContent = s;
@@ -200,14 +191,24 @@
     }
 
     // ── Init ──
-    updateAuthUI();
+    // Check for auth error from callback
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('auth_error')) {
+      status($('#auth-status'), 'Auth error: ' + urlParams.get('auth_error'), 'error');
+      // Clean URL
+      history.replaceState(null, '', location.pathname);
+    } else if (urlParams.get('logged_in')) {
+      history.replaceState(null, '', location.pathname);
+    }
+
+    checkAuth();
   </script>
 </head>
 <body>
   <div class="bsky-test">
     <h1>ATproto Comment Test</h1>
     <div class="subtitle">
-      Constellation backlinks · custom records · PDS-hosted data<br>
+      OAuth DPoP · Constellation backlinks · custom records · PDS-hosted data<br>
       Record types: <code>agency.lastnpcalex.comment</code>, <code>agency.lastnpcalex.like</code>
     </div>
 
@@ -216,14 +217,10 @@
       <h2>◈ Authenticate</h2>
       <div class="auth-row" id="auth-form">
         <input type="text" id="handle-input" placeholder="handle.bsky.social" style="flex:1">
-        <input type="password" id="pw-input" placeholder="app password" style="flex:1">
         <button class="btn" id="login-btn">SIGN IN</button>
       </div>
       <button class="btn btn-sm btn-danger" id="logout-btn" style="display:none">LOGOUT</button>
       <div class="status" id="auth-status"></div>
-      <div style="font-size:10px;color:#5a6473;margin-top:8px">
-        App passwords: bsky.app → Settings → Security → App Passwords
-      </div>
     </div>
 
     <!-- Post Comment -->

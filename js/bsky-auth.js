@@ -1,133 +1,51 @@
 /**
- * bs ky-auth.js — ATproto identity for the comment system.
+ * bs ky-auth.js — ATproto authentication via Cloudflare Pages Functions.
  *
- * Two auth modes:
- *   1. App Password (simpler, works now) — user enters handle + app password
- *   2. OAuth (full flow) — TODO: waiting on stable DPoP support
+ * Uses the /api/oauth/* endpoints for PKCE + DPoP login flow.
+ * Session is stored as HttpOnly cookie (managed server-side).
  *
- * For the comment system, we need to:
- *   a) Read comments (public, no auth) — fetches from Constellation + Slingshot
- *   b) Write comments (authenticated) — writes records to user's PDS
- *
- * Architecture:
- *   - Records: agency.lastnpcalex.comment, agency.lastnpcalex.like
- *   - Index:  constellation.microcosm.blue (backlinks)
- *   - Cache:  slingshot.wisp.place (record fetching)
- *   - IDP:    public.api.bsky.app (handle resolution)
- *
- * @module bs ky-auth
+ * Usage:
+ *   import * as Auth from './js/bsky-auth.js';
+ *   await Auth.login('handle.bsky.social');  // redirects to PDS
+ *   const session = await Auth.getSession(); // checks cookie
+ *   Auth.logout();                           // clears cookie
  */
 
-const BSKY_PUBLIC = 'https://public.api.bsky.app';
-const SESSION_KEY = 'bsky_auth_session';
+const API = '/api/oauth';
 
 /**
- * Resolve an ATproto handle to DID + PDS endpoint.
+ * Start the login flow. Redirects to PDS authorization.
  * @param {string} handle - e.g. "alice.bsky.social"
- * @returns {{ did: string, pds: string }}
  */
-export async function resolveHandle(handle) {
-  const url = `${BSKY_PUBLIC}/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(handle)}`;
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Handle resolution failed: ${res.status}`);
-  const data = await res.json();
-
-  // Get PDS from DID document
-  const services = data.didDoc?.services || [];
-  const atproto = services.find(s => s.type === 'AtprotoPersistentHandle');
-  const pds = atproto?.serviceEndpoint || 'https://bsky.social';
-
-  return { did: data.did, pds };
-}
-
-/**
- * Authenticate via app password (simpler than OAuth DPoP).
- * Bluesky app passwords are created in settings > security > app passwords.
- * @param {string} handle
- * @param {string} appPassword
- * @returns {{ did: string, pds: string, auth: string }}
- */
-export async function login(handle, appPassword) {
-  const { did, pds } = await resolveHandle(handle);
-
-  // Login via PDS
-  const url = `${pds}/xrpc/com.atproto.server.createSession`;
-  const res = await fetch(url, {
+export async function login(handle) {
+  const res = await fetch(`${API}/login`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      identifier: handle,
-      password: appPassword,
-    }),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ handle }),
   });
 
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`Login failed: ${err}`);
+  if (res.status === 302) {
+    // Follow redirect to PDS
+    window.location.assign(res.headers.get('location'));
   }
 
-  const session = await res.json();
-
-  // Store minimal info
-  const info = {
-    did: session.did,
-    handle: session.handle,
-    pds: session.pds || pds,
-    loggedInAt: new Date().toISOString(),
-  };
-  localStorage.setItem(SESSION_KEY, JSON.stringify(info));
-
-  return {
-    info,
-    authToken: session.accessJwt,
-    pds: session.pds || pds,
-  };
+  const err = await res.json();
+  throw new Error(err.error || 'Login failed');
 }
 
 /**
- * Get stored session info.
- * @returns {Object|null}
+ * Check if user is logged in (reads session cookie).
+ * @returns {{ did: string, handle: string, pds: string } | null}
  */
-export function getSession() {
-  try {
-    const raw = localStorage.getItem(SESSION_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Clear stored session.
- */
-export function logout() {
-  localStorage.removeItem(SESSION_KEY);
-}
-
-/**
- * Make an authenticated XRPC call to the user's PDS.
- * @param {string} method - e.g. 'com.atproto.repo.createRecord'
- * @param {Object} params - Request body
- * @param {string} authToken - JWT from login()
- * @param {string} pds - PDS endpoint
- * @returns {Promise<Object>}
- */
-export async function xrpc(method, params, authToken, pds) {
-  const res = await fetch(`${pds}/xrpc/${method}`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${authToken}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(params),
-  });
-
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`XRPC ${method} failed (${res.status}): ${err}`);
-  }
-
+export async function getSession() {
+  const res = await fetch(`${API}/session`);
+  if (!res.ok) return null;
   return res.json();
+}
+
+/**
+ * Clear session cookie.
+ */
+export async function logout() {
+  await fetch(`${API}/logout`, { method: 'POST' });
 }

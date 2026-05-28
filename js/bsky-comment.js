@@ -5,39 +5,43 @@
  *   agency.lastnpcalex.comment — comment on a transmission
  *   agency.lastnpcalex.like   — like on a comment
  *
- * Indexing: constellation.microcosm.blue (backlink index)
- * Fetching: user's own PDS (discovered via DID document)
+ * Read operations (no auth):
+ *   — Constellation backlinks (public API)
+ *   — PDS record fetching (CORS-enabled)
+ *   — Handle resolution (Bluesky AppView)
+ *
+ * Write operations (authenticated):
+ *   — /api/bsky/createRecord (DPoP-signed via Pages Function)
+ *   — /api/bsky/deleteRecord (DPoP-signed via Pages Function)
  *
  * @module bs ky-comment
  */
 
-import { xrpc } from './bsky-auth.js';
-
 const CONSTELLATION = 'https://constellation.microcosm.blue';
 const BSKY_PUBLIC = 'https://public.api.bsky.app';
+const API = '/api/bsky';
+
+const COMMENT_TYPE = 'agency.lastnpcalex.comment';
+const LIKE_TYPE = 'agency.lastnpcalex.like';
 
 // PDS endpoint cache — avoids repeated DNS lookups
 const pdsCache = new Map();
 
 /**
- * Discover a DID's PDS endpoint from the Bluesky AppView.
+ * Discover a DID's PDS endpoint from the PLC directory.
  * @param {string} did
  * @returns {string} PDS URL
  */
 async function discoverPds(did) {
   if (pdsCache.has(did)) return pdsCache.get(did);
 
-  // Fetch DID document to find PDS endpoint
   try {
     let doc = null;
 
-    // did:plc → PLC directory
     if (did.startsWith('did:plc:')) {
       const res = await fetch(`https://plc.directory/${did.replace('did:plc:', '')}`);
       if (res.ok) doc = await res.json();
-    }
-    // did:web → fetch .well-known/did.json
-    else if (did.startsWith('did:web:')) {
+    } else if (did.startsWith('did:web:')) {
       const host = did.replace('did:web:', '');
       const res = await fetch(`https://${host}/.well-known/did.json`);
       if (res.ok) doc = await res.json();
@@ -53,7 +57,6 @@ async function discoverPds(did) {
       }
     }
 
-    // Fallback: most users are on bsky.social
     const pds = 'https://bsky.social';
     pdsCache.set(did, pds);
     return pds;
@@ -64,20 +67,14 @@ async function discoverPds(did) {
   }
 }
 
-const COMMENT_TYPE = 'agency.lastnpcalex.comment';
-const LIKE_TYPE = 'agency.lastnpcalex.like';
-
 /**
- * Post a comment to the user's PDS.
- * @param {string} authToken - JWT from Auth.login()
- * @param {string} pds - User's PDS endpoint
- * @param {string} did - User's DID
+ * Post a comment via the DPoP proxy.
  * @param {string} message - Comment text
  * @param {string} post - Post slug
  * @param {string} subjectDid - Site owner DID
  * @returns {{ uri: string, cid: string }}
  */
-export async function post(authToken, pds, did, message, post, subjectDid) {
+export async function post(message, post, subjectDid) {
   const rec = {
     $type: COMMENT_TYPE,
     subject: subjectDid,
@@ -86,37 +83,46 @@ export async function post(authToken, pds, did, message, post, subjectDid) {
     createdAt: new Date().toISOString(),
   };
 
-  const resp = await xrpc('com.atproto.repo.createRecord', {
-    repo: did,
-    collection: COMMENT_TYPE,
-    record: rec,
-  }, authToken, pds);
+  const res = await fetch(`${API}/createRecord`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ collection: COMMENT_TYPE, record: rec }),
+  });
 
-  return { uri: resp.uri, cid: resp.cid };
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || 'Post failed');
+  }
+
+  return res.json();
 }
 
 /**
- * Delete a comment.
- * @param {string} authToken
- * @param {string} pds
+ * Delete a comment via the DPoP proxy.
  * @param {string} uri - AT-URI of the comment
  */
-export async function remove(authToken, pds, uri) {
-  const [, repo, collection, rkey] = uri.replace('at://', '').split('/');
-  await xrpc('com.atproto.repo.deleteRecord', {
-    repo, collection, rkey,
-  }, authToken, pds);
+export async function remove(uri) {
+  const res = await fetch(`${API}/deleteRecord`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ uri }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || 'Delete failed');
+  }
+
+  return res.json();
 }
 
 /**
- * Like a comment.
- * @param {string} authToken
- * @param {string} pds
- * @param {string} did - User's DID
+ * Like a comment via the DPoP proxy.
  * @param {string} targetUri - AT-URI of the comment
  * @param {string} subjectDid - Site owner DID
+ * @returns {{ uri: string, cid: string }}
  */
-export async function like(authToken, pds, did, targetUri, subjectDid) {
+export async function like(targetUri, subjectDid) {
   const rec = {
     $type: LIKE_TYPE,
     subject: subjectDid,
@@ -124,24 +130,28 @@ export async function like(authToken, pds, did, targetUri, subjectDid) {
     createdAt: new Date().toISOString(),
   };
 
-  await xrpc('com.atproto.repo.createRecord', {
-    repo: did,
-    collection: LIKE_TYPE,
-    record: rec,
-  }, authToken, pds);
+  const res = await fetch(`${API}/createRecord`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ collection: LIKE_TYPE, record: rec }),
+  });
+
+  if (!res.ok) {
+    const err = await res.json();
+    throw new Error(err.error || 'Like failed');
+  }
+
+  return res.json();
 }
 
 /**
  * Unlike a comment (delete like record).
- * @param {string} authToken
- * @param {string} pds
  * @param {string} likeUri - AT-URI of the like record
  */
-export async function unlike(authToken, pds, likeUri) {
-  const [, repo, collection, rkey] = likeUri.replace('at://', '').split('/');
-  await xrpc('com.atproto.repo.deleteRecord', {
-    repo, collection, rkey,
-  }, authToken, pds);
+export async function unlike(likeUri) {
+  // We don't store like URIs easily. For now, skip.
+  // TODO: Track like URIs in localStorage or session.
+  throw new Error('Unlike not yet implemented');
 }
 
 /**
@@ -179,7 +189,6 @@ export async function getLikeBacklinks(subjectDid, limit = 500) {
 
 /**
  * Fetch a record directly from the user's PDS (supports CORS).
- * Discovers PDS endpoint from the DID's document.
  * @param {string} did
  * @param {string} collection
  * @param {string} rkey
@@ -208,19 +217,16 @@ export async function resolveHandle(did) {
 
 /**
  * Load all comments for a post.
- * Fetches backlinks from Constellation, records from Slingshot, handles from AppView.
  * @param {string} post - Post slug (e.g. "neam")
  * @param {string} subjectDid - Site owner DID
  */
 export async function loadComments(post, subjectDid) {
   const backlinks = await getBacklinks(subjectDid);
 
-  // Fetch all records in parallel
   const results = await Promise.all(
     backlinks.map(bl => fetchRecord(bl.did, bl.collection, bl.rkey))
   );
 
-  // Filter to matching post + valid structure
   const entries = [];
   for (let i = 0; i < results.length; i++) {
     const rec = results[i];
@@ -244,9 +250,7 @@ export async function loadComments(post, subjectDid) {
     e.authorHandle = map[e.author];
   }
 
-  // Sort by date descending
   entries.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
   return entries;
 }
 
@@ -262,16 +266,14 @@ export async function loadLikes(commentUris, subjectDid) {
     likeBacklinks.map(bl => fetchRecord(bl.did, bl.collection, bl.rkey))
   );
 
-  // Count likes per target URI, also track which user liked what
   const counts = new Map();
-  const byUser = new Map(); // did -> Set<targetUri>
+  const byUser = new Map();
 
   for (const rec of results) {
     if (!rec || rec.value?.$type !== LIKE_TYPE) continue;
     const target = rec.value.targetUri;
     if (!commentUris.includes(target)) continue;
 
-    // Extract user DID from record URI
     const userDid = rec.uri.replace('at://', '').split('/')[0];
     counts.set(target, (counts.get(target) || 0) + 1);
 
