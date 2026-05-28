@@ -1,6 +1,7 @@
 name = "black-hole"
 main = "_worker.js"
 compatibility_date = "2025-12-15"
+node_compat = false
 
 # Static assets
 assets = { binding = "ASSETS" }
@@ -12,3 +13,6 @@ assets.run_worker_first = true
 [[kv_namespaces]]
 binding = "SESSIONS"
 id = "149e36b52d1c43518ce7f2d91c22528c"
+
+[triggers]
+routes = []
