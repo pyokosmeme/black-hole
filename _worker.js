@@ -39,7 +39,7 @@ async function importKeyPair(privateKeyJwk, publicKeyJwk) {
   };
 }
 
-async function createDpopProof(privateKey, publicKey, method, url, accessToken) {
+async function createDpopProof(privateKey, publicKey, method, url, accessToken, nonce) {
   const jwk = await crypto.subtle.exportKey('jwk', publicKey);
   const header = { alg: 'ES256', typ: 'dpop+jwt', jwk };
   const payload = {
@@ -54,6 +54,7 @@ async function createDpopProof(privateKey, publicKey, method, url, accessToken) 
     const ath = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(accessToken));
     payload.ath = base64url(new Uint8Array(ath));
   }
+  if (nonce) payload.nonce = nonce;
   const h = base64url(new TextEncoder().encode(JSON.stringify(header)));
   const p = base64url(new TextEncoder().encode(JSON.stringify(payload)));
   const sig = await crypto.subtle.sign(
@@ -211,14 +212,23 @@ async function handleCallback(request, env) {
       client_id: CLIENT_ID, code_verifier: stateData.codeVerifier,
       dpop_jkt: await jwkThumbprint(publicKey),
     });
-    const tokenRes = await fetch(tokenUrl, {
+    let tokenRes = await fetch(tokenUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'DPoP': dpopProof,
-      },
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'DPoP': dpopProof },
       body: tokenBody.toString(),
     });
+    // Handle DPoP nonce challenge
+    if (tokenRes.status === 428 || (tokenRes.headers.get('www-authenticate') || '').includes('use_dpop_nonce')) {
+      const nonce = tokenRes.headers.get('dpop-nonce');
+      if (nonce) {
+        const dpopProofWithNonce = await createDpopProof(privateKey, publicKey, 'POST', tokenUrl, null, nonce);
+        tokenRes = await fetch(tokenUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'DPoP': dpopProofWithNonce },
+          body: tokenBody.toString(),
+        });
+      }
+    }
     if (!tokenRes.ok) {
       const err = await tokenRes.text();
       return jsonResponse({ error: `Token exchange failed: ${err}` }, 500, request);
