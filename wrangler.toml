@@ -1,4 +1,13 @@
-# Cloudflare Pages Functions configuration
-# Pages Functions live in functions/ directory
-# KV namespace binding: SESSIONS (configured in dashboard)
-# No wrangler.toml needed for Pages Functions — dashboard handles bindings
+name = "black-hole"
+main = "dist/worker/index.js"
+compatibility_date = "2025-12-15"
+
+# Static assets
+assets = { binding = "ASSETS" }
+assets.directory = "."
+assets.not_found_handling = "single-page-application"
+
+# KV for OAuth sessions
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "149e36b52d1c43518ce7f2d91c22528c"
