@@ -1113,6 +1113,20 @@ body.bh-mode .link-card {
   overflow-y: auto;
   min-height: 0;
   padding: 16px 8px 20px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--cyan, #00ffff) transparent;
+}
+
+/* Stylized scrollbar matching the page */
+.tx-comments-body::-webkit-scrollbar {
+  width: 8px;
+}
+.tx-comments-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.tx-comments-body::-webkit-scrollbar-thumb {
+  background-color: var(--cyan, #00ffff);
+  border-radius: 4px;
 }
 .tx-comments-inner {
   display: flex;
@@ -1369,4 +1383,8 @@ body.light-reading .tx-form-counter {
 body.light-mode .tx-reply-btn,
 body.light-reading .tx-reply-btn {
   color: rgba(136, 0, 170, 0.5);
+}
+body.light-mode .tx-comments-body::-webkit-scrollbar-thumb,
+body.light-reading .tx-comments-body::-webkit-scrollbar-thumb {
+  background-color: #0088aa;
 }
