@@ -1,23 +1,4 @@
-name = "black-hole"
-main = "src/index.js"
-compatibility_date = "2025-05-27"
-
-# Routes
-routes = [
-  { pattern = "lastnpcalex.agency", zone_name = "lastnpcalex.agency" },
-  { pattern = "lastnpcalex.agency/*", zone_name = "lastnpcalex.agency" },
-]
-
-# Static assets
-assets = { binding = "ASSETS" }
-assets.directory = "."
-assets.not_found_handling = "single-page-application"
-
-# KV for OAuth sessions
-[[kv_namespaces]]
-binding = "SESSIONS"
-id = "PLACEHOLDER_KV_ID"
-
-[vars]
-SITE_NAME = "lastnpcalex.agency"
-SITE_DID = "did:plc:ccxl3ictrlvtrrgh5swvvg47"
+# Cloudflare Pages Functions configuration
+# Pages Functions live in functions/ directory
+# KV namespace binding: SESSIONS (configured in dashboard)
+# No wrangler.toml needed for Pages Functions — dashboard handles bindings

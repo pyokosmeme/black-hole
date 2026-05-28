@@ -16,7 +16,7 @@ __pycache__/
 # This ignore file itself
 .assetsignore
 
-# Config files
+# Config files (wrangler is Workers-only, not used by Pages)
 wrangler.toml
 CLAUDE.md
 GEMINI.md
@@ -39,3 +39,6 @@ author/author-node.jsx
 author/cyber-landing.jsx
 author/README.md
 author/effects/
+
+# NOTE: functions/ is NOT listed here — it's the Pages Functions directory.
+# Cloudflare Pages automatically recognizes functions/ at the build output root.
