@@ -23,6 +23,16 @@ const API = '/api/bsky';
 
 const COMMENT_TYPE = 'agency.lastnpcalex.comment';
 const LIKE_TYPE = 'agency.lastnpcalex.like';
+const HIDE_TYPE = 'agency.lastnpcalex.hide';
+const TRANSMISSION_TYPE = 'agency.lastnpcalex.transmission';
+
+/**
+ * Mint a synthetic AT-URI for a transmission, anchored to the author's DID.
+ * No actual record is published — Constellation indexes the URI as a subject.
+ */
+export function transmissionUri(authorDid, slug) {
+  return `at://${authorDid}/${TRANSMISSION_TYPE}/${slug}`;
+}
 
 // PDS endpoint cache — avoids repeated DNS lookups
 const pdsCache = new Map();
@@ -74,11 +84,10 @@ async function discoverPds(did) {
  * @param {string} subjectDid - Site owner DID
  * @returns {{ uri: string, cid: string }}
  */
-export async function post(message, post, subjectDid) {
+export async function post(message, subjectUri) {
   const rec = {
     $type: COMMENT_TYPE,
-    subject: subjectDid,
-    post,
+    subject: subjectUri,
     message,
     createdAt: new Date().toISOString(),
   };
@@ -94,6 +103,31 @@ export async function post(message, post, subjectDid) {
     throw new Error(err.error || 'Post failed');
   }
 
+  return res.json();
+}
+
+export async function hide(commentUri) {
+  const rec = {
+    $type: HIDE_TYPE,
+    target: commentUri,
+    createdAt: new Date().toISOString(),
+  };
+  const res = await fetch(`${API}/createRecord`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ collection: HIDE_TYPE, record: rec }),
+  });
+  if (!res.ok) throw new Error((await res.json()).error || 'Hide failed');
+  return res.json();
+}
+
+export async function unhide(hideUri) {
+  const res = await fetch(`${API}/deleteRecord`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ uri: hideUri }),
+  });
+  if (!res.ok) throw new Error((await res.json()).error || 'Unhide failed');
   return res.json();
 }
 
@@ -160,9 +194,9 @@ export async function unlike(likeUri) {
  * @param {string} subjectDid - Site owner DID
  * @param {number} limit
  */
-export async function getBacklinks(subjectDid, limit = 100) {
+export async function getBacklinks(subjectUri, limit = 100) {
   const url = new URL('/xrpc/blue.microcosm.links.getBacklinks', CONSTELLATION);
-  url.searchParams.set('subject', subjectDid);
+  url.searchParams.set('subject', subjectUri);
   url.searchParams.set('source', `${COMMENT_TYPE}:subject`);
   url.searchParams.set('limit', String(limit));
 
@@ -220,8 +254,8 @@ export async function resolveHandle(did) {
  * @param {string} post - Post slug (e.g. "neam")
  * @param {string} subjectDid - Site owner DID
  */
-export async function loadComments(post, subjectDid) {
-  const backlinks = await getBacklinks(subjectDid);
+export async function loadComments(subjectUri) {
+  const backlinks = await getBacklinks(subjectUri);
 
   const results = await Promise.all(
     backlinks.map(bl => fetchRecord(bl.did, bl.collection, bl.rkey))
@@ -231,7 +265,7 @@ export async function loadComments(post, subjectDid) {
   for (let i = 0; i < results.length; i++) {
     const rec = results[i];
     if (!rec || rec.value?.$type !== COMMENT_TYPE) continue;
-    if (rec.value.post !== post) continue;
+    if (rec.value.subject !== subjectUri) continue;
     if (typeof rec.value.message !== 'string') continue;
     entries.push({
       author: backlinks[i].did,
@@ -241,7 +275,6 @@ export async function loadComments(post, subjectDid) {
     });
   }
 
-  // Fetch handles (parallel, deduplicated)
   const dids = [...new Set(entries.map(e => e.author))];
   const handles = await Promise.all(dids.map(resolveHandle));
   const map = Object.fromEntries(dids.map((d, i) => [d, handles[i]]));
@@ -252,6 +285,24 @@ export async function loadComments(post, subjectDid) {
 
   entries.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
   return entries;
+}
+
+/**
+ * Fetch all hide records authored by adminDid. Returns Map<commentUri, hideUri>.
+ * Only records in the admin's own repo count — anyone can publish hides,
+ * but only the site admin's hides are honored.
+ */
+export async function loadHides(adminDid) {
+  const pds = await discoverPds(adminDid);
+  const url = `${pds}/xrpc/com.atproto.repo.listRecords?repo=${encodeURIComponent(adminDid)}&collection=${encodeURIComponent(HIDE_TYPE)}&limit=100`;
+  const res = await fetch(url);
+  if (!res.ok) return new Map();
+  const { records = [] } = await res.json();
+  const map = new Map();
+  for (const r of records) {
+    if (r.value?.target) map.set(r.value.target, r.uri);
+  }
+  return map;
 }
 
 /**
