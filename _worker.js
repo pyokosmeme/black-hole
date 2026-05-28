@@ -40,7 +40,7 @@ async function importKeyPair(privateKeyJwk, publicKeyJwk) {
 }
 
 async function createDpopProof(privateKey, publicKey, method, url, accessToken, nonce) {
-  const jwk = await crypto.subtle.exportKey('jwk', publicKey);
+  const jwk = canonicalEcJwk(await crypto.subtle.exportKey('jwk', publicKey));
   const header = { alg: 'ES256', typ: 'dpop+jwt', jwk };
   const payload = {
     jti: crypto.randomUUID(),
@@ -65,10 +65,14 @@ async function createDpopProof(privateKey, publicKey, method, url, accessToken, 
   return h + '.' + p + '.' + base64url(new Uint8Array(sig));
 }
 
+function canonicalEcJwk(jwk) {
+  // RFC 7638: only required members, lex order
+  return { crv: jwk.crv, kty: jwk.kty, x: jwk.x, y: jwk.y };
+}
+
 async function jwkThumbprint(publicKey) {
   const jwk = await crypto.subtle.exportKey('jwk', publicKey);
-  delete jwk.d;
-  const canon = JSON.stringify(jwk, Object.keys(jwk).sort());
+  const canon = JSON.stringify(canonicalEcJwk(jwk));
   const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canon));
   return base64url(new Uint8Array(hash));
 }
