@@ -1,7 +1,7 @@
 // ── Shared helpers ──
 
 const CLIENT_ID = 'https://black-hole.ex-astris-umbra.workers.dev/client-metadata.json';
-const SCOPE = 'atproto';
+const SCOPE = 'atproto transition:generic';
 const BSKY_PUBLIC = 'https://public.api.bsky.app';
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
 const STATE_TTL = 15 * 60 * 1000;
