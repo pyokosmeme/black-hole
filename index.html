@@ -274,7 +274,18 @@
                 const slug = getSlugFromHash();
                 if (slug) {
                     setTitle(slug);
-                    mountWidget(slug);
+                    // Delay mount until post content is actually populated.
+                    // loadPost sets window.location.hash which fires this handler
+                    // BEFORE the markdown is rendered (wiping any premature mount).
+                    // Guard: only mount once content stabilizes.
+                    const wc = setInterval(() => {
+                        const pc = document.getElementById('post-content');
+                        if (pc?.innerHTML.trim() && !pc.querySelector('.tx-comments-block')) {
+                            clearInterval(wc);
+                            // Small delay to ensure markdown render is fully settled
+                            setTimeout(() => mountWidget(slug), 100);
+                        }
+                    }, 80);
                 } else {
                     setTitle(null);
                 }
@@ -283,13 +294,14 @@
             // Handle initial hash on page load (no hashchange event fires for the first load)
             const slug = getSlugFromHash();
             if (slug) {
-                // Wait for post content to be populated, then mount widget
                 const wait = setInterval(() => {
-                    if (document.getElementById('post-content')?.innerHTML.trim()) {
+                    const pc = document.getElementById('post-content');
+                    if (pc?.innerHTML.trim() && !pc.querySelector('.tx-comments-block')) {
                         clearInterval(wait);
                         setTitle(slug);
                         if (window.AcidburnMode) window.AcidburnMode.setMode(window.AcidburnMode.getMode());
-                        mountWidget(slug);
+                        // Delay to ensure markdown render is settled
+                        setTimeout(() => mountWidget(slug), 100);
                     }
                 }, 80);
             }
