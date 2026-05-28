@@ -47,7 +47,7 @@ async function createDpopProof(privateKey, publicKey, method, url, accessToken) 
     iat: Math.floor(Date.now() / 1000),
     exp: Math.floor(Date.now() / 1000) + 60,
     aud: new URL(url).origin,
-    httptype: method,
+    htm: method,
     url,
   };
   if (accessToken) {
