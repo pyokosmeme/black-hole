@@ -155,15 +155,21 @@ async function handleCallback(request, env) {
   const error = url.searchParams.get('error');
   const errorDescription = url.searchParams.get('error_description');
   if (error) {
+    console.log('[callback] auth error:', error, errorDescription);
     return new Response(null, {
       status: 302,
       headers: { Location: `${url.origin}/test-bsky.html?auth_error=${encodeURIComponent(errorDescription || error)}` },
     });
   }
   if (!code || !state) return jsonResponse({ error: 'Missing code or state' }, 400, request);
+  if (!code || !state) return jsonResponse({ error: 'Missing code or state' }, 400, request);
   try {
+    console.log('[callback] state:', state, 'code:', code?.slice(0, 20) + '...');
     const stateRaw = await env.SESSIONS.get(`state:${state}`);
-    if (!stateRaw) return jsonResponse({ error: 'Invalid state' }, 400, request);
+    if (!stateRaw) {
+      console.log('[callback] state not found in KV');
+      return jsonResponse({ error: 'Invalid state' }, 400, request);
+    }
     const stateData = JSON.parse(stateRaw);
     if (Date.now() - stateData.createdAt > STATE_TTL) {
       await env.SESSIONS.delete(`state:${state}`);

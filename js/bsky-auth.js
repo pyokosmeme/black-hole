@@ -25,7 +25,9 @@ export async function login(handle) {
   });
 
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || 'Login failed');
+  console.log('[bsky-auth] login response:', res.status, data);
+  if (!res.ok) throw new Error(data.error || `Login failed (${res.status})`);
+  console.log('[bsky-auth] redirecting to:', data.redirect_url);
   window.location.assign(data.redirect_url);
 }
 
