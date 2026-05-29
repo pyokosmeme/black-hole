@@ -8,10 +8,22 @@ import * as Comment from './bsky-comment.js';
 const MAX_CHARS = 500;
 
 function tip(text) {
+  let tooltip = null;
   const s = document.createElement('span');
   s.className = 'tx-tip';
-  s.setAttribute('data-tip', text);
   s.textContent = '?';
+  s.addEventListener('mouseenter', (e) => {
+    tooltip = document.createElement('div');
+    tooltip.className = 'tx-tip-popup';
+    tooltip.textContent = text;
+    document.body.appendChild(tooltip);
+    const rect = s.getBoundingClientRect();
+    tooltip.style.left = Math.min(rect.left, window.innerWidth - 320) + 'px';
+    tooltip.style.top = (rect.top - tooltip.offsetHeight - 8) + 'px';
+  });
+  s.addEventListener('mouseleave', () => {
+    if (tooltip) { tooltip.remove(); tooltip = null; }
+  });
   return s;
 }
 
@@ -65,6 +77,7 @@ export async function mount(container, { slug, authorDid }) {
 
   let session = null;
   let hides = new Map();
+  let deletedUris = new Set();
   let likeCounts = new Map();
   let userLikes = new Map();
   let replyToUri = null;
@@ -151,33 +164,48 @@ export async function mount(container, { slug, authorDid }) {
 
   function renderThread(c, isAdmin, byUri) {
     const fragment = document.createDocumentFragment();
-    const hidden = hides.has(c.uri);
 
     // Main comment
-    fragment.appendChild(renderComment(c, isAdmin, false));
+    const main = renderComment(c, isAdmin, false);
+    if (main) fragment.appendChild(main);
 
     // Direct replies
     const replies = allComments.filter(r => r.replyTo === c.uri && (isAdmin || !hides.has(r.uri)));
     for (const reply of replies) {
-      fragment.appendChild(renderComment(reply, isAdmin, true));
+      const rep = renderComment(reply, isAdmin, true);
+      if (rep) fragment.appendChild(rep);
       // Nested replies (depth 2)
       const nested = allComments.filter(n => n.replyTo === reply.uri && (isAdmin || !hides.has(n.uri)));
       for (const nest of nested) {
-        fragment.appendChild(renderComment(nest, isAdmin, true));
+        const nestEl = renderComment(nest, isAdmin, true);
+        if (nestEl) fragment.appendChild(nestEl);
       }
     }
 
     return fragment;
   }
 
-  function renderComment(c, isAdmin, isReply) {
+function renderComment(c, isAdmin, isReply) {
     const hidden = hides.has(c.uri);
+    const deleted = deletedUris.has(c.uri);
+    const isOwner = session?.did === c.author;
+
+     // Deleted: show "[ deleted ]" for the author, hide completely for others
+    if (deleted && !isOwner) return null;
+
     const cls = ['tx-comment'];
     if (hidden) cls.push('tx-comment-hidden');
     if (isReply) cls.push('tx-comment--reply');
+    if (deleted) cls.push('tx-comment-deleted');
 
     const card = el('article', { class: cls.join(' ') });
     const author = c.authorHandle || c.author.slice(0, 24);
+
+    // If deleted, show placeholder for the author
+    if (deleted) {
+      card.appendChild(el('div', { class: 'tx-comment-deleted-msg' }, '[ deleted ]'));
+      return card;
+    }
 
     // Reply indicator
     if (isReply && c.replyTo) {
@@ -230,6 +258,7 @@ export async function mount(container, { slug, authorDid }) {
         const countSpan = likeBtn.querySelector('.tx-like-count');
         likeBtn.className = 'tx-like-btn' + (!likedByMe ? ' tx-like-btn--active' : '');
         if (countSpan) countSpan.textContent = Math.max(0, newCount);
+        likeBtn.disabled = false;
       } catch (err) {
         likeBtn.disabled = false;
         const countSpan = likeBtn.querySelector('.tx-like-count');
@@ -275,7 +304,7 @@ export async function mount(container, { slug, authorDid }) {
       actions.appendChild(modBtn);
     }
 
-    // Delete — poster can delete their own, admin can delete any
+   // Delete — poster can delete their own, admin can delete any
     const isOwner = session?.did === c.author;
     if (isOwner || isAdmin) {
       const delBtn = el('button', { class: 'tx-del-btn' }, 'delete');
@@ -285,7 +314,7 @@ export async function mount(container, { slug, authorDid }) {
         delBtn.textContent = 'deleting...';
         try {
           await Comment.remove(c.uri);
-          allComments = allComments.filter(x => x.uri !== c.uri);
+          deletedUris.add(c.uri);
           renderComments();
         } catch (e) {
           delBtn.disabled = false;

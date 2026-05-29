@@ -1175,6 +1175,13 @@ body.bh-mode .link-card {
 }
 .tx-comment-hidden { opacity: 0.3; }
 .tx-comment-hidden-tag { color: #c9a0e0; font-size: 11px; margin-left: 6px; }
+.tx-comment-deleted { opacity: 0.5; }
+.tx-comment-deleted-msg {
+  color: rgba(255, 255, 255, 0.4);
+  font-style: italic;
+  font-size: 14px;
+  padding: 4px 0;
+}
 
 .tx-comment-head {
   display: flex;
@@ -1290,44 +1297,36 @@ body.bh-mode .link-card {
 .tx-form-counter-warn { color: rgba(255, 255, 255, 0.7); }
 .tx-form-err { color: rgba(255, 255, 255, 0.8); font-size: 12px; }
 
-/* Tooltip — hover "?" for context */
+/* Tooltip — "?" with JS-driven popup (avoids overflow clipping) */
 .tx-tip {
-  position: relative;
   display: inline-flex;
   cursor: help;
-  color: rgba(255, 255, 255, 0.3);
-  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 16px;
   font-weight: 700;
-  margin: 0 4px;
+  margin: 0 6px;
   user-select: none;
   transition: color 0.15s ease;
+  line-height: 1;
 }
 .tx-tip:hover { color: var(--cyan); }
-.tx-tip::after {
-  content: attr(data-tip);
-  position: absolute;
-  left: 50%;
-  bottom: calc(100% + 8px);
-  transform: translateX(-50%);
+.tx-tip-popup {
+  position: fixed;
   background: var(--panel);
   border: 1px solid rgba(191, 0, 255, 0.4);
   color: #ddd8d0;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 400;
   font-family: 'Space Mono', monospace;
   line-height: 1.45;
   padding: 8px 12px;
-  border-radius: 2px;
-  white-space: nowrap;
-  max-width: 300px;
+  max-width: 320px;
   white-space: normal;
   text-align: left;
   pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.15s ease;
-  z-index: 100;
+  z-index: 10000;
+  backdrop-filter: blur(10px);
 }
-.tx-tip:hover::after { opacity: 1; }
 
 /* Inline reply — appears below the parent comment */
 .tx-inline-reply {
@@ -1580,6 +1579,11 @@ body.light-mode .tx-admin-badge,
 body.light-reading .tx-admin-badge { color: #bf00ff; }
 body.light-mode .tx-comment-hidden-tag,
 body.light-reading .tx-comment-hidden-tag { color: #4a1868; }
+body.light-mode .tx-comment-deleted-msg,
+body.light-reading .tx-comment-deleted-msg {
+  color: #4a4040;
+  font-style: italic;
+}
 body.light-mode .tx-reply-indicator,
 body.light-reading .tx-reply-indicator { color: #4a1868; }
 body.light-mode .tx-comments-body::-webkit-scrollbar-thumb,
@@ -1608,12 +1612,16 @@ body.light-mode .tx-tip,
 body.light-reading .tx-tip { color: rgba(74, 24, 104, 0.4); }
 body.light-mode .tx-tip:hover,
 body.light-reading .tx-tip:hover { color: #bf00ff; }
-body.light-mode .tx-tip::after,
-body.light-reading .tx-tip::after {
+body.light-mode .tx-tip-popup,
+body.light-reading .tx-tip-popup {
   background: #fdfaf5;
   border-color: rgba(191, 0, 255, 0.4);
   color: #2e2a26;
 }
+body.light-mode .tx-auth-err,
+body.light-reading .tx-auth-err { color: #cc0066; }
+body.light-mode .tx-form-err,
+body.light-reading .tx-form-err { color: #cc0066; }
 
 body.light-mode .tx-del-btn,
 body.light-reading .tx-del-btn {
@@ -1632,6 +1640,7 @@ body.light-reading .tx-del-btn:hover {
 body.light-mode .tx-confirm-dialog,
 body.light-reading .tx-confirm-dialog {
   background: #fdfaf5;
+  border: 2px solid transparent;
   border-image: linear-gradient(135deg, #bf00ff, #4a1868) 1;
 }
 body.light-mode .tx-confirm-dialog::before,
