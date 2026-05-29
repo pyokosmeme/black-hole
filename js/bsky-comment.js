@@ -204,9 +204,31 @@ export async function like(targetUri, subjectDid) {
  * @param {string} likeUri - AT-URI of the like record
  */
 export async function unlike(likeUri) {
-  // We don't store like URIs easily. For now, skip.
-  // TODO: Track like URIs in localStorage or session.
-  throw new Error('Unlike not yet implemented');
+  const res = await fetch(`${API}/deleteRecord`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ uri: likeUri }),
+  });
+  if (!res.ok) throw new Error((await res.json()).error || 'Unlike failed');
+  return res.json();
+}
+
+/**
+ * Load all like records for the admin. Returns Map<targetUri, likeUri>.
+ */
+export async function loadAllLikes(adminDid) {
+  const url = new URL(`${BSKY_SOCIAL}/xrpc/com.atproto.repo.listRecords`);
+  url.searchParams.set('repo', adminDid);
+  url.searchParams.set('collection', LIKE_TYPE);
+  url.searchParams.set('limit', '100');
+  const res = await fetch(url.toString());
+  if (!res.ok) return new Map();
+  const { records = [] } = await res.json();
+  const map = new Map();
+  for (const r of records) {
+    if (r.value?.targetUri) map.set(r.value.targetUri, r.uri);
+  }
+  return map;
 }
 
 /**
@@ -297,6 +319,7 @@ export async function loadComments(subjectUri) {
       message: rec.value.message,
       createdAt: rec.value.createdAt,
       uri: rec.uri,
+      replyTo: rec.value.replyTo || null,
     });
   }
 
