@@ -178,6 +178,7 @@ export async function remove(uri) {
  * @returns {{ uri: string, cid: string }}
  */
 export async function like(targetUri, subjectDid) {
+  const rkey = targetUri.split('/').pop() || targetUri.slice(-16);
   const rec = {
     $type: LIKE_TYPE,
     subject: subjectDid,
@@ -188,11 +189,15 @@ export async function like(targetUri, subjectDid) {
   const res = await fetch(`${API}/createRecord`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ collection: LIKE_TYPE, record: rec }),
+    body: JSON.stringify({ collection: LIKE_TYPE, rkey, record: rec }),
   });
 
   if (!res.ok) {
     const err = await res.json();
+    // Duplicate like is a no-op — treat as already liked
+    if (res.status === 400 && (err.error?.includes('conflict') || err.error?.includes('already'))) {
+      return { uri: '' };
+    }
     throw new Error(err.error || 'Like failed');
   }
 
@@ -216,16 +221,24 @@ export async function unlike(likeUri) {
 /**
  * Load all like records for the admin. Returns Map<targetUri, likeUri>.
  */
-export async function loadAllLikes(adminDid) {
-  const url = new URL(`${BSKY_SOCIAL}/xrpc/com.atproto.repo.listRecords`);
-  url.searchParams.set('repo', adminDid);
-  url.searchParams.set('collection', LIKE_TYPE);
-  url.searchParams.set('limit', '100');
-  const res = await fetch(url.toString());
-  if (!res.ok) return new Map();
-  const { records = [] } = await res.json();
+export async function loadAllLikes(did) {
+  const allRecords = [];
+  let cursor = undefined;
+  do {
+    const url = new URL(`${BSKY_SOCIAL}/xrpc/com.atproto.repo.listRecords`);
+    url.searchParams.set('repo', did);
+    url.searchParams.set('collection', LIKE_TYPE);
+    url.searchParams.set('limit', '100');
+    if (cursor) url.searchParams.set('cursor', cursor);
+    const res = await fetch(url.toString());
+    if (!res.ok) break;
+    const data = await res.json();
+    const records = data.records || [];
+    allRecords.push(...records);
+    cursor = data.cursor;
+  } while (cursor);
   const map = new Map();
-  for (const r of records) {
+  for (const r of allRecords) {
     if (r.value?.targetUri) map.set(r.value.targetUri, r.uri);
   }
   return map;

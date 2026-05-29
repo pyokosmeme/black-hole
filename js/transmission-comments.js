@@ -61,15 +61,23 @@ function svgHeart() {
 export async function mount(container, { slug, authorDid }) {
   const subjectUri = Comment.transmissionUri(authorDid, slug);
 
-  const summary = el('summary', { class: 'tx-comments-summary' },
+ const summary = el('summary', { class: 'tx-comments-summary' },
     el('span', { class: 'tx-comments-label' }, '[ TRANSMIT RESPONSE ]'),
     el('span', { class: 'tx-comments-count' }, '')
   );
   const authBar = el('div', { class: 'tx-comments-auth' });
   const list = el('div', { class: 'tx-comments-list' }, 'loading...');
   const form = el('div', { class: 'tx-comments-form' });
+  const formToggle = el('div', { class: 'tx-form-toggle' },
+    el('button', { class: 'tx-toggle-btn' }, 'collapse')
+  );
+  formToggle.querySelector('.tx-toggle-btn').onclick = () => {
+    const isOpen = form.style.display !== 'none';
+    form.style.display = isOpen ? 'none' : '';
+    formToggle.querySelector('.tx-toggle-btn').textContent = isOpen ? 'collapse' : 'expand';
+  };
   const body = el('div', { class: 'tx-comments-body' },
-    el('div', { class: 'tx-comments-inner' }, authBar, form, list)
+    el('div', { class: 'tx-comments-inner' }, authBar, formToggle, form, list)
   );
   const block = el('details', { class: 'tx-comments-block' }, summary, body);
   container.appendChild(block);
@@ -233,9 +241,9 @@ export async function mount(container, { slug, authorDid }) {
     const actions = el('footer', { class: 'tx-comment-actions' });
 
     // Like button — SVG heart, fills with --cyan on active
-    const likedByMe = userLikes.has(c.uri);
+    let isLiked = userLikes.has(c.uri);
     const likeCount = likeCounts.get(c.uri) || 0;
-    const likeBtn = el('button', { class: 'tx-like-btn' + (likedByMe ? ' tx-like-btn--active' : '') },
+    const likeBtn = el('button', { class: 'tx-like-btn' + (isLiked ? ' tx-like-btn--active' : '') },
       svgHeart(),
       el('span', { class: 'tx-like-count' }, likeCount)
     );
@@ -244,18 +252,25 @@ export async function mount(container, { slug, authorDid }) {
       if (!session) return;
       likeBtn.disabled = true;
       try {
-        if (likedByMe) {
+        if (isLiked) {
           const likeUri = userLikes.get(c.uri);
           if (likeUri) await Comment.unlike(likeUri);
           userLikes.delete(c.uri);
         } else {
           const r = await Comment.like(c.uri, authorDid);
-          if (r?.uri) userLikes.set(c.uri, r.uri);
+          if (r?.uri) {
+            userLikes.set(c.uri, r.uri);
+          } else {
+            // Already liked (409 conflict) — UI is already correct
+            likeBtn.disabled = false;
+            return;
+          }
         }
-        const newCount = (likeCounts.get(c.uri) || 0) + (likedByMe ? -1 : 1);
+        isLiked = !isLiked;
+        const newCount = (likeCounts.get(c.uri) || 0) + (isLiked ? 1 : -1);
         likeCounts.set(c.uri, Math.max(0, newCount));
         const countSpan = likeBtn.querySelector('.tx-like-count');
-        likeBtn.className = 'tx-like-btn' + (!likedByMe ? ' tx-like-btn--active' : '');
+        likeBtn.className = 'tx-like-btn' + (isLiked ? ' tx-like-btn--active' : '');
         if (countSpan) countSpan.textContent = Math.max(0, newCount);
         likeBtn.disabled = false;
       } catch (err) {

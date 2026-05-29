@@ -199,11 +199,13 @@ async function handleCallback(request, env) {
   const state = url.searchParams.get('state');
   const error = url.searchParams.get('error');
   const errorDescription = url.searchParams.get('error_description');
-  if (error) {
+ if (error) {
     console.log('[callback] auth error:', error, errorDescription);
+    const redirectUrl = new URL(stateData?.returnTo || `${url.origin}/`);
+    redirectUrl.searchParams.set('auth_error', encodeURIComponent(errorDescription || error));
     return new Response(null, {
       status: 302,
-      headers: { Location: `${url.origin}/?auth_error=${encodeURIComponent(errorDescription || error)}` },
+      headers: { Location: redirectUrl.toString() },
     });
   }
   if (!code || !state) return jsonResponse({ error: 'Missing code or state' }, 400, request);
@@ -261,11 +263,13 @@ async function handleCallback(request, env) {
     };
     await env.SESSIONS.put(`session:${sessionId}`, JSON.stringify(sessionData), { expirationTtl: SESSION_MAX_AGE });
     const cookie = `session=${sessionId}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${SESSION_MAX_AGE}`;
-    const returnTo = stateData.returnTo || `${url.origin}/`;
+ const redirectUrl = new URL(stateData.returnTo || `${url.origin}/`);
+    redirectUrl.searchParams.set('logged_in', '1');
+    redirectUrl.searchParams.set('sid', sessionId);
     return new Response(null, {
       status: 302,
       headers: {
-        'Location': `${returnTo}?logged_in=1&sid=${sessionId}`,
+        'Location': redirectUrl.toString(),
         'Set-Cookie': cookie,
       },
     });

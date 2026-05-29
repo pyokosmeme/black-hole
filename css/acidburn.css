@@ -1300,6 +1300,29 @@ body.bh-mode .link-card {
 .tx-form-counter-warn { color: rgba(255, 255, 255, 0.7); }
 .tx-form-err { color: rgba(255, 255, 255, 0.8); font-size: 12px; }
 
+/* Toggle button — collapse/expand transmit form */
+.tx-form-toggle {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 0 4px;
+}
+.tx-toggle-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.5);
+  font-family: inherit;
+  font-size: 11px;
+  padding: 1px 10px;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  text-transform: lowercase;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.tx-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+}
+
 /* Tooltip — "?" with JS-driven popup (avoids overflow clipping) */
 .tx-tip {
   display: inline-flex;
@@ -1630,6 +1653,16 @@ body.light-mode .tx-auth-err,
 body.light-reading .tx-auth-err { color: #cc0066; }
 body.light-mode .tx-form-err,
 body.light-reading .tx-form-err { color: #cc0066; }
+body.light-mode .tx-toggle-btn,
+body.light-reading .tx-toggle-btn {
+  border-color: #4a1868;
+  color: #4a1868;
+}
+body.light-mode .tx-toggle-btn:hover,
+body.light-reading .tx-toggle-btn:hover {
+  background: rgba(74, 24, 104, 0.08);
+  color: #1a1816;
+}
 
 body.light-mode .tx-del-btn,
 body.light-reading .tx-del-btn {
