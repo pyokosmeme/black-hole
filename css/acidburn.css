@@ -1071,7 +1071,7 @@ body.bh-mode .link-card {
 
 /* Container: pinned between content and outer border */
 #post-comments-host {
-  border-top: 1px dashed var(--cyan, #00ffff);
+  border-top: 1px solid rgba(191, 0, 255, 0.3);
   margin: 0;
 }
 
@@ -1292,7 +1292,7 @@ body.bh-mode .link-card {
 /* ── Light mode overrides ── */
 body.light-mode #post-comments-host,
 body.light-reading #post-comments-host {
-  border-top-color: #8800aa;
+  border-top-color: rgba(136, 0, 170, 0.3);
 }
 body.light-mode .tx-comments-summary,
 body.light-reading .tx-comments-summary {

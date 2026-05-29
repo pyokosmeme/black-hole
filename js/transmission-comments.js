@@ -134,6 +134,7 @@ export async function mount(container, { slug, authorDid }) {
     // Actions
     const actions = el('footer', { class: 'tx-comment-actions' });
     const replyBtn = el('button', { class: 'tx-reply-btn' }, '[ reply ]');
+    replyBtn.__replyToUri = c.uri;
     replyBtn.onclick = (e) => {
       e.stopPropagation();
       replyToUri = c.uri;
@@ -244,6 +245,48 @@ export async function mount(container, { slug, authorDid }) {
     if (ta) ta.focus();
   }
 
+  function addOptimisticComment(message, replyTo, result) {
+    // If replying, find the parent card and insert under it
+    if (replyTo) {
+      const existing = list.querySelectorAll('.tx-comment');
+      for (const card of existing) {
+        // Match by checking if this card has a reply button for the target
+        const btn = card.querySelector('.tx-reply-btn');
+        if (btn && btn.__replyToUri === replyTo) {
+          // Insert after any existing replies
+          let sibling = card.nextElementSibling;
+          while (sibling && sibling.classList.contains('tx-comment--reply')) {
+            sibling = sibling.nextElementSibling;
+          }
+          list.insertBefore(renderCard({
+            uri: result.uri,
+            author: session.did,
+            authorHandle: session.handle,
+            message,
+            createdAt: new Date().toISOString(),
+            replyTo: replyToUri,
+          }, true), sibling || null);
+          return;
+        }
+      }
+    }
+
+    // Root comment — prepend
+    const card = renderCard({
+      uri: result.uri,
+      author: session.did,
+      authorHandle: session.handle,
+      message,
+      createdAt: new Date().toISOString(),
+      replyTo: null,
+    }, true);
+    list.insertBefore(card, list.firstChild);
+
+    // Update count
+    const countEl = summary.querySelector('.tx-comments-count');
+    countEl.textContent = ' ' + (parseInt(countEl.textContent.trim()) + 1);
+  }
+
   function renderAuth() {
     authBar.innerHTML = '';
     if (session) {
@@ -298,14 +341,17 @@ export async function mount(container, { slug, authorDid }) {
         submit.disabled = true;
         submit.textContent = 'transmitting...';
         try {
-          await Comment.post(msg, subjectUri, replyToUri || undefined);
+          const result = await Comment.post(msg, subjectUri, replyToUri || undefined);
+          // Optimistic update — add comment directly, don't full refresh
+          addOptimisticComment(msg, replyToUri, result);
           textarea.value = '';
           counter.textContent = '0/' + MAX_CHARS;
           counter.classList.remove('tx-form-counter-warn');
           clearReplyIndicator();
           submit.disabled = false;
           submit.textContent = 'transmit';
-          refresh();
+          // Delayed background refresh to sync with server
+          setTimeout(refresh, 5000);
         } catch (e) {
           submit.disabled = false;
           submit.textContent = 'transmit';
