@@ -350,8 +350,6 @@ export async function mount(container, { slug, authorDid }) {
           clearReplyIndicator();
           submit.disabled = false;
           submit.textContent = 'transmit';
-          // Delayed background refresh to sync with server
-          setTimeout(refresh, 5000);
         } catch (e) {
           submit.disabled = false;
           submit.textContent = 'transmit';
