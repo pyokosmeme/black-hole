@@ -1155,23 +1155,56 @@ body.bh-mode .link-card {
 .tx-auth-err { color: rgba(255, 255, 255, 0.8); font-size: 12px; }
 .tx-auth-status { color: var(--cyan); }
 
-/* Comments — flat, thread-like */
-/* Matches .post-content section headers: cyan text, purple borders */
+/* Comments — LessWrong-style nested boxes with alternating colors */
 .tx-comments-list { display: flex; flex-direction: column; gap: 4px; }
 .tx-comments-empty { color: var(--cyan); opacity: 0.3; font-size: 13px; }
 
-.tx-comment {
-  padding: 4px 0;
+.tx-comment-box {
+  padding: 6px 8px;
+  border: 1px solid rgba(191, 0, 255, 0.25);
+  background: rgba(191, 0, 255, 0.03);
 }
-.tx-comment--reply {
+
+/* Alternating depth backgrounds — subtle color shifts per nesting level */
+.tx-comment-depth-0 {
+  background: rgba(191, 0, 255, 0.03);
+  border-color: rgba(191, 0, 255, 0.25);
+}
+.tx-comment-depth-1 {
+  background: rgba(0, 255, 255, 0.03);
+  border-color: rgba(0, 255, 255, 0.2);
   margin-left: 12px;
-  padding-left: 12px;
-  border-left: 1px solid var(--cyan);
 }
+.tx-comment-depth-2 {
+  background: rgba(255, 0, 255, 0.03);
+  border-color: rgba(255, 0, 255, 0.2);
+  margin-left: 24px;
+}
+.tx-comment-depth-3 {
+  background: rgba(0, 255, 136, 0.03);
+  border-color: rgba(0, 255, 136, 0.2);
+  margin-left: 36px;
+}
+
+/* Fallback for deeper nesting */
+.tx-comment-depth-4 {
+  background: rgba(191, 0, 255, 0.04);
+  border-color: rgba(191, 0, 255, 0.22);
+  margin-left: 48px;
+}
+
+.tx-thread-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
 .tx-comment--reply .tx-comment-reply-to {
   color: var(--purple);
-  font-size: 13px;
-  margin-bottom: 1px;
+  font-size: 12px;
+  display: block;
+  margin-bottom: 2px;
 }
 .tx-comment-hidden { opacity: 0.3; }
 .tx-comment-hidden-tag { color: #c9a0e0; font-size: 11px; margin-left: 6px; }
@@ -1188,7 +1221,8 @@ body.bh-mode .link-card {
   gap: 6px;
   align-items: baseline;
   font-size: 13px;
-  margin-bottom: 1px;
+  margin-bottom: 2px;
+  flex-wrap: wrap;
 }
 .tx-comment-author {
   color: var(--cyan);
@@ -1199,23 +1233,93 @@ body.bh-mode .link-card {
 .tx-comment-author:hover { text-decoration: underline; }
 .tx-comment-time { color: #9a90a8; font-size: 13px; }
 .tx-comment-body {
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1.45;
   white-space: pre-wrap;
   word-wrap: break-word;
   color: #ddd8d0;
 }
 .tx-comment-actions {
-  margin-top: 2px;
+  margin-top: 4px;
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
+  flex-wrap: wrap;
 }
 
-/* Action buttons — matching post-content colors */
+/* Thread collapse toggle [+][-] */
+.tx-thread-toggle {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  transition: color 0.15s ease;
+}
+.tx-thread-toggle:hover { color: var(--cyan); }
+.tx-thread-spacer {
+  display: inline-block;
+  width: 16px;
+}
+
+/* Ising sentiment indicators */
+.tx-ising {
+  display: flex;
+  gap: 4px;
+  align-items: baseline;
+  font-size: 12px;
+}
+.tx-ising-up {
+  color: var(--cyan);
+  cursor: help;
+}
+.tx-ising-down {
+  color: var(--pink);
+  cursor: help;
+}
+
+/* Action buttons */
+.tx-like-btn {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  background: transparent;
+  border: 1px solid #c9a0e0;
+  color: #c9a0e0;
+  font-family: inherit;
+  font-size: 12px;
+  cursor: pointer;
+  letter-spacing: 0.05em;
+  padding: 1px 6px;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+.tx-like-btn svg {
+  width: 13px;
+  height: 13px;
+  stroke: var(--cyan);
+  fill: none;
+  stroke-width: 1.5;
+  flex-shrink: 0;
+  transition: stroke 0.15s ease;
+}
+.tx-like-btn--active svg { stroke: var(--cyan); fill: var(--cyan); }
+.tx-like-btn:disabled { opacity: 0.4; cursor: wait; }
+.tx-like-btn--active { color: var(--cyan); border-color: var(--cyan); }
+.tx-like-btn:hover { background: rgba(201, 160, 224, 0.15); border-color: #c9a0e0; }
+.tx-like-count {
+  font-size: 12px;
+  color: #c9a0e0;
+  min-width: 8px;
+  display: inline-block;
+}
+
+/* Plain (borderless) action buttons — reply, hide, delete */
 .tx-reply-btn,
-.tx-like-btn,
-.tx-mod-btn {
+.tx-mod-btn,
+.tx-del-btn {
   background: transparent;
   border: 1px solid #c9a0e0;
   color: #c9a0e0;
@@ -1233,46 +1337,28 @@ body.bh-mode .link-card {
   border-color: #c9a0e0;
   color: #c9a0e0;
 }
-.tx-like-btn:hover {
-  background: rgba(201, 160, 224, 0.15);
-  border-color: #c9a0e0;
-  color: #c9a0e0;
+
+/* Borderless variant — flush with action row */
+.tx-reply-btn--plain,
+.tx-mod-btn--plain,
+.tx-del-btn--plain {
+  border: none;
+  padding: 1px 4px;
+  opacity: 0.6;
 }
-.tx-like-btn {
-  display: flex;
-  align-items: baseline;
-  gap: 3px;
+.tx-reply-btn--plain:hover,
+.tx-mod-btn--plain:hover {
+  opacity: 1;
+  background: none;
 }
-.tx-like-btn svg {
-  width: 13px;
-  height: 13px;
-  stroke: var(--cyan);
-  fill: none;
-  stroke-width: 1.5;
-  flex-shrink: 0;
-  transition: stroke 0.15s ease;
+.tx-del-btn--plain {
+  opacity: 0.4;
 }
-.tx-like-btn--active svg {
-  stroke: var(--cyan);
-  fill: var(--cyan);
+.tx-del-btn--plain:hover {
+  opacity: 1;
+  background: none;
 }
-.tx-like-btn:disabled { opacity: 0.4; cursor: wait; }
-.tx-like-btn--active {
-  color: var(--cyan);
-  border-color: var(--cyan);
-}
-.tx-like-count {
-  font-size: 12px;
-  color: #c9a0e0;
-  min-width: 8px;
-  display: inline-block;
-}
-.tx-reply-indicator {
-  color: #c9a0e0;
-  font-size: 13px;
-  margin-bottom: 3px;
-  display: block;
-}
+.tx-del-btn--plain:disabled { opacity: 0.4; cursor: wait; }
 
 /* Form — matches inline reply styling */
 .tx-comments-form {
@@ -1546,10 +1632,45 @@ body.light-reading .tx-form-submit:hover {
   background: rgba(74, 24, 104, 0.08);
   color: #1a1816;
 }
-body.light-mode .tx-comment--reply,
-body.light-reading .tx-comment--reply { border-left-color: #bf00ff; }
-body.light-mode .tx-comment--reply .tx-comment-reply-to,
-body.light-reading .tx-comment--reply .tx-comment-reply-to { color: #4a1868; }
+/* Light mode — comment boxes */
+body.light-mode .tx-comment-box,
+body.light-reading .tx-comment-box {
+  background: #fdfaf5;
+  border-color: rgba(191, 0, 255, 0.2);
+}
+body.light-mode .tx-comment-depth-0,
+body.light-reading .tx-comment-depth-0 {
+  background: rgba(191, 0, 255, 0.03);
+  border-color: rgba(191, 0, 255, 0.2);
+}
+body.light-mode .tx-comment-depth-1,
+body.light-reading .tx-comment-depth-1 {
+  background: rgba(0, 255, 255, 0.03);
+  border-color: rgba(128, 221, 255, 0.2);
+}
+body.light-mode .tx-comment-depth-2,
+body.light-reading .tx-comment-depth-2 {
+  background: rgba(255, 0, 255, 0.03);
+  border-color: rgba(255, 0, 255, 0.15);
+}
+body.light-mode .tx-comment-depth-3,
+body.light-reading .tx-comment-depth-3 {
+  background: rgba(0, 255, 136, 0.03);
+  border-color: rgba(0, 255, 136, 0.15);
+}
+body.light-mode .tx-comment-depth-4,
+body.light-reading .tx-comment-depth-4 {
+  background: rgba(191, 0, 255, 0.04);
+  border-color: rgba(191, 0, 255, 0.2);
+}
+body.light-mode .tx-thread-toggle,
+body.light-reading .tx-thread-toggle { color: #4a1868; }
+body.light-mode .tx-thread-toggle:hover,
+body.light-reading .tx-thread-toggle:hover { color: #bf00ff; }
+body.light-mode .tx-ising-up,
+body.light-reading .tx-ising-up { color: #bf00ff; }
+body.light-mode .tx-ising-down,
+body.light-reading .tx-ising-down { color: #cc0066; }
 body.light-mode .tx-comment-author,
 body.light-reading .tx-comment-author { color: #bf00ff; }
 body.light-mode .tx-comment-time,
@@ -1617,6 +1738,26 @@ body.light-reading .tx-comment-deleted-msg {
 }
 body.light-mode .tx-reply-indicator,
 body.light-reading .tx-reply-indicator { color: #4a1868; }
+/* Plain button variants in light mode */
+body.light-mode .tx-reply-btn--plain,
+body.light-mode .tx-mod-btn--plain,
+body.light-mode .tx-del-btn--plain,
+body.light-reading .tx-reply-btn--plain,
+body.light-reading .tx-mod-btn--plain,
+body.light-reading .tx-del-btn--plain {
+  border: none;
+  color: #4a1868;
+}
+body.light-mode .tx-reply-btn--plain:hover,
+body.light-mode .tx-mod-btn--plain:hover,
+body.light-reading .tx-reply-btn--plain:hover,
+body.light-reading .tx-mod-btn--plain:hover {
+  color: #bf00ff;
+}
+body.light-mode .tx-del-btn--plain:hover,
+body.light-reading .tx-del-btn--plain:hover {
+  color: #cc0066;
+}
 body.light-mode .tx-comments-body::-webkit-scrollbar-thumb,
 body.light-reading .tx-comments-body::-webkit-scrollbar-thumb { background-color: #b0a89e; }
 

@@ -61,23 +61,15 @@ function svgHeart() {
 export async function mount(container, { slug, authorDid }) {
   const subjectUri = Comment.transmissionUri(authorDid, slug);
 
- const summary = el('summary', { class: 'tx-comments-summary' },
+  const summary = el('summary', { class: 'tx-comments-summary' },
     el('span', { class: 'tx-comments-label' }, '[ TRANSMIT RESPONSE ]'),
     el('span', { class: 'tx-comments-count' }, '')
   );
- const authBar = el('div', { class: 'tx-comments-auth' });
+  const authBar = el('div', { class: 'tx-comments-auth' });
   const list = el('div', { class: 'tx-comments-list' }, 'loading...');
   const form = el('div', { class: 'tx-comments-form' });
-  const formToggle = el('div', { class: 'tx-form-toggle' },
-    el('button', { class: 'tx-toggle-btn' }, 'collapse')
-  );
-  formToggle.querySelector('.tx-toggle-btn').onclick = () => {
-    const isOpen = form.style.display !== 'none';
-    form.style.display = isOpen ? 'none' : '';
-    formToggle.querySelector('.tx-toggle-btn').textContent = isOpen ? 'collapse' : 'expand';
-  };
   const body = el('div', { class: 'tx-comments-body' },
-    el('div', { class: 'tx-comments-inner' }, authBar, formToggle, form, list)
+    el('div', { class: 'tx-comments-inner' }, authBar, form, list)
   );
   const block = el('details', { class: 'tx-comments-block' }, summary, body);
   container.appendChild(block);
@@ -87,6 +79,9 @@ export async function mount(container, { slug, authorDid }) {
   let deletedUris = new Set();
   let likeCounts = new Map();
   let userLikes = new Map();
+  let sentimentCounts = new Map();
+  let myVotes = { up: new Map(), down: new Map() };
+  let collapsedThreads = new Set();
   let replyToUri = null;
   let allComments = [];
 
@@ -120,9 +115,19 @@ export async function mount(container, { slug, authorDid }) {
       // Load current user's likes for any logged-in session — not just admin
       if (session) {
         userLikes = await Comment.loadAllLikes(session.did);
+        const votes = await Comment.loadMyVotes(session.did);
+        myVotes.up = votes.up;
+        myVotes.down = votes.down;
       }
     } catch {
       // Silently ignore — likes just won't show
+    }
+
+    // Load sentiment counts (non-critical)
+    try {
+      sentimentCounts = await Comment.loadAllSentiments(authorDid);
+    } catch {
+      // Silently ignore
     }
   }
 
@@ -150,6 +155,26 @@ export async function mount(container, { slug, authorDid }) {
     });
   }
 
+  function getDirectReplies(commentUri) {
+    return allComments.filter(r => r.replyTo === commentUri && !hides.has(r.uri) && !deletedUris.has(r.uri));
+  }
+
+  function getThreadSize(c) {
+    const replies = getDirectReplies(c.uri);
+    let size = replies.length;
+    for (const r of replies) {
+      size += getThreadSize(r);
+    }
+    return size;
+  }
+
+  function toggleThread(commentUri) {
+    collapsedThreads.has(commentUri)
+      ? collapsedThreads.delete(commentUri)
+      : collapsedThreads.add(commentUri);
+    renderComments();
+  }
+
   function renderComments() {
     const isAdmin = session?.did === authorDid;
     const visible = allComments.filter(c => isAdmin || !hides.has(c.uri));
@@ -165,57 +190,57 @@ export async function mount(container, { slug, authorDid }) {
     const roots = visible.filter(c => !c.replyTo || !byUri.has(c.replyTo));
 
     for (const c of roots) {
-      list.appendChild(renderThread(c, isAdmin, byUri));
+      list.appendChild(renderThread(c, isAdmin, 0));
     }
   }
 
-  function renderThread(c, isAdmin, byUri) {
+  function renderThread(c, isAdmin, depth) {
     const fragment = document.createDocumentFragment();
+    const threadSize = getThreadSize(c);
+    const isCollapsed = collapsedThreads.has(c.uri);
 
-    // Main comment
-    const main = renderComment(c, isAdmin, false);
-    if (main) fragment.appendChild(main);
+    const card = renderComment(c, isAdmin, depth, threadSize, isCollapsed);
+    if (card) fragment.appendChild(card);
 
-    // Direct replies
-    const replies = allComments.filter(r => r.replyTo === c.uri && (isAdmin || !hides.has(r.uri)));
-    for (const reply of replies) {
-      const rep = renderComment(reply, isAdmin, true);
-      if (rep) fragment.appendChild(rep);
-      // Nested replies (depth 2)
-      const nested = allComments.filter(n => n.replyTo === reply.uri && (isAdmin || !hides.has(n.uri)));
-      for (const nest of nested) {
-        const nestEl = renderComment(nest, isAdmin, true);
-        if (nestEl) fragment.appendChild(nestEl);
+    if (threadSize > 0) {
+      const threadWrap = el('div', {
+        class: 'tx-thread-wrap',
+        style: isCollapsed ? 'display:none' : '',
+      });
+      const replies = getDirectReplies(c.uri);
+      for (const reply of replies) {
+        threadWrap.appendChild(renderThread(reply, isAdmin, depth + 1));
+      }
+      if (threadWrap.children.length > 0) {
+        fragment.appendChild(threadWrap);
       }
     }
 
     return fragment;
   }
 
- function renderComment(c, isAdmin, isReply) {
+  function renderComment(c, isAdmin, depth, threadSize, isCollapsed) {
     const hidden = hides.has(c.uri);
     const deleted = deletedUris.has(c.uri);
     const isOwner = session?.did === c.author;
 
-    // Deleted: show "[ deleted ]" for the author, hide completely for others
     if (deleted && !isOwner) return null;
 
-    const cls = ['tx-comment'];
+    const cls = ['tx-comment-box'];
     if (hidden) cls.push('tx-comment-hidden');
-    if (isReply) cls.push('tx-comment--reply');
     if (deleted) cls.push('tx-comment-deleted');
+    // Depth-based class for alternating background colors
+    cls.push('tx-comment-depth-' + depth);
 
-    const card = el('article', { class: cls.join(' ') });
+    const card = el('div', { class: cls.join(' ') });
     const author = c.authorHandle || c.author.slice(0, 24);
 
-    // If deleted, show placeholder for the author
     if (deleted) {
       card.appendChild(el('div', { class: 'tx-comment-deleted-msg' }, '[ deleted ]'));
       return card;
     }
 
-    // Reply indicator
-    if (isReply && c.replyTo) {
+    if (c.replyTo && depth > 0) {
       const parent = allComments.find(p => p.uri === c.replyTo);
       const parentAuthor = parent
         ? (parent.authorHandle || parent.author.slice(0, 24))
@@ -225,22 +250,54 @@ export async function mount(container, { slug, authorDid }) {
       ));
     }
 
-    card.appendChild(el('header', { class: 'tx-comment-head' },
+    // Sentiment from sentimentCounts (sentimentCounts is Map<targetUri, {up, down}>)
+    const sent = sentimentCounts.get(c.uri) || { up: 0, down: 0 };
+    const total = sent.up + sent.down;
+    const avg = total > 0 ? (sent.up - sent.down) / total : 0;
+
+    // ── Head row: [collapse] @handle ◆+1 ▼-1 date [HIDDEN]
+    const head = el('div', { class: 'tx-comment-head' });
+
+    if (threadSize > 0) {
+      const collapseBtn = el('button', {
+        class: 'tx-thread-toggle',
+        onclick: (e) => { e.stopPropagation(); toggleThread(c.uri); },
+      }, isCollapsed ? '[+]' : '[-]');
+      head.appendChild(collapseBtn);
+    } else {
+      head.appendChild(el('span', { class: 'tx-thread-spacer' }));
+    }
+
+    head.appendChild(
       el('a', {
         class: 'tx-comment-author',
         href: `https://bsky.app/profile/${c.authorHandle || c.author}`,
         target: '_blank', rel: 'noopener',
-      }, '@' + author),
-      el('time', { class: 'tx-comment-time' }, fmtTime(c.createdAt)),
-      hidden ? el('span', { class: 'tx-comment-hidden-tag' }, '[HIDDEN]') : null,
-    ));
+      }, '@' + author)
+    );
+
+    // Ising sentiment indicators
+    const sentRow = el('div', { class: 'tx-ising' });
+    sentRow.appendChild(el('span', {
+      class: 'tx-ising-up',
+      title: 'aligned — Ising model +1 state',
+    }, '◆' + (sent.up || '')));
+    sentRow.appendChild(el('span', {
+      class: 'tx-ising-down',
+      title: 'misaligned — Ising model -1 state',
+    }, '▼' + (sent.down || '')));
+    head.appendChild(sentRow);
+
+    head.appendChild(el('time', { class: 'tx-comment-time' }, fmtTime(c.createdAt)));
+    if (hidden) head.appendChild(el('span', { class: 'tx-comment-hidden-tag' }, '[HIDDEN]'));
+    card.appendChild(head);
 
     card.appendChild(el('div', { class: 'tx-comment-body' }, c.message));
 
-    // Actions
+    // ── Actions: ♥ heart  reply  [hide]  delete
     const actions = el('footer', { class: 'tx-comment-actions' });
 
-    // Like button — SVG heart, fills with --cyan on active
+    // Like — SVG heart
     let isLiked = userLikes.has(c.uri);
     const likeCount = likeCounts.get(c.uri) || 0;
     const likeBtn = el('button', { class: 'tx-like-btn' + (isLiked ? ' tx-like-btn--active' : '') },
@@ -261,7 +318,6 @@ export async function mount(container, { slug, authorDid }) {
           if (r?.uri) {
             userLikes.set(c.uri, r.uri);
           } else {
-            // Already liked (409 conflict) — UI is already correct
             likeBtn.disabled = false;
             return;
           }
@@ -285,18 +341,17 @@ export async function mount(container, { slug, authorDid }) {
     };
     actions.appendChild(likeBtn);
 
-    // Reply — opens inline transmit box below this comment
-    if (!isReply) {
-      const replyBtn = el('button', { class: 'tx-reply-btn' }, 'reply');
-      replyBtn.onclick = (e) => {
-        e.stopPropagation();
-        toggleInlineReply(card, c.uri, '@' + author);
-      };
-      actions.appendChild(replyBtn);
-    }
+    // Reply — borderless, inline with actions
+    const replyBtn = el('button', { class: 'tx-reply-btn tx-reply-btn--plain' }, 'reply');
+    replyBtn.onclick = (e) => {
+      e.stopPropagation();
+      toggleInlineReply(card, c.uri, '@' + author);
+    };
+    actions.appendChild(replyBtn);
 
+    // Hide — admin only, between reply and delete
     if (isAdmin) {
-      const modBtn = el('button', { class: 'tx-mod-btn' });
+      const modBtn = el('button', { class: 'tx-mod-btn tx-mod-btn--plain' });
       modBtn.textContent = hidden ? 'unhide' : 'hide';
       modBtn.onclick = async () => {
         modBtn.disabled = true;
@@ -318,11 +373,11 @@ export async function mount(container, { slug, authorDid }) {
       actions.appendChild(modBtn);
     }
 
-   // Delete — poster can delete their own, admin can delete any
-    if (isOwner || isAdmin) {
-      const delBtn = el('button', { class: 'tx-del-btn' }, 'delete');
+    // Delete — only for your own comments
+    if (isOwner) {
+      const delBtn = el('button', { class: 'tx-del-btn tx-del-btn--plain' }, 'delete');
       delBtn.onclick = async () => {
-        if (!await confirmDelete('Are you sure? This permanently deletes the signal and cannot be undone.')) return;
+        if (!await confirmDelete('Permanently delete this signal?')) return;
         delBtn.disabled = true;
         delBtn.textContent = 'deleting...';
         try {
@@ -337,7 +392,7 @@ export async function mount(container, { slug, authorDid }) {
       actions.appendChild(delBtn);
     }
 
-    if (actions.children.length) card.appendChild(actions);
+    card.appendChild(actions);
     return card;
   }
 
@@ -363,7 +418,7 @@ export async function mount(container, { slug, authorDid }) {
         el('span', { class: 'tx-inline-reply-to' }, 're: ' + targetAuthor),
         el('button', { class: 'tx-inline-cancel', onclick: () => { form.remove(); activeInlineReply = null; } }, 'close')
       ),
-      el('textarea', { class: 'tx-inline-text', placeholder: 'transmit...', rows: '2' }),
+      el('textarea', { class: 'tx-inline-text', placeholder: 'Type here...', rows: '2' }),
       el('div', { class: 'tx-inline-row' },
         el('button', { class: 'tx-form-submit' }, 'transmit'),
         el('span', { class: 'tx-form-counter' }, '0/' + MAX_CHARS)
@@ -448,7 +503,7 @@ export async function mount(container, { slug, authorDid }) {
       }, 'sign in');
       authBar.appendChild(input);
       authBar.appendChild(btn);
-      authBar.appendChild(tip('Your comment appears on this site, not posted publicly, but tied to your account via AT Protocol.'));
+      authBar.appendChild(tip('Sign in to your ATProto account (Bluesky, Blacksky, etc) to add a transmission.'));
     }
   }
 
@@ -458,7 +513,7 @@ export async function mount(container, { slug, authorDid }) {
 
     const textarea = el('textarea', {
       class: 'tx-form-text',
-      placeholder: 'transmit...',
+      placeholder: 'Type here...',
       rows: '2',
     });
     const counter = el('span', { class: 'tx-form-counter' }, '0/' + MAX_CHARS);

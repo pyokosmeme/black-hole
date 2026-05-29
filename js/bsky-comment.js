@@ -26,6 +26,7 @@ const COMMENT_TYPE = 'agency.lastnpcalex.comment';
 const LIKE_TYPE = 'agency.lastnpcalex.like';
 const HIDE_TYPE = 'agency.lastnpcalex.hide';
 const TRANSMISSION_TYPE = 'agency.lastnpcalex.transmission';
+const SENTIMENT_TYPE = 'agency.lastnpcalex.sentiment';
 
 /**
  * Mint a synthetic AT-URI for a transmission, anchored to the author's DID.
@@ -404,6 +405,116 @@ export async function loadHides(adminDid) {
     if (r.value?.target) map.set(r.value.target, r.uri);
   }
   return map;
+}
+
+/**
+ * Ising model sentiment — vote on a comment's alignment.
+ * +1 = aligned, -1 = misaligned, 0 = neutral.
+ * Stores vote as a record in agency.lastnpcalex.sentiment collection.
+ */
+const SENTIMENT_UP_RKEY = 'up';
+
+/**
+ * Cast a sentiment vote (up/down) on a comment.
+ * @param {string} targetUri - AT-URI of the comment
+ * @param {string} direction - 'up' or 'down'
+ * @param {string} subjectDid - Site owner DID
+ * @returns {{ uri: string }}
+ */
+export async function vote(targetUri, direction, subjectDid) {
+  const rkey = `${direction}-${targetUri.split('/').pop()}`;
+  const rec = {
+    $type: SENTIMENT_TYPE,
+    subject: subjectDid,
+    targetUri,
+    direction,
+    createdAt: new Date().toISOString(),
+  };
+  const res = await fetch(`${API}/createRecord`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ collection: SENTIMENT_TYPE, rkey, record: rec }),
+  });
+  if (!res.ok) {
+    const err = await res.json();
+    if (res.status === 400 && (err.error?.includes('conflict') || err.error?.includes('already'))) {
+      return { uri: '' };
+    }
+    throw new Error(err.error || 'Vote failed');
+  }
+  return res.json();
+}
+
+/**
+ * Remove a sentiment vote.
+ * @param {string} voteUri - AT-URI of the sentiment record
+ */
+export async function unvote(voteUri) {
+  const res = await fetch(`${API}/deleteRecord`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ uri: voteUri }),
+  });
+  if (!res.ok) throw new Error((await res.json()).error || 'Unvote failed');
+  return res.json();
+}
+
+/**
+ * Load all sentiment votes for the admin. Returns Map<targetUri, {up: count, down: count}>.
+ */
+export async function loadAllSentiments(did) {
+  const allRecords = [];
+  let cursor = undefined;
+  do {
+    const url = new URL(`${BSKY_SOCIAL}/xrpc/com.atproto.repo.listRecords`);
+    url.searchParams.set('repo', did);
+    url.searchParams.set('collection', SENTIMENT_TYPE);
+    url.searchParams.set('limit', '100');
+    if (cursor) url.searchParams.set('cursor', cursor);
+    const res = await fetch(url.toString());
+    if (!res.ok) break;
+    const data = await res.json();
+    allRecords.push(...(data.records || []));
+    cursor = data.cursor;
+  } while (cursor);
+  const map = new Map();
+  for (const r of allRecords) {
+    if (r.value?.targetUri) {
+      if (!map.has(r.value.targetUri)) map.set(r.value.targetUri, { up: 0, down: 0 });
+      if (r.value.direction === 'up') map.get(r.value.targetUri).up++;
+      else if (r.value.direction === 'down') map.get(r.value.targetUri).down++;
+    }
+  }
+  return map;
+}
+
+/**
+ * Load current user's sentiment votes. Returns { up: Map<targetUri, voteUri>, down: Map<targetUri, voteUri> }.
+ */
+export async function loadMyVotes(did) {
+  const allRecords = [];
+  let cursor = undefined;
+  do {
+    const url = new URL(`${BSKY_SOCIAL}/xrpc/com.atproto.repo.listRecords`);
+    url.searchParams.set('repo', did);
+    url.searchParams.set('collection', SENTIMENT_TYPE);
+    url.searchParams.set('limit', '100');
+    if (cursor) url.searchParams.set('cursor', cursor);
+    const res = await fetch(url.toString());
+    if (!res.ok) break;
+    const data = await res.json();
+    allRecords.push(...(data.records || []));
+    cursor = data.cursor;
+  } while (cursor);
+  const up = new Map();
+  const down = new Map();
+  for (const r of allRecords) {
+    if (r.value?.targetUri) {
+      if (r.value.direction === 'up') up.set(r.value.targetUri, r.uri);
+      else down.set(r.value.targetUri, r.uri);
+    }
+  }
+  return { up, down };
 }
 
 /**
