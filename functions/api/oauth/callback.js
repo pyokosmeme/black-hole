@@ -18,7 +18,7 @@ export async function onRequest(context) {
     const origin = new URL(context.request.url).origin;
     return new Response(null, {
       status: 302,
-      headers: { Location: `${origin}/test-bsky.html?auth_error=${encodeURIComponent(errorDescription || error)}` },
+      headers: { Location: `${origin}/?auth_error=${encodeURIComponent(errorDescription || error)}` },
     });
   }
 
@@ -88,12 +88,13 @@ export async function onRequest(context) {
     });
 
     const origin = new URL(context.request.url).origin;
+    const returnTo = stateData.returnTo || `${origin}/`;
     const cookie = `session=${sessionId}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${SESSION_MAX_AGE}`;
 
     return new Response(null, {
       status: 302,
       headers: {
-        Location: `${origin}/test-bsky.html?logged_in=1`,
+        Location: returnTo,
         'Set-Cookie': cookie,
       },
     });

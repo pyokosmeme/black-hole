@@ -30,6 +30,7 @@ export async function onRequestPost(context) {
     const thumbprint = await jwkThumbprint(keyPair.publicKey);
     const state = crypto.randomUUID();
 
+    const referer = context.request.headers.get('referer') || '';
     const stateData = {
       codeVerifier: verifier,
       privateKeyJwk,
@@ -39,6 +40,7 @@ export async function onRequestPost(context) {
       handle,
       did,
       pds,
+      returnTo: referer,
       createdAt: Date.now(),
     };
 

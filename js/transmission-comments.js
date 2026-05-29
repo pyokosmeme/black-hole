@@ -71,8 +71,16 @@ export async function mount(container, { slug, authorDid }) {
   }
 
   function renderComments(comments) {
+    // Deduplicate by URI
+    const seen = new Set();
+    const unique = comments.filter(c => {
+      if (seen.has(c.uri)) return false;
+      seen.add(c.uri);
+      return true;
+    });
+
     const isAdmin = session?.did === authorDid;
-    const visible = comments.filter(c => isAdmin || !hides.has(c.uri));
+    const visible = unique.filter(c => isAdmin || !hides.has(c.uri));
     summary.querySelector('.tx-comments-count').textContent = ' ' + visible.length;
 
     list.innerHTML = '';
@@ -82,13 +90,13 @@ export async function mount(container, { slug, authorDid }) {
     }
 
     // Build a map for quick parent lookup
-    const byUri = new Map(comments.map(c => [c.uri, c]));
+    const byUri = new Map(unique.map(c => [c.uri, c]));
 
     // Separate roots from replies
-    const roots = comments.filter(c => !c.replyTo || !byUri.has(c.replyTo));
-    const replies = comments.filter(c => c.replyTo && byUri.has(c.replyTo));
+    const roots = unique.filter(c => !c.replyTo || !byUri.has(c.replyTo));
+    const replies = unique.filter(c => c.replyTo && byUri.has(c.replyTo));
 
-    for (const c of comments) {
+    for (const c of unique) {
       if (!isAdmin && hides.has(c.uri)) continue;
       if (c.replyTo && byUri.has(c.replyTo)) {
         // Rendered as child of parent — skip here, handle below
