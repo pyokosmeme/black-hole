@@ -1121,8 +1121,8 @@ body.bh-mode .link-card {
   gap: 6px;
   align-items: center;
   padding-bottom: 8px;
-  margin-bottom: 8px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 0;
+  border-bottom: none;
   font-size: 13px;
 }
 .tx-auth-input {
@@ -1279,9 +1279,9 @@ body.bh-mode .link-card {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding: 8px;
-  margin-top: 8px;
+  padding: 4px 8px;
   border: 1px solid rgba(191, 0, 255, 0.3);
+  border-top: none;
   background: rgba(191, 0, 255, 0.05);
 }
 .tx-form-text {
@@ -1304,7 +1304,7 @@ body.bh-mode .link-card {
 .tx-form-toggle {
   display: flex;
   justify-content: flex-end;
-  padding: 0 0 4px;
+  padding: 0 0 2px;
 }
 .tx-toggle-btn {
   background: transparent;

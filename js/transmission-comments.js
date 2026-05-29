@@ -65,7 +65,7 @@ export async function mount(container, { slug, authorDid }) {
     el('span', { class: 'tx-comments-label' }, '[ TRANSMIT RESPONSE ]'),
     el('span', { class: 'tx-comments-count' }, '')
   );
-  const authBar = el('div', { class: 'tx-comments-auth' });
+ const authBar = el('div', { class: 'tx-comments-auth' });
   const list = el('div', { class: 'tx-comments-list' }, 'loading...');
   const form = el('div', { class: 'tx-comments-form' });
   const formToggle = el('div', { class: 'tx-form-toggle' },
@@ -76,8 +76,10 @@ export async function mount(container, { slug, authorDid }) {
     form.style.display = isOpen ? 'none' : '';
     formToggle.querySelector('.tx-toggle-btn').textContent = isOpen ? 'collapse' : 'expand';
   };
+  // Append toggle button inside the form header
+  form.appendChild(formToggle);
   const body = el('div', { class: 'tx-comments-body' },
-    el('div', { class: 'tx-comments-inner' }, authBar, formToggle, form, list)
+    el('div', { class: 'tx-comments-inner' }, authBar, form, list)
   );
   const block = el('details', { class: 'tx-comments-block' }, summary, body);
   container.appendChild(block);
@@ -448,7 +450,7 @@ export async function mount(container, { slug, authorDid }) {
       }, 'sign in');
       authBar.appendChild(input);
       authBar.appendChild(btn);
-      authBar.appendChild(tip('Sign in with your Bluesky handle. Your comment appears on this site — it\'s not posted publicly, but it is tied to your account via AT Protocol.'));
+      authBar.appendChild(tip('Your comment appears on this site — not posted publicly, but tied to your account via AT Protocol.'));
     }
   }
 
