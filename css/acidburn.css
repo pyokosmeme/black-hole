@@ -1274,12 +1274,15 @@ body.bh-mode .link-card {
   display: block;
 }
 
-/* Form — minimal */
+/* Form — matches inline reply styling */
 .tx-comments-form {
   display: flex;
   flex-direction: column;
   gap: 4px;
-  padding-top: 8px;
+  padding: 8px;
+  margin-top: 8px;
+  border: 1px solid rgba(191, 0, 255, 0.3);
+  background: rgba(191, 0, 255, 0.05);
 }
 .tx-form-text {
   background: transparent;
@@ -1538,6 +1541,11 @@ body.light-mode .tx-form-text:focus,
 body.light-reading .tx-form-text:focus { border-color: #4a1868; }
 body.light-mode .tx-form-counter,
 body.light-reading .tx-form-counter { color: #4a4040; }
+body.light-mode .tx-comments-form,
+body.light-reading .tx-comments-form {
+  border-color: rgba(191, 0, 255, 0.3);
+  background: rgba(191, 0, 255, 0.05);
+}
 body.light-mode .tx-reply-btn,
 body.light-mode .tx-mod-btn,
 body.light-reading .tx-reply-btn,
@@ -1642,6 +1650,10 @@ body.light-reading .tx-confirm-dialog {
   background: #fdfaf5;
   border: 2px solid transparent;
   border-image: linear-gradient(135deg, #bf00ff, #4a1868) 1;
+}
+body.light-mode .tx-confirm-overlay,
+body.light-reading .tx-confirm-overlay {
+  background: rgba(253, 250, 245, 0.7);
 }
 body.light-mode .tx-confirm-dialog::before,
 body.light-reading .tx-confirm-dialog::before {

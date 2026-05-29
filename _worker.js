@@ -366,7 +366,7 @@ async function handleDeleteRecord(request, env) {
   if (!session) return jsonResponse({ error: 'Not authenticated' }, 401, request);
   const { privateKey, publicKey } = await importKeyPair(session.privateKeyJwk, session.publicKeyJwk);
   const body = await request.json();
-  const [, repo, collection, rkey] = body.uri.replace('at://', '').split('/');
+  const [repo, collection, rkey] = body.uri.replace('at://', '').split('/');
   const url = `${session.pds}/xrpc/com.atproto.repo.deleteRecord`;
   const result = await dpopFetch(privateKey, publicKey, session.accessToken, 'POST', url, {
     repo, collection, rkey,

@@ -63,7 +63,6 @@ export async function mount(container, { slug, authorDid }) {
 
   const summary = el('summary', { class: 'tx-comments-summary' },
     el('span', { class: 'tx-comments-label' }, '[ TRANSMIT RESPONSE ]'),
-    tip('Comments are broadcast to Bluesky (AT Protocol). Sign in with your handle to transmit.'),
     el('span', { class: 'tx-comments-count' }, '')
   );
   const authBar = el('div', { class: 'tx-comments-auth' });
@@ -434,7 +433,7 @@ export async function mount(container, { slug, authorDid }) {
       }, 'sign in');
       authBar.appendChild(input);
       authBar.appendChild(btn);
-      authBar.appendChild(tip('Sign in with your Bluesky handle. Your comments are posted to your Bluesky account.'));
+      authBar.appendChild(tip('Sign in with your Bluesky handle. Your comment appears on this site — it\'s not posted publicly, but it is tied to your account via AT Protocol.'));
     }
   }
 
