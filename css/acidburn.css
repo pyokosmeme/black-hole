@@ -1281,6 +1281,7 @@ body.bh-mode .link-card {
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
+  margin: 2px 0;
 }
 .tx-sort-select:hover { border-color: rgba(255, 255, 255, 0.4); }
 .tx-sort-select option { background: var(--panel); color: #ddd8d0; }

@@ -62,7 +62,7 @@ export async function mount(container, { slug, authorDid }) {
   const subjectUri = Comment.transmissionUri(authorDid, slug);
 
   const summary = el('summary', { class: 'tx-comments-summary' },
-    el('span', { class: 'tx-comments-label' }, '[ TRANSMIT RESPONSE ]'),
+    el('span', { class: 'tx-comments-label' }, '[ LATENT GLOSSES ]'),
     el('span', { class: 'tx-comments-count' }, '')
   );
   const authBar = el('div', { class: 'tx-comments-auth' });
@@ -559,8 +559,8 @@ export async function mount(container, { slug, authorDid }) {
   session = await Auth.getSession();
   renderAuth();
   renderForm();
-  // Sort control between auth bar and form
+  // Sort control between form and list — right-aligned
   const sortControl = renderSortControl();
-  body.querySelector('.tx-comments-inner').insertBefore(sortControl, form);
+  body.querySelector('.tx-comments-inner').insertBefore(sortControl, list);
   await refresh();
 }
