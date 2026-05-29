@@ -115,6 +115,8 @@ export async function mount(container, { slug, authorDid }) {
       if (session) {
         userLikes = await Comment.loadAllLikes(session.did);
       }
+      // Re-render now that we have real like data
+      renderComments();
     } catch {
       // Silently ignore — likes just won't show
     }
@@ -249,7 +251,7 @@ export async function mount(container, { slug, authorDid }) {
     // ── Head row: [collapse] @handle date [HIDDEN]
     const head = el('div', { class: 'tx-comment-head' });
 
-    // Every comment is collapsible
+    // Every comment is collapsible — collapse hides body+actions only
     const collapseBtn = el('button', {
       class: 'tx-thread-toggle',
       onclick: (e) => { e.stopPropagation(); toggleThread(c.uri); },
@@ -268,7 +270,12 @@ export async function mount(container, { slug, authorDid }) {
     if (hidden) head.appendChild(el('span', { class: 'tx-comment-hidden-tag' }, '[HIDDEN]'));
     card.appendChild(head);
 
-    card.appendChild(el('div', { class: 'tx-comment-body' }, c.message));
+    // Collapsible content: body + actions
+    const content = el('div', {
+      class: 'tx-comment-content',
+      style: isCollapsed ? 'display:none' : '',
+    });
+    content.appendChild(el('div', { class: 'tx-comment-body' }, c.message));
 
     // ── Actions: ♥ heart  reply  [hide]  delete
     const actions = el('footer', { class: 'tx-comment-actions' });
@@ -368,7 +375,8 @@ export async function mount(container, { slug, authorDid }) {
       actions.appendChild(delBtn);
     }
 
-    card.appendChild(actions);
+    content.appendChild(actions);
+    card.appendChild(content);
     return card;
   }
 
