@@ -1236,10 +1236,23 @@ body.bh-mode .link-card {
   align-items: baseline;
   gap: 3px;
 }
+.tx-like-btn svg {
+  width: 13px;
+  height: 13px;
+  stroke: var(--cyan);
+  fill: none;
+  stroke-width: 1.5;
+  flex-shrink: 0;
+  transition: stroke 0.15s ease;
+}
+.tx-like-btn--active svg {
+  stroke: var(--cyan);
+  fill: var(--cyan);
+}
 .tx-like-btn:disabled { opacity: 0.4; cursor: wait; }
 .tx-like-btn--active {
-  color: #c9a0e0;
-  border-color: #c9a0e0;
+  color: var(--cyan);
+  border-color: var(--cyan);
 }
 .tx-like-count {
   font-size: 12px;
@@ -1277,7 +1290,53 @@ body.bh-mode .link-card {
 .tx-form-counter-warn { color: rgba(255, 255, 255, 0.7); }
 .tx-form-err { color: rgba(255, 255, 255, 0.8); font-size: 12px; }
 
-/* Delete button — styled like other action buttons, positioned right */
+/* Inline reply — appears below the parent comment */
+.tx-inline-reply {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 4px 0 0 12px;
+  padding: 8px;
+  border: 1px solid rgba(191, 0, 255, 0.3);
+  background: rgba(191, 0, 255, 0.05);
+}
+.tx-inline-reply-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.tx-inline-reply-to {
+  color: var(--purple);
+  font-size: 12px;
+}
+.tx-inline-cancel {
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.4);
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.tx-inline-cancel:hover { color: rgba(255, 255, 255, 0.8); }
+.tx-inline-text {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.85);
+  padding: 5px 8px;
+  font-family: inherit;
+  font-size: 14px;
+  resize: none;
+  min-height: 40px;
+}
+.tx-inline-text:focus { outline: none; border-color: rgba(255, 255, 255, 0.5); }
+.tx-inline-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Delete — same color as other action buttons, just lower opacity */
 .tx-del-btn {
   background: transparent;
   border: 1px solid #c9a0e0;
@@ -1289,12 +1348,12 @@ body.bh-mode .link-card {
   text-transform: lowercase;
   padding: 1px 6px;
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-  opacity: 0.5;
+  opacity: 0.4;
 }
 .tx-del-btn:hover {
-  background: rgba(201, 160, 224, 0.15);
-  border-color: #e0a0c0;
-  color: #e0a0c0;
+  background: rgba(201, 160, 224, 0.1);
+  border-color: #c9a0e0;
+  color: #c9a0e0;
   opacity: 1;
 }
 .tx-del-btn:disabled { opacity: 0.4; cursor: wait; }
@@ -1472,6 +1531,10 @@ body.light-reading .tx-like-btn--active {
   color: #4a1868;
   border-color: #4a1868;
 }
+body.light-mode .tx-like-btn svg,
+body.light-reading .tx-like-btn svg { stroke: #bf00ff; }
+body.light-mode .tx-like-btn--active svg,
+body.light-reading .tx-like-btn--active svg { fill: #bf00ff; stroke: #bf00ff; }
 body.light-mode .tx-like-count,
 body.light-reading .tx-like-count { color: #4a1868; }
 body.light-mode .tx-admin-badge,
@@ -1483,16 +1546,35 @@ body.light-reading .tx-reply-indicator { color: #4a1868; }
 body.light-mode .tx-comments-body::-webkit-scrollbar-thumb,
 body.light-reading .tx-comments-body::-webkit-scrollbar-thumb { background-color: #b0a89e; }
 
+body.light-mode .tx-inline-reply,
+body.light-reading .tx-inline-reply {
+  border-color: rgba(191, 0, 255, 0.3);
+  background: rgba(191, 0, 255, 0.05);
+}
+body.light-mode .tx-inline-reply-to,
+body.light-reading .tx-inline-reply-to { color: #bf00ff; }
+body.light-mode .tx-inline-cancel,
+body.light-reading .tx-inline-cancel { color: #4a4040; }
+body.light-mode .tx-inline-cancel:hover,
+body.light-reading .tx-inline-cancel:hover { color: #1a1816; }
+body.light-mode .tx-inline-text,
+body.light-reading .tx-inline-text {
+  border-color: #b0a89e;
+  color: #2e2a26;
+}
+body.light-mode .tx-inline-text:focus,
+body.light-reading .tx-inline-text:focus { border-color: #4a1868; }
+
 body.light-mode .tx-del-btn,
 body.light-reading .tx-del-btn {
   border-color: #4a1868;
   color: #4a1868;
-  opacity: 0.5;
+  opacity: 0.4;
 }
 body.light-mode .tx-del-btn:hover,
 body.light-reading .tx-del-btn:hover {
-  border-color: #8b45a0;
-  color: #8b45a0;
+  border-color: #4a1868;
+  color: #4a1868;
   background: rgba(74, 24, 104, 0.08);
   opacity: 1;
 }

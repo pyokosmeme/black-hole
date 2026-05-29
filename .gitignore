@@ -1,2 +1,7 @@
 cf.env
 .wrangler/
+.claude/
+attached_files/
+canvas/
+memory/
+CLAUDE.md

@@ -29,6 +29,15 @@ function fmtTime(iso) {
   });
 }
 
+function svgHeart() {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z');
+  svg.appendChild(path);
+  return svg;
+}
+
 export async function mount(container, { slug, authorDid }) {
   const subjectUri = Comment.transmissionUri(authorDid, slug);
 
@@ -79,8 +88,9 @@ export async function mount(container, { slug, authorDid }) {
     try {
       const uris = allComments.map(c => c.uri);
       likeCounts = (await Comment.loadLikes(uris, authorDid)).counts;
-      if (session?.did === authorDid) {
-        userLikes = await Comment.loadAllLikes(authorDid);
+      // Load current user's likes for any logged-in session — not just admin
+      if (session) {
+        userLikes = await Comment.loadAllLikes(session.did);
       }
     } catch {
       // Silently ignore — likes just won't show
@@ -186,11 +196,11 @@ export async function mount(container, { slug, authorDid }) {
     // Actions
     const actions = el('footer', { class: 'tx-comment-actions' });
 
-    // Like button
+    // Like button — SVG heart, fills with --cyan on active
     const likedByMe = userLikes.has(c.uri);
     const likeCount = likeCounts.get(c.uri) || 0;
     const likeBtn = el('button', { class: 'tx-like-btn' + (likedByMe ? ' tx-like-btn--active' : '') },
-      likedByMe ? '♥' : '♡',
+      svgHeart(),
       el('span', { class: 'tx-like-count' }, likeCount)
     );
     likeBtn.onclick = async (e) => {
@@ -210,7 +220,6 @@ export async function mount(container, { slug, authorDid }) {
         likeCounts.set(c.uri, Math.max(0, newCount));
         const countSpan = likeBtn.querySelector('.tx-like-count');
         likeBtn.className = 'tx-like-btn' + (!likedByMe ? ' tx-like-btn--active' : '');
-        likeBtn.childNodes[0].textContent = !likedByMe ? '♥' : '♡';
         if (countSpan) countSpan.textContent = Math.max(0, newCount);
       } catch (err) {
         likeBtn.disabled = false;
@@ -224,13 +233,12 @@ export async function mount(container, { slug, authorDid }) {
     };
     actions.appendChild(likeBtn);
 
+    // Reply — opens inline transmit box below this comment
     if (!isReply) {
       const replyBtn = el('button', { class: 'tx-reply-btn' }, 'reply');
       replyBtn.onclick = (e) => {
         e.stopPropagation();
-        replyToUri = c.uri;
-        setReplyIndicator('@' + author);
-        focusTextarea();
+        toggleInlineReply(card, c.uri, '@' + author);
       };
       actions.appendChild(replyBtn);
     }
@@ -282,24 +290,65 @@ export async function mount(container, { slug, authorDid }) {
     return card;
   }
 
-  function setReplyIndicator(author) {
-    let indicator = form.querySelector('.tx-reply-indicator');
-    if (!indicator) {
-      indicator = el('span', { class: 'tx-reply-indicator' });
-      form.insertBefore(indicator, form.firstChild);
+  // Inline reply — creates a transmit box below the parent comment
+  let activeInlineReply = null; // { uri, card, form }
+
+  function toggleInlineReply(card, targetUri, targetAuthor) {
+    // Close any existing inline reply
+    if (activeInlineReply) {
+      activeInlineReply.form.remove();
+      activeInlineReply = null;
     }
-    indicator.textContent = '→ ' + author;
+    replyToUri = targetUri;
+    const inlineForm = buildInlineReplyForm(targetUri, targetAuthor);
+    card.appendChild(inlineForm);
+    activeInlineReply = { card, form: inlineForm };
+    inlineForm.querySelector('.tx-inline-text').focus();
   }
 
-  function clearReplyIndicator() {
-    const indicator = form.querySelector('.tx-reply-indicator');
-    if (indicator) indicator.remove();
-    replyToUri = null;
-  }
-
-  function focusTextarea() {
-    const ta = form.querySelector('.tx-form-text');
-    if (ta) ta.focus();
+  function buildInlineReplyForm(targetUri, targetAuthor) {
+    const form = el('div', { class: 'tx-inline-reply' },
+      el('div', { class: 'tx-inline-reply-header' },
+        el('span', { class: 'tx-inline-reply-to' }, 're: ' + targetAuthor),
+        el('button', { class: 'tx-inline-cancel', onclick: () => { form.remove(); activeInlineReply = null; } }, 'close')
+      ),
+      el('textarea', { class: 'tx-inline-text', placeholder: 'transmit...', rows: '2' }),
+      el('div', { class: 'tx-inline-row' },
+        el('button', { class: 'tx-form-submit' }, 'transmit'),
+        el('span', { class: 'tx-form-counter' }, '0/' + MAX_CHARS)
+      )
+    );
+    const textarea = form.querySelector('.tx-inline-text');
+    const counter = form.querySelector('.tx-form-counter');
+    const submit = form.querySelector('.tx-form-submit');
+    textarea.addEventListener('input', () => {
+      const len = textarea.value.length;
+      const remaining = MAX_CHARS - len;
+      counter.textContent = len + '/' + MAX_CHARS;
+      if (remaining <= 50) counter.classList.add('tx-form-counter-warn');
+      else counter.classList.remove('tx-form-counter-warn');
+      if (len > MAX_CHARS) {
+        textarea.value = textarea.value.slice(0, MAX_CHARS);
+        counter.textContent = MAX_CHARS + '/' + MAX_CHARS;
+      }
+    });
+    submit.onclick = async () => {
+      const msg = textarea.value.trim();
+      if (!msg || msg.length > MAX_CHARS) return;
+      submit.disabled = true;
+      submit.textContent = 'transmitting...';
+      try {
+        const result = await Comment.post(msg, subjectUri, targetUri);
+        addOptimisticComment(msg, targetUri, result);
+        form.remove();
+        activeInlineReply = null;
+      } catch (e) {
+        submit.disabled = false;
+        submit.textContent = 'transmit';
+        form.appendChild(el('div', { class: 'tx-form-err' }, e.message));
+      }
+    };
+    return form;
   }
 
   function addOptimisticComment(message, replyTo, result) {
@@ -369,12 +418,11 @@ export async function mount(container, { slug, authorDid }) {
         submit.disabled = true;
         submit.textContent = 'transmitting...';
         try {
-          const result = await Comment.post(msg, subjectUri, replyToUri || undefined);
-          addOptimisticComment(msg, replyToUri, result);
+          const result = await Comment.post(msg, subjectUri);
+          addOptimisticComment(msg, null, result);
           textarea.value = '';
           counter.textContent = '0/' + MAX_CHARS;
           counter.classList.remove('tx-form-counter-warn');
-          clearReplyIndicator();
           submit.disabled = false;
           submit.textContent = 'transmit';
         } catch (e) {
@@ -400,15 +448,6 @@ export async function mount(container, { slug, authorDid }) {
     const formRow = el('div', { class: 'tx-form-row' }, submit, counter);
     form.appendChild(textarea);
     form.appendChild(formRow);
-
-    // Show reply indicator if already set (user clicked reply before logging in)
-    if (replyToUri) {
-      const parent = allComments.find(p => p.uri === replyToUri);
-      const parentAuthor = parent
-        ? (parent.authorHandle || parent.author.slice(0, 24))
-        : '';
-      setReplyIndicator('@' + parentAuthor);
-    }
   }
 
   session = await Auth.getSession();
