@@ -450,7 +450,7 @@ export async function mount(container, { slug, authorDid }) {
       }, 'sign in');
       authBar.appendChild(input);
       authBar.appendChild(btn);
-      authBar.appendChild(tip('Your comment appears on this site — not posted publicly, but tied to your account via AT Protocol.'));
+      authBar.appendChild(tip('Your comment appears on this site, not posted publicly, but tied to your account via AT Protocol.'));
     }
   }
 
