@@ -184,12 +184,18 @@ export async function mount(container, { slug, authorDid }) {
         }
         const newCount = (likeCounts.get(c.uri) || 0) + (likedByMe ? -1 : 1);
         likeCounts.set(c.uri, Math.max(0, newCount));
+        const countSpan = likeBtn.querySelector('.tx-like-count');
         likeBtn.className = 'tx-like-btn' + (!likedByMe ? ' tx-like-btn--active' : '');
         likeBtn.childNodes[0].textContent = !likedByMe ? '♥' : '♡';
-        likeBtn.querySelector('.tx-like-count').textContent = Math.max(0, newCount);
-      } catch (e) {
+        if (countSpan) countSpan.textContent = Math.max(0, newCount);
+      } catch (err) {
         likeBtn.disabled = false;
-        likeBtn.textContent = 'err';
+        const countSpan = likeBtn.querySelector('.tx-like-count');
+        if (err.message?.includes('invalid_token')) {
+          await Auth.logout(); location.reload();
+          return;
+        }
+        if (countSpan) countSpan.textContent = '!';
       }
     };
     actions.appendChild(likeBtn);

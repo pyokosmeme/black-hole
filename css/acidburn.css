@@ -1278,27 +1278,27 @@ body.light-reading .post-content {
     color: #2e2a26;
 }
 body.light-mode #post-comments-host,
-body.light-reading #post-comments-host { border-top-color: rgba(136, 0, 170, 0.3); }
+body.light-reading #post-comments-host { border-top-color: rgba(191, 0, 255, 0.3); }
 body.light-mode .tx-comments-summary,
-body.light-reading .tx-comments-summary { color: rgba(0, 136, 170, 0.5); }
+body.light-reading .tx-comments-summary { color: rgba(0, 255, 255, 0.6); }
 body.light-mode .tx-comments-summary:hover,
-body.light-reading .tx-comments-summary:hover { color: rgba(0, 136, 170, 0.8); }
+body.light-reading .tx-comments-summary:hover { color: rgba(0, 255, 255, 1); }
 body.light-mode .tx-comments-count,
-body.light-reading .tx-comments-count { color: rgba(136, 0, 170, 0.5); }
+body.light-reading .tx-comments-count { color: rgba(191, 0, 255, 0.7); }
 body.light-mode .tx-comments-auth,
-body.light-reading .tx-comments-auth { border-bottom-color: rgba(136, 0, 170, 0.15); }
+body.light-reading .tx-comments-auth { border-bottom-color: rgba(191, 0, 255, 0.15); }
 body.light-mode .tx-auth-status,
-body.light-reading .tx-auth-status { color: rgba(0, 136, 170, 0.6); }
+body.light-reading .tx-auth-status { color: rgba(0, 255, 255, 0.8); }
 body.light-mode .tx-auth-input,
-body.light-reading .tx-auth-input { color: #222; border-color: rgba(0, 136, 170, 0.4); }
+body.light-reading .tx-auth-input { color: #222; border-color: rgba(0, 255, 255, 0.5); }
 body.light-mode .tx-auth-btn,
 body.light-mode .tx-form-submit,
 body.light-mode .tx-mod-btn,
 body.light-reading .tx-auth-btn,
 body.light-reading .tx-form-submit,
 body.light-reading .tx-mod-btn {
-  border-color: rgba(0, 136, 170, 0.4);
-  color: rgba(0, 136, 170, 0.7);
+  border-color: rgba(0, 255, 255, 0.5);
+  color: rgba(0, 255, 255, 0.9);
 }
 body.light-mode .tx-auth-btn:hover,
 body.light-mode .tx-form-submit:hover,
@@ -1306,36 +1306,36 @@ body.light-mode .tx-mod-btn:hover,
 body.light-reading .tx-auth-btn:hover,
 body.light-reading .tx-form-submit:hover,
 body.light-reading .tx-mod-btn:hover {
-  background: rgba(0, 136, 170, 0.1);
-  color: rgba(0, 136, 170, 1);
+  background: rgba(0, 255, 255, 0.15);
+  color: rgba(0, 255, 255, 1);
 }
 body.light-mode .tx-comment,
-body.light-reading .tx-comment { border-left-color: rgba(136, 0, 170, 0.2); }
+body.light-reading .tx-comment { border-left-color: rgba(191, 0, 255, 0.3); }
 body.light-mode .tx-comment--reply,
-body.light-reading .tx-comment--reply { border-left-color: rgba(0, 136, 170, 0.15); }
+body.light-reading .tx-comment--reply { border-left-color: rgba(0, 255, 255, 0.2); }
 body.light-mode .tx-comment-author,
-body.light-reading .tx-comment-author { color: rgba(0, 136, 170, 0.7); }
+body.light-reading .tx-comment-author { color: #bf00ff; }
 body.light-mode .tx-comment-time,
-body.light-reading .tx-comment-time { color: rgba(0, 136, 170, 0.3); }
+body.light-reading .tx-comment-time { color: rgba(0, 255, 255, 0.5); }
 body.light-mode .tx-comment-body,
-body.light-reading .tx-comment-body { color: #333; }
+body.light-reading .tx-comment-body { color: #2e2a26; }
 body.light-mode .tx-comments-empty,
-body.light-reading .tx-comments-empty { color: rgba(0, 136, 170, 0.3); }
+body.light-reading .tx-comments-empty { color: rgba(0, 255, 255, 0.5); }
 body.light-mode .tx-form-text,
-body.light-reading .tx-form-text { border-color: rgba(0, 136, 170, 0.2); color: #222; }
+body.light-reading .tx-form-text { border-color: rgba(0, 255, 255, 0.3); color: #222; }
 body.light-mode .tx-form-text:focus,
-body.light-reading .tx-form-text:focus { border-color: rgba(0, 136, 170, 0.5); }
+body.light-reading .tx-form-text:focus { border-color: rgba(0, 255, 255, 0.8); }
 body.light-mode .tx-comments-form,
-body.light-reading .tx-comments-form { border-top-color: rgba(136, 0, 170, 0.1); }
+body.light-reading .tx-comments-form { border-top-color: rgba(191, 0, 255, 0.1); }
 body.light-mode .tx-form-counter,
-body.light-reading .tx-form-counter { color: rgba(0, 136, 170, 0.3); }
+body.light-reading .tx-form-counter { color: rgba(0, 255, 255, 0.5); }
 body.light-mode .tx-reply-btn,
-body.light-reading .tx-reply-btn { color: rgba(136, 0, 170, 0.35); }
+body.light-reading .tx-reply-btn { color: rgba(191, 0, 255, 0.6); }
 body.light-mode .tx-like-btn,
-body.light-reading .tx-like-btn { color: rgba(200, 50, 100, 0.4); }
+body.light-reading .tx-like-btn { color: rgba(200, 50, 100, 0.5); }
 body.light-mode .tx-like-btn--active,
-body.light-reading .tx-like-btn--active { color: rgba(200, 50, 100, 0.8); }
+body.light-reading .tx-like-btn--active { color: rgba(200, 50, 100, 1); }
 body.light-mode .tx-like-count,
-body.light-reading .tx-like-count { color: rgba(200, 50, 100, 0.3); }
+body.light-reading .tx-like-count { color: rgba(200, 50, 100, 0.4); }
 body.light-mode .tx-comments-body::-webkit-scrollbar-thumb,
-body.light-reading .tx-comments-body::-webkit-scrollbar-thumb { background-color: rgba(0, 136, 170, 0.4); }
+body.light-reading .tx-comments-body::-webkit-scrollbar-thumb { background-color: rgba(0, 255, 255, 0.6); }
