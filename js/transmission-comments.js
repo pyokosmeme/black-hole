@@ -134,8 +134,8 @@ export async function mount(container, { slug, authorDid }) {
         el('div', { class: 'tx-confirm-body' },
           el('p', { class: 'tx-confirm-msg' }, message),
           el('div', { class: 'tx-confirm-row' },
-            el('button', { class: 'tx-confirm-btn', onclick: () => dismiss(false) }, 'cancel'),
-            el('button', { class: 'tx-confirm-btn tx-confirm-btn--danger', onclick: () => dismiss(true) }, 'delete')
+            el('button', { class: 'tx-confirm-btn tx-confirm-btn--danger', onclick: () => dismiss(true) }, 'delete'),
+            el('button', { class: 'tx-confirm-btn', onclick: () => dismiss(false) }, 'cancel')
           )
         )
       );

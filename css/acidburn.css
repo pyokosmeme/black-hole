@@ -1572,7 +1572,7 @@ body.bh-mode .link-card {
 .tx-confirm-row {
   display: flex;
   gap: 8px;
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
 .tx-confirm-btn {
   background: transparent;
@@ -1840,7 +1840,7 @@ body.light-mode .tx-confirm-dialog,
 body.light-reading .tx-confirm-dialog {
   background: #fdfaf5;
   border: 2px solid transparent;
-  border-image: linear-gradient(135deg, #bf00ff, #4a1868) 1;
+  border-image: linear-gradient(135deg, var(--purple), var(--cyan)) 1;
 }
 body.light-mode .tx-confirm-overlay,
 body.light-reading .tx-confirm-overlay {
@@ -1849,9 +1849,9 @@ body.light-reading .tx-confirm-overlay {
 body.light-mode .tx-confirm-dialog::before,
 body.light-reading .tx-confirm-dialog::before {
   background:
-    repeating-linear-gradient(-55deg, #bf00ff 0px, #bf00ff 4px, transparent 4px, transparent 8px),
-    repeating-linear-gradient(55deg, #4a1868 0px, #4a1868 3px, transparent 3px, transparent 9px),
-    linear-gradient(90deg, #bf00ff, #4a1868, #bf00ff);
+    repeating-linear-gradient(-55deg, var(--purple) 0px, var(--purple) 4px, transparent 4px, transparent 8px),
+    repeating-linear-gradient(55deg, var(--cyan) 0px, var(--cyan) 3px, transparent 3px, transparent 9px),
+    linear-gradient(90deg, var(--purple), var(--cyan), var(--purple));
 }
 body.light-mode .tx-confirm-header-text,
 body.light-reading .tx-confirm-header-text { color: #bf00ff; }
