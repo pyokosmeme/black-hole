@@ -76,10 +76,8 @@ export async function mount(container, { slug, authorDid }) {
     form.style.display = isOpen ? 'none' : '';
     formToggle.querySelector('.tx-toggle-btn').textContent = isOpen ? 'collapse' : 'expand';
   };
-  // Append toggle button inside the form header
-  form.appendChild(formToggle);
   const body = el('div', { class: 'tx-comments-body' },
-    el('div', { class: 'tx-comments-inner' }, authBar, form, list)
+    el('div', { class: 'tx-comments-inner' }, authBar, formToggle, form, list)
   );
   const block = el('details', { class: 'tx-comments-block' }, summary, body);
   container.appendChild(block);
