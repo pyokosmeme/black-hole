@@ -37,7 +37,7 @@ export async function onRequestPost(context) {
       privateKeyJwk,
       publicKeyJwk,
       authServer,
-      redirectUri: `${context.request.headers.get('origin') || 'https://lastnpcalex.agency'}/api/oauth/callback`,
+      redirectUri: 'https://lastnpcalex.agency/api/oauth/callback',
       handle,
       did,
       pds,

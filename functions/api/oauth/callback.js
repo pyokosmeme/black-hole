@@ -87,8 +87,7 @@ export async function onRequest(context) {
       expirationTtl: SESSION_MAX_AGE,
     });
 
-    const origin = new URL(context.request.url).origin;
-    const returnTo = stateData.returnTo || `${origin}/`;
+    const returnTo = stateData.returnTo || 'https://lastnpcalex.agency/';
     const cookie = `session=${sessionId}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${SESSION_MAX_AGE}`;
 
     return new Response(null, {
