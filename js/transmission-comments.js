@@ -17,7 +17,7 @@ function el(tag, attrs = {}, ...children) {
   }
   for (const c of children.flat()) {
     if (c == null) continue;
-    node.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+    node.appendChild(typeof c === 'string' ? document.createTextNode(c) : typeof c === 'number' ? document.createTextNode(String(c)) : c);
   }
   return node;
 }
@@ -69,15 +69,21 @@ export async function mount(container, { slug, authorDid }) {
         return true;
       });
 
+      renderComments();
+    } catch (e) {
+      list.textContent = 'error: ' + e.message;
+      return;
+    }
+
+    // Load likes (non-critical — doesn't block comment display)
+    try {
       const uris = allComments.map(c => c.uri);
       likeCounts = (await Comment.loadLikes(uris, authorDid)).counts;
       if (session?.did === authorDid) {
         userLikes = await Comment.loadAllLikes(authorDid);
       }
-
-      renderComments();
-    } catch (e) {
-      list.textContent = 'error: ' + e.message;
+    } catch {
+      // Silently ignore — likes just won't show
     }
   }
 

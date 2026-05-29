@@ -24,3 +24,4 @@ canvas/
 !.dev.vars.example
 .env*
 !.env.example
+cf.env

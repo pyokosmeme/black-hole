@@ -1268,6 +1268,15 @@ body.bh-mode .link-card {
 .tx-form-err { color: rgba(255, 51, 102, 0.7); font-size: 9px; }
 
 /* ── Light mode ── */
+body.light-mode .post-view,
+body.light-reading .post-view {
+    background: #fdfaf5;
+    color: #2e2a26;
+}
+body.light-mode .post-content,
+body.light-reading .post-content {
+    color: #2e2a26;
+}
 body.light-mode #post-comments-host,
 body.light-reading #post-comments-host { border-top-color: rgba(136, 0, 170, 0.3); }
 body.light-mode .tx-comments-summary,
