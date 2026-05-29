@@ -185,12 +185,12 @@ export async function mount(container, { slug, authorDid }) {
     return fragment;
   }
 
-function renderComment(c, isAdmin, isReply) {
+ function renderComment(c, isAdmin, isReply) {
     const hidden = hides.has(c.uri);
     const deleted = deletedUris.has(c.uri);
     const isOwner = session?.did === c.author;
 
-     // Deleted: show "[ deleted ]" for the author, hide completely for others
+    // Deleted: show "[ deleted ]" for the author, hide completely for others
     if (deleted && !isOwner) return null;
 
     const cls = ['tx-comment'];
@@ -305,7 +305,6 @@ function renderComment(c, isAdmin, isReply) {
     }
 
    // Delete — poster can delete their own, admin can delete any
-    const isOwner = session?.did === c.author;
     if (isOwner || isAdmin) {
       const delBtn = el('button', { class: 'tx-del-btn' }, 'delete');
       delBtn.onclick = async () => {
