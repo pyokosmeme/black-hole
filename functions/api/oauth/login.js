@@ -7,6 +7,7 @@
 export async function onRequestPost(context) {
   const body = await context.request.json();
   const handle = body?.handle;
+  const returnFromBody = body?.returnTo;
 
   if (!handle) {
     return jsonResponse({ error: 'Handle required' }, 400);
@@ -40,7 +41,7 @@ export async function onRequestPost(context) {
       handle,
       did,
       pds,
-      returnTo: referer,
+      returnTo: returnFromBody || referer,
       createdAt: Date.now(),
     };
 

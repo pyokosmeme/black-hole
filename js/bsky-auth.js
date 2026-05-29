@@ -16,12 +16,13 @@ const API = '/api/oauth';
 /**
  * Start the login flow. Redirects to PDS authorization.
  * @param {string} handle - e.g. "alice.bsky.social"
+ * @param {string} [returnTo] - full URL (with hash) to return to after auth
  */
-export async function login(handle) {
+export async function login(handle, returnTo) {
   const res = await fetch(`${API}/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ handle }),
+    body: JSON.stringify({ handle, returnTo }),
   });
 
   const data = await res.json();

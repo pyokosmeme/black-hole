@@ -294,7 +294,7 @@ export async function mount(container, { slug, authorDid }) {
           btn.disabled = true;
           btn.textContent = 'connecting...';
           try {
-            await Auth.login(handle);
+            await Auth.login(handle, location.href);
           } catch (e) {
             btn.disabled = false;
             btn.textContent = 'sign in';
@@ -356,6 +356,15 @@ export async function mount(container, { slug, authorDid }) {
     const formRow = el('div', { class: 'tx-form-row' }, submit, counter);
     form.appendChild(textarea);
     form.appendChild(formRow);
+
+    // Show reply indicator if already set (user clicked reply before logging in)
+    if (replyToUri) {
+      const parent = allComments.find(p => p.uri === replyToUri);
+      const parentAuthor = parent
+        ? (parent.authorHandle || parent.author.slice(0, 24))
+        : '';
+      setReplyIndicator('@' + parentAuthor);
+    }
   }
 
   session = await Auth.getSession();
