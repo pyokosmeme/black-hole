@@ -21,6 +21,9 @@ CLAUDE.md
 GEMINI.md
 TRANSMISSIONS.md
 
+# Cloudflare API credentials
+cf.env
+
 # Python scripts
 *.py
 

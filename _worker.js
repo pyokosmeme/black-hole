@@ -3,6 +3,8 @@
 const CLIENT_ID = 'https://black-hole.ex-astris-umbra.workers.dev/client-metadata.json';
 const SCOPE = 'atproto transition:generic';
 const BSKY_PUBLIC = 'https://public.api.bsky.app';
+const BSKY_SOCIAL = 'https://bsky.social';
+const LIKE_TYPE = 'agency.lastnpcalex.like';
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
 const STATE_TTL = 15 * 60 * 1000;
 const DEFAULT_ORIGIN = 'https://lastnpcalex.agency';
@@ -147,11 +149,11 @@ async function handleLogin(request, env) {
     publicKeyJwk.alg = 'ES256';
     const thumbprint = await jwkThumbprint(keyPair.publicKey);
     const state = crypto.randomUUID();
-    const redirectOrigin = request.headers.get('origin') || DEFAULT_ORIGIN;
     const stateData = {
       codeVerifier: verifier, privateKeyJwk, publicKeyJwk, authServer,
-      redirectUri: `${redirectOrigin}/api/oauth/callback`,
+      redirectUri: 'https://black-hole.ex-astris-umbra.workers.dev/api/oauth/callback',
       handle, did, pds, createdAt: Date.now(),
+      returnTo: body?.returnTo,
     };
     await env.SESSIONS.put(`state:${state}`, JSON.stringify(stateData), { expirationTtl: 900 });
 
@@ -201,7 +203,7 @@ async function handleCallback(request, env) {
     console.log('[callback] auth error:', error, errorDescription);
     return new Response(null, {
       status: 302,
-      headers: { Location: `${url.origin}/test-bsky.html?auth_error=${encodeURIComponent(errorDescription || error)}` },
+      headers: { Location: `${url.origin}/?auth_error=${encodeURIComponent(errorDescription || error)}` },
     });
   }
   if (!code || !state) return jsonResponse({ error: 'Missing code or state' }, 400, request);
@@ -259,10 +261,11 @@ async function handleCallback(request, env) {
     };
     await env.SESSIONS.put(`session:${sessionId}`, JSON.stringify(sessionData), { expirationTtl: SESSION_MAX_AGE });
     const cookie = `session=${sessionId}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${SESSION_MAX_AGE}`;
+    const returnTo = stateData.returnTo || `${url.origin}/`;
     return new Response(null, {
       status: 302,
       headers: {
-        'Location': `${url.origin}/test-bsky.html?logged_in=1&sid=${sessionId}`,
+        'Location': `${returnTo}?logged_in=1&sid=${sessionId}`,
         'Set-Cookie': cookie,
       },
     });
@@ -335,6 +338,21 @@ async function handleCreateRecord(request, env) {
   if (!session) return jsonResponse({ error: 'Not authenticated' }, 401, request);
   const { privateKey, publicKey } = await importKeyPair(session.privateKeyJwk, session.publicKeyJwk);
   const body = await request.json();
+
+  // Prevent duplicate likes: check if user already liked this target
+  if (body.collection === LIKE_TYPE && body.record?.targetUri) {
+    const checkUrl = new URL(`${BSKY_SOCIAL}/xrpc/com.atproto.repo.listRecords`);
+    checkUrl.searchParams.set('repo', session.did);
+    checkUrl.searchParams.set('collection', LIKE_TYPE);
+    checkUrl.searchParams.set('limit', '100');
+    const checkRes = await fetch(checkUrl.toString());
+    if (checkRes.ok) {
+      const data = await checkRes.json();
+      const exists = (data.records || []).some(r => r.value?.targetUri === body.record.targetUri);
+      if (exists) return jsonResponse({ uri: '', duplicate: true }, 200, request);
+    }
+  }
+
   const url = `${session.pds}/xrpc/com.atproto.repo.createRecord`;
   const result = await dpopFetch(privateKey, publicKey, session.accessToken, 'POST', url, {
     repo: session.did, collection: body.collection, rkey: body.rkey, record: body.record,
@@ -375,6 +393,18 @@ export default {
     if (path === '/api/bsky/createRecord') return handleCreateRecord(request, env);
     if (path === '/api/bsky/deleteRecord') return handleDeleteRecord(request, env);
 
-    return env.ASSETS.fetch(request);
+    const response = await env.ASSETS.fetch(request);
+    // Prevent Cloudflare edge caching for CSS/JS
+    if (path.endsWith('.css') || path.endsWith('.js')) {
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: {
+          ...Object.fromEntries(response.headers.entries()),
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+        },
+      });
+    }
+    return response;
   },
 };

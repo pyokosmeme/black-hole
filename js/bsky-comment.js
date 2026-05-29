@@ -238,14 +238,23 @@ export async function loadAllLikes(adminDid) {
  * @param {number} limit
  */
 export async function getBacklinks(subjectUri, limit = 100) {
-  const url = new URL('/xrpc/blue.microcosm.links.getBacklinks', CONSTELLATION);
-  url.searchParams.set('subject', subjectUri);
-  url.searchParams.set('source', `${COMMENT_TYPE}:subject`);
-  url.searchParams.set('limit', String(limit));
+  const allRecords = [];
+  let cursor = undefined;
+  do {
+    const url = new URL('/xrpc/blue.microcosm.links.getBacklinks', CONSTELLATION);
+    url.searchParams.set('subject', subjectUri);
+    url.searchParams.set('source', `${COMMENT_TYPE}:subject`);
+    url.searchParams.set('limit', String(limit));
+    if (cursor) url.searchParams.set('cursor', cursor);
 
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`Constellation error: ${res.status}`);
-  return (await res.json()).records || [];
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Constellation error: ${res.status}`);
+    const data = await res.json();
+    const records = data.records || [];
+    allRecords.push(...records);
+    cursor = data.cursor;
+  } while (cursor);
+  return allRecords;
 }
 
 /**
@@ -275,11 +284,12 @@ export async function fetchRecord(did, collection, rkey) {
   const url = new URL(`${BSKY_SOCIAL}/xrpc/com.atproto.repo.listRecords`);
   url.searchParams.set('repo', did);
   url.searchParams.set('collection', collection);
-  url.searchParams.set('rkey', rkey);
   const res = await fetch(url.toString());
   if (!res.ok) return null;
   const data = await res.json();
-  return (data.records || [])[0] || null;
+  const records = data.records || [];
+  const found = records.find(r => r.uri.endsWith(rkey));
+  return found || null;
 }
 
 /**
@@ -302,20 +312,48 @@ export async function resolveHandle(did) {
  * @param {string} subjectDid - Site owner DID
  */
 export async function loadComments(subjectUri) {
+  console.log('[comments] loadComments subjectUri:', subjectUri);
   const backlinks = await getBacklinks(subjectUri);
+  console.log('[comments] got', backlinks.length, 'backlinks');
 
-  const results = await Promise.all(
-    backlinks.map(bl => fetchRecord(bl.did, bl.collection, bl.rkey))
+  // Fetch all records per DID once, then match to backlinks
+  const dids = [...new Set(backlinks.map(b => b.did))];
+  const allRecords = await Promise.all(
+    dids.map(did => {
+      const url = new URL(`${BSKY_SOCIAL}/xrpc/com.atproto.repo.listRecords`);
+      url.searchParams.set('repo', did);
+      url.searchParams.set('collection', COMMENT_TYPE);
+      return fetch(url).then(async r => {
+        if (!r.ok) return [];
+        const data = await r.json();
+        return data.records || [];
+      });
+    })
   );
 
+  // Build a flat lookup: rkey -> record
+  const byRkey = new Map();
+  for (const records of allRecords) {
+    for (const rec of records) {
+      byRkey.set(rec.rkey || rec.uri.split('/').pop(), rec);
+    }
+  }
+
+  console.log('[comments] fetched', byRkey.size, 'total records');
+
   const entries = [];
-  for (let i = 0; i < results.length; i++) {
-    const rec = results[i];
-    if (!rec || rec.value?.$type !== COMMENT_TYPE) continue;
+  for (let i = 0; i < backlinks.length; i++) {
+    const bl = backlinks[i];
+    const rec = byRkey.get(bl.rkey);
+    if (!rec) {
+      console.log('[comments] no record for rkey', bl.rkey);
+      continue;
+    }
+    if (rec.value?.$type !== COMMENT_TYPE) continue;
     if (rec.value.subject !== subjectUri) continue;
     if (typeof rec.value.message !== 'string') continue;
     entries.push({
-      author: backlinks[i].did,
+      author: bl.did,
       message: rec.value.message,
       createdAt: rec.value.createdAt,
       uri: rec.uri,
@@ -323,15 +361,16 @@ export async function loadComments(subjectUri) {
     });
   }
 
-  const dids = [...new Set(entries.map(e => e.author))];
-  const handles = await Promise.all(dids.map(resolveHandle));
-  const map = Object.fromEntries(dids.map((d, i) => [d, handles[i]]));
+  const handleDids = [...new Set(entries.map(e => e.author))];
+  const handles = await Promise.all(handleDids.map(resolveHandle));
+  const map = Object.fromEntries(handleDids.map((d, i) => [d, handles[i]]));
 
   for (const e of entries) {
     e.authorHandle = map[e.author];
   }
 
   entries.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  console.log('[comments] returning', entries.length, 'entries');
   return entries;
 }
 

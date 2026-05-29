@@ -40,7 +40,7 @@ export async function mount(container, { slug, authorDid }) {
   const list = el('div', { class: 'tx-comments-list' }, 'loading...');
   const form = el('div', { class: 'tx-comments-form' });
   const body = el('div', { class: 'tx-comments-body' },
-    el('div', { class: 'tx-comments-inner' }, authBar, list, form)
+    el('div', { class: 'tx-comments-inner' }, authBar, form, list)
   );
   const block = el('details', { class: 'tx-comments-block' }, summary, body);
   container.appendChild(block);
@@ -85,6 +85,25 @@ export async function mount(container, { slug, authorDid }) {
     } catch {
       // Silently ignore — likes just won't show
     }
+  }
+
+  function confirmDelete(message) {
+    return new Promise((resolve) => {
+      function dismiss(val) { overlay.remove(); document.removeEventListener('keydown', onKey); resolve(val); }
+      function onKey(e) { if (e.key === 'Escape') dismiss(false); }
+      const overlay = el('div', { class: 'tx-confirm-overlay', onclick: (e) => { if (e.target === overlay) dismiss(false); } });
+      const dialog = el('div', { class: 'tx-confirm-dialog' },
+        el('p', { class: 'tx-confirm-msg' }, message),
+        el('div', { class: 'tx-confirm-row' },
+          el('button', { class: 'tx-confirm-btn', onclick: () => dismiss(false) }, 'cancel'),
+          el('button', { class: 'tx-confirm-btn tx-confirm-btn--danger', onclick: () => dismiss(true) }, 'delete')
+        )
+      );
+      overlay.appendChild(dialog);
+      document.body.appendChild(overlay);
+      document.addEventListener('keydown', onKey);
+      overlay.querySelector('.tx-confirm-btn--danger').focus();
+    });
   }
 
   function renderComments() {
@@ -232,6 +251,26 @@ export async function mount(container, { slug, authorDid }) {
         }
       };
       actions.appendChild(modBtn);
+    }
+
+    // Delete — poster can delete their own, admin can delete any
+    const isOwner = session?.did === c.author;
+    if (isOwner || isAdmin) {
+      const delBtn = el('button', { class: 'tx-del-btn' }, 'delete');
+      delBtn.onclick = async () => {
+        if (!await confirmDelete('Are you sure? This permanently deletes the signal and cannot be undone.')) return;
+        delBtn.disabled = true;
+        delBtn.textContent = 'deleting...';
+        try {
+          await Comment.remove(c.uri);
+          allComments = allComments.filter(x => x.uri !== c.uri);
+          renderComments();
+        } catch (e) {
+          delBtn.disabled = false;
+          delBtn.textContent = 'delete';
+        }
+      };
+      actions.appendChild(delBtn);
     }
 
     if (actions.children.length) card.appendChild(actions);
