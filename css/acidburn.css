@@ -1373,7 +1373,6 @@ body.bh-mode .link-card {
   gap: 4px;
   padding: 4px 8px;
   border: 1px solid rgba(191, 0, 255, 0.3);
-  border-top: none;
   background: rgba(191, 0, 255, 0.05);
 }
 .tx-form-text {
