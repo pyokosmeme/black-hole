@@ -1290,6 +1290,45 @@ body.bh-mode .link-card {
 .tx-form-counter-warn { color: rgba(255, 255, 255, 0.7); }
 .tx-form-err { color: rgba(255, 255, 255, 0.8); font-size: 12px; }
 
+/* Tooltip — hover "?" for context */
+.tx-tip {
+  position: relative;
+  display: inline-flex;
+  cursor: help;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 11px;
+  font-weight: 700;
+  margin: 0 4px;
+  user-select: none;
+  transition: color 0.15s ease;
+}
+.tx-tip:hover { color: var(--cyan); }
+.tx-tip::after {
+  content: attr(data-tip);
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  background: var(--panel);
+  border: 1px solid rgba(191, 0, 255, 0.4);
+  color: #ddd8d0;
+  font-size: 12px;
+  font-weight: 400;
+  font-family: 'Space Mono', monospace;
+  line-height: 1.45;
+  padding: 8px 12px;
+  border-radius: 2px;
+  white-space: nowrap;
+  max-width: 300px;
+  white-space: normal;
+  text-align: left;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 100;
+}
+.tx-tip:hover::after { opacity: 1; }
+
 /* Inline reply — appears below the parent comment */
 .tx-inline-reply {
   display: flex;
@@ -1564,6 +1603,17 @@ body.light-reading .tx-inline-text {
 }
 body.light-mode .tx-inline-text:focus,
 body.light-reading .tx-inline-text:focus { border-color: #4a1868; }
+
+body.light-mode .tx-tip,
+body.light-reading .tx-tip { color: rgba(74, 24, 104, 0.4); }
+body.light-mode .tx-tip:hover,
+body.light-reading .tx-tip:hover { color: #bf00ff; }
+body.light-mode .tx-tip::after,
+body.light-reading .tx-tip::after {
+  background: #fdfaf5;
+  border-color: rgba(191, 0, 255, 0.4);
+  color: #2e2a26;
+}
 
 body.light-mode .tx-del-btn,
 body.light-reading .tx-del-btn {
