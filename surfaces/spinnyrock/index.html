@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>spinny rock</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #1a1a2e;
+  color: #e0d6c8;
+  font-family: monospace;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+h1 {
+  font-size: 18px;
+  margin-bottom: 10px;
+  font-weight: normal;
+}
+canvas {
+  border: 2px solid #333;
+  cursor: crosshair;
+  margin: 10px 0;
+}
+.controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+  max-width: 500px;
+  width: 100%;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  justify-content: center;
+}
+label {
+  font-size: 14px;
+  min-width: 80px;
+  text-align: right;
+}
+input[type="range"] {
+  width: 200px;
+  accent-color: #e07040;
+}
+.val {
+  font-size: 14px;
+  min-width: 50px;
+}
+button {
+  background: #2a2a4a;
+  color: #e0d6c8;
+  border: 1px solid #555;
+  padding: 8px 18px;
+  font-family: monospace;
+  font-size: 14px;
+  cursor: pointer;
+}
+button:hover { background: #3a3a5a; }
+button.on { background: #e07040; color: #1a1a2e; }
+.info {
+  font-size: 12px;
+  color: #888;
+  margin-top: 8px;
+  text-align: center;
+  line-height: 1.6;
+}
+</style>
+</head>
+<body>
+
+<h1>spinny rock place</h1>
+<canvas id="c"></canvas>
+
+<div class="controls">
+  <div class="row">
+    <label>hot:</label>
+    <input type="range" id="temp" min="0.1" max="5" step="0.01" value="2.27">
+    <span class="val" id="tempVal">2.27</span>
+  </div>
+  <div class="row">
+    <label>rock size:</label>
+    <input type="range" id="sz" min="10" max="100" step="5" value="50">
+    <span class="val" id="szVal">50</span>
+  </div>
+  <div class="row">
+    <label>speed:</label>
+    <input type="range" id="speed" min="1" max="50" step="1" value="20">
+    <span class="val" id="speedVal">20</span>
+  </div>
+  <div class="row">
+    <button id="goBtn" class="on">go</button>
+    <button id="resetBtn">new rock</button>
+    <button id="drawMode">draw: up</button>
+  </div>
+</div>
+
+<div class="info">
+  click rock to poke spin. drag to draw.<br>
+  low hot = spin clump with friend. high hot = spin wiggle lots.<br>
+  magic number near 2.27. thing happen there.
+</div>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+let SIZE = 50;
+let grid = [];
+let running = true;
+let temp = 2.27;
+let speed = 20;
+let drawVal = 1;
+let mouseDown = false;
+
+const upColor = '#e07040';
+const downColor = '#1a1a2e';
+const upColorWarm = '#f0a060';
+const downColorWarm = '#2a2a4a';
+
+function cellSize() {
+  return Math.max(2, Math.min(12, Math.floor(500 / SIZE)));
+}
+
+function initCanvas() {
+  const cs = cellSize();
+  canvas.width = SIZE * cs;
+  canvas.height = SIZE * cs;
+}
+
+function makeGrid() {
+  grid = [];
+  for (let y = 0; y < SIZE; y++) {
+    grid[y] = [];
+    for (let x = 0; x < SIZE; x++) {
+      grid[y][x] = Math.random() < 0.5 ? 1 : -1;
+    }
+  }
+}
+
+function draw() {
+  const cs = cellSize();
+  for (let y = 0; y < SIZE; y++) {
+    for (let x = 0; x < SIZE; x++) {
+      if (grid[y][x] === 1) {
+        ctx.fillStyle = upColor;
+      } else {
+        ctx.fillStyle = downColor;
+      }
+      ctx.fillRect(x * cs, y * cs, cs, cs);
+    }
+  }
+  // thin grid line when cells big enough
+  if (cs >= 6) {
+    ctx.strokeStyle = '#2a2a3e';
+    ctx.lineWidth = 0.5;
+    for (let y = 0; y <= SIZE; y++) {
+      ctx.beginPath();
+      ctx.moveTo(0, y * cs);
+      ctx.lineTo(SIZE * cs, y * cs);
+      ctx.stroke();
+    }
+    for (let x = 0; x <= SIZE; x++) {
+      ctx.beginPath();
+      ctx.moveTo(x * cs, 0);
+      ctx.lineTo(x * cs, SIZE * cs);
+      ctx.stroke();
+    }
+  }
+}
+
+function friendSum(x, y) {
+  const s = SIZE;
+  return grid[(y - 1 + s) % s][x]
+       + grid[(y + 1) % s][x]
+       + grid[y][(x - 1 + s) % s]
+       + grid[y][(x + 1) % s];
+}
+
+function step() {
+  const x = Math.floor(Math.random() * SIZE);
+  const y = Math.floor(Math.random() * SIZE);
+  const spin = grid[y][x];
+  const friends = friendSum(x, y);
+  const dE = 2 * spin * friends;
+  if (dE <= 0) {
+    grid[y][x] = -spin;
+  } else if (Math.random() < Math.exp(-dE / temp)) {
+    grid[y][x] = -spin;
+  }
+}
+
+function tick() {
+  if (running) {
+    const flips = speed * SIZE;
+    for (let i = 0; i < flips; i++) {
+      step();
+    }
+  }
+  draw();
+  requestAnimationFrame(tick);
+}
+
+// poke spin with mouse
+function pokeAt(e) {
+  const rect = canvas.getBoundingClientRect();
+  const cs = cellSize();
+  const x = Math.floor((e.clientX - rect.left) / cs);
+  const y = Math.floor((e.clientY - rect.top) / cs);
+  if (x >= 0 && x < SIZE && y >= 0 && y < SIZE) {
+    grid[y][x] = drawVal;
+  }
+}
+
+canvas.addEventListener('mousedown', (e) => {
+  mouseDown = true;
+  pokeAt(e);
+});
+canvas.addEventListener('mousemove', (e) => {
+  if (mouseDown) pokeAt(e);
+});
+canvas.addEventListener('mouseup', () => mouseDown = false);
+canvas.addEventListener('mouseleave', () => mouseDown = false);
+
+// touch
+canvas.addEventListener('touchstart', (e) => {
+  e.preventDefault();
+  mouseDown = true;
+  pokeAt(e.touches[0]);
+});
+canvas.addEventListener('touchmove', (e) => {
+  e.preventDefault();
+  if (mouseDown) pokeAt(e.touches[0]);
+});
+canvas.addEventListener('touchend', () => mouseDown = false);
+
+// controls
+const tempSlider = document.getElementById('temp');
+const tempVal = document.getElementById('tempVal');
+tempSlider.addEventListener('input', () => {
+  temp = parseFloat(tempSlider.value);
+  tempVal.textContent = temp.toFixed(2);
+});
+
+const szSlider = document.getElementById('sz');
+const szVal = document.getElementById('szVal');
+szSlider.addEventListener('input', () => {
+  SIZE = parseInt(szSlider.value);
+  szVal.textContent = SIZE;
+  initCanvas();
+  makeGrid();
+});
+
+const speedSlider = document.getElementById('speed');
+const speedVal = document.getElementById('speedVal');
+speedSlider.addEventListener('input', () => {
+  speed = parseInt(speedSlider.value);
+  speedVal.textContent = speed;
+});
+
+const goBtn = document.getElementById('goBtn');
+goBtn.addEventListener('click', () => {
+  running = !running;
+  goBtn.textContent = running ? 'go' : 'stop';
+  goBtn.classList.toggle('on', running);
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  makeGrid();
+});
+
+const drawModeBtn = document.getElementById('drawMode');
+drawModeBtn.addEventListener('click', () => {
+  drawVal *= -1;
+  drawModeBtn.textContent = drawVal === 1 ? 'draw: up' : 'draw: down';
+});
+
+// start
+initCanvas();
+makeGrid();
+tick();
+</script>
+</body>
+</html>

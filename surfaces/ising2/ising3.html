@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ising Model Sociophysics Simulator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 30px;
+            max-width: 1400px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2d3436;
+            margin-bottom: 10px;
+            font-size: 2em;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #636e72;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 30px;
+            align-items: start;
+        }
+
+        .canvas-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .canvas-container {
+            background: white;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .canvas-title {
+            font-weight: 600;
+            color: #2d3436;
+            margin-bottom: 10px;
+            font-size: 0.95em;
+            text-align: center;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            border-radius: 5px;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        .controls {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .control-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #2d3436;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 0.9em;
+        }
+
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 6px;
+            background: #dfe6e9;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .value-display {
+            min-width: 50px;
+            text-align: center;
+            color: #636e72;
+            font-weight: 600;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.95em;
+            margin-bottom: 10px;
+        }
+
+        .primary-btn {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+        }
+
+        .primary-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .secondary-btn {
+            background: #f5f5f5;
+            color: #2d3436;
+        }
+
+        .secondary-btn:hover {
+            background: #e9ecef;
+        }
+
+        .stats {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.9em;
+        }
+
+        .stat-label {
+            color: #636e72;
+        }
+
+        .stat-value {
+            font-weight: 600;
+            color: #2d3436;
+        }
+
+        .phase-indicator {
+            text-align: center;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-weight: 600;
+        }
+
+        .ferromagnetic {
+            background: linear-gradient(135deg, #6c5ce7, #a29bfe);
+            color: white;
+        }
+
+        .paramagnetic {
+            background: linear-gradient(135deg, #fdcb6e, #e17055);
+            color: white;
+        }
+
+        .info-box {
+            background: #e3f2fd;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-size: 0.85em;
+            color: #2d3436;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .canvas-section {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Ising Model Sociophysics Simulator</h1>
+        <p class="subtitle">Explore phase transitions and collective behavior in social systems</p>
+        
+        <div class="main-content">
+            <div class="canvas-section">
+                <div class="canvas-container">
+                    <div class="canvas-title">Microscopic State (Individual Spins)</div>
+                    <canvas id="microCanvas"></canvas>
+                </div>
+                <div class="canvas-container">
+                    <div class="canvas-title">Coarse-Grained View (2×2 Blocks)</div>
+                    <canvas id="coarseCanvas"></canvas>
+                </div>
+                <div class="canvas-container">
+                    <div class="canvas-title">Magnetization Over Time</div>
+                    <canvas id="magnetCanvas"></canvas>
+                </div>
+                <div class="canvas-container">
+                    <div class="canvas-title">Energy Landscape</div>
+                    <canvas id="energyCanvas"></canvas>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <div class="control-group">
+                    <label>Temperature (T/T<sub>c</sub>)</label>
+                    <div class="slider-container">
+                        <input type="range" id="temperature" min="0.1" max="4" step="0.1" value="2.27">
+                        <span class="value-display" id="tempValue">2.27</span>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label>External Field (h)</label>
+                    <div class="slider-container">
+                        <input type="range" id="field" min="-2" max="2" step="0.1" value="0">
+                        <span class="value-display" id="fieldValue">0.0</span>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label>System Size</label>
+                    <div class="slider-container">
+                        <input type="range" id="size" min="20" max="100" step="10" value="50">
+                        <span class="value-display" id="sizeValue">50</span>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <label>Update Speed</label>
+                    <div class="slider-container">
+                        <input type="range" id="speed" min="1" max="100" step="1" value="50">
+                        <span class="value-display" id="speedValue">50</span>
+                    </div>
+                </div>
+                
+                <button id="pauseBtn" class="primary-btn">Pause Simulation</button>
+                <button id="resetBtn" class="secondary-btn">Random Reset</button>
+                <button id="orderBtn" class="secondary-btn">Ordered Reset</button>
+                
+                <div class="stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Magnetization:</span>
+                        <span class="stat-value" id="magnetization">0.00</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Energy/Spin:</span>
+                        <span class="stat-value" id="energy">0.00</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Susceptibility:</span>
+                        <span class="stat-value" id="susceptibility">0.00</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Monte Carlo Steps:</span>
+                        <span class="stat-value" id="mcSteps">0</span>
+                    </div>
+                </div>
+                
+                <div class="phase-indicator" id="phaseIndicator">
+                    Paramagnetic Phase
+                </div>
+                
+                <div class="info-box">
+                    <strong>Sociophysics Interpretation:</strong><br>
+                    • Spins = Individual opinions/states<br>
+                    • Temperature = Social noise/randomness<br>
+                    • Magnetization = Collective consensus<br>
+                    • T<sub>c</sub> ≈ 2.27 = Critical point<br>
+                    • Coarse graining reveals emergent patterns
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class IsingModel {
+            constructor() {
+                this.size = 50;
+                this.spins = [];
+                this.temperature = 2.27;
+                this.field = 0;
+                this.J = 1; // Coupling constant
+                this.mcSteps = 0;
+                this.running = true;
+                this.updateSpeed = 50;
+                
+                // History for graphs
+                this.magnetHistory = [];
+                this.energyHistory = [];
+                this.maxHistory = 200;
+                
+                // Canvas setup
+                this.microCanvas = document.getElementById('microCanvas');
+                this.coarseCanvas = document.getElementById('coarseCanvas');
+                this.magnetCanvas = document.getElementById('magnetCanvas');
+                this.energyCanvas = document.getElementById('energyCanvas');
+                
+                this.microCtx = this.microCanvas.getContext('2d');
+                this.coarseCtx = this.coarseCanvas.getContext('2d');
+                this.magnetCtx = this.magnetCanvas.getContext('2d');
+                this.energyCtx = this.energyCanvas.getContext('2d');
+                
+                // Set canvas sizes
+                this.setupCanvases();
+                
+                // Initialize system
+                this.initializeSpins(true);
+                this.setupControls();
+                this.animate();
+            }
+            
+            setupCanvases() {
+                const canvasSize = 300;
+                
+                this.microCanvas.width = canvasSize;
+                this.microCanvas.height = canvasSize;
+                this.coarseCanvas.width = canvasSize;
+                this.coarseCanvas.height = canvasSize;
+                this.magnetCanvas.width = canvasSize;
+                this.magnetCanvas.height = canvasSize;
+                this.energyCanvas.width = canvasSize;
+                this.energyCanvas.height = canvasSize;
+            }
+            
+            initializeSpins(random = true) {
+                this.spins = [];
+                this.magnetHistory = [];
+                this.energyHistory = [];
+                this.mcSteps = 0;
+                
+                for (let i = 0; i < this.size; i++) {
+                    this.spins[i] = [];
+                    for (let j = 0; j < this.size; j++) {
+                        if (random) {
+                            this.spins[i][j] = Math.random() < 0.5 ? -1 : 1;
+                        } else {
+                            this.spins[i][j] = 1;
+                        }
+                    }
+                }
+            }
+            
+            getNeighborSum(i, j) {
+                const size = this.size;
+                let sum = 0;
+                
+                // Periodic boundary conditions
+                sum += this.spins[(i + 1) % size][j];
+                sum += this.spins[(i - 1 + size) % size][j];
+                sum += this.spins[i][(j + 1) % size];
+                sum += this.spins[i][(j - 1 + size) % size];
+                
+                return sum;
+            }
+            
+            metropolisStep() {
+                // Perform one Monte Carlo sweep
+                const sweeps = this.updateSpeed;
+                
+                for (let sweep = 0; sweep < sweeps; sweep++) {
+                    for (let n = 0; n < this.size * this.size; n++) {
+                        const i = Math.floor(Math.random() * this.size);
+                        const j = Math.floor(Math.random() * this.size);
+                        
+                        const currentSpin = this.spins[i][j];
+                        const neighborSum = this.getNeighborSum(i, j);
+                        
+                        // Calculate energy change
+                        const deltaE = 2 * currentSpin * (this.J * neighborSum + this.field);
+                        
+                        // Metropolis criterion
+                        if (deltaE <= 0 || Math.random() < Math.exp(-deltaE / this.temperature)) {
+                            this.spins[i][j] = -currentSpin;
+                        }
+                    }
+                }
+                
+                this.mcSteps += sweeps;
+            }
+            
+            calculateMagnetization() {
+                let sum = 0;
+                for (let i = 0; i < this.size; i++) {
+                    for (let j = 0; j < this.size; j++) {
+                        sum += this.spins[i][j];
+                    }
+                }
+                return sum / (this.size * this.size);
+            }
+            
+            calculateEnergy() {
+                let energy = 0;
+                for (let i = 0; i < this.size; i++) {
+                    for (let j = 0; j < this.size; j++) {
+                        const spin = this.spins[i][j];
+                        const neighborSum = this.getNeighborSum(i, j);
+                        energy -= this.J * spin * neighborSum / 2; // Divide by 2 to avoid double counting
+                        energy -= this.field * spin;
+                    }
+                }
+                return energy / (this.size * this.size);
+            }
+            
+            calculateSusceptibility() {
+                if (this.magnetHistory.length < 10) return 0;
+                
+                const recent = this.magnetHistory.slice(-50);
+                const mean = recent.reduce((a, b) => a + b, 0) / recent.length;
+                const variance = recent.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / recent.length;
+                
+                return variance * this.size * this.size / this.temperature;
+            }
+            
+            drawMicrostate() {
+                const ctx = this.microCtx;
+                const cellSize = this.microCanvas.width / this.size;
+                
+                for (let i = 0; i < this.size; i++) {
+                    for (let j = 0; j < this.size; j++) {
+                        if (this.spins[i][j] === 1) {
+                            ctx.fillStyle = '#667eea';
+                        } else {
+                            ctx.fillStyle = '#dfe6e9';
+                        }
+                        ctx.fillRect(j * cellSize, i * cellSize, cellSize, cellSize);
+                    }
+                }
+            }
+            
+            drawCoarseGrained() {
+                const ctx = this.coarseCtx;
+                const blockSize = 2; // 2x2 coarse graining
+                const coarseSize = Math.floor(this.size / blockSize);
+                const cellSize = this.coarseCanvas.width / coarseSize;
+                
+                for (let ci = 0; ci < coarseSize; ci++) {
+                    for (let cj = 0; cj < coarseSize; cj++) {
+                        // Average over block
+                        let blockSum = 0;
+                        for (let di = 0; di < blockSize; di++) {
+                            for (let dj = 0; dj < blockSize; dj++) {
+                                const i = ci * blockSize + di;
+                                const j = cj * blockSize + dj;
+                                if (i < this.size && j < this.size) {
+                                    blockSum += this.spins[i][j];
+                                }
+                            }
+                        }
+                        
+                        const avgSpin = blockSum / (blockSize * blockSize);
+                        const intensity = (avgSpin + 1) / 2; // Map from [-1,1] to [0,1]
+                        
+                        // Gradient coloring based on average
+                        const r = Math.floor(102 + (223 - 102) * (1 - intensity));
+                        const g = Math.floor(126 + (230 - 126) * (1 - intensity));
+                        const b = Math.floor(234 + (233 - 234) * (1 - intensity));
+                        
+                        ctx.fillStyle = `rgb(${r},${g},${b})`;
+                        ctx.fillRect(cj * cellSize, ci * cellSize, cellSize, cellSize);
+                    }
+                }
+            }
+            
+            drawMagnetizationGraph() {
+                const ctx = this.magnetCtx;
+                const width = this.magnetCanvas.width;
+                const height = this.magnetCanvas.height;
+                
+                // Clear canvas
+                ctx.fillStyle = '#f8f9fa';
+                ctx.fillRect(0, 0, width, height);
+                
+                // Draw axes
+                ctx.strokeStyle = '#dfe6e9';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(30, height - 30);
+                ctx.lineTo(width - 10, height - 30);
+                ctx.moveTo(30, 10);
+                ctx.lineTo(30, height - 30);
+                ctx.stroke();
+                
+                // Draw zero line
+                ctx.strokeStyle = '#b2bec3';
+                ctx.setLineDash([5, 5]);
+                ctx.beginPath();
+                ctx.moveTo(30, height / 2);
+                ctx.lineTo(width - 10, height / 2);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                
+                // Plot magnetization
+                if (this.magnetHistory.length > 1) {
+                    ctx.strokeStyle = '#667eea';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    
+                    for (let i = 0; i < this.magnetHistory.length; i++) {
+                        const x = 30 + (width - 40) * i / this.maxHistory;
+                        const y = height / 2 - this.magnetHistory[i] * (height - 60) / 2;
+                        
+                        if (i === 0) {
+                            ctx.moveTo(x, y);
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                    ctx.stroke();
+                }
+                
+                // Labels
+                ctx.fillStyle = '#636e72';
+                ctx.font = '11px system-ui';
+                ctx.fillText('1', 5, 15);
+                ctx.fillText('0', 5, height / 2);
+                ctx.fillText('-1', 5, height - 15);
+                ctx.fillText('Time', width / 2 - 15, height - 5);
+            }
+            
+            drawEnergyGraph() {
+                const ctx = this.energyCtx;
+                const width = this.energyCanvas.width;
+                const height = this.energyCanvas.height;
+                
+                // Clear canvas
+                ctx.fillStyle = '#f8f9fa';
+                ctx.fillRect(0, 0, width, height);
+                
+                // Draw axes
+                ctx.strokeStyle = '#dfe6e9';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(30, height - 30);
+                ctx.lineTo(width - 10, height - 30);
+                ctx.moveTo(30, 10);
+                ctx.lineTo(30, height - 30);
+                ctx.stroke();
+                
+                // Plot energy
+                if (this.energyHistory.length > 1) {
+                    const minE = Math.min(...this.energyHistory);
+                    const maxE = Math.max(...this.energyHistory);
+                    const range = maxE - minE || 1;
+                    
+                    ctx.strokeStyle = '#e17055';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    
+                    for (let i = 0; i < this.energyHistory.length; i++) {
+                        const x = 30 + (width - 40) * i / this.maxHistory;
+                        const y = height - 30 - (this.energyHistory[i] - minE) / range * (height - 60);
+                        
+                        if (i === 0) {
+                            ctx.moveTo(x, y);
+                        } else {
+                            ctx.lineTo(x, y);
+                        }
+                    }
+                    ctx.stroke();
+                    
+                    // Labels
+                    ctx.fillStyle = '#636e72';
+                    ctx.font = '11px system-ui';
+                    ctx.fillText(maxE.toFixed(1), 5, 15);
+                    ctx.fillText(minE.toFixed(1), 5, height - 35);
+                }
+                
+                ctx.fillStyle = '#636e72';
+                ctx.font = '11px system-ui';
+                ctx.fillText('Time', width / 2 - 15, height - 5);
+            }
+            
+            updateStats() {
+                const mag = this.calculateMagnetization();
+                const energy = this.calculateEnergy();
+                const sus = this.calculateSusceptibility();
+                
+                // Update history
+                this.magnetHistory.push(mag);
+                this.energyHistory.push(energy);
+                
+                if (this.magnetHistory.length > this.maxHistory) {
+                    this.magnetHistory.shift();
+                    this.energyHistory.shift();
+                }
+                
+                // Update display
+                document.getElementById('magnetization').textContent = mag.toFixed(3);
+                document.getElementById('energy').textContent = energy.toFixed(3);
+                document.getElementById('susceptibility').textContent = sus.toFixed(2);
+                document.getElementById('mcSteps').textContent = this.mcSteps;
+                
+                // Update phase indicator
+                const phaseIndicator = document.getElementById('phaseIndicator');
+                if (Math.abs(mag) > 0.5) {
+                    phaseIndicator.textContent = 'Ferromagnetic Phase (Ordered)';
+                    phaseIndicator.className = 'phase-indicator ferromagnetic';
+                } else {
+                    phaseIndicator.textContent = 'Paramagnetic Phase (Disordered)';
+                    phaseIndicator.className = 'phase-indicator paramagnetic';
+                }
+            }
+            
+            setupControls() {
+                // Temperature control
+                const tempSlider = document.getElementById('temperature');
+                const tempValue = document.getElementById('tempValue');
+                tempSlider.addEventListener('input', (e) => {
+                    this.temperature = parseFloat(e.target.value);
+                    tempValue.textContent = this.temperature.toFixed(2);
+                });
+                
+                // Field control
+                const fieldSlider = document.getElementById('field');
+                const fieldValue = document.getElementById('fieldValue');
+                fieldSlider.addEventListener('input', (e) => {
+                    this.field = parseFloat(e.target.value);
+                    fieldValue.textContent = this.field.toFixed(1);
+                });
+                
+                // Size control
+                const sizeSlider = document.getElementById('size');
+                const sizeValue = document.getElementById('sizeValue');
+                sizeSlider.addEventListener('input', (e) => {
+                    this.size = parseInt(e.target.value);
+                    sizeValue.textContent = this.size;
+                    this.initializeSpins(true);
+                });
+                
+                // Speed control
+                const speedSlider = document.getElementById('speed');
+                const speedValue = document.getElementById('speedValue');
+                speedSlider.addEventListener('input', (e) => {
+                    this.updateSpeed = parseInt(e.target.value);
+                    speedValue.textContent = this.updateSpeed;
+                });
+                
+                // Buttons
+                const pauseBtn = document.getElementById('pauseBtn');
+                pauseBtn.addEventListener('click', () => {
+                    this.running = !this.running;
+                    pauseBtn.textContent = this.running ? 'Pause Simulation' : 'Resume Simulation';
+                });
+                
+                document.getElementById('resetBtn').addEventListener('click', () => {
+                    this.initializeSpins(true);
+                });
+                
+                document.getElementById('orderBtn').addEventListener('click', () => {
+                    this.initializeSpins(false);
+                });
+            }
+            
+            animate() {
+                if (this.running) {
+                    this.metropolisStep();
+                    this.drawMicrostate();
+                    this.drawCoarseGrained();
+                    this.updateStats();
+                    this.drawMagnetizationGraph();
+                    this.drawEnergyGraph();
+                }
+                
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+        
+        // Start simulation
+        const simulation = new IsingModel();
+    </script>
+</body>
+</html>

@@ -1,0 +1,1537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Horizon's Edge - Stanford Torus Explorer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+            background: #0a0a0f;
+            font-family: 'Share Tech Mono', monospace;
+            color: #e0e0e0;
+        }
+
+        #canvas-container {
+            width: 100vw;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+        }
+
+        canvas { display: block; }
+
+        #title-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0a0a0f 100%);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            cursor: pointer;
+        }
+
+        #title-screen.hidden { display: none; }
+
+        .title-main {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(2rem, 6vw, 4rem);
+            font-weight: 900;
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            background: linear-gradient(90deg, #4ecdc4, #44a08d, #4ecdc4);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shimmer 3s linear infinite;
+            margin-bottom: 0.5rem;
+        }
+
+        @keyframes shimmer {
+            to { background-position: 200% center; }
+        }
+
+        .title-sub {
+            font-family: 'Orbitron', sans-serif;
+            font-size: clamp(0.8rem, 2vw, 1.2rem);
+            letter-spacing: 0.5em;
+            color: #6a6a8a;
+            margin-bottom: 3rem;
+        }
+
+        .title-specs {
+            font-size: clamp(0.7rem, 1.5vw, 0.9rem);
+            color: #4a4a6a;
+            text-align: center;
+            line-height: 2;
+            margin-bottom: 3rem;
+            padding: 0 1rem;
+        }
+
+        .title-specs span { color: #4ecdc4; }
+
+        .title-start {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1rem;
+            letter-spacing: 0.3em;
+            color: #4ecdc4;
+            padding: 1rem 2rem;
+            border: 1px solid #4ecdc4;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .hud {
+            position: fixed;
+            pointer-events: none;
+            z-index: 100;
+            transition: opacity 0.3s ease;
+        }
+
+        .hud.hidden { opacity: 0; }
+
+        #rangefinder {
+            top: 20px;
+            right: 20px;
+            background: rgba(10, 10, 15, 0.9);
+            border: 1px solid #4ecdc4;
+            padding: 15px 20px;
+            min-width: 200px;
+            backdrop-filter: blur(4px);
+        }
+
+        #rangefinder.inactive {
+            border-color: #2a2a3a;
+        }
+
+        #rangefinder.inactive .rf-title,
+        #rangefinder.inactive .rf-value {
+            color: #3a3a4a;
+        }
+
+        .rf-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
+            color: #4ecdc4;
+            margin-bottom: 8px;
+        }
+
+        .rf-value {
+            font-size: 1.8rem;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        .rf-value span {
+            font-size: 0.9rem;
+            color: #6a6a8a;
+        }
+
+        .rf-info {
+            font-size: 0.75rem;
+            color: #4a4a6a;
+            margin-top: 8px;
+            line-height: 1.5;
+        }
+
+        #crosshair {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        #crosshair.hidden { display: none; }
+
+        .crosshair-ring {
+            width: 24px;
+            height: 24px;
+            border: 1px solid rgba(78, 205, 196, 0.6);
+            border-radius: 50%;
+            position: relative;
+        }
+
+        .crosshair-dot {
+            width: 4px;
+            height: 4px;
+            background: #4ecdc4;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        #debug-info {
+            bottom: 20px;
+            right: 20px;
+            background: rgba(10, 10, 15, 0.9);
+            border: 1px solid #3a3a4a;
+            padding: 15px;
+            font-size: 0.75rem;
+            min-width: 220px;
+            backdrop-filter: blur(4px);
+        }
+
+        .debug-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .debug-label { color: #5a5a7a; }
+        .debug-value { color: #8a8aaa; }
+
+        #controls-legend {
+            bottom: 20px;
+            left: 20px;
+            background: rgba(10, 10, 15, 0.9);
+            border: 1px solid #3a3a4a;
+            padding: 15px 20px;
+            font-size: 0.75rem;
+            max-width: 280px;
+            backdrop-filter: blur(4px);
+        }
+
+        .legend-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.7rem;
+            letter-spacing: 0.15em;
+            color: #4ecdc4;
+            margin-bottom: 12px;
+        }
+
+        .legend-section {
+            margin-bottom: 12px;
+        }
+
+        .legend-section:last-child { margin-bottom: 0; }
+        .legend-section-title { color: #6a6a8a; margin-bottom: 6px; }
+
+        .legend-row {
+            display: flex;
+            margin-bottom: 3px;
+        }
+
+        .legend-key {
+            color: #4ecdc4;
+            width: 60px;
+            flex-shrink: 0;
+        }
+
+        .legend-desc { color: #8a8aaa; }
+
+        #horizon-line {
+            position: fixed;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(90deg, 
+                transparent 0%, 
+                rgba(78, 205, 196, 0.3) 20%, 
+                rgba(78, 205, 196, 0.5) 50%, 
+                rgba(78, 205, 196, 0.3) 80%, 
+                transparent 100%);
+            z-index: 50;
+            pointer-events: none;
+        }
+
+        #horizon-line.hidden { display: none; }
+
+        #factoid {
+            top: 50%;
+            left: 20px;
+            transform: translateY(-50%);
+            background: rgba(10, 10, 15, 0.95);
+            border-left: 2px solid #4ecdc4;
+            padding: 12px 16px;
+            max-width: 280px;
+            font-size: 0.8rem;
+            line-height: 1.6;
+            backdrop-filter: blur(4px);
+        }
+
+        #factoid.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .factoid-distance {
+            font-family: 'Orbitron', sans-serif;
+            color: #4ecdc4;
+            font-size: 0.7rem;
+            letter-spacing: 0.1em;
+            margin-bottom: 6px;
+        }
+
+        .factoid-text { color: #a0a0b0; }
+
+        #position-indicator {
+            top: 20px;
+            left: 20px;
+            background: rgba(10, 10, 15, 0.9);
+            border: 1px solid #3a3a4a;
+            padding: 15px;
+            width: 180px;
+            backdrop-filter: blur(4px);
+        }
+
+        .pos-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.65rem;
+            letter-spacing: 0.15em;
+            color: #5a5a7a;
+            margin-bottom: 10px;
+        }
+
+        .pos-ring {
+            width: 140px;
+            height: 60px;
+            border: 1px solid #3a3a4a;
+            border-radius: 70px / 30px;
+            position: relative;
+            margin: 0 auto 10px;
+        }
+
+        .pos-marker {
+            width: 6px;
+            height: 6px;
+            background: #4ecdc4;
+            border-radius: 50%;
+            position: absolute;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 8px #4ecdc4;
+        }
+
+        .pos-stats {
+            font-size: 0.7rem;
+            text-align: center;
+        }
+
+        .pos-stats span { color: #4ecdc4; }
+
+        #time-indicator {
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(10, 10, 15, 0.9);
+            border: 1px solid #3a3a4a;
+            padding: 10px 20px;
+            backdrop-filter: blur(4px);
+            text-align: center;
+        }
+
+        .time-label {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.6rem;
+            letter-spacing: 0.15em;
+            color: #5a5a7a;
+            margin-bottom: 4px;
+        }
+
+        .time-value {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.1rem;
+            color: #4ecdc4;
+        }
+
+        #loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'Orbitron', sans-serif;
+            color: #4ecdc4;
+            z-index: 2000;
+            letter-spacing: 0.2em;
+        }
+
+        #loading.hidden { display: none; }
+
+        #resume-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(10, 10, 15, 0.8);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 900;
+            cursor: pointer;
+        }
+
+        #resume-overlay.active {
+            display: flex;
+        }
+
+        .resume-text {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.5rem;
+            color: #4ecdc4;
+            letter-spacing: 0.2em;
+            margin-bottom: 1rem;
+        }
+
+        .resume-sub {
+            color: #6a6a8a;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading">INITIALIZING HABITAT...</div>
+
+    <div id="title-screen">
+        <h1 class="title-main">Horizon's Edge</h1>
+        <p class="title-sub">Stanford Torus Explorer</p>
+        <div class="title-specs">
+            <div>Ring Radius: <span>1,492 m</span> | Tube Diameter: <span>244 m</span></div>
+            <div>Habitable Height: <span>100 m</span> | Circumference: <span>9,373 m</span></div>
+            <div>Rotation: <span>1 RPM</span> | Simulated Gravity: <span>1.0 g</span></div>
+        </div>
+        <div class="title-start">[ CLICK TO ENTER ]</div>
+    </div>
+
+    <div id="canvas-container"></div>
+
+    <div id="resume-overlay">
+        <div class="resume-text">PAUSED</div>
+        <div class="resume-sub">Click to resume</div>
+    </div>
+
+    <div id="crosshair" class="hidden">
+        <div class="crosshair-ring">
+            <div class="crosshair-dot"></div>
+        </div>
+    </div>
+
+    <div id="horizon-line" class="hidden"></div>
+
+    <div id="rangefinder" class="hud inactive">
+        <div class="rf-title">RANGEFINDER [R]</div>
+        <div class="rf-value"><span id="rf-distance">---</span><span> m</span></div>
+        <div class="rf-info" id="rf-info">Press R to activate</div>
+    </div>
+
+    <div id="position-indicator" class="hud hidden">
+        <div class="pos-title">RING POSITION</div>
+        <div class="pos-ring">
+            <div class="pos-marker" id="pos-marker"></div>
+        </div>
+        <div class="pos-stats">
+            <span id="pos-distance">0</span> m along ring
+        </div>
+    </div>
+
+    <div id="time-indicator" class="hud hidden">
+        <div class="time-label">HABITAT TIME</div>
+        <div class="time-value" id="time-value">12:00</div>
+    </div>
+
+    <div id="factoid" class="hud hidden">
+        <div class="factoid-distance" id="factoid-distance"></div>
+        <div class="factoid-text" id="factoid-text"></div>
+    </div>
+
+    <div id="debug-info" class="hud hidden">
+        <div class="debug-row">
+            <span class="debug-label">Position:</span>
+            <span class="debug-value" id="debug-pos">0, 0, 0</span>
+        </div>
+        <div class="debug-row">
+            <span class="debug-label">Ring Angle:</span>
+            <span class="debug-value" id="debug-angle">0°</span>
+        </div>
+        <div class="debug-row">
+            <span class="debug-label">Pitch/Yaw:</span>
+            <span class="debug-value" id="debug-orient">0° / 0°</span>
+        </div>
+        <div class="debug-row">
+            <span class="debug-label">Speed:</span>
+            <span class="debug-value" id="debug-speed">0 m/s</span>
+        </div>
+        <div class="debug-row">
+            <span class="debug-label">FPS:</span>
+            <span class="debug-value" id="debug-fps">60</span>
+        </div>
+    </div>
+
+    <div id="controls-legend" class="hud hidden">
+        <div class="legend-title">CONTROLS</div>
+        <div class="legend-section">
+            <div class="legend-section-title">Movement</div>
+            <div class="legend-row"><span class="legend-key">WASD</span><span class="legend-desc">Walk</span></div>
+            <div class="legend-row"><span class="legend-key">SHIFT</span><span class="legend-desc">Run</span></div>
+            <div class="legend-row"><span class="legend-key">MOUSE</span><span class="legend-desc">Look around</span></div>
+        </div>
+        <div class="legend-section">
+            <div class="legend-section-title">Features</div>
+            <div class="legend-row"><span class="legend-key">R</span><span class="legend-desc">Toggle rangefinder</span></div>
+            <div class="legend-row"><span class="legend-key">L</span><span class="legend-desc">Toggle horizon line</span></div>
+            <div class="legend-row"><span class="legend-key">I</span><span class="legend-desc">Toggle debug info</span></div>
+            <div class="legend-row"><span class="legend-key">H</span><span class="legend-desc">Toggle this help</span></div>
+            <div class="legend-row"><span class="legend-key">ESC</span><span class="legend-desc">Release mouse</span></div>
+        </div>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+import * as THREE from 'three';
+import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+
+// ============================================
+// CONSTANTS - Stanford Torus Geometry
+// ============================================
+const TORUS = {
+    majorRadius: 1492,
+    minorRadius: 122,
+    tubeDiameter: 244,
+    floorHeight: 0,
+    ceilingHeight: 100,
+    circumference: 9373,
+    habitableWidth: 220, // ~90% of tube diameter for walkable area
+    
+    heightOffset(d) {
+        return (d * d) / (2 * this.majorRadius);
+    },
+    
+    tiltAngle(d) {
+        return (d / this.majorRadius) * (180 / Math.PI);
+    },
+    
+    tiltRadians(d) {
+        return d / this.majorRadius;
+    }
+};
+
+const PLAYER = {
+    eyeHeight: 1.75,
+    walkSpeed: 1.4,
+    runSpeed: 4.0,
+    defaultFOV: 80
+};
+
+const WORLD = {
+    sectionLength: 2000,
+    objectCount: 80,
+    gridSpacing: 50,
+    markerSpacing: 100,
+    drawDistance: 700,
+    fogNear: 350,
+    fogFar: 700
+};
+
+// Day/night cycle settings (in seconds of real time)
+const DAY_CYCLE = {
+    duration: 120, // Full day cycle in seconds (2 minutes)
+    startHour: 10  // Start at 10:00
+};
+
+// ============================================
+// GLOBAL STATE
+// ============================================
+let scene, camera, renderer, controls;
+let clock, raycaster;
+let playerPosition = new THREE.Vector3(0, PLAYER.eyeHeight, 0);
+let playerVelocity = new THREE.Vector3();
+let ringPosition = 0;
+
+const keys = { forward: false, backward: false, left: false, right: false, shift: false };
+
+const uiState = {
+    rangefinderActive: false,
+    horizonLineActive: false,
+    debugActive: false,
+    helpActive: true,
+    isLocked: false,
+    hasStarted: false
+};
+
+let worldObjects = [];
+let raycastTargets = []; // All objects the rangefinder can hit
+let floorMesh, ceilingMesh;
+let skyMesh, sunLight, ambientLight, hemiLight;
+let clouds = [];
+let wallMeshes = [];
+
+let frameCount = 0;
+let lastFPSUpdate = 0;
+let currentFPS = 60;
+let dayTime = DAY_CYCLE.startHour / 24; // 0-1 representing time of day
+
+// Sky colors for different times
+const SKY_COLORS = {
+    night: new THREE.Color(0x0a0a1a),
+    dawn: new THREE.Color(0xff6b4a),
+    day: new THREE.Color(0x87ceeb),
+    sunset: new THREE.Color(0xff8c42)
+};
+
+// ============================================
+// INITIALIZATION
+// ============================================
+function init() {
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87ceeb);
+    scene.fog = new THREE.Fog(0x87ceeb, WORLD.fogNear, WORLD.fogFar);
+
+    camera = new THREE.PerspectiveCamera(
+        PLAYER.defaultFOV,
+        window.innerWidth / window.innerHeight,
+        0.1,
+        WORLD.drawDistance
+    );
+    camera.position.copy(playerPosition);
+
+    renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+    controls = new PointerLockControls(camera, document.body);
+    
+    raycaster = new THREE.Raycaster();
+    raycaster.far = WORLD.drawDistance;
+
+    clock = new THREE.Clock();
+
+    createLighting();
+    createSky();
+    createClouds();
+    createFloorAndCeiling();
+    createWalls();
+    createGridLines();
+    createDistanceMarkers();
+    spawnObjects();
+    setupEventListeners();
+
+    document.getElementById('loading').classList.add('hidden');
+    animate();
+}
+
+// ============================================
+// WORLD CREATION
+// ============================================
+function createLighting() {
+    // Ambient light
+    ambientLight = new THREE.AmbientLight(0x8090a0, 0.8);
+    scene.add(ambientLight);
+
+    // Sun light
+    sunLight = new THREE.DirectionalLight(0xffffff, 1.5);
+    sunLight.position.set(0, 100, 0);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 2048;
+    sunLight.shadow.mapSize.height = 2048;
+    sunLight.shadow.camera.near = 1;
+    sunLight.shadow.camera.far = 200;
+    sunLight.shadow.camera.left = -150;
+    sunLight.shadow.camera.right = 150;
+    sunLight.shadow.camera.top = 150;
+    sunLight.shadow.camera.bottom = -150;
+    scene.add(sunLight);
+
+    // Hemisphere light
+    hemiLight = new THREE.HemisphereLight(0xaaccff, 0x556644, 0.6);
+    scene.add(hemiLight);
+
+    // Fill lights
+    const fillLight1 = new THREE.DirectionalLight(0xffeedd, 0.4);
+    fillLight1.position.set(100, 50, 100);
+    scene.add(fillLight1);
+
+    const fillLight2 = new THREE.DirectionalLight(0xddeeff, 0.4);
+    fillLight2.position.set(-100, 50, -100);
+    scene.add(fillLight2);
+}
+
+function createSky() {
+    // Create a curved sky surface at ceiling height
+    const skyGeometry = createCurvedFloorGeometry(WORLD.sectionLength, TORUS.habitableWidth + 40, 40, 20, TORUS.ceilingHeight - 1);
+    
+    // Sky shader material for gradient
+    const skyMaterial = new THREE.ShaderMaterial({
+        uniforms: {
+            topColor: { value: new THREE.Color(0x87ceeb) },
+            bottomColor: { value: new THREE.Color(0xffffff) },
+            horizonColor: { value: new THREE.Color(0xaaddff) },
+            sunPosition: { value: new THREE.Vector3(0, 1, 0) },
+            sunColor: { value: new THREE.Color(0xffffee) },
+            time: { value: 0.5 }
+        },
+        vertexShader: `
+            varying vec3 vWorldPosition;
+            varying vec2 vUv;
+            void main() {
+                vUv = uv;
+                vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+                vWorldPosition = worldPosition.xyz;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+        `,
+        fragmentShader: `
+            uniform vec3 topColor;
+            uniform vec3 bottomColor;
+            uniform vec3 horizonColor;
+            uniform vec3 sunPosition;
+            uniform vec3 sunColor;
+            uniform float time;
+            varying vec3 vWorldPosition;
+            varying vec2 vUv;
+            
+            void main() {
+                // Base sky gradient
+                float h = vUv.x; // Along the length of the torus
+                vec3 skyColor = mix(bottomColor, topColor, 0.5 + 0.5 * sin(h * 3.14159));
+                
+                // Add some variation
+                skyColor = mix(skyColor, horizonColor, 0.3);
+                
+                gl_FragColor = vec4(skyColor, 1.0);
+            }
+        `,
+        side: THREE.BackSide
+    });
+    
+    skyMesh = new THREE.Mesh(skyGeometry, skyMaterial);
+    scene.add(skyMesh);
+}
+
+function createClouds() {
+    const halfLength = WORLD.sectionLength / 2 - 100;
+    const halfWidth = TORUS.habitableWidth / 2 - 20;
+    
+    // Create soft cloud texture procedurally
+    const createCloudTexture = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 128;
+        canvas.height = 128;
+        const ctx = canvas.getContext('2d');
+        
+        ctx.clearRect(0, 0, 128, 128);
+        
+        // Soft radial gradient for cloud
+        const gradient = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 0.9)');
+        gradient.addColorStop(0.4, 'rgba(255, 255, 255, 0.5)');
+        gradient.addColorStop(0.7, 'rgba(255, 255, 255, 0.15)');
+        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 128, 128);
+        
+        const texture = new THREE.CanvasTexture(canvas);
+        return texture;
+    };
+    
+    const cloudTexture = createCloudTexture();
+    
+    // Create single flat cloud planes painted on the ceiling
+    for (let i = 0; i < 60; i++) {
+        const cloudSize = 30 + Math.random() * 60;
+        
+        const cloudGeometry = new THREE.PlaneGeometry(cloudSize, cloudSize * (0.5 + Math.random() * 0.5));
+        const baseOpacity = 0.5 + Math.random() * 0.4;
+        const cloudMaterial = new THREE.MeshBasicMaterial({
+            map: cloudTexture,
+            transparent: true,
+            opacity: baseOpacity,
+            side: THREE.DoubleSide,
+            depthWrite: false
+        });
+        
+        const cloud = new THREE.Mesh(cloudGeometry, cloudMaterial);
+        
+        const x = (Math.random() - 0.5) * halfWidth * 1.8;
+        const z = (Math.random() - 0.5) * halfLength * 2;
+        const heightOffset = TORUS.heightOffset(Math.abs(z));
+        
+        // Position flat against the sky, facing down
+        cloud.position.set(x, TORUS.ceilingHeight - 2 + heightOffset, z);
+        cloud.rotation.x = -Math.PI / 2; // Flat horizontal
+        cloud.rotation.z = Math.random() * Math.PI * 2; // Random orientation
+        
+        cloud.userData = {
+            baseX: x,
+            baseZ: z,
+            speed: 0.3 + Math.random() * 0.8,
+            baseOpacity: baseOpacity
+        };
+        
+        scene.add(cloud);
+        clouds.push(cloud);
+    }
+}
+
+function createFloorAndCeiling() {
+    // Floor - wider to match tube diameter
+    const floorGeometry = createCurvedFloorGeometry(WORLD.sectionLength, TORUS.habitableWidth, 50, 20);
+    const floorMaterial = new THREE.MeshStandardMaterial({
+        color: 0x3a5a3a,
+        roughness: 0.85,
+        metalness: 0.1,
+        side: THREE.DoubleSide
+    });
+    floorMesh = new THREE.Mesh(floorGeometry, floorMaterial);
+    floorMesh.receiveShadow = true;
+    scene.add(floorMesh);
+    raycastTargets.push(floorMesh);
+}
+
+function createWalls() {
+    // Create curved walls on both sides
+    const wallHeight = TORUS.ceilingHeight;
+    const wallSegments = 30;
+    const halfLength = WORLD.sectionLength / 2;
+    const halfWidth = TORUS.habitableWidth / 2;
+    
+    const wallMaterial = new THREE.MeshStandardMaterial({
+        color: 0x4a5a6a,
+        roughness: 0.7,
+        metalness: 0.2,
+        side: THREE.DoubleSide
+    });
+    
+    // Left wall
+    const leftWallGeometry = createWallGeometry(WORLD.sectionLength, wallHeight, wallSegments, -halfWidth);
+    const leftWall = new THREE.Mesh(leftWallGeometry, wallMaterial);
+    scene.add(leftWall);
+    wallMeshes.push(leftWall);
+    raycastTargets.push(leftWall);
+    
+    // Right wall
+    const rightWallGeometry = createWallGeometry(WORLD.sectionLength, wallHeight, wallSegments, halfWidth);
+    const rightWall = new THREE.Mesh(rightWallGeometry, wallMaterial.clone());
+    scene.add(rightWall);
+    wallMeshes.push(rightWall);
+    raycastTargets.push(rightWall);
+}
+
+function createWallGeometry(length, height, segments, xPos) {
+    const geometry = new THREE.BufferGeometry();
+    const vertices = [];
+    const normals = [];
+    const uvs = [];
+    const indices = [];
+    
+    const heightSegments = 10;
+    const halfLength = length / 2;
+    
+    for (let j = 0; j <= heightSegments; j++) {
+        for (let i = 0; i <= segments; i++) {
+            const u = i / segments;
+            const v = j / heightSegments;
+            
+            const z = (u - 0.5) * length;
+            const y = v * height;
+            const floorOffset = TORUS.heightOffset(Math.abs(z));
+            
+            vertices.push(xPos, y + floorOffset, z);
+            
+            // Normal points inward
+            const nx = xPos > 0 ? -1 : 1;
+            normals.push(nx, 0, 0);
+            
+            uvs.push(u, v);
+        }
+    }
+    
+    for (let j = 0; j < heightSegments; j++) {
+        for (let i = 0; i < segments; i++) {
+            const a = j * (segments + 1) + i;
+            const b = a + segments + 1;
+            const c = a + 1;
+            const d = b + 1;
+            
+            if (xPos > 0) {
+                indices.push(a, c, b);
+                indices.push(c, d, b);
+            } else {
+                indices.push(a, b, c);
+                indices.push(c, b, d);
+            }
+        }
+    }
+    
+    geometry.setIndex(indices);
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+    geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+    
+    return geometry;
+}
+
+function createCurvedFloorGeometry(length, width, lengthSegs, widthSegs, height = 0) {
+    const geometry = new THREE.BufferGeometry();
+    const vertices = [];
+    const normals = [];
+    const uvs = [];
+    const indices = [];
+
+    for (let j = 0; j <= widthSegs; j++) {
+        for (let i = 0; i <= lengthSegs; i++) {
+            const u = i / lengthSegs;
+            const v = j / widthSegs;
+            const z = (u - 0.5) * length;
+            const x = (v - 0.5) * width;
+            const heightOffset = TORUS.heightOffset(Math.abs(z));
+            const y = height + heightOffset;
+
+            vertices.push(x, y, z);
+
+            const tilt = TORUS.tiltRadians(z);
+            const nx = 0;
+            const ny = Math.cos(Math.abs(tilt));
+            const nz = -Math.sign(z) * Math.sin(Math.abs(tilt));
+            normals.push(nx, ny, nz);
+
+            uvs.push(u, v);
+        }
+    }
+
+    for (let j = 0; j < widthSegs; j++) {
+        for (let i = 0; i < lengthSegs; i++) {
+            const a = j * (lengthSegs + 1) + i;
+            const b = a + lengthSegs + 1;
+            const c = a + 1;
+            const d = b + 1;
+            indices.push(a, b, c);
+            indices.push(c, b, d);
+        }
+    }
+
+    geometry.setIndex(indices);
+    geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+    geometry.setAttribute('normal', new THREE.Float32BufferAttribute(normals, 3));
+    geometry.setAttribute('uv', new THREE.Float32BufferAttribute(uvs, 2));
+
+    return geometry;
+}
+
+function createGridLines() {
+    const gridMaterial = new THREE.LineBasicMaterial({ color: 0x4a6a4a, transparent: true, opacity: 0.5 });
+    const halfLength = WORLD.sectionLength / 2;
+    const halfWidth = TORUS.habitableWidth / 2 - 5;
+
+    for (let x = -halfWidth; x <= halfWidth; x += WORLD.gridSpacing) {
+        const points = [];
+        for (let z = -halfLength; z <= halfLength; z += 10) {
+            const y = TORUS.heightOffset(Math.abs(z)) + 0.05;
+            points.push(new THREE.Vector3(x, y, z));
+        }
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        scene.add(new THREE.Line(geometry, gridMaterial));
+    }
+
+    for (let z = -halfLength; z <= halfLength; z += WORLD.gridSpacing) {
+        const points = [];
+        const y = TORUS.heightOffset(Math.abs(z)) + 0.05;
+        for (let x = -halfWidth; x <= halfWidth; x += 10) {
+            points.push(new THREE.Vector3(x, y, z));
+        }
+        const geometry = new THREE.BufferGeometry().setFromPoints(points);
+        scene.add(new THREE.Line(geometry, gridMaterial));
+    }
+}
+
+function createDistanceMarkers() {
+    const halfLength = WORLD.sectionLength / 2;
+
+    for (let z = -halfLength; z <= halfLength; z += WORLD.markerSpacing) {
+        if (z === 0) continue;
+
+        const heightOffset = TORUS.heightOffset(Math.abs(z));
+        const tiltAngle = TORUS.tiltRadians(z);
+
+        const postGeometry = new THREE.CylinderGeometry(0.3, 0.3, 3, 8);
+        const postMaterial = new THREE.MeshStandardMaterial({ 
+            color: z > 0 ? 0x4ecdc4 : 0xdc4c64,
+            emissive: z > 0 ? 0x1a4a46 : 0x4a1a22,
+            roughness: 0.6
+        });
+        const post = new THREE.Mesh(postGeometry, postMaterial);
+        post.position.set(0, heightOffset + 1.5, z);
+        post.rotation.x = -tiltAngle;
+        post.castShadow = true;
+        scene.add(post);
+        raycastTargets.push(post);
+    }
+}
+
+function spawnObjects() {
+    const halfLength = WORLD.sectionLength / 2 - 50;
+    const halfWidth = TORUS.habitableWidth / 2 - 15;
+    const objectDefs = [];
+
+    for (let i = 0; i < WORLD.objectCount; i++) {
+        const rand = Math.random();
+        let height, type;
+
+        if (rand < 0.40) {
+            height = 0.5 + Math.random() * 1.5;
+        } else if (rand < 0.75) {
+            height = 3 + Math.random() * 5;
+        } else if (rand < 0.95) {
+            height = 10 + Math.random() * 15;
+        } else {
+            height = 30 + Math.random() * 20;
+        }
+
+        const typeRand = Math.random();
+        if (typeRand < 0.60) {
+            type = 'box';
+        } else if (typeRand < 0.90) {
+            type = 'cylinder';
+        } else {
+            type = 'composite';
+        }
+
+        let x, z;
+        let valid = false;
+        let attempts = 0;
+
+        while (!valid && attempts < 50) {
+            if (Math.random() < 0.4 && objectDefs.length > 0) {
+                const base = objectDefs[Math.floor(Math.random() * objectDefs.length)];
+                x = base.x + (Math.random() - 0.5) * 100;
+                z = base.z + (Math.random() - 0.5) * 100;
+            } else {
+                x = (Math.random() - 0.5) * halfWidth * 2;
+                z = (Math.random() - 0.5) * halfLength * 2;
+            }
+
+            valid = true;
+            for (const obj of objectDefs) {
+                const dx = obj.x - x;
+                const dz = obj.z - z;
+                if (Math.sqrt(dx * dx + dz * dz) < 10) {
+                    valid = false;
+                    break;
+                }
+            }
+
+            if (Math.abs(x) < 15 && Math.abs(z) < 30) {
+                valid = false;
+            }
+
+            attempts++;
+        }
+
+        if (valid) {
+            objectDefs.push({ x, z, height, type });
+        }
+    }
+
+    for (const def of objectDefs) {
+        createObject(def);
+    }
+}
+
+function createObject(def) {
+    const { x, z, height, type } = def;
+    const heightOffset = TORUS.heightOffset(Math.abs(z));
+    const tiltAngle = TORUS.tiltRadians(z);
+
+    const colors = [
+        0x5a6578, 0x8090a6, 0x3d4858, 0x2a3040,
+        0x6d5e47, 0x9b8365, 0x7b6354,
+        0x4d6a6a, 0x5a7680, 0x6a7a6a,
+        0x7a6a8a, 0x6a6a7a,
+    ];
+    const color = colors[Math.floor(Math.random() * colors.length)];
+
+    let mesh;
+    const material = new THREE.MeshStandardMaterial({
+        color: color,
+        roughness: 0.7 + Math.random() * 0.3,
+        metalness: Math.random() * 0.3
+    });
+
+    if (type === 'box') {
+        const width = 2 + Math.random() * (height * 0.5);
+        const depth = 2 + Math.random() * (height * 0.5);
+        const geometry = new THREE.BoxGeometry(width, height, depth);
+        mesh = new THREE.Mesh(geometry, material);
+    } else if (type === 'cylinder') {
+        const radius = 0.5 + Math.random() * (height * 0.15);
+        const geometry = new THREE.CylinderGeometry(radius, radius * 1.1, height, 12);
+        mesh = new THREE.Mesh(geometry, material);
+    } else {
+        const group = new THREE.Group();
+        const baseH = height * 0.6;
+        const baseW = 3 + Math.random() * 4;
+        const baseGeom = new THREE.BoxGeometry(baseW, baseH, baseW);
+        const baseMesh = new THREE.Mesh(baseGeom, material);
+        baseMesh.position.y = baseH / 2;
+        group.add(baseMesh);
+
+        const topH = height * 0.4;
+        const topW = baseW * 0.6;
+        const topGeom = new THREE.BoxGeometry(topW, topH, topW);
+        const topMesh = new THREE.Mesh(topGeom, material.clone());
+        topMesh.material.color.multiplyScalar(1.2);
+        topMesh.position.y = baseH + topH / 2;
+        group.add(topMesh);
+
+        mesh = group;
+    }
+
+    const baseY = heightOffset + (type === 'composite' ? 0 : height / 2);
+    mesh.position.set(x, baseY, z);
+    mesh.rotation.x = -tiltAngle;
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.userData = { type, height, baseZ: z, baseX: x };
+
+    scene.add(mesh);
+    worldObjects.push(mesh);
+    raycastTargets.push(mesh);
+}
+
+// ============================================
+// DAY/NIGHT CYCLE
+// ============================================
+function updateDayNightCycle(delta) {
+    // Advance time
+    dayTime += delta / DAY_CYCLE.duration;
+    if (dayTime > 1) dayTime -= 1;
+    
+    const hour = dayTime * 24;
+    
+    // Calculate sky colors based on time of day
+    let skyColor, ambientColor, sunIntensity, ambientIntensity;
+    
+    if (hour < 5 || hour >= 21) {
+        // Night
+        skyColor = SKY_COLORS.night;
+        ambientColor = new THREE.Color(0x1a1a3a);
+        sunIntensity = 0.1;
+        ambientIntensity = 0.3;
+    } else if (hour < 7) {
+        // Dawn
+        const t = (hour - 5) / 2;
+        skyColor = SKY_COLORS.night.clone().lerp(SKY_COLORS.dawn, t);
+        ambientColor = new THREE.Color(0x1a1a3a).lerp(new THREE.Color(0x806050), t);
+        sunIntensity = 0.1 + t * 0.8;
+        ambientIntensity = 0.3 + t * 0.4;
+    } else if (hour < 9) {
+        // Morning
+        const t = (hour - 7) / 2;
+        skyColor = SKY_COLORS.dawn.clone().lerp(SKY_COLORS.day, t);
+        ambientColor = new THREE.Color(0x806050).lerp(new THREE.Color(0x8090a0), t);
+        sunIntensity = 0.9 + t * 0.6;
+        ambientIntensity = 0.7 + t * 0.2;
+    } else if (hour < 17) {
+        // Day
+        skyColor = SKY_COLORS.day;
+        ambientColor = new THREE.Color(0x8090a0);
+        sunIntensity = 1.5;
+        ambientIntensity = 0.9;
+    } else if (hour < 19) {
+        // Evening
+        const t = (hour - 17) / 2;
+        skyColor = SKY_COLORS.day.clone().lerp(SKY_COLORS.sunset, t);
+        ambientColor = new THREE.Color(0x8090a0).lerp(new THREE.Color(0xa07050), t);
+        sunIntensity = 1.5 - t * 0.6;
+        ambientIntensity = 0.9 - t * 0.2;
+    } else {
+        // Dusk
+        const t = (hour - 19) / 2;
+        skyColor = SKY_COLORS.sunset.clone().lerp(SKY_COLORS.night, t);
+        ambientColor = new THREE.Color(0xa07050).lerp(new THREE.Color(0x1a1a3a), t);
+        sunIntensity = 0.9 - t * 0.8;
+        ambientIntensity = 0.7 - t * 0.4;
+    }
+    
+    // Update scene
+    scene.background.copy(skyColor);
+    if (scene.fog) scene.fog.color.copy(skyColor);
+    
+    // Update sky shader
+    if (skyMesh && skyMesh.material && skyMesh.material.uniforms) {
+        skyMesh.material.uniforms.topColor.value.copy(skyColor);
+        skyMesh.material.uniforms.bottomColor.value.copy(skyColor).multiplyScalar(1.2);
+        skyMesh.material.uniforms.time.value = dayTime;
+    }
+    
+    // Update lights
+    if (sunLight) {
+        sunLight.intensity = sunIntensity;
+        sunLight.color.copy(hour < 7 || hour > 18 ? new THREE.Color(0xffaa77) : new THREE.Color(0xffffff));
+    }
+    
+    if (ambientLight) {
+        ambientLight.intensity = ambientIntensity;
+        ambientLight.color.copy(ambientColor);
+    }
+    
+    // Update cloud opacity based on time
+    const cloudOpacityMult = hour < 6 || hour > 20 ? 0.4 : 1.0;
+    for (const cloud of clouds) {
+        if (cloud.material && cloud.userData.baseOpacity !== undefined) {
+            cloud.material.opacity = cloud.userData.baseOpacity * cloudOpacityMult;
+        }
+    }
+    
+    // Update time display
+    const hours = Math.floor(hour);
+    const minutes = Math.floor((hour - hours) * 60);
+    document.getElementById('time-value').textContent = 
+        `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+}
+
+function updateClouds(delta) {
+    for (const cloud of clouds) {
+        // Drift clouds slowly
+        cloud.userData.baseZ += cloud.userData.speed * delta;
+        
+        // Wrap around
+        const halfLength = WORLD.sectionLength / 2;
+        if (cloud.userData.baseZ > halfLength) {
+            cloud.userData.baseZ = -halfLength;
+        }
+        
+        const heightOffset = TORUS.heightOffset(Math.abs(cloud.userData.baseZ));
+        cloud.position.z = cloud.userData.baseZ;
+        cloud.position.y = TORUS.ceilingHeight - 12 + heightOffset;
+    }
+}
+
+// ============================================
+// EVENT HANDLING
+// ============================================
+function setupEventListeners() {
+    document.getElementById('title-screen').addEventListener('click', () => {
+        document.getElementById('title-screen').classList.add('hidden');
+        uiState.hasStarted = true;
+        controls.lock();
+    });
+
+    document.getElementById('resume-overlay').addEventListener('click', () => {
+        controls.lock();
+    });
+
+    controls.addEventListener('lock', () => {
+        uiState.isLocked = true;
+        document.getElementById('crosshair').classList.remove('hidden');
+        document.getElementById('position-indicator').classList.remove('hidden');
+        document.getElementById('time-indicator').classList.remove('hidden');
+        document.getElementById('resume-overlay').classList.remove('active');
+        if (uiState.helpActive) {
+            document.getElementById('controls-legend').classList.remove('hidden');
+        }
+        clock.getDelta();
+    });
+
+    controls.addEventListener('unlock', () => {
+        uiState.isLocked = false;
+        document.getElementById('crosshair').classList.add('hidden');
+        if (uiState.hasStarted) {
+            document.getElementById('resume-overlay').classList.add('active');
+        }
+        keys.forward = false;
+        keys.backward = false;
+        keys.left = false;
+        keys.right = false;
+        keys.shift = false;
+    });
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            keys.forward = false;
+            keys.backward = false;
+            keys.left = false;
+            keys.right = false;
+            keys.shift = false;
+        } else {
+            clock.getDelta();
+        }
+    });
+
+    window.addEventListener('blur', () => {
+        keys.forward = false;
+        keys.backward = false;
+        keys.left = false;
+        keys.right = false;
+        keys.shift = false;
+    });
+
+    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('keyup', onKeyUp);
+    window.addEventListener('resize', onWindowResize);
+}
+
+function onKeyDown(event) {
+    if (!uiState.isLocked) return;
+
+    switch (event.code) {
+        case 'KeyW': case 'ArrowUp': keys.forward = true; break;
+        case 'KeyS': case 'ArrowDown': keys.backward = true; break;
+        case 'KeyA': case 'ArrowLeft': keys.left = true; break;
+        case 'KeyD': case 'ArrowRight': keys.right = true; break;
+        case 'ShiftLeft': case 'ShiftRight': keys.shift = true; break;
+        case 'KeyR': toggleRangefinder(); break;
+        case 'KeyL': toggleHorizonLine(); break;
+        case 'KeyI': toggleDebug(); break;
+        case 'KeyH': toggleHelp(); break;
+    }
+}
+
+function onKeyUp(event) {
+    switch (event.code) {
+        case 'KeyW': case 'ArrowUp': keys.forward = false; break;
+        case 'KeyS': case 'ArrowDown': keys.backward = false; break;
+        case 'KeyA': case 'ArrowLeft': keys.left = false; break;
+        case 'KeyD': case 'ArrowRight': keys.right = false; break;
+        case 'ShiftLeft': case 'ShiftRight': keys.shift = false; break;
+    }
+}
+
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+// ============================================
+// UI TOGGLES
+// ============================================
+function toggleRangefinder() {
+    uiState.rangefinderActive = !uiState.rangefinderActive;
+    const rf = document.getElementById('rangefinder');
+    if (uiState.rangefinderActive) {
+        rf.classList.remove('inactive');
+    } else {
+        rf.classList.add('inactive');
+        document.getElementById('rf-distance').textContent = '---';
+        document.getElementById('rf-info').textContent = 'Press R to activate';
+        document.getElementById('factoid').classList.add('hidden');
+    }
+}
+
+function toggleHorizonLine() {
+    uiState.horizonLineActive = !uiState.horizonLineActive;
+    document.getElementById('horizon-line').classList.toggle('hidden', !uiState.horizonLineActive);
+}
+
+function toggleDebug() {
+    uiState.debugActive = !uiState.debugActive;
+    document.getElementById('debug-info').classList.toggle('hidden', !uiState.debugActive);
+}
+
+function toggleHelp() {
+    uiState.helpActive = !uiState.helpActive;
+    const legend = document.getElementById('controls-legend');
+    if (uiState.helpActive && uiState.isLocked) {
+        legend.classList.remove('hidden');
+    } else {
+        legend.classList.add('hidden');
+    }
+}
+
+// ============================================
+// UPDATE LOOP
+// ============================================
+function updatePlayer(delta) {
+    if (!uiState.isLocked) return;
+
+    delta = Math.min(delta, 0.1);
+
+    const speed = keys.shift ? PLAYER.runSpeed : PLAYER.walkSpeed;
+    const direction = new THREE.Vector3();
+
+    const forward = new THREE.Vector3();
+    const right = new THREE.Vector3();
+    camera.getWorldDirection(forward);
+    forward.y = 0;
+    forward.normalize();
+    right.crossVectors(forward, new THREE.Vector3(0, 1, 0));
+
+    if (keys.forward) direction.add(forward);
+    if (keys.backward) direction.sub(forward);
+    if (keys.left) direction.sub(right);
+    if (keys.right) direction.add(right);
+
+    if (direction.length() > 0) {
+        direction.normalize();
+        direction.multiplyScalar(speed * delta);
+        controls.getObject().position.add(direction);
+    }
+
+    const pos = controls.getObject().position;
+    const floorY = TORUS.heightOffset(Math.abs(pos.z)) + PLAYER.eyeHeight;
+    pos.y = floorY;
+
+    ringPosition = pos.z;
+
+    const halfLength = WORLD.sectionLength / 2 - 10;
+    const halfWidth = TORUS.habitableWidth / 2 - 2;
+    pos.z = Math.max(-halfLength, Math.min(halfLength, pos.z));
+    pos.x = Math.max(-halfWidth, Math.min(halfWidth, pos.x));
+
+    playerVelocity.copy(direction).divideScalar(delta || 1);
+}
+
+function updateRangefinder() {
+    if (!uiState.rangefinderActive) return;
+
+    raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+    const intersects = raycaster.intersectObjects(raycastTargets, true);
+
+    const rfDistance = document.getElementById('rf-distance');
+    const rfInfo = document.getElementById('rf-info');
+    const factoid = document.getElementById('factoid');
+
+    if (intersects.length > 0) {
+        const hit = intersects[0];
+        const distance = hit.distance;
+        
+        rfDistance.textContent = distance.toFixed(1);
+        
+        const tilt = TORUS.tiltAngle(distance).toFixed(1);
+        const rise = TORUS.heightOffset(distance).toFixed(1);
+        rfInfo.textContent = `Tilt: ${tilt}° | Rise: ${rise}m`;
+
+        updateFactoid(distance, tilt, rise);
+    } else {
+        rfDistance.textContent = '---';
+        rfInfo.textContent = 'No target in range';
+        factoid.classList.add('hidden');
+    }
+}
+
+function updateFactoid(distance, tilt, rise) {
+    const factoid = document.getElementById('factoid');
+    const factoidDistance = document.getElementById('factoid-distance');
+    const factoidText = document.getElementById('factoid-text');
+
+    let text = '';
+    
+    if (distance < 30) {
+        text = 'At this distance, curvature is imperceptible. The habitat feels like flat ground.';
+    } else if (distance < 75) {
+        text = `Tilt: ${tilt}° — Still feels essentially flat. You'd need instruments to detect the curve.`;
+    } else if (distance < 150) {
+        text = `Rise: ${rise}m — The floor is rising like a gentle slope. Objects are starting to lean back.`;
+    } else if (distance < 300) {
+        text = `Tilt: ${tilt}° — Noticeably leaning back now. You're seeing the inside of a ring.`;
+    } else if (distance < 500) {
+        text = `Rise: ${rise}m — Like looking up a steep hill. The curvature is unmistakable.`;
+    } else {
+        text = `At ${distance.toFixed(0)}m, you're seeing significant torus geometry. The ceiling curves to meet the floor in the far distance.`;
+    }
+
+    factoidDistance.textContent = `${distance.toFixed(0)}m`;
+    factoidText.textContent = text;
+    factoid.classList.remove('hidden');
+}
+
+function updatePositionIndicator() {
+    const marker = document.getElementById('pos-marker');
+    const posDistance = document.getElementById('pos-distance');
+
+    const normalizedPos = (ringPosition + WORLD.sectionLength / 2) / WORLD.sectionLength;
+    const angle = normalizedPos * Math.PI;
+    
+    const cx = 70 + Math.cos(angle) * 65;
+    const cy = 30 + Math.sin(angle) * 25;
+
+    marker.style.left = cx + 'px';
+    marker.style.top = cy + 'px';
+
+    posDistance.textContent = Math.abs(ringPosition).toFixed(0);
+}
+
+function updateDebugInfo() {
+    if (!uiState.debugActive) return;
+
+    const pos = controls.getObject().position;
+    
+    document.getElementById('debug-pos').textContent = 
+        `${pos.x.toFixed(1)}, ${pos.y.toFixed(1)}, ${pos.z.toFixed(1)}`;
+    
+    document.getElementById('debug-angle').textContent = 
+        `${(ringPosition / TORUS.majorRadius * 180 / Math.PI).toFixed(2)}°`;
+
+    const euler = new THREE.Euler().setFromQuaternion(camera.quaternion);
+    document.getElementById('debug-orient').textContent = 
+        `${(euler.x * 180 / Math.PI).toFixed(1)}° / ${(euler.y * 180 / Math.PI).toFixed(1)}°`;
+
+    document.getElementById('debug-speed').textContent = 
+        `${playerVelocity.length().toFixed(2)} m/s`;
+
+    document.getElementById('debug-fps').textContent = currentFPS.toString();
+}
+
+function updateFPS(time) {
+    frameCount++;
+    if (time - lastFPSUpdate >= 1000) {
+        currentFPS = frameCount;
+        frameCount = 0;
+        lastFPSUpdate = time;
+    }
+}
+
+// ============================================
+// ANIMATION LOOP
+// ============================================
+function animate(time) {
+    requestAnimationFrame(animate);
+
+    const delta = clock.getDelta();
+
+    updatePlayer(delta);
+    updateDayNightCycle(delta);
+    updateClouds(delta);
+    updateRangefinder();
+    updatePositionIndicator();
+    updateDebugInfo();
+    updateFPS(time || 0);
+
+    renderer.render(scene, camera);
+}
+
+// ============================================
+// START
+// ============================================
+init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8" />
+    <title>Ising&sup2; this time it's personal</title>
+
+    <!-- THREE.js Core + OrbitControls -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r132/three.min.js"></script>
+    <script src="js/OrbitControls.js"></script>
+
+    <!-- Postprocessing: EffectComposer, RenderPass, Bloom, Glitch -->
+    <script src="js/EffectComposer.js"></script>
+    <script src="js/RenderPass.js"></script>
+    <script src="js/UnrealBloomPass.js"></script>
+    <script src="js/GlitchPass.js"></script>
+    <script src="js/CopyShader.js"></script>
+    <script src="js/ShaderPass.js"></script>
+    <script src="js/LuminosityHighPassShader.js"></script>
+    <script src="js/DigitalGlitch.js"></script>
+
+    <!-- dat.GUI -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dat-gui/0.7.9/dat.gui.min.js"></script>
+
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+      body {
+        margin: 0;
+        overflow: hidden;
+        background-color: #000;
+        font-family: 'VT323', monospace;
+      }
+
+      /* "Vaporwave 3D Ising Model" text at lower-left corner */
+      #info {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        color: white;
+        z-index: 100;
+        font-size: 18px;
+      }
+
+      /*
+        Container for the magnetization graph is NOT absolutely positioned.
+        We'll rely on dat.GUI to place it. We simply set width:100% so it
+        fills the panel width.
+      */
+      #magContainer {
+        width: 100%;
+        background: rgba(0, 0, 0, 0.3);
+        color: #fff;
+        font-size: 14px;
+        padding: -2px;
+      }
+      #magLabel {
+        margin-bottom: 4px;
+        margin-top: 20px;
+        font-weight: bold;
+        font-size: 16px;
+      }
+      #magGraph {
+        display: block;
+        width: 100%;
+        height: 100px;
+        background: rgba(0, 0, 0, 0.3);
+      }
+
+      /* Vaporwave-styled Modal Pop-up */
+      #phaseModal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(20, 20, 20, 0.7);
+        backdrop-filter: blur(5px);
+        z-index: 300;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      #phaseModalContent {
+        background: linear-gradient(135deg, rgba(255,105,180,0.8), rgba(138,43,226,0.8));
+        border: 2px solid rgba(255, 255, 255, 0.8);
+        border-radius: 15px;
+        box-shadow: 0 0 15px rgba(255,105,180,0.8);
+        padding: 20px 30px;
+        text-align: center;
+        color: #fff;
+      }
+      #phaseModalButton {
+        background: rgba(255,255,255,0.3);
+        border: none;
+        border-radius: 5px;
+        color: #fff;
+        padding: 10px 20px;
+        font-size: 16px;
+        margin-top: 15px;
+        cursor: pointer;
+        transition: background 0.3s ease;
+      }
+      #phaseModalButton:hover {
+        background: rgba(255,255,255,0.5);
+      }
+
+      /* Speech Bubble Container */
+      #bubbleLayer {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 400;
+      }
+      .speech-bubble {
+        position: absolute;
+        transform: translate(-50%, -50%);
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: 10px;
+        color: #fff;
+        padding: 5px 10px;
+        font-size: 14px;
+        backdrop-filter: blur(3px);
+        box-shadow: 0 0 5px rgba(255,255,255,0.5);
+        animation: bubbleFade 2s forwards;
+      }
+      @keyframes bubbleFade {
+        0% { opacity: 1; }
+        80% { opacity: 1; }
+        100% { opacity: 0; }
+      }
+
+      /* Hide/Show UI button near the bottom-left text */
+      #uiToggleContainer {
+        position: absolute;
+        bottom: 10px;
+        left: 300px;
+        width: 100px;
+        height: 100px;
+        z-index: 1000;
+      }
+      #uiToggleButton {
+        position: absolute;
+        left: -285px;
+        bottom: 15px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        background: rgba(0, 0, 0, 0.5);
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        padding: 5px 10px;
+        cursor: pointer;
+      }
+      #uiToggleContainer:hover #uiToggleButton {
+        opacity: 1;
+      }
+    </style>
+
+    <!-- Vertex Shader for final composite -->
+    <script id="vertexshader" type="x-shader/x-vertex">
+      varying vec2 vUv;
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+      }
+    </script>
+
+    <!-- Fragment Shader for final composite -->
+    <script id="fragmentshader" type="x-shader/x-fragment">
+      uniform sampler2D baseTexture;
+      uniform sampler2D bloomTexture;
+      varying vec2 vUv;
+      void main() {
+        vec4 base = texture2D( baseTexture, vUv );
+        vec4 bloom = texture2D( bloomTexture, vUv );
+        gl_FragColor = base + bloom;
+      }
+    </script>
+  </head>
+  <body>
+    <!-- "Vaporwave 3D Ising Model" at the bottom-left -->
+    <div id="info">Vaporwave 3D Ising Model — drag to rotate, scroll to zoom</div>
+
+    <!-- Container for the Magnetization Graph (not absolutely positioned) -->
+    <div id="magContainer" style="display:none;">
+      <div id="magLabel">Magnetization</div>
+      <canvas id="magGraph" width="300" height="100"></canvas>
+    </div>
+
+    <!-- Vaporwave-styled Modal -->
+    <div id="phaseModal">
+      <div id="phaseModalContent">
+        <p id="phaseModalText"></p>
+        <button id="phaseModalButton">OK</button>
+      </div>
+    </div>
+
+    <div id="bubbleLayer"></div>
+
+    <!-- Hide/Show UI Button Container -->
+    <div id="uiToggleContainer">
+      <button id="uiToggleButton">Hide UI</button>
+    </div>
+
+    <script>
+
+      // -------------------------------------------------
+      // Helper: Set tooltips for dat.gui
+      // -------------------------------------------------
+      function setTooltip(controller, tooltipText) {
+        requestAnimationFrame(() => {
+          if (controller.__li) {
+            controller.__li.title = tooltipText;
+          }
+        });
+      }
+
+      // -------------------------------------------------
+      // Global Variables
+      // -------------------------------------------------
+      let scene, camera, renderer, controls;
+      let composer, bloomComposer, finalComposer;
+      const darkMaterial = new THREE.MeshBasicMaterial({ color: "black" });
+      const materials = {}; // store original materials for darkening
+      const BLOOM_LAYER = 1;
+
+      let nodes = [];
+      let edges = [];
+      let ribbonSparks = [];
+
+      // Simulation speed
+      let simulationSpeed = 100;
+
+      // Timers
+      let lastSimUpdate = 0;
+      const simUpdateInterval = 100;
+
+      // Off-screen canvas for background
+      let bgCanvas, bgCtx, bgTexture;
+
+      // Magnetization
+      const maxHistoryLength = 200;
+      let magnetizationHistory = [];
+      let smoothedMag = 0;
+
+      // Graph
+      let graphCanvas, graphCtx;
+
+      let currentPhase = null;
+
+      let textureMap2 = {}, textureMap3 = {};
+
+      // Glitch
+      let glitchPass;
+      let glitchActive = false;
+      let glitchTimer = 0;
+      const glitchScale = 0.01;
+
+      // Layout
+      const LayoutMode = {
+        RANDOM:"Random",
+        SPHERE:"Sphere",
+        CALABI:"Spiral"
+      };
+
+      // Spin messages
+      const spinMessages = {
+        "1":"life is good",
+        "0":"i have no strong feelings",
+        "-1":"i want to study statistical mechanics"
+      };
+
+      // Fluctuation mode
+      let lastFluctuationTime = 0;
+      const fluctInterval = 500;
+
+      // Whether UI is hidden via button (affects whether we show pop-ups)
+      let uiHidden = false;
+
+      // -------------------------------------------------
+      // Parameters (incl. wave amplitude/frequency)
+      // -------------------------------------------------
+      const params = {
+        coupling:1.0,
+        temperature:1.0,
+        field:0.0,
+        numNodes:500,
+        spinBias:0.0,
+        neighborsCount:4,
+        density:2.5,
+        layout:LayoutMode.RANDOM,
+        useRibbons:false,
+        showConnectors:true,
+        threeSpin:false,
+        showFaces:true,
+        glitchEnabled:false,
+        showBubbles:false,
+        fluctuationMode:false,
+        showGraph:true,
+
+        // NEW: base amplitude/frequency + length-based scaling
+        baseWaveAmp:0.5,
+        waveAmpFactor:0.02,    // each unit of length adds 0.02 to wave amplitude
+        baseWaveFreq:1.0,
+        waveFreqFactor:0.1,   // each unit of length adds 0.1 to wave frequency
+
+        reinitialize:function(){
+          clearScene();
+          createNodesAndEdges();
+        }
+      };
+
+      const MIN_NODES=10;
+      const MAX_NODES=1500;
+
+      const spinColorPositive = new THREE.Color(0xff77ff);
+      const spinColorNegative = new THREE.Color(0x77ffff);
+      const spinColorNeutral  = new THREE.Color(0x666666);
+
+      // BG colors
+      const nightTop    = new THREE.Color("#0a0c37");
+      const nightBottom = new THREE.Color("#375971");
+      const dayTop      = new THREE.Color("#ff61c6");
+      const dayBottom   = new THREE.Color("#ff9900");
+
+      // Star texture
+      let starTexture;
+      const STAR_TEXTURE_URL="https://canada1.discourse-cdn.com/flex035/uploads/threejs/original/3X/7/4/746a82ae37c272afcb7ddf02dfd10c71061c546a.png";
+
+      // -------------------------------------------------
+      // initTextures()
+      // -------------------------------------------------
+      function initTextures(){
+        // 2-spin
+        textureMap2["1"] = createTextTexture(":)",60,"#000000");
+        textureMap2["-1"]= createTextTexture(":(",60,"#000000");
+
+        // 3-spin
+        textureMap3["1"] = createTextTexture(":)",60,"#000000");
+        textureMap3["0"] = createTextTexture(":|",60,"#000000");
+        textureMap3["-1"]= createTextTexture(":(",60,"#000000");
+
+        starTexture=new THREE.TextureLoader().load(STAR_TEXTURE_URL);
+      }
+
+      function createTextTexture(text,fontSize,textColor){
+        const canvas=document.createElement("canvas");
+        canvas.width=256;
+        canvas.height=256;
+        const ctx=canvas.getContext("2d");
+        ctx.clearRect(0,0,canvas.width,canvas.height);
+        ctx.font=fontSize+"px VT323, monospace";
+        ctx.fillStyle=textColor;
+        ctx.textAlign="center";
+        ctx.textBaseline="middle";
+        ctx.fillText(text,canvas.width/2,canvas.height/2);
+        const tex=new THREE.CanvasTexture(canvas);
+        tex.magFilter=THREE.LinearFilter;
+        tex.minFilter=THREE.LinearFilter;
+        tex.needsUpdate=true;
+        return tex;
+      }
+
+      // -------------------------------------------------
+      // init()
+      // -------------------------------------------------
+      function init(){
+        initTextures();
+        scene=new THREE.Scene();
+
+        camera=new THREE.PerspectiveCamera(60,window.innerWidth/window.innerHeight,0.1,10000);
+        camera.position.set(0,0,50);
+
+        renderer=new THREE.WebGLRenderer({antialias:true});
+        renderer.setSize(window.innerWidth,window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        controls=new THREE.OrbitControls(camera,renderer.domElement);
+
+        // BG
+        bgCanvas=document.createElement("canvas");
+        bgCanvas.width=128;
+        bgCanvas.height=128;
+        bgCtx=bgCanvas.getContext("2d");
+        bgTexture=new THREE.CanvasTexture(bgCanvas);
+        scene.background=bgTexture;
+
+        const ambientLight=new THREE.AmbientLight(0xffffff,0.6);
+        scene.add(ambientLight);
+        const directionalLight=new THREE.DirectionalLight(0xffffff,0.8);
+        directionalLight.position.set(0,1,1);
+        scene.add(directionalLight);
+
+        createNodesAndEdges();
+
+        graphCanvas=document.getElementById("magGraph");
+        graphCtx=graphCanvas.getContext("2d");
+
+        createGUI();
+        window.addEventListener("resize",onWindowResize,false);
+
+        // Modal
+        document.getElementById("phaseModalButton").addEventListener("click",()=>{
+          document.getElementById("phaseModal").style.display="none";
+        });
+        window.addEventListener("keydown",(event)=>{
+          if(event.key==="Enter"){
+            document.getElementById("phaseModal").style.display="none";
+          }
+        });
+
+        setupPostProcessing();
+        animate();
+      }
+
+      function onWindowResize(){
+        camera.aspect=window.innerWidth/window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth,window.innerHeight);
+        bloomComposer.setSize(window.innerWidth,window.innerHeight);
+        finalComposer.setSize(window.innerWidth,window.innerHeight);
+      }
+
+      // -------------------------------------------------
+      // setupPostProcessing()
+      // -------------------------------------------------
+      function setupPostProcessing(){
+        const renderScene=new THREE.RenderPass(scene, camera);
+
+        // Bloom
+        bloomComposer=new THREE.EffectComposer(renderer);
+        bloomComposer.setSize(window.innerWidth,window.innerHeight);
+        bloomComposer.renderToScreen = false;
+        bloomComposer.addPass(renderScene);
+        const bloomPass=new THREE.UnrealBloomPass(
+          new THREE.Vector2(window.innerWidth,window.innerHeight),
+          10,
+          1,
+          0.25
+        );
+        bloomComposer.addPass(bloomPass);
+
+        // Final
+        finalComposer=new THREE.EffectComposer(renderer);
+        finalComposer.setSize(window.innerWidth,window.innerHeight);
+        finalComposer.addPass(renderScene);
+        const finalPass=new THREE.ShaderPass(
+          new THREE.ShaderMaterial({
+            uniforms: {
+              baseTexture: { value: null },
+              bloomTexture: { value: bloomComposer.renderTarget2.texture }
+            },
+            vertexShader: document.getElementById('vertexshader').textContent,
+            fragmentShader: document.getElementById('fragmentshader').textContent
+          }),
+          "baseTexture"
+        );
+        finalPass.needsSwap = true;
+        finalComposer.addPass(finalPass);
+
+        // Glitch
+        glitchPass = new THREE.GlitchPass();
+        glitchPass.enabled = false;
+        finalComposer.addPass(glitchPass);
+      }
+
+      // -------------------------------------------------
+      // createGUI() - embed the #magContainer in a new folder
+      // -------------------------------------------------
+      let temperatureController, fieldController;
+      let gui, magContainer;
+      function createGUI(){
+        gui=new dat.GUI();
+
+        const c1=gui.add(params,"coupling",0.1,5,0.1).name("Coupling(J)");
+        setTooltip(c1,"Interaction strength between nodes.");
+
+        temperatureController = gui.add(params,"temperature",0.1,10,0.1).name("Temperature(T)");
+        setTooltip(temperatureController, "Thermal energy influencing node behavior (larger = more randomness).");
+
+        fieldController = gui.add(params,"field",-5,5,0.01).name("Field(H)");
+        setTooltip(fieldController, "External magnetic field applied to the system.");
+
+        const c4=gui.add(params,"spinBias",-1,1,0.1).name("SpinBias");
+        setTooltip(c4,"Bias for initial spin assignment (requires reinitialization).");
+
+        const c5=gui.add(params,"neighborsCount",1,6,1).name("Neighbors");
+        setTooltip(c5,"Desired number of neighbors per node (requires reinitialization).");
+
+        const c6=gui.add(params,"numNodes",MIN_NODES,MAX_NODES,1).name("Nodes");
+        setTooltip(c6,"Total number of nodes (requires reinitialization).");
+
+        const layoutControl = gui.add(params,"layout",[LayoutMode.RANDOM,LayoutMode.SPHERE,LayoutMode.CALABI])
+           .name("Layout");
+        setTooltip(layoutControl, "Choose the layout mode for node placement (requires reinitialization).");
+
+        // magnetization graph container into the GUI
+        magContainer = document.getElementById("magContainer");
+        magContainer.style.display = "block";
+        gui.domElement.appendChild(magContainer);
+
+        // Toggle ribbons
+        const c8 = gui.add(params,"useRibbons").name("Use Ribbons");
+        setTooltip(c8, "Switch between using ribbons (wavy connectors) and simple lines.");
+        c8.onChange(()=> switchEdgeStyle() );
+
+        const showConnectorsControl = gui.add(params,"showConnectors").name("Show Connectors");
+        setTooltip(showConnectorsControl, "Toggle visibility of the connectors between nodes.");
+
+        const c9=gui.add(params,"threeSpin").name("3 States");
+        setTooltip(c9,"Toggle 2 vs 3 spins.");
+        c9.onChange(()=>params.reinitialize());
+
+        const showFacesControl = gui.add(params,"showFaces").name("Show Faces");
+        setTooltip(showFacesControl, "Show or hide the faces on the nodes.");
+        const glitchEnabledControl = gui.add(params,"glitchEnabled").name("Enable Glitch");
+        setTooltip(glitchEnabledControl, "Enable a visual glitch effect based on system conditions.");
+        const showBubblesControl = gui.add(params,"showBubbles").name("Show Bubbles");
+        setTooltip(showBubblesControl, "Toggle display of speech bubbles that appear near nodes.");
+        const fluctuationModeControl = gui.add(params,"fluctuationMode").name("Fluctuation Mode");
+        setTooltip(fluctuationModeControl, "Enable random fluctuations in temperature and field.");
+
+        // Reinitialize
+        const reinitializeControl = gui.add(params, "reinitialize").name("Reinitialize");
+        setTooltip(reinitializeControl, "Reset and reinitialize the simulation with current settings.");
+
+        // --- Hook the dat.GUI close button so we also hide the magnetization graph ---
+        let closeButton = gui.domElement.getElementsByClassName("close-button");
+        if (closeButton.length > 0) {
+          let originalOnClick = closeButton[0].onclick;
+          closeButton[0].onclick = function(evt) {
+            if (originalOnClick) originalOnClick.call(this, evt);
+            magContainer.style.display = gui.closed ? "none" : "block";
+          };
+        }
+      }
+
+      // -------------------------------------------------
+      // switchEdgeStyle()
+      // -------------------------------------------------
+      function switchEdgeStyle(){
+        edges.forEach(e=> scene.remove(e.object));
+        ribbonSparks.forEach(s=> scene.remove(s.mesh));
+        ribbonSparks=[];
+
+        edges.forEach(e=>{
+          if(params.useRibbons){
+            const ribbonMesh = createRibbonMesh(e.posA,e.posB);
+            scene.add(ribbonMesh);
+            e.object=ribbonMesh;
+          } else {
+            const points=[e.posA,e.posB];
+            const geo=new THREE.BufferGeometry().setFromPoints(points);
+            const mat=new THREE.LineBasicMaterial({
+              color:0xffffff,
+              transparent:true,
+              opacity:0.5
+            });
+            const lineObj=new THREE.Line(geo,mat);
+            scene.add(lineObj);
+            e.object=lineObj;
+          }
+        });
+        createStarSprites();
+      }
+
+      // -------------------------------------------------
+      // createNodesAndEdges()
+      // -------------------------------------------------
+      function createNodesAndEdges(){
+        nodes=[];
+        edges=[];
+        ribbonSparks=[];
+        magnetizationHistory=[];
+
+        scene.traverse(obj=>{
+          if(obj.isMesh || obj.isLine || obj.isSprite){
+            scene.remove(obj);
+          }
+        });
+
+        // Create nodes
+        for(let i=0;i<params.numNodes;i++){
+          let spin;
+          if(params.threeSpin){
+            const r=Math.random();
+            if(r<1/3) spin=-1;
+            else if(r<2/3) spin=0;
+            else spin=1;
+          } else {
+            const p=0.5+params.spinBias*0.5;
+            spin=(Math.random()<p)?1:-1;
+          }
+          const basePos=new THREE.Vector3();
+          if(params.layout===LayoutMode.RANDOM){
+            basePos.set(
+              (Math.random()-0.5)*30,
+              (Math.random()-0.5)*30,
+              (Math.random()-0.5)*30
+            );
+          } else if(params.layout===LayoutMode.SPHERE){
+            const phi=2*Math.PI*Math.random();
+            const cosTheta=(Math.random()*2)-1;
+            const sinTheta=Math.sqrt(1-cosTheta*cosTheta);
+            const rr=15;
+            basePos.set(
+              rr*sinTheta*Math.cos(phi),
+              rr*sinTheta*Math.sin(phi),
+              rr*cosTheta
+            );
+          } else if(params.layout===LayoutMode.CALABI){
+            const angle=2*Math.PI*(i/params.numNodes)*4;
+            const rad=0.1*i;
+            basePos.set(
+              rad*Math.cos(angle),
+              rad*Math.sin(angle),
+              (Math.random()-0.5)*30
+            );
+          }
+          const mesh=createNode(spin, basePos);
+          scene.add(mesh);
+          nodes.push({
+            mesh,
+            spin,
+            basePos:basePos.clone(),
+            pos:basePos.clone()
+          });
+        }
+
+        // We'll try to get each node to have at least params.neighborsCount connections.
+        let neighborCount = new Array(nodes.length).fill(0);
+        let connected = new Set();
+
+        // Helper to add an edge
+        function addEdge(i,j) {
+          let obj;
+          if(params.useRibbons){
+            obj = createRibbonMesh(nodes[i].pos, nodes[j].pos);
+          } else {
+            const points=[nodes[i].pos, nodes[j].pos];
+            const geo=new THREE.BufferGeometry().setFromPoints(points);
+            const mat=new THREE.LineBasicMaterial({
+              color:0xffffff,
+              transparent:true,
+              opacity:0.5
+            });
+            obj=new THREE.Line(geo,mat);
+          }
+          scene.add(obj);
+          edges.push({
+            i, j,
+            object: obj,
+            posA: nodes[i].pos,
+            posB: nodes[j].pos
+          });
+          neighborCount[i]++;
+          neighborCount[j]++;
+        }
+
+        // First pass: try to add edges only if both nodes still need neighbors.
+        for(let i=0; i<nodes.length; i++){
+          let distances = [];
+          for(let j=0; j<nodes.length; j++){
+            if(i===j) continue;
+            const d = nodes[i].pos.distanceToSquared(nodes[j].pos);
+            distances.push({ j, d });
+          }
+          distances.sort((a,b)=> a.d - b.d);
+          for(let candidate of distances){
+            let j = candidate.j;
+            if(neighborCount[i] < params.neighborsCount && neighborCount[j] < params.neighborsCount){
+              let key = i + "-" + j, keyReverse = j + "-" + i;
+              if(!connected.has(key) && !connected.has(keyReverse)){
+                connected.add(key);
+                addEdge(i,j);
+              }
+            }
+            if(neighborCount[i]>=params.neighborsCount) break;
+          }
+        }
+
+        // Second pass: for any node still below target, add extra edges.
+        for(let i=0; i<nodes.length; i++){
+          if(neighborCount[i] < params.neighborsCount){
+            let distances = [];
+            for(let j=0; j<nodes.length; j++){
+              if(i===j) continue;
+              const d = nodes[i].pos.distanceToSquared(nodes[j].pos);
+              distances.push({ j, d });
+            }
+            distances.sort((a,b)=> a.d - b.d);
+            for(let candidate of distances){
+              let j = candidate.j;
+              let key = i + "-" + j, keyReverse = j + "-" + i;
+              if(!connected.has(key) && !connected.has(keyReverse)){
+                connected.add(key);
+                addEdge(i,j);
+                if(neighborCount[i]>=params.neighborsCount) break;
+              }
+            }
+          }
+        }
+        createStarSprites();
+        updateDensity();
+      }
+
+      function createNode(spin, basePos){
+        const geometry=new THREE.SphereGeometry(0.4,16,16);
+        let baseColor=spinColorPositive;
+        if(params.threeSpin){
+          if(spin===1) baseColor=spinColorPositive;
+          else if(spin===-1) baseColor=spinColorNegative;
+          else baseColor=spinColorNeutral;
+        } else {
+          baseColor=(spin>0)?spinColorPositive:spinColorNegative;
+        }
+        const mat=new THREE.MeshPhongMaterial({color:baseColor,emissive:0x111111});
+        const mesh=new THREE.Mesh(geometry,mat);
+        mesh.position.copy(basePos);
+
+        // sprite
+        let tex;
+        if(params.threeSpin){
+          tex=textureMap3[spin.toString()];
+        } else {
+          tex=textureMap2[spin.toString()];
+        }
+        const spriteMat=new THREE.SpriteMaterial({
+          map:tex,transparent:true,depthTest:true,depthWrite:false
+        });
+        const sprite=new THREE.Sprite(spriteMat);
+        sprite.scale.set(2,2,1);
+        sprite.position.set(0,0,0.01);
+        mesh.add(sprite);
+
+        return mesh;
+      }
+
+      // -------------------------------------------------
+      // createRibbonMesh() with envelope-modulated wave so endpoints are exact
+      // -------------------------------------------------
+      function createRibbonMesh(posA,posB){
+        const segments=15;
+        const width=0.2;
+
+        const dir=new THREE.Vector3().subVectors(posB,posA);
+        const length=dir.length();
+        dir.normalize();
+
+        // Compute wave amplitude/frequency depending on length.
+        const waveAmp = params.baseWaveAmp + length*params.waveAmpFactor;
+        const waveFreq= params.baseWaveFreq + length*params.waveFreqFactor;
+
+        const up=new THREE.Vector3(0,1,0);
+        if(Math.abs(dir.dot(up))>0.99) up.set(1,0,0);
+        const right=new THREE.Vector3().crossVectors(dir, up).normalize();
+        const localUp=new THREE.Vector3().crossVectors(right,dir).normalize();
+
+        const geometry=new THREE.BufferGeometry();
+        const positions=new Float32Array((segments+1)*2*3);
+        const colors=new Float32Array((segments+1)*2*3);
+        const indices=[];
+
+        const colorStart=new THREE.Color(0x856fd6);
+        const colorEnd=new THREE.Color(0x8d6fd6);
+
+        for(let i=0;i<=segments;i++){
+          const t=i/segments;
+          let vertColor=colorStart.clone().lerp(colorEnd,t);
+
+          let center=new THREE.Vector3().copy(posA)
+            .addScaledVector(dir,length*t);
+
+          // Use an envelope so that wave=0 at t=0 and t=1.
+          const envelope = Math.sin(t*Math.PI);
+          const wave = Math.sin(t*Math.PI*waveFreq) * envelope * waveAmp;
+          center.addScaledVector(localUp,wave);
+
+          let offsetL=new THREE.Vector3().copy(right).multiplyScalar(-width);
+          let offsetR=new THREE.Vector3().copy(right).multiplyScalar(width);
+
+          let idxL=i*2;
+          let idxR=i*2+1;
+
+          let vL=new THREE.Vector3().addVectors(center,offsetL);
+          positions[idxL*3+0]=vL.x;
+          positions[idxL*3+1]=vL.y;
+          positions[idxL*3+2]=vL.z;
+          colors[idxL*3+0]=vertColor.r;
+          colors[idxL*3+1]=vertColor.g;
+          colors[idxL*3+2]=vertColor.b;
+
+          let vR=new THREE.Vector3().addVectors(center,offsetR);
+          positions[idxR*3+0]=vR.x;
+          positions[idxR*3+1]=vR.y;
+          positions[idxR*3+2]=vR.z;
+          colors[idxR*3+0]=vertColor.r;
+          colors[idxR*3+1]=vertColor.g;
+          colors[idxR*3+2]=vertColor.b;
+        }
+
+        for(let i=0;i<segments;i++){
+          const i0=i*2;
+          const i1=i*2+1;
+          const i2=(i+1)*2;
+          const i3=(i+1)*2+1;
+          indices.push(i0,i1,i2);
+          indices.push(i1,i3,i2);
+        }
+
+        geometry.setIndex(indices);
+        geometry.setAttribute("position",new THREE.BufferAttribute(positions,3));
+        geometry.setAttribute("color",new THREE.BufferAttribute(colors,3));
+        geometry.computeVertexNormals();
+
+        const mat=new THREE.MeshLambertMaterial({
+          side:THREE.DoubleSide,
+          transparent:true,
+          opacity:0.5,
+          emissive:0x111111,
+          vertexColors:true
+        });
+        return new THREE.Mesh(geometry,mat);
+      }
+
+      // -------------------------------------------------
+      // createStarSprites()
+      // -------------------------------------------------
+      function createStarSprites(){
+        ribbonSparks=[];
+        edges.forEach((edge, idx)=>{
+          for(let k=0; k<2; k++){
+            const mat = new THREE.SpriteMaterial({
+              map: starTexture,
+              color: 0x1ad1ff,
+              blending: THREE.AdditiveBlending,
+              transparent: true,
+              depthWrite: false
+            });
+            const sprite=new THREE.Sprite(mat);
+            sprite.scale.set(0.5,0.5,1);
+            sprite.layers.enable(BLOOM_LAYER);
+            scene.add(sprite);
+            ribbonSparks.push({
+              edgeIndex: idx,
+              mesh: sprite,
+              progress: Math.random(),
+              speed: 0.005 + 0.003*Math.random()
+            });
+          }
+        });
+      }
+
+      // -------------------------------------------------
+      // updateDensity()
+      // -------------------------------------------------
+      function updateDensity(){
+        nodes.forEach(n=>{
+          n.pos.copy(n.basePos).multiplyScalar(params.density);
+          n.mesh.position.copy(n.pos);
+        });
+
+        edges.forEach(e=> scene.remove(e.object));
+        edges.forEach(e=>{
+          if(params.useRibbons){
+            const ribbon=createRibbonMesh(e.posA,e.posB);
+            scene.add(ribbon);
+            e.object=ribbon;
+          } else {
+            const points=[e.posA,e.posB];
+            const geo=new THREE.BufferGeometry().setFromPoints(points);
+            const mat=new THREE.LineBasicMaterial({
+              color:0x8d6fd6,
+              transparent:true,
+              opacity:0.5
+            });
+            const line=new THREE.Line(geo,mat);
+            scene.add(line);
+            e.object=line;
+          }
+        });
+
+        ribbonSparks.forEach(s=>scene.remove(s.mesh));
+        createStarSprites();
+      }
+
+      // -------------------------------------------------
+      // simulationStep()
+      // -------------------------------------------------
+      function simulationStep(){
+        const nLen = nodes.length;
+        for(let step=0; step<simulationSpeed; step++){
+          const i = Math.floor(Math.random()*nLen);
+          const node = nodes[i];
+          const s = node.spin;
+
+          let sumN=0;
+          edges.forEach(e=>{
+            if(e.i===i) sumN+=nodes[e.j].spin;
+            else if(e.j===i) sumN+=nodes[e.i].spin;
+          });
+
+          if(!params.threeSpin){
+            const deltaE=2*s*(params.coupling*sumN+params.field);
+            if(deltaE<=0 || Math.random()<Math.exp(-deltaE/params.temperature)){
+              node.spin = -s;
+              updateNodeAppearance(node);
+              maybeTriggerGlitch();
+              maybeShowSpeechBubble(node);
+            }
+          } else {
+            const possible=[-1,0,1].filter(v=>v!==s);
+            const candidate=possible[Math.floor(Math.random()*possible.length)];
+            const delta=candidate - s;
+            const deltaE=-params.coupling*delta*sumN - params.field*delta;
+            if(deltaE<=0 || Math.random()<Math.exp(-deltaE/params.temperature)){
+              node.spin=candidate;
+              updateNodeAppearance(node);
+              maybeTriggerGlitch();
+              maybeShowSpeechBubble(node);
+            }
+          }
+        }
+      }
+
+      function updateNodeAppearance(node){
+        if(!params.threeSpin){
+          node.mesh.material.color.copy(node.spin>0?spinColorPositive:spinColorNegative);
+          node.mesh.children[0].material.map=textureMap2[node.spin.toString()];
+        } else {
+          if(node.spin===1) node.mesh.material.color.copy(spinColorPositive);
+          else if(node.spin===-1) node.mesh.material.color.copy(spinColorNegative);
+          else node.mesh.material.color.copy(spinColorNeutral);
+          node.mesh.children[0].material.map=textureMap3[node.spin.toString()];
+        }
+        node.mesh.children[0].material.needsUpdate=true;
+      }
+
+      // -------------------------------------------------
+      // maybeTriggerGlitch()
+      // -------------------------------------------------
+      function maybeTriggerGlitch(){
+        if(!params.glitchEnabled)return;
+        const flipProb=params.temperature*glitchScale;
+        if(Math.random()<flipProb){
+          glitchPass.enabled=true;
+          glitchActive=true;
+          glitchTimer=5;
+        }
+      }
+
+      // -------------------------------------------------
+      // maybeShowSpeechBubble()
+      // -------------------------------------------------
+      function maybeShowSpeechBubble(node){
+        if(!params.showBubbles)return;
+        if(uiHidden) return;
+
+        const modal=document.getElementById("phaseModal");
+        if(modal.style.display!=="none")return;
+
+        if(Math.random()<0.005){
+          const msg=node.spin.toString();
+          showSpeechBubble(node, spinMessages[msg]);
+        }
+      }
+
+      function showSpeechBubble(node,text){
+        const bubbleLayer=document.getElementById("bubbleLayer");
+        const bubble=document.createElement("div");
+        bubble.className="speech-bubble";
+        bubble.innerText=text;
+        bubbleLayer.appendChild(bubble);
+
+        const screenPos=toScreenPosition(node.mesh,camera);
+        bubble.style.left=screenPos.x+"px";
+        bubble.style.top=screenPos.y+"px";
+
+        setTimeout(()=>{
+          if(bubbleLayer.contains(bubble)){
+            bubbleLayer.removeChild(bubble);
+          }
+        },2000);
+      }
+
+      function toScreenPosition(obj,cam){
+        let v=new THREE.Vector3();
+        obj.getWorldPosition(v);
+        v.project(cam);
+        let x=(v.x+1)/2*window.innerWidth;
+        let y=(-v.y+1)/2*window.innerHeight;
+        return {x,y};
+      }
+
+      // -------------------------------------------------
+      // updateSparks()
+      // -------------------------------------------------
+      function updateSparks(){
+        ribbonSparks.forEach(s=>{
+          s.progress+=s.speed;
+          if(s.progress>1) s.progress=0;
+
+          let e=edges[s.edgeIndex];
+          if(params.useRibbons){
+            s.mesh.position.copy( getWavyRibbonPosition(e, s.progress) );
+          } else {
+            let dir=new THREE.Vector3().subVectors(e.posB,e.posA);
+            let newPos=new THREE.Vector3().copy(e.posA).addScaledVector(dir, s.progress);
+            s.mesh.position.copy(newPos);
+          }
+
+          // Hide if near a sphere
+          let hide=false;
+          for(let n of nodes){
+            if(s.mesh.position.distanceTo(n.mesh.position)<1.0){
+              hide=true;
+              break;
+            }
+          }
+          s.mesh.visible=!hide;
+          let mat=s.mesh.material;
+          if(!hide){
+            mat.opacity=0.6 + 0.4*Math.random();
+          } else {
+            mat.opacity=0;
+          }
+          let sc=0.05+0.2*Math.random();
+          s.mesh.scale.set(sc, sc, sc);
+        });
+      }
+
+      // Modified getWavyRibbonPosition: use same envelope so endpoints match.
+      function getWavyRibbonPosition(edge, t){
+        const dir=new THREE.Vector3().subVectors(edge.posB,edge.posA);
+        const length=dir.length();
+        dir.normalize();
+
+        const waveAmp = params.baseWaveAmp + length*params.waveAmpFactor;
+        const waveFreq= params.baseWaveFreq + length*params.waveFreqFactor;
+
+        let center=new THREE.Vector3().copy(edge.posA)
+          .addScaledVector(dir, length*t);
+
+        let localUp=new THREE.Vector3(0,1,0);
+        if(Math.abs(dir.dot(localUp))>0.99) localUp.set(1,0,0);
+
+        let right=new THREE.Vector3().crossVectors(dir, localUp).normalize();
+        let finalUp=new THREE.Vector3().crossVectors(right, dir).normalize();
+
+        // Use envelope so endpoints are zero.
+        const envelope = Math.sin(t*Math.PI);
+        let wave=Math.sin(t*Math.PI*waveFreq)*envelope*waveAmp;
+        center.addScaledVector(finalUp, wave);
+
+        return center;
+      }
+
+      // -------------------------------------------------
+      // updateMagnetization()
+      // -------------------------------------------------
+      function updateMagnetization(){
+        let total=0;
+        for(let i=0;i<nodes.length;i++){
+          total+=nodes[i].spin;
+        }
+        let m=total/nodes.length;
+        magnetizationHistory.push(m);
+        if(magnetizationHistory.length>maxHistoryLength){
+          magnetizationHistory.shift();
+        }
+        smoothedMag+=0.01*(m - smoothedMag);
+        updateBackgroundGradient(smoothedMag);
+        if(params.showGraph) drawGraph();
+        detectPhaseChange(smoothedMag);
+      }
+
+      function updateBackgroundGradient(mVal){
+        const t = (mVal+1)/2;
+        const topColor=nightTop.clone().lerp(dayTop,t);
+        const bottomColor=nightBottom.clone().lerp(dayBottom,t);
+        bgCtx.clearRect(0,0,bgCanvas.width,bgCanvas.height);
+        let grad=bgCtx.createLinearGradient(0,0,0,bgCanvas.height);
+        grad.addColorStop(0,"#"+topColor.getHexString());
+        grad.addColorStop(1,"#"+bottomColor.getHexString());
+        bgCtx.fillStyle=grad;
+        bgCtx.fillRect(0,0,bgCanvas.width,bgCanvas.height);
+        bgTexture.needsUpdate=true;
+      }
+
+      function drawGraph(){
+        let w=graphCanvas.width, h=graphCanvas.height;
+        graphCtx.clearRect(0,0,w,h);
+        graphCtx.strokeStyle="#fff";
+        graphCtx.lineWidth=1;
+
+        // Axes
+        graphCtx.beginPath();
+        graphCtx.moveTo(30,10);
+        graphCtx.lineTo(30,90);
+        graphCtx.lineTo(280,90);
+        graphCtx.stroke();
+
+        graphCtx.fillStyle="#fff";
+        graphCtx.font="10px sans-serif";
+        graphCtx.fillText("1",5,15);
+        graphCtx.fillText("0",5,50);
+        graphCtx.fillText("-1",5,90);
+
+        // Data
+        graphCtx.beginPath();
+        graphCtx.strokeStyle="lime";
+        let len=magnetizationHistory.length;
+        for(let i=0;i<len;i++){
+          let x=30 + (i/(maxHistoryLength-1))*(280-30);
+          let mag=magnetizationHistory[i];
+          let y=90 - ((mag+1)*80)/2;
+          if(i===0) graphCtx.moveTo(x,y);
+          else graphCtx.lineTo(x,y);
+        }
+        graphCtx.stroke();
+      }
+
+      // -------------------------------------------------
+      // detectPhaseChange()
+      // -------------------------------------------------
+      function detectPhaseChange(mVal){
+        let newPhase=null;
+        if(mVal>0.7) newPhase="Positive Ferromagnetic Phase (Bright Future 😎)";
+        else if(mVal<-0.7) newPhase="Negative Ferromagnetic Phase (Cool Zone 😡)";
+        else if(Math.abs(mVal)<0.3) newPhase="Disordered Phase Paramagnetic (Neutral Zone 😐)";
+
+        if(newPhase && newPhase!==currentPhase){
+          currentPhase=newPhase;
+          triggerPhasePopup(newPhase);
+        }
+      }
+
+      function triggerPhasePopup(phaseDescription){
+        if(uiHidden) return;
+
+        const modal = document.getElementById("phaseModal");
+        const txt = document.getElementById("phaseModalText");
+        txt.textContent = "Congratulations! You have entered: " + phaseDescription;
+        modal.style.display = "flex";
+      }
+
+      // -------------------------------------------------
+      // clearScene()
+      // -------------------------------------------------
+      function clearScene(){
+        nodes.forEach(n=> scene.remove(n.mesh));
+        edges.forEach(e=> scene.remove(e.object));
+        ribbonSparks.forEach(s=> scene.remove(s.mesh));
+        nodes=[];
+        edges=[];
+        ribbonSparks=[];
+        magnetizationHistory=[];
+      }
+
+      // -------------------------------------------------
+      // updateSpriteOffsets()
+      // -------------------------------------------------
+      function updateSpriteOffsets(){
+        const camPos=camera.position;
+        const tempVec=new THREE.Vector3();
+        nodes.forEach(n=>{
+          const sprite=n.mesh.children[0];
+          if(!sprite) return;
+          n.mesh.getWorldPosition(tempVec);
+          const offsetDir=new THREE.Vector3().subVectors(camPos,tempVec).normalize();
+          sprite.position.copy(offsetDir.multiplyScalar(0.6));
+        });
+      }
+
+      // -------------------------------------------------
+      // Darken non-bloom objects
+      // -------------------------------------------------
+      function darkenNonBloomed(obj){
+        if(obj.isMesh && obj.layers.test(BLOOM_LAYER)===false){
+          materials[obj.uuid]=obj.material;
+          obj.material=darkMaterial;
+        }
+      }
+      function restoreMaterial(obj){
+        if(materials[obj.uuid]){
+          obj.material=materials[obj.uuid];
+          delete materials[obj.uuid];
+        }
+      }
+
+      // -------------------------------------------------
+      // animate()
+      // -------------------------------------------------
+      function animate(){
+        requestAnimationFrame(animate);
+
+        const currentTime=performance.now();
+
+        // Random-walk T & H
+        if(params.fluctuationMode && currentTime-lastFluctuationTime>fluctInterval){
+          lastFluctuationTime=currentTime;
+          const step=0.1;
+          params.temperature+=(Math.random()-0.5)*step;
+          params.temperature=Math.min(10,Math.max(0.1,params.temperature));
+          temperatureController.updateDisplay();
+
+          params.field+=(Math.random()-0.5)*step;
+          params.field=Math.min(5,Math.max(-5,params.field));
+          fieldController.updateDisplay();
+        }
+
+        if(currentTime-lastSimUpdate>simUpdateInterval){
+          simulationStep();
+          lastSimUpdate=currentTime;
+        }
+
+        updateMagnetization();
+        updateSpriteOffsets();
+        updateSparks();
+
+        // Toggle connectors & faces
+        edges.forEach(e=> e.object.visible=params.showConnectors);
+        nodes.forEach(n=>{
+          if(n.mesh.children[0]){
+            n.mesh.children[0].visible=params.showFaces;
+          }
+        });
+
+        // Glitch countdown
+        if(glitchActive){
+          glitchTimer--;
+          if(glitchTimer<=0){
+            glitchPass.enabled=false;
+            glitchActive=false;
+          }
+        }
+
+        // Bloom pass
+        scene.traverse(darkenNonBloomed);
+        camera.layers.set(BLOOM_LAYER);
+        bloomComposer.render();
+        camera.layers.set(0);
+        scene.traverse(restoreMaterial);
+
+        // Final
+        finalComposer.render();
+        controls.update();
+      }
+
+      init();
+
+      // -------------------------------------------------
+      // UI Toggle for everything except speech bubbles
+      // -------------------------------------------------
+      document.getElementById("uiToggleButton").addEventListener("click", function() {
+        uiHidden = !uiHidden;
+        let displayValue = uiHidden ? "none" : "";
+        let uiElements = ["info","phaseModal"];
+        uiElements.forEach(id=>{
+          let el=document.getElementById(id);
+          if(el){
+            el.style.display=displayValue;
+          }
+        });
+        let guiElements=document.querySelectorAll(".dg");
+        guiElements.forEach(el=>{
+          el.style.display=displayValue;
+        });
+        this.textContent=uiHidden ? "Show UI" : "Hide UI";
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,1287 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Interactive Image Fractal Generator</title>
+    <style>
+        body {
+            text-align: center;
+            font-family: Arial, sans-serif;
+            position: relative;
+            overflow: hidden;
+        }
+        /* Container for controls */
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 20px;
+        }
+        .controls > * {
+            margin: 5px;
+        }
+        canvas {
+            border: 1px solid black;
+            margin-top: 20px;
+            /* Make the canvas responsive */
+            max-width: 100%;
+            height: auto;
+            cursor: grab;
+        }
+        canvas:active {
+            cursor: grabbing;
+        }
+        /* Styles for the Buttons */
+        #snapshotButton, #regenerateBackgroundButton, #changeBackgroundColorButton, #toggleBackgroundButton {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        /* Styles for the Fractal Selector */
+        #fractalSelector, #maskShapeSelector {
+            padding: 10px;
+            font-size: 16px;
+        }
+        /* Style for the Sliders */
+        #depthSlider, #branchesSlider, #rotationSlider, #spacingSlider, #branchRotationSlider {
+            width: 200px;
+        }
+        /* Hide Branches, Rotation, Spacing, and Branch Rotation controls by default */
+        .branches-controls, .rotation-controls, .spacing-controls, .branch-rotation-controls {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Interactive Image Fractal Generator</h1>
+    <!-- Controls Container -->
+    <div class="controls">
+        <!-- Image Upload -->
+        <input type="file" id="uploadImage" accept="image/*">
+
+        <!-- Fractal Selection Dropdown -->
+        <select id="fractalSelector">
+            <option value="sierpinski">Sierpinski Triangle</option>
+            <option value="apollonianGasket">Simplified Apollonian Gasket</option>
+            <option value="sierpinskiCarpet">Sierpinski Carpet</option>
+            <option value="barnsleyFernImage">Barnsley Fern</option>
+            <option value="romanescoBroccoli">Romanesco Broccoli</option>
+            <option value="threeBranchesTree">3-Branches Tree</option>
+            <option value="quadraticCross">Quadratic Cross</option>
+        </select>
+
+        <!-- Mask Shape Selection -->
+        <select id="maskShapeSelector">
+            <option value="square">Square</option>
+            <option value="circle">Circle</option>
+            <option value="triangle">Triangle</option>
+            <option value="hexagon">Hexagon</option>
+        </select>
+
+        <!-- Depth Slider -->
+        <label for="depthSlider">Depth: <span id="depthValue"></span></label>
+        <input type="range" id="depthSlider" min="1" max="6" value="4">
+
+        <!-- Branches Slider (Wrapped in a div for easy show/hide) -->
+        <div class="branches-controls">
+            <label for="branchesSlider">Branches: <span id="branchesValue"></span></label>
+            <input type="range" id="branchesSlider" min="1" max="6" value="3">
+        </div>
+
+        <!-- Rotation Slider (Wrapped in a div for easy show/hide) -->
+        <div class="rotation-controls">
+            <label for="rotationSlider">Rotation of Spirals: <span id="rotationValue"></span>°</label>
+            <input type="range" id="rotationSlider" min="0" max="90" value="0">
+        </div>
+
+        <!-- Spacing Slider (Wrapped in a div for easy show/hide) -->
+        <div class="spacing-controls">
+            <label for="spacingSlider">Spacing: <span id="spacingValue"></span></label>
+            <input type="range" id="spacingSlider" min="0.1" max="1" step="0.05" value="0.2">
+        </div>
+
+        <!-- Regenerate Background Button -->
+        <button id="regenerateBackgroundButton">Regenerate Background</button>
+
+        <!-- Change Background Color Button -->
+        <button id="changeBackgroundColorButton">Change Background Color</button>
+
+        <!-- Toggle Background Button -->
+        <button id="toggleBackgroundButton">Toggle Background</button>
+
+        <!-- Snapshot Button -->
+        <button id="snapshotButton">Take Snapshot</button>
+    </div>
+
+    <!-- Main Fractal Canvas -->
+    <canvas id="fractalCanvas" width="1600" height="1200"></canvas>
+
+    <script>
+        // DOM Element References
+        const canvas = document.getElementById('fractalCanvas');
+        const ctx = canvas.getContext('2d');
+        const uploadImage = document.getElementById('uploadImage');
+        const fractalSelector = document.getElementById('fractalSelector');
+        const maskShapeSelector = document.getElementById('maskShapeSelector');
+        const depthSlider = document.getElementById('depthSlider');
+        const depthValueDisplay = document.getElementById('depthValue');
+        const branchesSlider = document.getElementById('branchesSlider');
+        const branchesValueDisplay = document.getElementById('branchesValue');
+        const rotationSlider = document.getElementById('rotationSlider');
+        const rotationValueDisplay = document.getElementById('rotationValue');
+        const spacingSlider = document.getElementById('spacingSlider');
+        const spacingValueDisplay = document.getElementById('spacingValue');
+        const regenerateBackgroundButton = document.getElementById('regenerateBackgroundButton');
+        const changeBackgroundColorButton = document.getElementById('changeBackgroundColorButton');
+        const toggleBackgroundButton = document.getElementById('toggleBackgroundButton');
+        const snapshotButton = document.getElementById('snapshotButton');
+
+        // Variables
+        let scale = 1;
+        let translatePos = { x: 0, y: 0 };
+        let isDragging = false;
+        let dragStart = { x: 0, y: 0 };
+        let currentImage = null;
+        let selectedFractal = 'sierpinski'; // Default fractal
+        let depth = 4; // Default depth
+        let selectedMaskShape = 'square'; // Default mask shape
+        let branches = 3; // Default number of branches for Romanesco Broccoli
+        let rotationAngle = 0; // Default rotation angle for Romanesco Broccoli
+        let branchRotationAngle = 0; // Default branch rotation angle
+        let spiralFactor = 0.2; // Default spacing for fractals
+        let backgroundVisible = true; // Background visibility flag
+
+        // Off-screen canvas for the background
+        const backgroundCanvas = document.createElement('canvas');
+        backgroundCanvas.width = canvas.width;
+        backgroundCanvas.height = canvas.height;
+        const bgCtx = backgroundCanvas.getContext('2d');
+
+        // Variables to track background state
+        let backgroundNeedsRedraw = true;
+        let backgroundType = 'mandelbrot'; // or 'gradient', 'mandelbrotWithGrid'
+        let color1, color2;
+
+        // Update spiralFactor when the slider changes
+        spacingValueDisplay.textContent = spacingSlider.value;
+
+        spacingSlider.addEventListener('input', function() {
+            spiralFactor = parseFloat(this.value);
+            spacingValueDisplay.textContent = spiralFactor;
+            drawFractal();
+        });
+
+        // Update depth when the slider changes
+        depthValueDisplay.textContent = depthSlider.value;
+
+        depthSlider.addEventListener('input', function() {
+            depth = parseInt(this.value);
+            depthValueDisplay.textContent = depth;
+            drawFractal();
+        });
+
+        // Update branches when the slider changes
+        branchesValueDisplay.textContent = branchesSlider.value;
+
+        branchesSlider.addEventListener('input', function() {
+            branches = parseInt(this.value);
+            branchesValueDisplay.textContent = branches;
+            drawFractal();
+        });
+
+        // Update rotation angle when the slider changes
+        rotationValueDisplay.textContent = rotationSlider.value;
+
+        rotationSlider.addEventListener('input', function() {
+            rotationAngle = parseInt(this.value);
+            rotationValueDisplay.textContent = rotationAngle;
+            drawFractal();
+        });
+
+        // Handle Image Upload
+        uploadImage.addEventListener('change', function(event) {
+            const reader = new FileReader();
+            reader.onload = function(){
+                const img = new Image();
+                img.onload = function(){
+                    currentImage = img;
+                    resetTransformations();
+                    drawFractal();
+                }
+                img.src = reader.result;
+            }
+            if(event.target.files[0]){
+                reader.readAsDataURL(event.target.files[0]);
+            }
+        });
+
+        // Handle Mask Shape Selection
+        maskShapeSelector.addEventListener('change', function(event) {
+            selectedMaskShape = event.target.value;
+            drawFractal();
+        });
+
+        // Handle Fractal Selection
+        fractalSelector.addEventListener('change', function(event) {
+            selectedFractal = event.target.value;
+            resetTransformations();
+
+            // Set default depth and max depth based on selected fractal
+            switch (selectedFractal) {
+                case 'sierpinski':
+                    depth = 6;
+                    depthSlider.max = 10;
+                    selectedMaskShape = 'triangle';
+                    break;
+                case 'apollonianGasket':
+                    depth = 4;
+                    depthSlider.max = 7;
+                    selectedMaskShape = 'circle';
+                    break;
+                case 'sierpinskiCarpet':
+                    depth = 4;
+                    depthSlider.max = 6; // Limit to 6
+                    selectedMaskShape = 'square';
+                    break;
+                case 'barnsleyFernImage':
+                    depth = 5;
+                    depthSlider.max = 12;
+                    selectedMaskShape = 'triangle';
+                    break;
+                case 'romanescoBroccoli':
+                    depth = 5;
+                    depthSlider.max = 50; // Increased to 50
+                    selectedMaskShape = 'hexagon';
+                    break;
+                case 'threeBranchesTree':
+                    depth = 5;
+                    depthSlider.max = 9;
+                    selectedMaskShape = 'triangle';
+                    break;
+                case 'quadraticCross':
+                    depth = 4;
+                    depthSlider.max = 7;
+                    selectedMaskShape = 'hexagon';
+                    break;
+                default:
+                    depth = 6;
+                    depthSlider.max = 10;
+                    selectedMaskShape = 'square';
+            }
+
+            // Ensure depth does not exceed the new max value
+            if (depth > parseInt(depthSlider.max)) {
+                depth = parseInt(depthSlider.max);
+            }
+
+            // Update the slider and display
+            depthSlider.value = depth;
+            depthValueDisplay.textContent = depth;
+
+            // Update the mask shape selector to reflect the default
+            maskShapeSelector.value = selectedMaskShape;
+
+            // Show/hide controls based on selected fractal
+            const branchesControls = document.querySelector('.branches-controls');
+            const rotationControls = document.querySelector('.rotation-controls');
+            const spacingControls = document.querySelector('.spacing-controls');
+
+            if (selectedFractal === 'romanescoBroccoli') {
+                branchesControls.style.display = 'flex';
+                rotationControls.style.display = 'flex';
+                spacingControls.style.display = 'flex';
+            } else if (selectedFractal === 'barnsleyFernImage' || selectedFractal === 'threeBranchesTree') {
+                branchesControls.style.display = 'none';
+                rotationControls.style.display = 'none';
+                spacingControls.style.display = 'flex';
+            } else {
+                branchesControls.style.display = 'none';
+                rotationControls.style.display = 'none';
+                spacingControls.style.display = 'none';
+            }
+
+            drawFractal();
+        });
+
+        // Trigger the change event on page load to set initial state
+        fractalSelector.dispatchEvent(new Event('change'));
+
+        function resetTransformations() {
+            scale = 1;
+            translatePos = { x: 0, y: 0 };
+        }
+
+        function drawFractal() {
+            if (!currentImage) return;
+
+            ctx.save();
+            ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw background if visible
+            if (backgroundVisible) {
+                ctx.drawImage(backgroundCanvas, 0, 0);
+            } else {
+                // Fill with a solid color (e.g., white) if background is hidden
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            // Apply transformations
+            ctx.translate(translatePos.x, translatePos.y);
+            ctx.scale(scale, scale);
+
+            // Choose fractal based on selection
+            switch (selectedFractal) {
+                case 'sierpinski':
+                    drawSierpinski(ctx, currentImage, depth);
+                    break;
+                case 'apollonianGasket':
+                    drawApollonianGasket(ctx, currentImage, depth);
+                    break;
+                case 'sierpinskiCarpet':
+                    drawSierpinskiCarpet(ctx, currentImage, depth);
+                    break;
+                case 'barnsleyFernImage':
+                    drawBarnsleyFernImage(ctx, currentImage, depth);
+                    break;
+                case 'romanescoBroccoli':
+                    drawRomanescoBroccoli(ctx, currentImage, depth);
+                    break;
+                case 'threeBranchesTree':
+                    drawThreeBranchesTree(ctx, currentImage, depth);
+                    break;
+                case 'quadraticCross':
+                    drawQuadraticCross(ctx, currentImage, depth);
+                    break;
+                default:
+                    drawSierpinski(ctx, currentImage, depth);
+            }
+
+            ctx.restore();
+        }
+
+        // Function to generate a random vaporwave color
+        function getRandomVaporwaveColor() {
+            const vaporwaveColors = ['#FF6AD5', '#B967FF', '#7AF8FF', '#5D5FEF', '#FFB5A7', '#FFE28A', '#C9B6E4', '#FF3F98', '#41EAD4'];
+            return vaporwaveColors[Math.floor(Math.random() * vaporwaveColors.length)];
+        }
+
+        // Function to generate a random color
+        function getRandomColor() {
+            const letters = '0123456789ABCDEF';
+            let color = '#';
+            for (let i = 0; i < 6; i++ ) {
+                color += letters[Math.floor(Math.random() * 16)];
+            }
+            return color;
+        }
+
+        // Function to get a complementary color
+        function getComplementaryColor(hexColor) {
+            // Convert hex to RGB
+            let r = parseInt(hexColor.substr(1,2), 16);
+            let g = parseInt(hexColor.substr(3,2), 16);
+            let b = parseInt(hexColor.substr(5,2), 16);
+
+            // Compute complementary color
+            r = 255 - r;
+            g = 255 - g;
+            b = 255 - b;
+
+            // Convert back to hex
+            return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+        }
+
+        // Function to generate background colors
+        function generateBackgroundColors() {
+            // Randomly decide which color scheme to use
+            const randomChoice = Math.random();
+            if (randomChoice < 0.33) {
+                // Vaporwave colors
+                color1 = getRandomVaporwaveColor();
+                color2 = getRandomVaporwaveColor();
+            } else if (randomChoice < 0.66) {
+                // Random colors with complementary
+                color1 = getRandomColor();
+                color2 = getComplementaryColor(color1);
+            } else {
+                // Completely random colors
+                color1 = getRandomColor();
+                color2 = getRandomColor();
+            }
+        }
+
+        // Function to draw the background fractal onto the off-screen canvas
+        function drawBackgroundFractal() {
+            const width = backgroundCanvas.width;
+            const height = backgroundCanvas.height;
+
+            // Clear the off-screen canvas
+            bgCtx.clearRect(0, 0, width, height);
+
+            if (backgroundType === 'mandelbrot' || backgroundType === 'mandelbrotWithGrid') {
+                drawMandelbrotSet(bgCtx, 100); // Adjust max iterations as needed
+                if (backgroundType === 'mandelbrotWithGrid') {
+                    drawVaporwaveGrid(bgCtx);
+                }
+            } else {
+                drawGradientBackground(bgCtx);
+            }
+
+            backgroundNeedsRedraw = false;
+            drawFractal();
+        }
+
+        // Gradient Background
+        function drawGradientBackground(ctx) {
+            const width = backgroundCanvas.width;
+            const height = backgroundCanvas.height;
+
+            // Create gradient
+            const gradient = ctx.createLinearGradient(0, 0, width, height);
+            gradient.addColorStop(0, color1);
+            gradient.addColorStop(1, color2);
+
+            // Fill background with gradient
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, width, height);
+
+            // Optionally add vaporwave grid
+            drawVaporwaveGrid(ctx);
+        }
+
+        // Function to draw vaporwave grid
+        function drawVaporwaveGrid(ctx) {
+            const width = backgroundCanvas.width;
+            const height = backgroundCanvas.height;
+            const gridSpacing = 50; // Adjust as needed
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'; // Light grid lines
+            ctx.lineWidth = 1;
+
+            // Draw horizontal lines
+            for (let y = 0; y <= height; y += gridSpacing) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(width, y);
+                ctx.stroke();
+            }
+
+            // Draw vertical lines
+            for (let x = 0; x <= width; x += gridSpacing) {
+                ctx.beginPath();
+                ctx.moveTo(x, 0);
+                ctx.lineTo(x, height);
+                ctx.stroke();
+            }
+        }
+
+        // Mandelbrot Set Implementation
+        function drawMandelbrotSet(ctx, maxIterations) {
+            const width = backgroundCanvas.width;
+            const height = backgroundCanvas.height;
+
+            const imageData = ctx.createImageData(width, height);
+
+            // Random zoom parameters
+            const zoomLevel = Math.random() * 2 + 1; // Zoom between 1x and 3x
+            const xCenter = Math.random() * 3.5 - 2.5; // Random x between -2.5 and 1
+            const yCenter = Math.random() * 3 - 1.5;   // Random y between -1.5 and 1.5
+
+            const zoomWidth = 3.5 / zoomLevel;
+            const zoomHeight = 3.0 / zoomLevel;
+
+            const xmin = xCenter - zoomWidth / 2;
+            const xmax = xCenter + zoomWidth / 2;
+            const ymin = yCenter - zoomHeight / 2;
+            const ymax = yCenter + zoomHeight / 2;
+
+            // Decide whether to use vaporwave palette or random palette
+            const useVaporwave = Math.random() < 0.5; // 50% chance
+
+            // Generate color palette
+            const palette = useVaporwave ? generateVaporwavePalette(maxIterations + 1) : generateRandomPalette(maxIterations + 1);
+
+            for (let ix = 0; ix < width; ix++) {
+                for (let iy = 0; iy < height; iy++) {
+                    // Map pixel to complex plane
+                    const x0 = xmin + (xmax - xmin) * ix / width;
+                    const y0 = ymin + (ymax - ymin) * iy / height;
+
+                    let x = 0, y = 0;
+                    let iteration = 0;
+
+                    while (x * x + y * y <= 4 && iteration < maxIterations) {
+                        const xTemp = x * x - y * y + x0;
+                        y = 2 * x * y + y0;
+                        x = xTemp;
+                        iteration++;
+                    }
+
+                    const pixelIndex = (iy * width + ix) * 4;
+
+                    // Color based on iteration count
+                    const hexColor = palette[iteration];
+                    imageData.data[pixelIndex] = parseInt(hexColor.substr(1,2),16);
+                    imageData.data[pixelIndex + 1] = parseInt(hexColor.substr(3,2),16);
+                    imageData.data[pixelIndex + 2] = parseInt(hexColor.substr(5,2),16);
+                    imageData.data[pixelIndex + 3] = 255; // Opaque
+                }
+            }
+
+            ctx.putImageData(imageData, 0, 0);
+        }
+
+        // Generate vaporwave color palette
+        function generateVaporwavePalette(size) {
+            const vaporwaveColors = ['#FF6AD5', '#B967FF', '#7AF8FF', '#5D5FEF', '#FFB5A7', '#FFE28A', '#C9B6E4', '#FF3F98', '#41EAD4'];
+            const palette = [];
+
+            for (let i = 0; i <= size; i++) {
+                const colorIndex = Math.floor(i * vaporwaveColors.length / size) % vaporwaveColors.length;
+                palette.push(vaporwaveColors[colorIndex]);
+            }
+
+            return palette;
+        }
+
+        // Generate random color palette
+        function generateRandomPalette(size) {
+            const palette = [];
+
+            const startColor = color1;
+            const endColor = color2;
+
+            for (let i = 0; i <= size; i++) {
+                const t = i / size;
+                const color = interpolateColor(startColor, endColor, t);
+                palette.push(color);
+            }
+
+            return palette;
+        }
+
+        function interpolateColor(color1, color2, factor) {
+            // Convert hex colors to RGB
+            const c1 = hexToRgb(color1);
+            const c2 = hexToRgb(color2);
+
+            // Interpolate each component
+            const r = Math.round(c1.r + factor * (c2.r - c1.r));
+            const g = Math.round(c1.g + factor * (c2.g - c1.g));
+            const b = Math.round(c1.b + factor * (c2.b - c1.b));
+
+            // Convert back to hex
+            return rgbToHex(r, g, b);
+        }
+
+        function hexToRgb(hex) {
+            // Remove '#' if present
+            hex = hex.replace(/^#/, '');
+
+            let bigint = parseInt(hex, 16);
+            let r, g, b;
+
+            if (hex.length === 6) {
+                r = (bigint >> 16) & 255;
+                g = (bigint >> 8) & 255;
+                b = bigint & 255;
+            } else if (hex.length === 3) {
+                r = (bigint >> 8) & 15;
+                g = (bigint >> 4) & 15;
+                b = bigint & 15;
+                // Scale up to 0..255
+                r = r * 17;
+                g = g * 17;
+                b = b * 17;
+            } else {
+                throw new Error("Invalid hex color: " + hex);
+            }
+
+            return { r, g, b };
+        }
+
+        function rgbToHex(r, g, b) {
+            return "#" + [r, g, b].map(function(x) {
+                const hex = x.toString(16);
+                return hex.length === 1 ? '0' + hex : hex;
+            }).join('');
+        }
+
+        // Regenerate background when the button is clicked
+        regenerateBackgroundButton.addEventListener('click', function() {
+            // Switch background type
+            const backgroundTypes = ['mandelbrot', 'gradient', 'mandelbrotWithGrid'];
+            const currentIndex = backgroundTypes.indexOf(backgroundType);
+            backgroundType = backgroundTypes[(currentIndex + 1) % backgroundTypes.length];
+
+            // Generate new colors
+            generateBackgroundColors();
+
+            backgroundNeedsRedraw = true;
+            drawBackgroundFractal();
+        });
+
+        // Change background colors when the button is clicked
+        changeBackgroundColorButton.addEventListener('click', function() {
+            // Keep the same background type
+            // Generate new colors
+            generateBackgroundColors();
+
+            backgroundNeedsRedraw = true;
+            drawBackgroundFractal();
+        });
+
+        // Toggle background visibility when the button is clicked
+        toggleBackgroundButton.addEventListener('click', function() {
+            backgroundVisible = !backgroundVisible;
+            drawFractal();
+        });
+
+        // Draw the initial background fractal
+        generateBackgroundColors();
+        drawBackgroundFractal();
+
+        // Fractal Drawing Functions
+
+        // 1. Sierpinski Triangle Implementation
+        function drawSierpinski(ctx, img, depth) {
+            const vertices = getInitialTriangleVertices();
+            drawSierpinskiRecursive(ctx, img, vertices.ax, vertices.ay, vertices.bx, vertices.by, vertices.cx, vertices.cy, depth);
+        }
+
+        function drawSierpinskiRecursive(ctx, img, ax, ay, bx, by, cx, cy, depth) {
+            if (depth === 0) {
+                // Draw the image within the triangle
+                ctx.save();
+
+                // Create a clipping path based on selectedMaskShape
+                ctx.beginPath();
+                switch (selectedMaskShape) {
+                    case 'circle':
+                        // Calculate centroid
+                        const centerX = (ax + bx + cx) / 3;
+                        const centerY = (ay + by + cy) / 3;
+                        const radius = Math.hypot(centerX - ax, centerY - ay);
+                        ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+                        break;
+                    case 'triangle':
+                        ctx.moveTo(ax, ay);
+                        ctx.lineTo(bx, by);
+                        ctx.lineTo(cx, cy);
+                        ctx.closePath();
+                        break;
+                    case 'hexagon':
+                        // Calculate centroid and radius
+                        const hexCenterX = (ax + bx + cx) / 3;
+                        const hexCenterY = (ay + by + cy) / 3;
+                        const hexRadius = Math.max(
+                            Math.hypot(hexCenterX - ax, hexCenterY - ay),
+                            Math.hypot(hexCenterX - bx, hexCenterY - by),
+                            Math.hypot(hexCenterX - cx, hexCenterY - cy)
+                        );
+                        drawHexagon(ctx, hexCenterX, hexCenterY, hexRadius);
+                        break;
+                    case 'square':
+                    default:
+                        // Bounding rectangle
+                        const minX = Math.min(ax, bx, cx);
+                        const minY = Math.min(ay, by, cy);
+                        const maxX = Math.max(ax, bx, cx);
+                        const maxY = Math.max(ay, by, cy);
+                        ctx.rect(minX, minY, maxX - minX, maxY - minY);
+                        break;
+                }
+                ctx.clip();
+
+                // Calculate bounding rectangle
+                const minX = Math.min(ax, bx, cx);
+                const minY = Math.min(ay, by, cy);
+                const maxX = Math.max(ax, bx, cx);
+                const maxY = Math.max(ay, by, cy);
+
+                const width = maxX - minX;
+                const height = maxY - minY;
+
+                // Draw the image
+                ctx.drawImage(img, minX, minY, width, height);
+
+                ctx.restore();
+            } else {
+                // Calculate midpoints
+                const abx = (ax + bx) / 2;
+                const aby = (ay + by) / 2;
+
+                const bcx = (bx + cx) / 2;
+                const bcy = (by + cy) / 2;
+
+                const cax = (cx + ax) / 2;
+                const cay = (cy + ay) / 2;
+
+                depth--;
+
+                // Recursively draw smaller triangles
+                drawSierpinskiRecursive(ctx, img, ax, ay, abx, aby, cax, cay, depth);
+                drawSierpinskiRecursive(ctx, img, abx, aby, bx, by, bcx, bcy, depth);
+                drawSierpinskiRecursive(ctx, img, cax, cay, bcx, bcy, cx, cy, depth);
+            }
+        }
+
+        function getInitialTriangleVertices() {
+            const width = canvas.width;
+            const height = canvas.height;
+            const size = Math.min(width, height) * 0.8; // Adjust size as needed
+
+            // Center coordinates
+            const centerX = width / 2;
+            const centerY = height / 2;
+
+            // Equilateral triangle vertices
+            const h = size * Math.sqrt(3) / 2; // Height of equilateral triangle
+
+            const ax = centerX;
+            const ay = centerY - (2/3)*h;
+
+            const bx = centerX - size / 2;
+            const by = centerY + (1/3)*h;
+
+            const cx = centerX + size / 2;
+            const cy = centerY + (1/3)*h;
+
+            return {ax, ay, bx, by, cx, cy};
+        }
+
+        // 2. Simplified Apollonian Gasket Implementation
+        function drawApollonianGasket(ctx, img, depth) {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const radius = Math.min(canvas.width, canvas.height) * 0.45; // Adjust size as needed
+            drawNestedCircles(ctx, img, centerX, centerY, radius, depth);
+        }
+
+        function drawNestedCircles(ctx, img, x, y, r, depth) {
+            if (depth === 0 || r < 1) {
+                return;
+            }
+
+            // Draw the image within the circle
+            ctx.save();
+
+            // Create a clipping path based on selectedMaskShape
+            ctx.beginPath();
+            switch (selectedMaskShape) {
+                case 'circle':
+                    ctx.arc(x, y, r, 0, 2 * Math.PI);
+                    break;
+                case 'triangle':
+                    // Equilateral triangle inscribed in circle
+                    const angle = (2 * Math.PI) / 3;
+                    ctx.moveTo(x + r * Math.cos(0), y + r * Math.sin(0));
+                    ctx.lineTo(x + r * Math.cos(angle), y + r * Math.sin(angle));
+                    ctx.lineTo(x + r * Math.cos(2 * angle), y + r * Math.sin(2 * angle));
+                    ctx.closePath();
+                    break;
+                case 'hexagon':
+                    drawHexagon(ctx, x, y, r);
+                    break;
+                case 'square':
+                default:
+                    ctx.rect(x - r, y - r, 2 * r, 2 * r);
+                    break;
+            }
+            ctx.clip();
+
+            // Draw the image scaled to the circle
+            ctx.drawImage(img, x - r, y - r, 2 * r, 2 * r);
+
+            ctx.restore();
+
+            depth--;
+
+            // Calculate the radius for the inner circles
+            const innerRadius = r / 2;
+
+            // Positions for the inner circles: top, left, right
+            const positions = [
+                { x: x, y: y - r + innerRadius }, // Top
+                { x: x - (r - innerRadius) * Math.cos(Math.PI / 6), y: y + (r - innerRadius) * Math.sin(Math.PI / 6) }, // Bottom Left
+                { x: x + (r - innerRadius) * Math.cos(Math.PI / 6), y: y + (r - innerRadius) * Math.sin(Math.PI / 6) }  // Bottom Right
+            ];
+
+            // Recursively draw the inner circles
+            for (const pos of positions) {
+                drawNestedCircles(ctx, img, pos.x, pos.y, innerRadius, depth);
+            }
+        }
+
+        // 3. Sierpinski Carpet Implementation
+        function drawSierpinskiCarpet(ctx, img, depth) {
+            const size = Math.min(canvas.width, canvas.height) * 0.8; // Adjust size as needed
+            const startX = (canvas.width - size) / 2;
+            const startY = (canvas.height - size) / 2;
+            drawSierpinskiCarpetRecursive(ctx, img, startX, startY, size, depth);
+        }
+
+        function drawSierpinskiCarpetRecursive(ctx, img, x, y, size, depth) {
+            if (depth === 0) {
+                // Draw the image within the square
+                ctx.save();
+
+                // Create a clipping path based on selectedMaskShape
+                ctx.beginPath();
+                switch (selectedMaskShape) {
+                    case 'circle':
+                        ctx.arc(x + size / 2, y + size / 2, size / 2, 0, 2 * Math.PI);
+                        break;
+                    case 'triangle':
+                        ctx.moveTo(x + size / 2, y);
+                        ctx.lineTo(x, y + size);
+                        ctx.lineTo(x + size, y + size);
+                        ctx.closePath();
+                        break;
+                    case 'hexagon':
+                        drawHexagon(ctx, x + size / 2, y + size / 2, size / 2);
+                        break;
+                    case 'square':
+                    default:
+                        ctx.rect(x, y, size, size);
+                        break;
+                }
+                ctx.clip();
+
+                // Draw the image
+                ctx.drawImage(img, x, y, size, size);
+
+                ctx.restore();
+            } else {
+                const newSize = size / 3;
+                depth--;
+
+                for (let row = 0; row < 3; row++) {
+                    for (let col = 0; col < 3; col++) {
+                        // Skip the center square
+                        if (row === 1 && col === 1) continue;
+                        const newX = x + col * newSize;
+                        const newY = y + row * newSize;
+                        drawSierpinskiCarpetRecursive(ctx, img, newX, newY, newSize, depth);
+                    }
+                }
+            }
+        }
+
+        // 4. Barnsley Fern with Image Implementation
+        function drawBarnsleyFernImage(ctx, img, depth) {
+            const startX = canvas.width / 2;
+            const startY = canvas.height;
+            const length = canvas.height / 4; // Adjust as needed
+
+            drawFernBranch(ctx, img, startX, startY, -90, length, depth);
+        }
+
+        function drawFernBranch(ctx, img, x, y, angle, length, depth) {
+            if (depth === 0) {
+                return;
+            }
+
+            // Calculate the end point
+            const rad = angle * Math.PI / 180;
+            const x2 = x + length * spiralFactor * Math.cos(rad);
+            const y2 = y + length * spiralFactor * Math.sin(rad);
+
+            // Draw the image at this branch
+            ctx.save();
+
+            // Move to the starting point
+            ctx.translate(x2, y2);
+
+            // Rotate the context to the branch angle
+            ctx.rotate(rad + Math.PI / 2); // Adjust rotation
+
+            // Scale the image based on length
+            const scale = length / img.height;
+            ctx.scale(scale, scale);
+
+            // Create clipping mask based on selectedMaskShape
+            ctx.beginPath();
+            switch (selectedMaskShape) {
+                case 'circle':
+                    ctx.arc(0, -img.height / 2, img.width / 2, 0, 2 * Math.PI);
+                    break;
+                case 'triangle':
+                    ctx.moveTo(-img.width / 2, -img.height / 2);
+                    ctx.lineTo(0, -img.height);
+                    ctx.lineTo(img.width / 2, -img.height / 2);
+                    ctx.closePath();
+                    break;
+                case 'hexagon':
+                    drawHexagon(ctx, 0, -img.height / 2, img.width / 2);
+                    break;
+                case 'square':
+                default:
+                    ctx.rect(-img.width / 2, -img.height, img.width, img.height);
+                    break;
+            }
+            ctx.clip();
+
+            // Draw the image centered
+            ctx.drawImage(img, -img.width / 2, -img.height, img.width, img.height);
+
+            ctx.restore();
+
+            // Recursively draw branches
+            const newLength = length * spiralFactor; // Adjust as needed
+            const angleVariation = 25; // Adjust branching angle
+
+            drawFernBranch(ctx, img, x2, y2, angle - angleVariation, newLength, depth - 1);
+            drawFernBranch(ctx, img, x2, y2, angle + angleVariation, newLength, depth - 1);
+        }
+
+        // 5. Romanesco Broccoli Implementation
+        function drawRomanescoBroccoli(ctx, img, depth) {
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+            const initialRadius = Math.min(canvas.width, canvas.height) / 4; // Adjusted size
+
+            // Start multiple spirals based on the number of branches
+            for (let i = 0; i < branches; i++) {
+                const angle = i * (Math.PI * 2) / branches + branchRotationAngle * Math.PI / 180;
+                drawBroccoliSpiral(ctx, img, centerX, centerY, initialRadius, angle, depth);
+            }
+
+            // Draw the central image on top of the fractal
+            drawCentralImage(ctx, img, centerX, centerY, initialRadius);
+        }
+
+        function drawCentralImage(ctx, img, centerX, centerY, initialRadius) {
+            ctx.save();
+
+            ctx.translate(centerX, centerY);
+            ctx.rotate(0); // No rotation needed
+
+            // Scale the image to fit within the initial radius
+            const scale = (initialRadius * 1) / Math.max(img.width, img.height);
+            ctx.scale(scale, scale);
+
+            // Create clipping mask based on selectedMaskShape
+            ctx.beginPath();
+            switch (selectedMaskShape) {
+                case 'circle':
+                    ctx.arc(0, 0, Math.max(img.width, img.height) / 2, 0, 2 * Math.PI);
+                    break;
+                case 'triangle':
+                    ctx.moveTo(-img.width / 2, img.height / 2);
+                    ctx.lineTo(0, -img.height / 2);
+                    ctx.lineTo(img.width / 2, img.height / 2);
+                    ctx.closePath();
+                    break;
+                case 'hexagon':
+                    drawHexagon(ctx, 0, 0, Math.max(img.width, img.height) / 2);
+                    break;
+                case 'square':
+                default:
+                    ctx.rect(-img.width / 2, -img.height / 2, img.width, img.height);
+                    break;
+            }
+            ctx.clip();
+
+            // Draw the image centered
+            ctx.drawImage(img, -img.width / 2, -img.height / 2, img.width, img.height);
+
+            ctx.restore();
+        }
+
+        function drawBroccoliSpiral(ctx, img, x, y, radius, angle, depth) {
+            if (depth === 0 || radius < 1) {
+                return;
+            }
+
+            // Calculate new position along the spiral using the adjustable spiralFactor
+            const offsetX = spiralFactor * radius * Math.cos(angle);
+            const offsetY = spiralFactor * radius * Math.sin(angle);
+
+            // Draw the image at current position
+            ctx.save();
+
+            ctx.translate(x + offsetX, y + offsetY);
+            ctx.rotate(angle);
+
+            // Scale the image based on radius
+            const scale = radius / img.width;
+            ctx.scale(scale, scale);
+
+            // Create clipping mask based on selectedMaskShape
+            ctx.beginPath();
+            switch (selectedMaskShape) {
+                case 'circle':
+                    ctx.arc(0, 0, img.width / 2, 0, 2 * Math.PI);
+                    break;
+                case 'triangle':
+                    ctx.moveTo(-img.width / 2, img.height / 2);
+                    ctx.lineTo(0, -img.height / 2);
+                    ctx.lineTo(img.width / 2, img.height / 2);
+                    ctx.closePath();
+                    break;
+                case 'hexagon':
+                    drawHexagon(ctx, 0, 0, img.width / 2);
+                    break;
+                case 'square':
+                default:
+                    ctx.rect(-img.width / 2, -img.height / 2, img.width, img.height);
+                    break;
+            }
+            ctx.clip();
+
+            // Draw the image centered
+            ctx.drawImage(img, -img.width / 2, -img.height / 2, img.width, img.height);
+
+            ctx.restore();
+
+            // Reduce radius and increase angle for the next iteration
+            const newRadius = radius * 0.9; // Adjust shrink factor as needed
+            const angleIncrement = rotationAngle * Math.PI / 180; // Use rotation slider to adjust
+            const newAngle = angle + angleIncrement;
+
+            // Recursively draw the next level
+            drawBroccoliSpiral(ctx, img, x + offsetX, y + offsetY, newRadius, newAngle, depth - 1);
+        }
+
+        // 6. Three Branches Tree Implementation
+        function drawThreeBranchesTree(ctx, img, depth) {
+            const startX = canvas.width / 2;
+            const startY = canvas.height;
+            const length = canvas.height / 4; // Adjust as needed
+            const angle = -90; // Start pointing upwards
+
+            drawTreeBranch(ctx, img, startX, startY, angle, length, depth);
+        }
+
+        function drawTreeBranch(ctx, img, x, y, angle, length, depth) {
+            if (depth === 0) {
+                return;
+            }
+
+            // Calculate the end point
+            const rad = angle * Math.PI / 180;
+            const x2 = x + length * spiralFactor * Math.cos(rad);
+            const y2 = y + length * spiralFactor * Math.sin(rad);
+
+            // Draw the image at this branch
+            ctx.save();
+
+            // Move to the starting point
+            ctx.translate(x2, y2);
+
+            // Rotate the context to the branch angle
+            ctx.rotate(rad + Math.PI / 2); // Adjust rotation
+
+            // Scale the image based on length
+            const scale = length / img.height;
+            ctx.scale(scale, scale);
+
+            // Create clipping mask based on selectedMaskShape
+            ctx.beginPath();
+            switch (selectedMaskShape) {
+                case 'circle':
+                    ctx.arc(0, -img.height / 2, img.width / 2, 0, 2 * Math.PI);
+                    break;
+                case 'triangle':
+                    ctx.moveTo(-img.width / 2, -img.height / 2);
+                    ctx.lineTo(0, -img.height);
+                    ctx.lineTo(img.width / 2, -img.height / 2);
+                    ctx.closePath();
+                    break;
+                case 'hexagon':
+                    drawHexagon(ctx, 0, -img.height / 2, img.width / 2);
+                    break;
+                case 'square':
+                default:
+                    ctx.rect(-img.width / 2, -img.height, img.width, img.height);
+                    break;
+            }
+            ctx.clip();
+
+            // Draw the image centered
+            ctx.drawImage(img, -img.width / 2, -img.height, img.width, img.height);
+
+            ctx.restore();
+
+            // Recursively draw branches
+            const newLength = length * spiralFactor; // Adjust as needed
+            const angleVariation = 30; // Adjust branching angle
+
+            drawTreeBranch(ctx, img, x2, y2, angle - angleVariation, newLength, depth - 1);
+            drawTreeBranch(ctx, img, x2, y2, angle, newLength, depth - 1);
+            drawTreeBranch(ctx, img, x2, y2, angle + angleVariation, newLength, depth - 1);
+        }
+
+        // 7. Quadratic Cross Implementation
+        function drawQuadraticCross(ctx, img, depth) {
+            const startX = canvas.width / 2;
+            const startY = canvas.height / 2;
+            const size = Math.min(canvas.width, canvas.height) / 4; // Adjust as needed
+
+            drawCross(ctx, img, startX, startY, size, depth);
+        }
+
+        function drawCross(ctx, img, x, y, size, depth) {
+            if (depth === 0 || size < 1) {
+                return;
+            }
+
+            // Draw the image at this position
+            ctx.save();
+
+            // Move to the current position
+            ctx.translate(x, y);
+
+            // Scale the image based on size
+            const scale = size / img.width;
+            ctx.scale(scale, scale);
+
+            // Create clipping mask based on selectedMaskShape
+            ctx.beginPath();
+            switch (selectedMaskShape) {
+                case 'circle':
+                    ctx.arc(0, 0, img.width / 2, 0, 2 * Math.PI);
+                    break;
+                case 'triangle':
+                    ctx.moveTo(-img.width / 2, img.height / 2);
+                    ctx.lineTo(0, -img.height / 2);
+                    ctx.lineTo(img.width / 2, img.height / 2);
+                    ctx.closePath();
+                    break;
+                case 'hexagon':
+                    drawHexagon(ctx, 0, 0, img.width / 2);
+                    break;
+                case 'square':
+                default:
+                    ctx.rect(-img.width / 2, -img.height / 2, img.width, img.height);
+                    break;
+            }
+            ctx.clip();
+
+            // Draw the image centered
+            ctx.drawImage(img, -img.width / 2, -img.height / 2, img.width, img.height);
+
+            ctx.restore();
+
+            // Recursively draw crosses at the ends
+            const newSize = size / 2;
+
+            // Positions for the cross arms
+            const positions = [
+                { x: x - size, y: y },
+                { x: x + size, y: y },
+                { x: x, y: y - size },
+                { x: x, y: y + size }
+            ];
+
+            for (const pos of positions) {
+                drawCross(ctx, img, pos.x, pos.y, newSize, depth - 1);
+            }
+        }
+
+        // Helper function to draw a hexagon
+        function drawHexagon(ctx, x, y, radius) {
+            ctx.moveTo(x + radius * Math.cos(0), y + radius * Math.sin(0));
+            for (let side = 1; side <= 6; side++) {
+                ctx.lineTo(
+                    x + radius * Math.cos((side * 2 * Math.PI) / 6),
+                    y + radius * Math.sin((side * 2 * Math.PI) / 6)
+                );
+            }
+            ctx.closePath();
+        }
+
+
+        // Zoom functionality
+        canvas.addEventListener('wheel', function(event) {
+            if (!currentImage) return;
+            event.preventDefault();
+
+            const rect = canvas.getBoundingClientRect();
+            const mousePos = {
+                x: event.clientX - rect.left - translatePos.x,
+                y: event.clientY - rect.top - translatePos.y
+            };
+
+            const delta = event.deltaY;
+            const zoomFactor = 1.05;
+            const zoom = delta < 0 ? zoomFactor : 1 / zoomFactor;
+
+            // Limit scale
+            const newScale = scale * zoom;
+            if (newScale < 0.1 || newScale > 100) return; // Limit zoom level
+
+            // Adjust the translation so that the point under the mouse stays in the same place
+            translatePos.x -= mousePos.x * (zoom - 1);
+            translatePos.y -= mousePos.y * (zoom - 1);
+
+            scale = newScale;
+
+            drawFractal();
+        });
+
+        // Pan functionality
+        canvas.addEventListener('mousedown', function(event) {
+            if (!currentImage) return;
+            isDragging = true;
+            canvas.style.cursor = 'grabbing';
+            const rect = canvas.getBoundingClientRect();
+            dragStart.x = event.clientX - rect.left - translatePos.x;
+            dragStart.y = event.clientY - rect.top - translatePos.y;
+        });
+
+        canvas.addEventListener('mousemove', function(event) {
+            if (isDragging) {
+                const rect = canvas.getBoundingClientRect();
+                translatePos.x = event.clientX - rect.left - dragStart.x;
+                translatePos.y = event.clientY - rect.top - dragStart.y;
+                drawFractal();
+            }
+        });
+
+        canvas.addEventListener('mouseup', function(event) {
+            isDragging = false;
+            canvas.style.cursor = 'grab';
+        });
+
+        canvas.addEventListener('mouseleave', function(event) {
+            isDragging = false;
+            canvas.style.cursor = 'grab';
+        });
+
+        // Prevent image dragging in some browsers
+        canvas.addEventListener('dragstart', function(event) {
+            event.preventDefault();
+        });
+
+        // Snapshot Functionality
+        snapshotButton.addEventListener('click', function() {
+            if (!currentImage) {
+                alert("Please upload an image and generate the fractal before taking a snapshot.");
+                return;
+            }
+            // Convert the canvas to a data URL in PNG format
+            const dataURL = canvas.toDataURL('image/png');
+
+            // Create a temporary link element
+            const link = document.createElement('a');
+            link.href = dataURL;
+
+            // Set the download attribute with a default filename
+            link.download = 'fractal_snapshot.png';
+
+            // Append the link to the body
+            document.body.appendChild(link);
+
+            // Programmatically click the link to trigger the download
+            link.click();
+
+            // Remove the link from the document
+            document.body.removeChild(link);
+        });
+    </script>
+</body>
+</html>

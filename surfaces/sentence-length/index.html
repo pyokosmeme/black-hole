@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentence Length Visualizer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: et-book, Palatino, "Palatino Linotype", "Palatino LT STD", "Book Antiqua", Georgia, serif;
+            background: #fffff8;
+            color: #111;
+            line-height: 1.4;
+            font-size: 15px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 60px 40px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 40px 20px;
+            }
+        }
+
+        .header {
+            margin-bottom: 60px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 30px;
+        }
+
+        h1 {
+            font-weight: 400;
+            font-size: 3.2rem;
+            line-height: 1.2;
+            margin-bottom: 10px;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            font-size: 1.3rem;
+            color: #666;
+            font-style: italic;
+            font-weight: 300;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .tab-button.active {
+            background: #111;
+            color: #fffff8;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .count-metrics {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 30px;
+            margin: 50px 0;
+            padding: 30px 0;
+            border-top: 1px solid #ddd;
+            border-bottom: 1px solid #ddd;
+        }
+
+        @media (max-width: 768px) {
+            .count-metrics {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 968px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+        }
+
+        .section {
+            position: relative;
+        }
+
+        .section-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #888;
+            margin-bottom: 12px;
+            font-weight: 400;
+        }
+
+        .text-input {
+            width: 100%;
+            min-height: 450px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            background: #fff;
+            font-family: inherit;
+            font-size: 1.1rem;
+            line-height: 1.8;
+            resize: vertical;
+            transition: border-color 0.3s;
+        }
+
+        .text-input:focus {
+            outline: none;
+            border-color: #999;
+        }
+
+        .output-display {
+            min-height: 450px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            background: #fff;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-size: 1.1rem;
+            line-height: 1.8;
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 15px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #fff;
+            color: #111;
+            border: 1px solid #999;
+            font-family: inherit;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 400;
+        }
+
+        button:hover {
+            background: #111;
+            color: #fffff8;
+        }
+
+        .sentence-highlight {
+            display: inline;
+            position: relative;
+            cursor: help;
+            transition: filter 0.2s;
+        }
+
+        .sentence-highlight:hover {
+            filter: brightness(1.15);
+        }
+
+        .whitespace {
+            display: inline;
+            white-space: pre-wrap;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 30px;
+            margin: 50px 0;
+            padding: 30px 0;
+            border-top: 1px solid #ddd;
+            border-bottom: 1px solid #ddd;
+        }
+
+        @media (max-width: 768px) {
+            .metrics {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 20px;
+            }
+        }
+
+        .metric {
+            text-align: center;
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 300;
+            color: #111;
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+
+        .metric-label {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #888;
+        }
+
+        .legend {
+            margin-top: 50px;
+            padding-top: 30px;
+            border-top: 1px solid #ddd;
+        }
+
+        .legend-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: #888;
+            margin-bottom: 20px;
+        }
+
+        .legend-scale {
+            display: flex;
+            height: 40px;
+            border: 1px solid #ddd;
+            overflow: hidden;
+        }
+
+        .legend-segment {
+            flex: 1;
+            position: relative;
+        }
+
+        .legend-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            padding: 0 5px;
+        }
+
+        .legend-label {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: #111;
+            color: #fffff8;
+            padding: 6px 12px;
+            font-size: 0.85rem;
+            white-space: nowrap;
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            letter-spacing: 0.05em;
+        }
+
+        .tooltip.show {
+            opacity: 0.95;
+        }
+
+        .footnote {
+            margin-top: 60px;
+            padding-top: 30px;
+            border-top: 1px solid #ddd;
+            font-size: 0.9rem;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .footnote p {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Sentence Length Visualizer</h1>
+            <p class="subtitle">A tool for examining the rhythm and variety of written prose</p>
+        </div>
+
+        <div class="tabs">
+            <button class="tab-button active" data-tab="visualizerTab">Visualizer</button>
+            <button class="tab-button" data-tab="countTab">Word &amp; Character Count</button>
+        </div>
+
+        <div id="visualizerTab" class="tab-content active">
+            <div class="main-grid">
+                <div class="section">
+                    <div class="section-label">Input</div>
+                    <textarea id="inputText" class="text-input" placeholder="Paste your text here to begin..."></textarea>
+                    <div class="controls">
+                        <button onclick="loadSampleText()">Sample Text</button>
+                        <button onclick="clearText()">Clear</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-label">Visualization</div>
+                    <div id="outputDisplay" class="output-display"></div>
+                </div>
+            </div>
+
+            <div class="metrics">
+                <div class="metric">
+                    <div class="metric-value" id="totalSentences">0</div>
+                    <div class="metric-label">Sentences</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="shortestSentence">—</div>
+                    <div class="metric-label">Shortest</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="longestSentence">—</div>
+                    <div class="metric-label">Longest</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="averageLength">—</div>
+                    <div class="metric-label">Average</div>
+                </div>
+            </div>
+
+            <div class="legend">
+                <div class="legend-title">Character Length Scale</div>
+                <div class="legend-scale">
+                    <div class="legend-segment" style="background: hsla(270, 80%, 65%, 0.35);"></div>
+                    <div class="legend-segment" style="background: hsla(225, 80%, 65%, 0.35);"></div>
+                    <div class="legend-segment" style="background: hsla(180, 80%, 65%, 0.35);"></div>
+                    <div class="legend-segment" style="background: hsla(135, 80%, 65%, 0.35);"></div>
+                    <div class="legend-segment" style="background: hsla(90, 80%, 65%, 0.35);"></div>
+                    <div class="legend-segment" style="background: hsla(45, 80%, 65%, 0.35);"></div>
+                    <div class="legend-segment" style="background: hsla(0, 80%, 65%, 0.35);"></div>
+                </div>
+                <div class="legend-labels">
+                    <span class="legend-label">10</span>
+                    <span class="legend-label">50</span>
+                    <span class="legend-label">90</span>
+                    <span class="legend-label">130</span>
+                    <span class="legend-label">170</span>
+                    <span class="legend-label">200+</span>
+                </div>
+            </div>
+
+            <div class="footnote">
+                <p><strong>Note:</strong> Each sentence is highlighted according to its character length, creating a visual map of textual rhythm. Short, punchy sentences appear in cool violet tones, while longer, more complex constructions shift toward warm reds.</p>
+                <p>The visualization preserves all original formatting including paragraph breaks and spacing. Hover over any sentence to see its precise character count.</p>
+            </div>
+        </div>
+
+        <div id="countTab" class="tab-content">
+            <div class="section">
+                <div class="section-label">Text</div>
+                <textarea id="countInput" class="text-input" placeholder="Paste or upload your text..."></textarea>
+                <div class="controls">
+                    <input type="file" id="fileInput" accept=".txt">
+                    <button onclick="clearCountText()">Clear</button>
+                </div>
+            </div>
+            <div class="count-metrics">
+                <div class="metric">
+                    <div class="metric-value" id="charCount">0</div>
+                    <div class="metric-label">Characters</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-value" id="wordCount">0</div>
+                    <div class="metric-label">Words</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="tooltip" class="tooltip"></div>
+
+    <script>
+        const inputText = document.getElementById('inputText');
+        const outputDisplay = document.getElementById('outputDisplay');
+        const tooltip = document.getElementById('tooltip');
+        const countInput = document.getElementById('countInput');
+        const fileInput = document.getElementById('fileInput');
+        const charCountEl = document.getElementById('charCount');
+        const wordCountEl = document.getElementById('wordCount');
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const target = button.dataset.tab;
+                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabContents.forEach(tab => tab.classList.remove('active'));
+                button.classList.add('active');
+                document.getElementById(target).classList.add('active');
+            });
+        });
+
+        // Statistics elements
+        const totalSentencesEl = document.getElementById('totalSentences');
+        const shortestSentenceEl = document.getElementById('shortestSentence');
+        const longestSentenceEl = document.getElementById('longestSentence');
+        const averageLengthEl = document.getElementById('averageLength');
+
+        // Constants for color calculation
+        const MIN_LENGTH = 10;
+        const MAX_LENGTH = 200;
+
+        function getColorForLength(length) {
+            const normalizedLength = Math.min(Math.max((length - MIN_LENGTH) / (MAX_LENGTH - MIN_LENGTH), 0), 1);
+            const hue = (1 - normalizedLength) * 270;
+            return `hsla(${hue}, 80%, 65%, 0.35)`;
+        }
+
+        function parseSentences(text) {
+            if (!text) return [];
+            
+            const segments = [];
+            let currentPos = 0;
+            
+            // Enhanced regex for sentence boundaries
+            const sentenceRegex = /[.!?]+(?:\s+|$)|[.!?]+(?=[A-Z])/g;
+            let match;
+            
+            while ((match = sentenceRegex.exec(text)) !== null) {
+                const sentenceEnd = match.index + match[0].length;
+                
+                // Extract sentence (including its ending punctuation)
+                const sentence = text.substring(currentPos, sentenceEnd).trimStart();
+                
+                if (sentence) {
+                    // Add any leading whitespace as a separate segment
+                    const leadingWhitespace = text.substring(currentPos, currentPos + text.substring(currentPos, sentenceEnd).indexOf(sentence));
+                    if (leadingWhitespace) {
+                        segments.push({ type: 'whitespace', content: leadingWhitespace });
+                    }
+                    
+                    // Add the sentence
+                    segments.push({ 
+                        type: 'sentence', 
+                        content: sentence.trimEnd(),
+                        length: sentence.trimEnd().length 
+                    });
+                    
+                    // Add trailing whitespace after the sentence
+                    const trailingWhitespace = sentence.substring(sentence.trimEnd().length);
+                    if (trailingWhitespace) {
+                        segments.push({ type: 'whitespace', content: trailingWhitespace });
+                    }
+                }
+                
+                currentPos = sentenceEnd;
+            }
+            
+            // Handle any remaining text
+            if (currentPos < text.length) {
+                const remaining = text.substring(currentPos);
+                if (remaining.trim()) {
+                    // It's a sentence fragment
+                    segments.push({ 
+                        type: 'sentence', 
+                        content: remaining.trimEnd(),
+                        length: remaining.trimEnd().length 
+                    });
+                    const trailingWhitespace = remaining.substring(remaining.trimEnd().length);
+                    if (trailingWhitespace) {
+                        segments.push({ type: 'whitespace', content: trailingWhitespace });
+                    }
+                } else {
+                    // It's just whitespace
+                    segments.push({ type: 'whitespace', content: remaining });
+                }
+            }
+            
+            return segments;
+        }
+
+        function updateStatistics(segments) {
+            const sentences = segments.filter(s => s.type === 'sentence');
+            
+            if (sentences.length === 0) {
+                totalSentencesEl.textContent = '0';
+                shortestSentenceEl.textContent = '—';
+                longestSentenceEl.textContent = '—';
+                averageLengthEl.textContent = '—';
+                return;
+            }
+            
+            const lengths = sentences.map(s => s.length);
+            const shortest = Math.min(...lengths);
+            const longest = Math.max(...lengths);
+            const average = lengths.reduce((a, b) => a + b, 0) / lengths.length;
+            
+            totalSentencesEl.textContent = sentences.length;
+            shortestSentenceEl.textContent = shortest;
+            longestSentenceEl.textContent = longest;
+            averageLengthEl.textContent = Math.round(average);
+        }
+
+        function highlightText() {
+            const text = inputText.value;
+            
+            if (!text) {
+                outputDisplay.innerHTML = '';
+                updateStatistics([]);
+                return;
+            }
+            
+            const segments = parseSentences(text);
+            updateStatistics(segments);
+            
+            // Clear output
+            outputDisplay.innerHTML = '';
+            
+            // Build highlighted output
+            segments.forEach(segment => {
+                const span = document.createElement('span');
+                
+                if (segment.type === 'sentence') {
+                    span.className = 'sentence-highlight';
+                    span.style.backgroundColor = getColorForLength(segment.length);
+                    span.textContent = segment.content;
+                    span.dataset.length = segment.length;
+                    
+                    // Add hover events for tooltip
+                    span.addEventListener('mouseenter', (e) => {
+                        tooltip.textContent = `${segment.length} characters`;
+                        tooltip.classList.add('show');
+                    });
+                    
+                    span.addEventListener('mousemove', (e) => {
+                        tooltip.style.left = e.pageX + 10 + 'px';
+                        tooltip.style.top = e.pageY - 30 + 'px';
+                    });
+                    
+                    span.addEventListener('mouseleave', () => {
+                        tooltip.classList.remove('show');
+                    });
+                } else {
+                    span.className = 'whitespace';
+                    span.textContent = segment.content;
+                }
+                
+                outputDisplay.appendChild(span);
+            });
+        }
+
+        function loadSampleText() {
+            inputText.value = `The best writers vary their sentences. Short sentences have power. They create rhythm, emphasis, and clarity in ways that longer, more elaborate constructions—those that meander through multiple clauses and subclauses, accumulating detail and nuance as they progress—simply cannot achieve with the same directness.
+
+Consider Hemingway's style. Clean. Direct. Unadorned. Each sentence serves its purpose without excess, creating a cumulative effect through accumulation rather than elaboration. Yet even Hemingway knew when to let a sentence breathe, when to allow it to expand and encompass more complex thoughts that required the space and architecture of a longer grammatical structure.
+
+Academic writing often errs on the side of prolixity, constructing elaborate sentences that, while perhaps necessary for conveying complex theoretical frameworks or for establishing precise scholarly distinctions, can nonetheless fatigue readers who must parse multiple dependent clauses, parenthetical asides, and terminological specifications before arriving at the primary assertion. See?
+
+Good prose breathes. It contracts and expands. Quick observations punctuate longer meditations. This variation—this rhythm—is what separates memorable writing from the merely functional, what distinguishes prose that sings from prose that merely informs.`;
+            highlightText();
+        }
+
+        function clearText() {
+            inputText.value = '';
+            outputDisplay.innerHTML = '';
+            updateStatistics([]);
+        }
+
+        function updateCounts() {
+            const text = countInput.value;
+            charCountEl.textContent = text.length;
+            wordCountEl.textContent = text.trim() ? text.trim().split(/\s+/).length : 0;
+        }
+
+        function clearCountText() {
+            countInput.value = '';
+            fileInput.value = '';
+            updateCounts();
+        }
+
+        function handleFileUpload(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                countInput.value = event.target.result;
+                updateCounts();
+            };
+            reader.readAsText(file);
+        }
+
+        countInput.addEventListener('input', updateCounts);
+        fileInput.addEventListener('change', handleFileUpload);
+
+        // Add input event listener
+        inputText.addEventListener('input', highlightText);
+
+        // Load sample text on page load and init counts
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSampleText();
+            updateCounts();
+        });
+    </script>
+</body>
+</html>

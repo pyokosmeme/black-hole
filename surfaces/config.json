@@ -25,56 +25,62 @@
     {
       "slug": "horizons-edge",
       "title": "HORIZONS EDGE",
-      "url": "https://github.com/lastnpcalex/HorizonsEdge",
+      "url": "/surfaces/horizons-edge/",
       "repo": "https://github.com/lastnpcalex/HorizonsEdge",
       "tags": ["interactive"],
       "flavor": "boundary work ;; the line that bends back",
-      "desc": "horizons edge — a small surface at the limit case."
+      "desc": "horizons edge — a small surface at the limit case.",
+      "local": true
     },
     {
       "slug": "spinnyrock",
       "title": "SPINNYROCK",
-      "url": "https://github.com/lastnpcalex/SpinnyRock",
+      "url": "/surfaces/spinnyrock/",
       "repo": "https://github.com/lastnpcalex/SpinnyRock",
       "tags": ["physics", "interactive"],
       "flavor": "centrifugal lithology ;; mass becomes verb",
-      "desc": "rotating mineral ;; angular momentum as toy."
+      "desc": "rotating mineral ;; angular momentum as toy.",
+      "local": true
     },
     {
       "slug": "pdfs",
       "title": "PDFS",
-      "url": "https://github.com/pyokosmeme/PDFs",
+      "url": "/surfaces/pdfs/",
       "repo": "https://github.com/pyokosmeme/PDFs",
-      "tags": ["archive"],
-      "flavor": "paper, flattened to light",
-      "desc": "a small archive ;; documents kept against forgetting."
+      "tags": ["generative", "interactive"],
+      "flavor": "probability, vaporwaved ;; densities you can see",
+      "desc": "vaporwave-styled interactive 3D probability density function visualizer (React + Three.js).",
+      "local": true
     },
     {
       "slug": "fractalmemes",
       "title": "FRACTAL MEMES",
-      "url": "https://github.com/lastnpcalex/fractalmemes",
+      "url": "/surfaces/fractalmemes/",
       "repo": "https://github.com/lastnpcalex/fractalmemes",
       "tags": ["generative", "image"],
       "flavor": "self-similar laughter ;; the joke nests",
-      "desc": "fractal generators producing recursive image memes."
+      "desc": "drop an image ;; generate fractals of a meme.",
+      "local": true
     },
     {
       "slug": "sentence-length",
       "title": "SENTENCE LENGTH ANALYZER",
-      "url": "https://github.com/lastnpcalex/SentenceLengthAnalyzer",
+      "url": "/surfaces/sentence-length/",
       "repo": "https://github.com/lastnpcalex/SentenceLengthAnalyzer",
       "tags": ["analysis", "text", "tool"],
       "flavor": "prose, measured ;; the cadence revealed",
-      "desc": "small tool ;; counting beats in written text."
+      "desc": "deepfates sentence analyzer ;; counting beats in written text.",
+      "local": true
     },
     {
       "slug": "ising2",
       "title": "ISING 2",
-      "url": "https://github.com/lastnpcalex/Ising2",
+      "url": "/surfaces/ising2/",
       "repo": "https://github.com/lastnpcalex/Ising2",
       "tags": ["physics", "simulation"],
       "flavor": "spin glass ;; phase boundaries breathing",
-      "desc": "2D Ising model ;; magnetic phase transition as toy."
+      "desc": "2D ising model ;; magnetic phase transition as toy. several attractors inside.",
+      "local": true
     }
   ]
 }

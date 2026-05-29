@@ -1,0 +1,2299 @@
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import * as THREE from 'three';
+
+// Distribution functions
+const baseDistributions = {
+  gaussian: {
+    name: "Normal Distribution",
+    fn: (x, y, params) => {
+      const { sigma = 1 } = params;
+      const r2 = x * x + y * y;
+      return Math.exp(-r2 / (2 * sigma * sigma)) / (2 * Math.PI * sigma * sigma);
+    },
+    params: { sigma: { min: 0.3, max: 2, default: 1, label: "σ (spread)" } },
+    normalize: (maxVal) => maxVal > 0 ? 1 / maxVal : 1
+  },
+  bivariate: {
+    name: "Bivariate Gaussian",
+    fn: (x, y, params) => {
+      const { sigmaX = 1, sigmaY = 0.5, rho = 0.5 } = params;
+      const z = (x * x) / (sigmaX * sigmaX) 
+              - (2 * rho * x * y) / (sigmaX * sigmaY) 
+              + (y * y) / (sigmaY * sigmaY);
+      const norm = 2 * Math.PI * sigmaX * sigmaY * Math.sqrt(1 - rho * rho);
+      return Math.exp(-z / (2 * (1 - rho * rho))) / norm;
+    },
+    params: {
+      sigmaX: { min: 0.3, max: 2, default: 1, label: "σx" },
+      sigmaY: { min: 0.3, max: 2, default: 0.6, label: "σy" },
+      rho: { min: -0.9, max: 0.9, default: 0.4, label: "ρ (correlation)" }
+    },
+    normalize: (maxVal) => maxVal > 0 ? 1 / maxVal : 1
+  },
+  hydrogen1s: {
+    name: "Hydrogen 1s Orbital",
+    fn: (x, y, params) => {
+      const { a0 = 1 } = params;
+      const r = Math.sqrt(x * x + y * y);
+      const psi = (1 / (Math.sqrt(Math.PI) * Math.pow(a0, 1.5))) * Math.exp(-r / a0);
+      return psi * psi;
+    },
+    params: { a0: { min: 0.3, max: 2, default: 1, label: "a₀ (Bohr radius)" } },
+    normalize: (maxVal) => maxVal > 0 ? 1 / maxVal : 1
+  },
+  hydrogen2p: {
+    name: "Hydrogen 2p Orbital",
+    fn: (x, y, params) => {
+      const { a0 = 1 } = params;
+      const r = Math.sqrt(x * x + y * y) + 0.001;
+      const cosTheta = x / r;
+      const psi = (1 / (4 * Math.sqrt(2 * Math.PI) * Math.pow(a0, 1.5))) * (r / a0) * Math.exp(-r / (2 * a0)) * cosTheta;
+      return psi * psi;
+    },
+    params: { a0: { min: 0.5, max: 3, default: 1.5, label: "a₀ (Bohr radius)" } },
+    normalize: (maxVal) => maxVal > 0 ? 1 / maxVal : 1
+  },
+  boltzmann: {
+    name: "Maxwell-Boltzmann (Velocity)",
+    fn: (x, y, params) => {
+      const { temp = 1 } = params;
+      // 3D velocity distribution: f(vx, vy, vz) ∝ exp(-(vx² + vy² + vz²)/2kT)
+      // We're viewing a 2D slice at vz = 0
+      const v2 = x * x + y * y;
+      const kT = temp;
+      // Gaussian in velocity space (spherically symmetric)
+      return Math.exp(-v2 / (2 * kT)) / (2 * Math.PI * kT);
+    },
+    params: { temp: { min: 0.3, max: 3, default: 1, label: "kT (temperature)" } },
+    normalize: (maxVal) => maxVal > 0 ? 1 / maxVal : 1
+  },
+  boltzmannSpeed: {
+    name: "Maxwell-Boltzmann (Speed)",
+    fn: (x, y, params) => {
+      const { temp = 1 } = params;
+      // 1D speed distribution: f(v) ∝ v² exp(-v²/2kT)
+      // Speed must be non-negative
+      if (x < 0) return 0;
+      const v = x;
+      const kT = temp;
+      // The v² factor comes from the spherical Jacobian
+      return (v * v / (kT * kT)) * Math.exp(-v * v / (2 * kT));
+    },
+    params: { temp: { min: 0.3, max: 3, default: 1, label: "kT (temperature)" } },
+    normalize: (maxVal) => maxVal > 0 ? 1 / maxVal : 1
+  },
+  higgs: {
+    name: "Higgs Potential",
+    fn: (x, y, params) => {
+      const { mu2 = -1, lambda = 0.5, eta = 0, temp = 0 } = params;
+      const r2 = x * x + y * y;
+      const r = Math.sqrt(r2);
+      
+      // Effective mass with temperature: μ²_eff = μ² + cT²
+      const thermalCoeff = 0.2;
+      const mu2_eff = mu2 + thermalCoeff * temp * temp;
+      
+      // V(φ) = μ²|φ|² + η|φ|³ + λ|φ|⁴
+      // We return -V so peaks show minima (more intuitive for "potential well" visualization)
+      const V = mu2_eff * r2 + eta * r * r2 + lambda * r2 * r2;
+      
+      // Invert and shift so the potential wells appear as peaks
+      return Math.exp(-V * 0.5);
+    },
+    params: {
+      mu2: { min: -2, max: 1, default: -1, label: "μ² (mass²)" },
+      lambda: { min: 0.1, max: 2, default: 0.5, label: "λ (quartic)" },
+      eta: { min: -1, max: 1, default: 0, label: "η (cubic)" },
+      temp: { min: 0, max: 5, default: 0, label: "T (temperature)" }
+    },
+    normalize: (maxVal) => maxVal > 0 ? 1 / maxVal : 1,
+    // Calculate VEV for display
+    getVEV: (params) => {
+      const { mu2 = -1, lambda = 0.5, eta = 0, temp = 0 } = params;
+      const thermalCoeff = 0.2;
+      const mu2_eff = mu2 + thermalCoeff * temp * temp;
+      
+      if (eta === 0) {
+        // Symmetric case: v = √(-μ²/2λ) when μ² < 0
+        if (mu2_eff >= 0) return { v: 0, phase: 'symmetric' };
+        const v = Math.sqrt(-mu2_eff / (2 * lambda));
+        return { v, phase: 'broken' };
+      } else {
+        // Asymmetric case: solve 2μ²r + 3ηr² + 4λr³ = 0
+        // Use numerical approach - find minimum
+        let minR = 0;
+        let minV = mu2_eff * 0; // V(0)
+        for (let r = 0; r <= 3; r += 0.01) {
+          const V = mu2_eff * r * r + eta * r * r * r + lambda * r * r * r * r;
+          if (V < minV) {
+            minV = V;
+            minR = r;
+          }
+        }
+        return { 
+          v: minR, 
+          phase: minR > 0.05 ? 'broken' : 'symmetric',
+          asymmetric: true 
+        };
+      }
+    }
+  },
+  higgsPotentialDirect: {
+    name: "Higgs Potential (Direct V)",
+    fn: (x, y, params) => {
+      const { mu2 = -1, lambda = 0.5, eta = 0, temp = 0 } = params;
+      const r2 = x * x + y * y;
+      const r = Math.sqrt(r2);
+      
+      const thermalCoeff = 0.2;
+      const mu2_eff = mu2 + thermalCoeff * temp * temp;
+      
+      // Direct potential visualization (Mexican hat shape)
+      const V = mu2_eff * r2 + eta * r * r2 + lambda * r2 * r2;
+      
+      // Shift so minimum is at 0, scale for visibility
+      const vev2 = mu2_eff < 0 ? -mu2_eff / (2 * lambda) : 0;
+      const Vmin = mu2_eff < 0 ? -mu2_eff * mu2_eff / (4 * lambda) : 0;
+      
+      return Math.max(0, (V - Vmin) * 0.5 + 0.1);
+    },
+    params: {
+      mu2: { min: -2, max: 1, default: -1, label: "μ² (mass²)" },
+      lambda: { min: 0.1, max: 2, default: 0.5, label: "λ (quartic)" },
+      eta: { min: -1, max: 1, default: 0, label: "η (cubic)" },
+      temp: { min: 0, max: 5, default: 0, label: "T (temperature)" }
+    },
+    normalize: (maxVal) => maxVal > 0 ? 1 / maxVal : 1,
+    getVEV: (params) => {
+      const { mu2 = -1, lambda = 0.5, eta = 0, temp = 0 } = params;
+      const thermalCoeff = 0.2;
+      const mu2_eff = mu2 + thermalCoeff * temp * temp;
+      
+      if (eta === 0) {
+        if (mu2_eff >= 0) return { v: 0, phase: 'symmetric' };
+        const v = Math.sqrt(-mu2_eff / (2 * lambda));
+        return { v, phase: 'broken' };
+      } else {
+        let minR = 0;
+        let minV = 0;
+        for (let r = 0; r <= 3; r += 0.01) {
+          const V = mu2_eff * r * r + eta * r * r * r + lambda * r * r * r * r;
+          if (V < minV) {
+            minV = V;
+            minR = r;
+          }
+        }
+        return { 
+          v: minR, 
+          phase: minR > 0.05 ? 'broken' : 'symmetric',
+          asymmetric: true 
+        };
+      }
+    }
+  },
+  priorUpdater: {
+    name: "Prior Updater",
+    fn: (x, y, params) => {
+      const { rationality = 1, vibes = 0.5 } = params;
+      const base = Math.exp(-(x * x + y * y) / (2 * rationality));
+      const update = Math.sin(x * 3 * vibes) * Math.cos(y * 3 * vibes) * 0.3 + 0.7;
+      const epistemic = Math.exp(-Math.abs(x - y) * (1 - vibes));
+      return base * update * epistemic;
+    },
+    params: {
+      rationality: { min: 0.3, max: 2, default: 1, label: "Rationality" },
+      vibes: { min: 0, max: 1, default: 0.5, label: "Vibes" }
+    },
+    normalize: (maxVal) => maxVal > 0 ? 1 / maxVal : 1
+  },
+  uniform: {
+    name: "Uniform (Box)",
+    fn: (x, y, params) => {
+      const { width = 2 } = params;
+      return (Math.abs(x) <= width && Math.abs(y) <= width) ? 1 / (4 * width * width) : 0;
+    },
+    params: { width: { min: 0.5, max: 3, default: 1.5, label: "Width" } },
+    normalize: (maxVal) => maxVal > 0 ? 1 / maxVal : 1
+  },
+  laplacian: {
+    name: "Laplacian",
+    fn: (x, y, params) => {
+      const { b = 1 } = params;
+      const r = Math.sqrt(x * x + y * y);
+      return (1 / (2 * b)) * Math.exp(-r / b);
+    },
+    params: { b: { min: 0.3, max: 2, default: 1, label: "b (scale)" } },
+    normalize: (maxVal) => maxVal > 0 ? 1 / maxVal : 1
+  }
+};
+
+// Convolution helper - performs 2D convolution on sampled grids
+const convolve2D = (grid1, grid2, size) => {
+  const result = new Array(size).fill(0).map(() => new Array(size).fill(0));
+  const half = Math.floor(size / 2);
+  
+  for (let i = 0; i < size; i++) {
+    for (let j = 0; j < size; j++) {
+      let sum = 0;
+      for (let ki = 0; ki < size; ki++) {
+        for (let kj = 0; kj < size; kj++) {
+          const ii = i - ki + half;
+          const jj = j - kj + half;
+          if (ii >= 0 && ii < size && jj >= 0 && jj < size) {
+            sum += grid1[ii][jj] * grid2[ki][kj];
+          }
+        }
+      }
+      result[i][j] = sum;
+    }
+  }
+  
+  // Normalize
+  let max = 0;
+  for (let i = 0; i < size; i++) {
+    for (let j = 0; j < size; j++) {
+      max = Math.max(max, result[i][j]);
+    }
+  }
+  if (max > 0) {
+    for (let i = 0; i < size; i++) {
+      for (let j = 0; j < size; j++) {
+        result[i][j] /= max;
+      }
+    }
+  }
+  
+  return result;
+};
+
+// Sample a distribution to a grid
+const sampleToGrid = (distFn, params, size, range) => {
+  const grid = new Array(size).fill(0).map(() => new Array(size).fill(0));
+  const step = (2 * range) / (size - 1);
+  
+  for (let i = 0; i < size; i++) {
+    for (let j = 0; j < size; j++) {
+      const x = -range + i * step;
+      const y = -range + j * step;
+      grid[i][j] = distFn(x, y, params);
+    }
+  }
+  
+  return grid;
+};
+
+// Mini 2D Graph for Convolver
+const MiniGraph = ({ dist, params, label, color }) => {
+  const svgWidth = 280;
+  const svgHeight = 150;
+  const margin = { top: 20, right: 15, bottom: 25, left: 40 };
+  const plotWidth = svgWidth - margin.left - margin.right;
+  const plotHeight = svgHeight - margin.top - margin.bottom;
+
+  const sliceData = useMemo(() => {
+    const points = [];
+    const steps = 100;
+    const xMin = -4;
+    const xMax = 4;
+    let maxP = 0;
+    
+    for (let i = 0; i <= steps; i++) {
+      const x = xMin + (i / steps) * (xMax - xMin);
+      const p = dist.fn(x, 0, params); // Slice at y = 0
+      points.push({ x, p });
+      maxP = Math.max(maxP, p);
+    }
+    
+    const normFactor = maxP > 0 ? 1 / maxP : 1;
+    points.forEach(pt => pt.pNorm = pt.p * normFactor);
+    
+    return points;
+  }, [dist, params]);
+
+  const xMin = -4, xMax = 4, yMin = 0, yMax = 1.1;
+  const toSvgX = (x) => margin.left + ((x - xMin) / (xMax - xMin)) * plotWidth;
+  const toSvgY = (y) => margin.top + plotHeight - ((y - yMin) / (yMax - yMin)) * plotHeight;
+
+  return (
+    <div style={{ marginTop: '10px' }}>
+      <svg width={svgWidth} height={svgHeight}>
+        {/* Background */}
+        <rect
+          x={margin.left}
+          y={margin.top}
+          width={plotWidth}
+          height={plotHeight}
+          fill="#0a0014"
+          stroke="#301030"
+        />
+        
+        {/* Grid lines */}
+        {[-2, 0, 2].map((x, i) => (
+          <line
+            key={`xgrid-${i}`}
+            x1={toSvgX(x)}
+            y1={margin.top}
+            x2={toSvgX(x)}
+            y2={margin.top + plotHeight}
+            stroke={color}
+            opacity={0.2}
+          />
+        ))}
+        {[0.5, 1].map((y, i) => (
+          <line
+            key={`ygrid-${i}`}
+            x1={margin.left}
+            y1={toSvgY(y)}
+            x2={margin.left + plotWidth}
+            y2={toSvgY(y)}
+            stroke={color}
+            opacity={0.2}
+          />
+        ))}
+        
+        {/* Axes */}
+        <line
+          x1={margin.left}
+          y1={margin.top + plotHeight}
+          x2={margin.left + plotWidth}
+          y2={margin.top + plotHeight}
+          stroke={color}
+          strokeWidth={1}
+        />
+        <line
+          x1={margin.left}
+          y1={margin.top}
+          x2={margin.left}
+          y2={margin.top + plotHeight}
+          stroke={color}
+          strokeWidth={1}
+        />
+        
+        {/* Axis labels */}
+        <text x={margin.left} y={svgHeight - 5} fill={color} fontSize="9" fontFamily="monospace">-4</text>
+        <text x={margin.left + plotWidth - 5} y={svgHeight - 5} fill={color} fontSize="9" fontFamily="monospace">4</text>
+        <text x={margin.left - 15} y={margin.top + 5} fill={color} fontSize="9" fontFamily="monospace">1</text>
+        <text x={margin.left - 15} y={margin.top + plotHeight} fill={color} fontSize="9" fontFamily="monospace">0</text>
+        
+        {/* Filled area */}
+        <path
+          d={`
+            M ${toSvgX(sliceData[0].x)} ${toSvgY(0)}
+            ${sliceData.map(p => `L ${toSvgX(p.x)} ${toSvgY(Math.min(1.1, p.pNorm))}`).join(' ')}
+            L ${toSvgX(sliceData[sliceData.length - 1].x)} ${toSvgY(0)}
+            Z
+          `}
+          fill={color}
+          opacity={0.15}
+        />
+        
+        {/* Curve */}
+        <path
+          d={sliceData.map((p, i) => 
+            `${i === 0 ? 'M' : 'L'} ${toSvgX(p.x)} ${toSvgY(Math.min(1.1, p.pNorm))}`
+          ).join(' ')}
+          fill="none"
+          stroke={color}
+          strokeWidth={2}
+        />
+        
+        {/* Label */}
+        <text
+          x={svgWidth / 2}
+          y={12}
+          fill={color}
+          textAnchor="middle"
+          fontSize="10"
+          fontFamily="monospace"
+        >
+          {label} @ y=0
+        </text>
+      </svg>
+    </div>
+  );
+};
+
+// Convolver Panel Component
+const ConvolverPanel = ({ distributions, onConvolve, onExport, onImport, onClose }) => {
+  const [dist1, setDist1] = useState('gaussian');
+  const [dist2, setDist2] = useState('uniform');
+  const [params1, setParams1] = useState({});
+  const [params2, setParams2] = useState({});
+  const [convolutionSize, setConvolutionSize] = useState(64);
+  const [savedConfigs, setSavedConfigs] = useState([]);
+  const [configName, setConfigName] = useState('');
+  const [resultPreview, setResultPreview] = useState(null);
+  const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    const d1 = distributions[dist1];
+    if (d1) {
+      const newParams = {};
+      Object.entries(d1.params).forEach(([key, config]) => {
+        newParams[key] = config.default;
+      });
+      setParams1(newParams);
+    }
+  }, [dist1, distributions]);
+
+  useEffect(() => {
+    const d2 = distributions[dist2];
+    if (d2) {
+      const newParams = {};
+      Object.entries(d2.params).forEach(([key, config]) => {
+        newParams[key] = config.default;
+      });
+      setParams2(newParams);
+    }
+  }, [dist2, distributions]);
+
+  // Clear result preview when distribution selections change
+  useEffect(() => {
+    setResultPreview(null);
+  }, [dist1, dist2]);
+
+  const handleConvolve = () => {
+    const d1 = distributions[dist1];
+    const d2 = distributions[dist2];
+    
+    const grid1 = sampleToGrid(d1.fn, params1, convolutionSize, 4);
+    const grid2 = sampleToGrid(d2.fn, params2, convolutionSize, 4);
+    const result = convolve2D(grid1, grid2, convolutionSize);
+    
+    // Store preview
+    setResultPreview({
+      grid: result,
+      name: `${d1.name} ⊛ ${d2.name}`
+    });
+  };
+  
+  const handleApplyResult = () => {
+    if (resultPreview) {
+      onConvolve(resultPreview.grid, resultPreview.name);
+    }
+  };
+
+  const handleSaveConfig = () => {
+    if (!configName.trim()) return;
+    
+    const config = {
+      name: configName,
+      dist1,
+      dist2,
+      params1,
+      params2,
+      timestamp: Date.now()
+    };
+    
+    setSavedConfigs([...savedConfigs, config]);
+    setConfigName('');
+  };
+
+  const handleExportAll = () => {
+    const data = {
+      version: '1.0',
+      configs: savedConfigs,
+      exportDate: new Date().toISOString()
+    };
+    
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'pdf-convolver-configs.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleImportFile = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target.result);
+        if (data.configs && Array.isArray(data.configs)) {
+          setSavedConfigs([...savedConfigs, ...data.configs]);
+        }
+      } catch (err) {
+        console.error('Failed to parse config file:', err);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const loadConfig = (config) => {
+    setDist1(config.dist1);
+    setDist2(config.dist2);
+    setParams1(config.params1);
+    setParams2(config.params2);
+  };
+
+  const d1 = distributions[dist1];
+  const d2 = distributions[dist2];
+
+  return (
+    <div style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'linear-gradient(180deg, #0a0014 0%, #1a0030 100%)',
+      zIndex: 200,
+      display: 'flex',
+      flexDirection: 'column',
+      padding: '20px',
+      overflow: 'auto',
+    }}>
+      {/* Scanlines */}
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.1) 0px, rgba(0,0,0,0.1) 1px, transparent 1px, transparent 2px)',
+        pointerEvents: 'none',
+        zIndex: 201,
+      }} />
+
+      {/* Header */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '20px',
+      }}>
+        <h2 style={{
+          margin: 0,
+          fontSize: '1.5rem',
+          color: '#ff00ff',
+          letterSpacing: '0.2em',
+          textShadow: '0 0 10px #ff00ff',
+        }}>
+          ◆ CONVOLVER LAB ◆
+        </h2>
+        <button
+          onClick={onClose}
+          style={{
+            background: 'transparent',
+            border: '1px solid #ff00ff',
+            color: '#ff00ff',
+            padding: '8px 16px',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            fontSize: '0.8rem',
+            letterSpacing: '0.1em',
+          }}
+        >
+          ← BACK TO 3D
+        </button>
+      </div>
+
+      <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
+        {/* Distribution 1 */}
+        <div style={{
+          background: 'rgba(0,0,0,0.5)',
+          border: '1px solid #ff00ff',
+          padding: '15px',
+          minWidth: '280px',
+          flex: 1,
+        }}>
+          <div style={{ fontSize: '0.8rem', color: '#ff00ff', marginBottom: '10px', letterSpacing: '0.1em' }}>
+            DISTRIBUTION A
+          </div>
+          <select
+            value={dist1}
+            onChange={(e) => setDist1(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '8px',
+              background: '#1a0030',
+              border: '1px solid #ff00ff',
+              color: '#fff',
+              marginBottom: '15px',
+            }}
+          >
+            {Object.entries(distributions).map(([key, d]) => (
+              <option key={key} value={key}>{d.name}</option>
+            ))}
+          </select>
+          
+          {d1 && Object.entries(d1.params).map(([key, config]) => (
+            <div key={key} style={{ marginBottom: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#ff88ff' }}>
+                <span>{config.label}</span>
+                <span>{(params1[key] ?? config.default).toFixed(2)}</span>
+              </div>
+              <input
+                type="range"
+                min={config.min}
+                max={config.max}
+                step={0.01}
+                value={params1[key] ?? config.default}
+                onChange={(e) => setParams1({ ...params1, [key]: parseFloat(e.target.value) })}
+                style={{ width: '100%', accentColor: '#ff00ff' }}
+              />
+            </div>
+          ))}
+          
+          {/* Mini 2D preview */}
+          {d1 && <MiniGraph dist={d1} params={params1} label={d1.name} color="#ff00ff" />}
+        </div>
+
+        {/* Convolution operator */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: '20px',
+        }}>
+          <div style={{
+            fontSize: '3rem',
+            color: '#00ffff',
+            textShadow: '0 0 20px #00ffff',
+            marginBottom: '10px',
+          }}>
+            ⊛
+          </div>
+          <div style={{ fontSize: '0.7rem', color: '#888', letterSpacing: '0.1em' }}>
+            CONVOLVE
+          </div>
+        </div>
+
+        {/* Distribution 2 */}
+        <div style={{
+          background: 'rgba(0,0,0,0.5)',
+          border: '1px solid #00ffff',
+          padding: '15px',
+          minWidth: '280px',
+          flex: 1,
+        }}>
+          <div style={{ fontSize: '0.8rem', color: '#00ffff', marginBottom: '10px', letterSpacing: '0.1em' }}>
+            DISTRIBUTION B
+          </div>
+          <select
+            value={dist2}
+            onChange={(e) => setDist2(e.target.value)}
+            style={{
+              width: '100%',
+              padding: '8px',
+              background: '#1a0030',
+              border: '1px solid #00ffff',
+              color: '#fff',
+              marginBottom: '15px',
+            }}
+          >
+            {Object.entries(distributions).map(([key, d]) => (
+              <option key={key} value={key}>{d.name}</option>
+            ))}
+          </select>
+          
+          {d2 && Object.entries(d2.params).map(([key, config]) => (
+            <div key={key} style={{ marginBottom: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#88ffff' }}>
+                <span>{config.label}</span>
+                <span>{(params2[key] ?? config.default).toFixed(2)}</span>
+              </div>
+              <input
+                type="range"
+                min={config.min}
+                max={config.max}
+                step={0.01}
+                value={params2[key] ?? config.default}
+                onChange={(e) => setParams2({ ...params2, [key]: parseFloat(e.target.value) })}
+                style={{ width: '100%', accentColor: '#00ffff' }}
+              />
+            </div>
+          ))}
+          
+          {/* Mini 2D preview */}
+          {d2 && <MiniGraph dist={d2} params={params2} label={d2.name} color="#00ffff" />}
+        </div>
+      </div>
+
+      {/* Convolution controls */}
+      <div style={{
+        display: 'flex',
+        gap: '20px',
+        marginTop: '20px',
+        flexWrap: 'wrap',
+        alignItems: 'flex-start',
+      }}>
+        <div style={{
+          background: 'rgba(0,0,0,0.5)',
+          border: '1px solid #ff00ff',
+          padding: '15px',
+        }}>
+          <div style={{ fontSize: '0.7rem', color: '#ff00ff', marginBottom: '10px', letterSpacing: '0.1em' }}>
+            CONVOLUTION SETTINGS
+          </div>
+          <div style={{ marginBottom: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: '#ff88ff' }}>
+              <span>Grid Resolution</span>
+              <span>{convolutionSize}</span>
+            </div>
+            <input
+              type="range"
+              min={32}
+              max={128}
+              step={16}
+              value={convolutionSize}
+              onChange={(e) => setConvolutionSize(parseInt(e.target.value))}
+              style={{ width: '100%', accentColor: '#ff00ff' }}
+            />
+          </div>
+          <button
+            onClick={handleConvolve}
+            style={{
+              width: '100%',
+              padding: '12px',
+              background: 'linear-gradient(90deg, #ff00ff, #00ffff)',
+              border: 'none',
+              color: '#000',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              fontSize: '0.9rem',
+              letterSpacing: '0.1em',
+            }}
+          >
+            ▶ COMPUTE CONVOLUTION
+          </button>
+        </div>
+
+        {/* Result Preview */}
+        {resultPreview && (
+          <div style={{
+            background: 'rgba(0,0,0,0.5)',
+            border: '2px solid #00ff88',
+            padding: '15px',
+            minWidth: '300px',
+          }}>
+            <div style={{ fontSize: '0.7rem', color: '#00ff88', marginBottom: '10px', letterSpacing: '0.1em' }}>
+              ◆ RESULT PREVIEW ◆
+            </div>
+            <div style={{ fontSize: '0.75rem', color: '#88ffff', marginBottom: '10px' }}>
+              {resultPreview.name}
+            </div>
+            
+            {/* Mini graph of result */}
+            <svg width={280} height={120}>
+              <rect x={30} y={15} width={235} height={80} fill="#0a0014" stroke="#301030" />
+              {(() => {
+                const grid = resultPreview.grid;
+                const gridSize = grid.length;
+                const midIdx = Math.floor(gridSize / 2);
+                const points = [];
+                
+                for (let i = 0; i < gridSize; i++) {
+                  const x = -4 + (i / (gridSize - 1)) * 8;
+                  const p = grid[i][midIdx]; // Slice at y = 0
+                  points.push({ x, p });
+                }
+                
+                const toX = (x) => 30 + ((x + 4) / 8) * 235;
+                const toY = (p) => 95 - p * 70;
+                
+                return (
+                  <>
+                    <path
+                      d={`M ${toX(points[0].x)} ${toY(0)} ${points.map(p => `L ${toX(p.x)} ${toY(p.p)}`).join(' ')} L ${toX(points[points.length-1].x)} ${toY(0)} Z`}
+                      fill="#00ff88"
+                      opacity={0.2}
+                    />
+                    <path
+                      d={points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${toX(p.x)} ${toY(p.p)}`).join(' ')}
+                      fill="none"
+                      stroke="#00ff88"
+                      strokeWidth={2}
+                    />
+                  </>
+                );
+              })()}
+              <text x={30} y={110} fill="#00ff88" fontSize="9" fontFamily="monospace">-4</text>
+              <text x={255} y={110} fill="#00ff88" fontSize="9" fontFamily="monospace">4</text>
+              <text x={145} y={12} fill="#00ff88" fontSize="10" fontFamily="monospace" textAnchor="middle">Result @ y=0</text>
+            </svg>
+            
+            <button
+              onClick={handleApplyResult}
+              style={{
+                width: '100%',
+                padding: '10px',
+                marginTop: '10px',
+                background: '#00ff88',
+                border: 'none',
+                color: '#000',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                fontSize: '0.85rem',
+                letterSpacing: '0.1em',
+              }}
+            >
+              ✓ APPLY & VIEW IN 3D
+            </button>
+          </div>
+        )}
+
+        {/* Save/Load configs */}
+        <div style={{
+          background: 'rgba(0,0,0,0.5)',
+          border: '1px solid #00ffff',
+          padding: '15px',
+          minWidth: '250px',
+        }}>
+          <div style={{ fontSize: '0.7rem', color: '#00ffff', marginBottom: '10px', letterSpacing: '0.1em' }}>
+            SAVE CONFIGURATION
+          </div>
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '10px' }}>
+            <input
+              type="text"
+              placeholder="Config name..."
+              value={configName}
+              onChange={(e) => setConfigName(e.target.value)}
+              style={{
+                flex: 1,
+                padding: '8px',
+                background: '#1a0030',
+                border: '1px solid #00ffff',
+                color: '#fff',
+                fontFamily: 'inherit',
+              }}
+            />
+            <button
+              onClick={handleSaveConfig}
+              style={{
+                padding: '8px 12px',
+                background: 'transparent',
+                border: '1px solid #00ffff',
+                color: '#00ffff',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >
+              SAVE
+            </button>
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button
+              onClick={handleExportAll}
+              style={{
+                flex: 1,
+                padding: '8px',
+                background: 'transparent',
+                border: '1px solid #ff00ff',
+                color: '#ff00ff',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                fontSize: '0.75rem',
+              }}
+            >
+              📤 EXPORT JSON
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              style={{
+                flex: 1,
+                padding: '8px',
+                background: 'transparent',
+                border: '1px solid #00ffff',
+                color: '#00ffff',
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                fontSize: '0.75rem',
+              }}
+            >
+              📥 IMPORT JSON
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              onChange={handleImportFile}
+              style={{ display: 'none' }}
+            />
+          </div>
+        </div>
+
+        {/* Saved configs list */}
+        {savedConfigs.length > 0 && (
+          <div style={{
+            background: 'rgba(0,0,0,0.5)',
+            border: '1px solid #ff00ff',
+            padding: '15px',
+            minWidth: '250px',
+            maxHeight: '200px',
+            overflow: 'auto',
+          }}>
+            <div style={{ fontSize: '0.7rem', color: '#ff00ff', marginBottom: '10px', letterSpacing: '0.1em' }}>
+              SAVED CONFIGURATIONS ({savedConfigs.length})
+            </div>
+            {savedConfigs.map((config, idx) => (
+              <div
+                key={idx}
+                onClick={() => loadConfig(config)}
+                style={{
+                  padding: '8px',
+                  marginBottom: '5px',
+                  background: 'rgba(255,0,255,0.1)',
+                  border: '1px solid #301030',
+                  cursor: 'pointer',
+                  fontSize: '0.75rem',
+                }}
+              >
+                <div style={{ color: '#ff88ff' }}>{config.name}</div>
+                <div style={{ color: '#666', fontSize: '0.65rem' }}>
+                  {distributions[config.dist1]?.name} ⊛ {distributions[config.dist2]?.name}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Info */}
+      <div style={{
+        marginTop: '20px',
+        padding: '15px',
+        background: 'rgba(0,0,0,0.3)',
+        border: '1px solid #301030',
+        fontSize: '0.75rem',
+        color: '#888',
+      }}>
+        <strong style={{ color: '#ff00ff' }}>How it works:</strong> Select two distributions and their parameters, 
+        then compute the convolution (A ⊛ B). The result will be shown in the 3D viewer as a "Convolution Result" 
+        distribution. You can save configurations and export/import them as JSON files for later use.
+      </div>
+    </div>
+  );
+};
+
+// 2D Graph Mode Component
+const Graph2DMode = ({ dist, params, setParams, sliceY, onClose, onSliceYChange, convolutionGrid }) => {
+  const [xMin, setXMin] = useState(-4);
+  const [xMax, setXMax] = useState(4);
+  const [yMin, setYMin] = useState(0);
+  const [yMax, setYMax] = useState(1);
+  const [xLabel, setXLabel] = useState('x');
+  const [yLabel, setYLabel] = useState('P(x)');
+  const [showGrid, setShowGrid] = useState(true);
+  const [autoScale, setAutoScale] = useState(true);
+
+  // Generate slice data
+  const sliceData = useMemo(() => {
+    const points = [];
+    const steps = 200;
+    let maxP = 0;
+    
+    if (convolutionGrid) {
+      // Sample from convolution grid
+      const gridSize = convolutionGrid.length;
+      const range = 4;
+      const sliceIdx = Math.floor(((sliceY + range) / (2 * range)) * (gridSize - 1));
+      const clampedIdx = Math.max(0, Math.min(gridSize - 1, sliceIdx));
+      
+      for (let i = 0; i < gridSize; i++) {
+        const x = -range + (i / (gridSize - 1)) * 2 * range;
+        const p = convolutionGrid[i][clampedIdx];
+        points.push({ x, p, pNorm: p });
+        maxP = Math.max(maxP, p);
+      }
+    } else {
+      for (let i = 0; i <= steps; i++) {
+        const x = xMin + (i / steps) * (xMax - xMin);
+        const p = dist.fn(x, sliceY, params);
+        points.push({ x, p });
+        maxP = Math.max(maxP, p);
+      }
+      
+      const normFactor = dist.normalize ? dist.normalize(maxP) : (maxP > 0 ? 1 / maxP : 1);
+      points.forEach(pt => pt.pNorm = pt.p * normFactor);
+    }
+    
+    return { points, maxP };
+  }, [dist, params, sliceY, xMin, xMax, convolutionGrid]);
+
+  // Auto-scale Y axis
+  useEffect(() => {
+    if (autoScale && sliceData.points.length > 0) {
+      const maxNorm = Math.max(...sliceData.points.map(p => p.pNorm));
+      setYMax(Math.ceil(maxNorm * 10) / 10 + 0.1);
+    }
+  }, [sliceData, autoScale]);
+
+  const svgWidth = 800;
+  const svgHeight = 500;
+  const margin = { top: 40, right: 40, bottom: 60, left: 70 };
+  const plotWidth = svgWidth - margin.left - margin.right;
+  const plotHeight = svgHeight - margin.top - margin.bottom;
+
+  const toSvgX = (x) => margin.left + ((x - xMin) / (xMax - xMin)) * plotWidth;
+  const toSvgY = (y) => margin.top + plotHeight - ((y - yMin) / (yMax - yMin)) * plotHeight;
+
+  const xTicks = [];
+  const yTicks = [];
+  const xStep = (xMax - xMin) / 8;
+  const yStep = (yMax - yMin) / 5;
+  
+  for (let x = xMin; x <= xMax; x += xStep) xTicks.push(x);
+  for (let y = yMin; y <= yMax; y += yStep) yTicks.push(y);
+
+  return (
+    <div style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'linear-gradient(180deg, #0a0014 0%, #1a0030 100%)',
+      zIndex: 200,
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      padding: '20px',
+    }}>
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.1) 0px, rgba(0,0,0,0.1) 1px, transparent 1px, transparent 2px)',
+        pointerEvents: 'none',
+        zIndex: 201,
+      }} />
+
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        width: '100%',
+        maxWidth: '900px',
+        marginBottom: '10px',
+      }}>
+        <h2 style={{
+          margin: 0,
+          fontSize: '1.2rem',
+          color: '#00ffff',
+          letterSpacing: '0.2em',
+          textShadow: '0 0 10px #00ffff',
+        }}>
+          ◆ 2D SLICE ANALYSIS ◆
+        </h2>
+        <button
+          onClick={onClose}
+          style={{
+            background: 'transparent',
+            border: '1px solid #ff00ff',
+            color: '#ff00ff',
+            padding: '8px 16px',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            fontSize: '0.8rem',
+            letterSpacing: '0.1em',
+          }}
+        >
+          ← BACK TO 3D
+        </button>
+      </div>
+
+      <div style={{
+        background: 'rgba(0,0,0,0.5)',
+        border: '1px solid #ff00ff',
+        borderRadius: '4px',
+        padding: '20px',
+        boxShadow: '0 0 30px rgba(255,0,255,0.2)',
+      }}>
+        <svg width={svgWidth} height={svgHeight} style={{ overflow: 'visible' }}>
+          <rect
+            x={margin.left}
+            y={margin.top}
+            width={plotWidth}
+            height={plotHeight}
+            fill="#0a0014"
+            stroke="#301030"
+          />
+          
+          {showGrid && (
+            <g opacity={0.3}>
+              {xTicks.map((x, i) => (
+                <line
+                  key={`xgrid-${i}`}
+                  x1={toSvgX(x)}
+                  y1={margin.top}
+                  x2={toSvgX(x)}
+                  y2={margin.top + plotHeight}
+                  stroke="#ff00ff"
+                  strokeWidth={x === 0 ? 1 : 0.5}
+                />
+              ))}
+              {yTicks.map((y, i) => (
+                <line
+                  key={`ygrid-${i}`}
+                  x1={margin.left}
+                  y1={toSvgY(y)}
+                  x2={margin.left + plotWidth}
+                  y2={toSvgY(y)}
+                  stroke="#00ffff"
+                  strokeWidth={y === 0 ? 1 : 0.5}
+                />
+              ))}
+            </g>
+          )}
+          
+          <line
+            x1={margin.left}
+            y1={margin.top + plotHeight}
+            x2={margin.left + plotWidth}
+            y2={margin.top + plotHeight}
+            stroke="#ff00ff"
+            strokeWidth={2}
+          />
+          <line
+            x1={margin.left}
+            y1={margin.top}
+            x2={margin.left}
+            y2={margin.top + plotHeight}
+            stroke="#00ffff"
+            strokeWidth={2}
+          />
+          
+          {xTicks.map((x, i) => (
+            <g key={`xtick-${i}`}>
+              <line
+                x1={toSvgX(x)}
+                y1={margin.top + plotHeight}
+                x2={toSvgX(x)}
+                y2={margin.top + plotHeight + 5}
+                stroke="#ff00ff"
+              />
+              <text
+                x={toSvgX(x)}
+                y={margin.top + plotHeight + 20}
+                fill="#ff00ff"
+                textAnchor="middle"
+                fontSize="12"
+                fontFamily="monospace"
+              >
+                {x.toFixed(1)}
+              </text>
+            </g>
+          ))}
+          
+          {yTicks.map((y, i) => (
+            <g key={`ytick-${i}`}>
+              <line
+                x1={margin.left - 5}
+                y1={toSvgY(y)}
+                x2={margin.left}
+                y2={toSvgY(y)}
+                stroke="#00ffff"
+              />
+              <text
+                x={margin.left - 10}
+                y={toSvgY(y) + 4}
+                fill="#00ffff"
+                textAnchor="end"
+                fontSize="12"
+                fontFamily="monospace"
+              >
+                {y.toFixed(2)}
+              </text>
+            </g>
+          ))}
+          
+          <text
+            x={margin.left + plotWidth / 2}
+            y={svgHeight - 10}
+            fill="#ff00ff"
+            textAnchor="middle"
+            fontSize="14"
+            fontFamily="monospace"
+          >
+            {xLabel}
+          </text>
+          <text
+            x={20}
+            y={margin.top + plotHeight / 2}
+            fill="#00ffff"
+            textAnchor="middle"
+            fontSize="14"
+            fontFamily="monospace"
+            transform={`rotate(-90, 20, ${margin.top + plotHeight / 2})`}
+          >
+            {yLabel}
+          </text>
+          
+          <defs>
+            <linearGradient id="curveGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="#ff00ff" />
+              <stop offset="50%" stopColor="#00ffff" />
+              <stop offset="100%" stopColor="#ff00ff" />
+            </linearGradient>
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+              <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
+          
+          <path
+            d={`
+              M ${toSvgX(sliceData.points[0].x)} ${toSvgY(0)}
+              ${sliceData.points.map(p => `L ${toSvgX(p.x)} ${toSvgY(Math.max(yMin, Math.min(yMax, p.pNorm)))}`).join(' ')}
+              L ${toSvgX(sliceData.points[sliceData.points.length - 1].x)} ${toSvgY(0)}
+              Z
+            `}
+            fill="url(#curveGradient)"
+            opacity={0.15}
+          />
+          
+          <path
+            d={sliceData.points.map((p, i) => 
+              `${i === 0 ? 'M' : 'L'} ${toSvgX(p.x)} ${toSvgY(Math.max(yMin, Math.min(yMax, p.pNorm)))}`
+            ).join(' ')}
+            fill="none"
+            stroke="url(#curveGradient)"
+            strokeWidth={3}
+            filter="url(#glow)"
+          />
+          
+          <text
+            x={svgWidth / 2}
+            y={25}
+            fill="#fff"
+            textAnchor="middle"
+            fontSize="16"
+            fontFamily="monospace"
+          >
+            {dist.name} @ Y = {sliceY.toFixed(2)}
+          </text>
+        </svg>
+      </div>
+
+      <div style={{
+        display: 'flex',
+        gap: '20px',
+        marginTop: '15px',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+      }}>
+        {/* Distribution Parameters */}
+        {dist && Object.keys(dist.params).length > 0 && (
+          <div style={{
+            background: 'rgba(0,0,0,0.5)',
+            border: '1px solid #ff00ff',
+            padding: '12px',
+            minWidth: '200px',
+          }}>
+            <div style={{ fontSize: '0.7rem', color: '#ff00ff', marginBottom: '8px', letterSpacing: '0.1em' }}>
+              PARAMETERS
+            </div>
+            {Object.entries(dist.params).map(([key, config]) => (
+              <div key={key} style={{ marginBottom: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', marginBottom: '3px' }}>
+                  <span style={{ color: '#ff88ff' }}>{config.label}</span>
+                  <span style={{ color: '#00ffff' }}>{(params[key] ?? config.default).toFixed(2)}</span>
+                </div>
+                <input
+                  type="range"
+                  min={config.min}
+                  max={config.max}
+                  step={0.01}
+                  value={params[key] ?? config.default}
+                  onChange={(e) => setParams({ ...params, [key]: parseFloat(e.target.value) })}
+                  style={{ width: '100%', accentColor: '#ff00ff' }}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div style={{
+          background: 'rgba(0,0,0,0.5)',
+          border: '1px solid #00ffff',
+          padding: '12px',
+          minWidth: '180px',
+        }}>
+          <div style={{ fontSize: '0.7rem', color: '#00ffff', marginBottom: '8px', letterSpacing: '0.1em' }}>
+            SLICE Y POSITION
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#ff00ff' }}>
+            <span>Y =</span>
+            <span>{sliceY.toFixed(2)}</span>
+          </div>
+          <input
+            type="range"
+            min={-3}
+            max={3}
+            step={0.05}
+            value={sliceY}
+            onChange={(e) => onSliceYChange(parseFloat(e.target.value))}
+            style={{ width: '100%', accentColor: '#00ffff', marginTop: '5px' }}
+          />
+        </div>
+
+        <div style={{
+          background: 'rgba(0,0,0,0.5)',
+          border: '1px solid #ff00ff',
+          padding: '12px',
+          minWidth: '180px',
+        }}>
+          <div style={{ fontSize: '0.7rem', color: '#ff00ff', marginBottom: '8px', letterSpacing: '0.1em' }}>
+            X AXIS RANGE
+          </div>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <input
+              type="number"
+              value={xMin}
+              onChange={(e) => setXMin(parseFloat(e.target.value))}
+              style={{
+                width: '60px',
+                background: '#1a0030',
+                border: '1px solid #ff00ff',
+                color: '#fff',
+                padding: '4px',
+                fontFamily: 'monospace',
+              }}
+            />
+            <span style={{ color: '#ff00ff' }}>to</span>
+            <input
+              type="number"
+              value={xMax}
+              onChange={(e) => setXMax(parseFloat(e.target.value))}
+              style={{
+                width: '60px',
+                background: '#1a0030',
+                border: '1px solid #ff00ff',
+                color: '#fff',
+                padding: '4px',
+                fontFamily: 'monospace',
+              }}
+            />
+          </div>
+        </div>
+
+        <div style={{
+          background: 'rgba(0,0,0,0.5)',
+          border: '1px solid #00ffff',
+          padding: '12px',
+          minWidth: '180px',
+        }}>
+          <div style={{ fontSize: '0.7rem', color: '#00ffff', marginBottom: '8px', letterSpacing: '0.1em' }}>
+            Y AXIS RANGE
+          </div>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <input
+              type="number"
+              value={yMin}
+              step={0.1}
+              onChange={(e) => { setYMin(parseFloat(e.target.value)); setAutoScale(false); }}
+              style={{
+                width: '60px',
+                background: '#1a0030',
+                border: '1px solid #00ffff',
+                color: '#fff',
+                padding: '4px',
+                fontFamily: 'monospace',
+              }}
+            />
+            <span style={{ color: '#00ffff' }}>to</span>
+            <input
+              type="number"
+              value={yMax}
+              step={0.1}
+              onChange={(e) => { setYMax(parseFloat(e.target.value)); setAutoScale(false); }}
+              style={{
+                width: '60px',
+                background: '#1a0030',
+                border: '1px solid #00ffff',
+                color: '#fff',
+                padding: '4px',
+                fontFamily: 'monospace',
+              }}
+            />
+          </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '5px', marginTop: '5px', fontSize: '0.7rem', color: '#88ffff' }}>
+            <input
+              type="checkbox"
+              checked={autoScale}
+              onChange={(e) => setAutoScale(e.target.checked)}
+              style={{ accentColor: '#00ffff' }}
+            />
+            Auto-scale
+          </label>
+        </div>
+
+        <div style={{
+          background: 'rgba(0,0,0,0.5)',
+          border: '1px solid #ff00ff',
+          padding: '12px',
+          minWidth: '180px',
+        }}>
+          <div style={{ fontSize: '0.7rem', color: '#ff00ff', marginBottom: '8px', letterSpacing: '0.1em' }}>
+            AXIS LABELS
+          </div>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginBottom: '5px' }}>
+            <span style={{ color: '#ff00ff', fontSize: '0.8rem', width: '20px' }}>X:</span>
+            <input
+              type="text"
+              value={xLabel}
+              onChange={(e) => setXLabel(e.target.value)}
+              style={{
+                flex: 1,
+                background: '#1a0030',
+                border: '1px solid #ff00ff',
+                color: '#fff',
+                padding: '4px',
+                fontFamily: 'monospace',
+              }}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <span style={{ color: '#00ffff', fontSize: '0.8rem', width: '20px' }}>Y:</span>
+            <input
+              type="text"
+              value={yLabel}
+              onChange={(e) => setYLabel(e.target.value)}
+              style={{
+                flex: 1,
+                background: '#1a0030',
+                border: '1px solid #00ffff',
+                color: '#fff',
+                padding: '4px',
+                fontFamily: 'monospace',
+              }}
+            />
+          </div>
+        </div>
+
+        <div style={{
+          background: 'rgba(0,0,0,0.5)',
+          border: '1px solid #ff00ff',
+          padding: '12px',
+        }}>
+          <div style={{ fontSize: '0.7rem', color: '#ff00ff', marginBottom: '8px', letterSpacing: '0.1em' }}>
+            OPTIONS
+          </div>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem', color: '#ff88ff' }}>
+            <input
+              type="checkbox"
+              checked={showGrid}
+              onChange={(e) => setShowGrid(e.target.checked)}
+              style={{ accentColor: '#ff00ff' }}
+            />
+            Show grid
+          </label>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const VaporwaveVisualizer = () => {
+  const containerRef = useRef(null);
+  const sceneRef = useRef(null);
+  const rendererRef = useRef(null);
+  const cameraRef = useRef(null);
+  const meshRef = useRef(null);
+  const wireframeRef = useRef(null);
+  const frameRef = useRef(null);
+  const rotationRef = useRef({ x: -0.6, y: 0 });
+  const isDraggingRef = useRef(false);
+  const lastMouseRef = useRef({ x: 0, y: 0 });
+  
+  const [distributions, setDistributions] = useState(baseDistributions);
+  const [selectedDist, setSelectedDist] = useState('gaussian');
+  const [params, setParams] = useState({ sigma: 1 });
+  const [sliceY, setSliceY] = useState(0);
+  const [showSlice3D, setShowSlice3D] = useState(false);
+  const [show2DGraph, setShow2DGraph] = useState(false);
+  const [showConvolver, setShowConvolver] = useState(false);
+  const [samplePoint, setSamplePoint] = useState({ x: 0, y: 0 });
+  const [probability, setProbability] = useState(0);
+  const [autoRotate, setAutoRotate] = useState(true);
+  const [resolution, setResolution] = useState(80);
+  const [convolutionGrid, setConvolutionGrid] = useState(null);
+  const [convolutionName, setConvolutionName] = useState('');
+
+  // Initialize params when distribution changes
+  useEffect(() => {
+    const dist = distributions[selectedDist];
+    if (dist && dist.params) {
+      const newParams = {};
+      Object.entries(dist.params).forEach(([key, config]) => {
+        newParams[key] = config.default;
+      });
+      setParams(newParams);
+    }
+    
+    // Clear convolution grid if switching away from convolution result
+    if (selectedDist !== 'convolution') {
+      setConvolutionGrid(null);
+    }
+  }, [selectedDist, distributions]);
+
+  // Calculate probability at sample point
+  useEffect(() => {
+    const dist = distributions[selectedDist];
+    if (dist && dist.fn) {
+      const p = dist.fn(samplePoint.x, samplePoint.y, params);
+      setProbability(p);
+    }
+  }, [samplePoint, params, selectedDist, distributions]);
+
+  // Handle convolution result
+  const handleConvolution = useCallback((grid, name) => {
+    setConvolutionGrid(grid);
+    setConvolutionName(name);
+    
+    // Add convolution result as a distribution
+    const convDist = {
+      name: `Convolution: ${name}`,
+      fn: (x, y, params) => {
+        const gridSize = grid.length;
+        const range = 4;
+        const i = Math.floor(((x + range) / (2 * range)) * (gridSize - 1));
+        const j = Math.floor(((y + range) / (2 * range)) * (gridSize - 1));
+        
+        if (i < 0 || i >= gridSize || j < 0 || j >= gridSize) return 0;
+        return grid[i][j];
+      },
+      params: {},
+      normalize: () => 1,
+      isConvolution: true
+    };
+    
+    setDistributions(prev => ({
+      ...prev,
+      convolution: convDist
+    }));
+    
+    setSelectedDist('convolution');
+    setShowConvolver(false);
+  }, []);
+
+  // Generate mesh geometry with proper normalization
+  const generateGeometry = useCallback(() => {
+    const dist = distributions[selectedDist];
+    if (!dist) return new THREE.PlaneGeometry(8, 8, resolution, resolution);
+    
+    const size = 4;
+    const segments = resolution;
+    const geometry = new THREE.PlaneGeometry(size * 2, size * 2, segments, segments);
+    const positions = geometry.attributes.position.array;
+    const colors = new Float32Array(positions.length);
+    
+    const zValues = [];
+    let maxZ = 0;
+    
+    for (let i = 0; i < positions.length; i += 3) {
+      const x = positions[i];
+      const y = positions[i + 1];
+      let z = dist.fn(x, y, params);
+      
+      if (showSlice3D && Math.abs(y - sliceY) > 0.2) {
+        z = 0;
+      }
+      
+      zValues.push(z);
+      maxZ = Math.max(maxZ, z);
+    }
+    
+    const normFactor = dist.normalize ? dist.normalize(maxZ) : (maxZ > 0 ? 1 / maxZ : 1);
+    const heightScale = 2.5;
+    
+    for (let i = 0; i < positions.length; i += 3) {
+      const idx = i / 3;
+      const normalizedZ = zValues[idx] * normFactor;
+      positions[i + 2] = normalizedZ * heightScale;
+      
+      const t = normalizedZ;
+      
+      let r, g, b;
+      if (t < 0.25) {
+        const s = t / 0.25;
+        r = 0.1 + s * 0.6;
+        g = 0.0 + s * 0.1;
+        b = 0.3 + s * 0.4;
+      } else if (t < 0.5) {
+        const s = (t - 0.25) / 0.25;
+        r = 0.7 + s * 0.3;
+        g = 0.1 + s * 0.1;
+        b = 0.7 - s * 0.2;
+      } else if (t < 0.75) {
+        const s = (t - 0.5) / 0.25;
+        r = 1.0 - s * 0.7;
+        g = 0.2 + s * 0.7;
+        b = 0.5 + s * 0.5;
+      } else {
+        const s = (t - 0.75) / 0.25;
+        r = 0.3 + s * 0.7;
+        g = 0.9 + s * 0.1;
+        b = 1.0;
+      }
+      
+      colors[i] = r;
+      colors[i + 1] = g;
+      colors[i + 2] = b;
+    }
+    
+    geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    geometry.computeVertexNormals();
+    
+    return geometry;
+  }, [selectedDist, params, showSlice3D, sliceY, resolution, distributions]);
+
+  // Initialize Three.js scene
+  useEffect(() => {
+    if (!containerRef.current) return;
+    
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0a0014);
+    scene.fog = new THREE.Fog(0x0a0014, 8, 20);
+    sceneRef.current = scene;
+    
+    const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 100);
+    camera.position.set(0, 5, 7);
+    cameraRef.current = camera;
+    
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    rendererRef.current = renderer;
+    containerRef.current.appendChild(renderer.domElement);
+    
+    const ambientLight = new THREE.AmbientLight(0x301050, 0.5);
+    scene.add(ambientLight);
+    
+    const pointLight1 = new THREE.PointLight(0xff00ff, 1, 20);
+    pointLight1.position.set(5, 5, 5);
+    scene.add(pointLight1);
+    
+    const pointLight2 = new THREE.PointLight(0x00ffff, 1, 20);
+    pointLight2.position.set(-5, 5, -5);
+    scene.add(pointLight2);
+    
+    const gridHelper = new THREE.GridHelper(20, 40, 0xff00ff, 0x301030);
+    gridHelper.position.y = -0.5;
+    scene.add(gridHelper);
+    
+    const handleResize = () => {
+      if (!containerRef.current) return;
+      const width = containerRef.current.clientWidth;
+      const height = containerRef.current.clientHeight;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    };
+    
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      if (containerRef.current && renderer.domElement) {
+        containerRef.current.removeChild(renderer.domElement);
+      }
+      renderer.dispose();
+      if (frameRef.current) {
+        cancelAnimationFrame(frameRef.current);
+      }
+    };
+  }, []);
+
+  // Update mesh when parameters change
+  useEffect(() => {
+    if (!sceneRef.current) return;
+    
+    if (meshRef.current) {
+      sceneRef.current.remove(meshRef.current);
+      meshRef.current.geometry.dispose();
+      meshRef.current.material.dispose();
+      meshRef.current = null;
+    }
+    
+    if (wireframeRef.current) {
+      sceneRef.current.remove(wireframeRef.current);
+      wireframeRef.current.geometry.dispose();
+      wireframeRef.current.material.dispose();
+      wireframeRef.current = null;
+    }
+    
+    const geometry = generateGeometry();
+    const material = new THREE.MeshPhongMaterial({
+      vertexColors: true,
+      side: THREE.DoubleSide,
+      wireframe: false,
+      shininess: 100,
+      transparent: true,
+      opacity: 0.9,
+    });
+    
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.rotation.x = -Math.PI / 2;
+    sceneRef.current.add(mesh);
+    meshRef.current = mesh;
+    
+    const wireframeGeometry = geometry.clone();
+    const wireframeMaterial = new THREE.MeshBasicMaterial({
+      color: 0x00ffff,
+      wireframe: true,
+      transparent: true,
+      opacity: 0.15,
+    });
+    const wireframe = new THREE.Mesh(wireframeGeometry, wireframeMaterial);
+    wireframe.rotation.x = -Math.PI / 2;
+    wireframe.position.y = 0.01;
+    sceneRef.current.add(wireframe);
+    wireframeRef.current = wireframe;
+    
+  }, [generateGeometry]);
+
+  // Animation loop
+  useEffect(() => {
+    const animate = () => {
+      frameRef.current = requestAnimationFrame(animate);
+      
+      if (autoRotate && !isDraggingRef.current) {
+        rotationRef.current.y += 0.003;
+      }
+      
+      if (cameraRef.current) {
+        const radius = 9;
+        cameraRef.current.position.x = Math.sin(rotationRef.current.y) * radius * Math.cos(rotationRef.current.x);
+        cameraRef.current.position.z = Math.cos(rotationRef.current.y) * radius * Math.cos(rotationRef.current.x);
+        cameraRef.current.position.y = Math.sin(rotationRef.current.x) * radius + 3;
+        cameraRef.current.lookAt(0, 0, 0);
+      }
+      
+      if (rendererRef.current && sceneRef.current && cameraRef.current) {
+        rendererRef.current.render(sceneRef.current, cameraRef.current);
+      }
+    };
+    
+    animate();
+    
+    return () => {
+      if (frameRef.current) {
+        cancelAnimationFrame(frameRef.current);
+      }
+    };
+  }, [autoRotate]);
+
+  const handleMouseDown = (e) => {
+    isDraggingRef.current = true;
+    lastMouseRef.current = { x: e.clientX, y: e.clientY };
+  };
+  
+  const handleMouseMove = (e) => {
+    if (!isDraggingRef.current) return;
+    const dx = e.clientX - lastMouseRef.current.x;
+    const dy = e.clientY - lastMouseRef.current.y;
+    rotationRef.current.y += dx * 0.01;
+    rotationRef.current.x = Math.max(-1.2, Math.min(0.2, rotationRef.current.x + dy * 0.01));
+    lastMouseRef.current = { x: e.clientX, y: e.clientY };
+  };
+  
+  const handleMouseUp = () => {
+    isDraggingRef.current = false;
+  };
+
+  const dist = distributions[selectedDist];
+
+  return (
+    <div style={{
+      width: '100%',
+      height: '100vh',
+      background: 'linear-gradient(180deg, #0a0014 0%, #1a0030 50%, #0a0020 100%)',
+      fontFamily: '"Courier New", monospace',
+      color: '#fff',
+      overflow: 'hidden',
+      position: 'relative',
+    }}>
+      {/* 2D Graph mode - rendered as overlay */}
+      {show2DGraph && (
+        <Graph2DMode
+          dist={dist}
+          params={params}
+          setParams={setParams}
+          sliceY={sliceY}
+          onClose={() => setShow2DGraph(false)}
+          onSliceYChange={setSliceY}
+          convolutionGrid={selectedDist === 'convolution' ? convolutionGrid : null}
+        />
+      )}
+
+      {/* Convolver panel */}
+      {showConvolver && (
+        <ConvolverPanel
+          distributions={baseDistributions}
+          onConvolve={handleConvolution}
+          onClose={() => setShowConvolver(false)}
+        />
+      )}
+
+      {/* Scanline overlay */}
+      <div style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        background: 'repeating-linear-gradient(0deg, rgba(0,0,0,0.1) 0px, rgba(0,0,0,0.1) 1px, transparent 1px, transparent 2px)',
+        pointerEvents: 'none',
+        zIndex: 100,
+        display: (show2DGraph || showConvolver) ? 'none' : 'block',
+      }} />
+      
+      {/* Header */}
+      <div style={{
+        position: 'absolute',
+        top: 20,
+        left: 0,
+        right: 0,
+        textAlign: 'center',
+        zIndex: 10,
+        display: (show2DGraph || showConvolver) ? 'none' : 'block',
+      }}>
+        <h1 style={{
+          fontSize: '2rem',
+          fontWeight: 'bold',
+          margin: 0,
+          textTransform: 'uppercase',
+          letterSpacing: '0.3em',
+          background: 'linear-gradient(90deg, #ff00ff, #00ffff, #ff00ff)',
+          backgroundSize: '200% 100%',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent',
+          animation: 'shimmer 3s linear infinite',
+          textShadow: '0 0 30px rgba(255,0,255,0.5)',
+        }}>
+          Probability Density
+        </h1>
+        <p style={{
+          margin: '5px 0 0 0',
+          fontSize: '0.8rem',
+          color: '#ff00ff',
+          letterSpacing: '0.2em',
+          opacity: 0.8,
+        }}>
+          ▲ MANIFOLD EXPLORER ▲
+        </p>
+      </div>
+      
+      {/* 3D Viewport */}
+      <div
+        ref={containerRef}
+        style={{
+          width: '100%',
+          height: '100%',
+          cursor: isDraggingRef.current ? 'grabbing' : 'grab',
+          display: (show2DGraph || showConvolver) ? 'none' : 'block',
+        }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+      />
+      
+      {/* Control Panel */}
+      <div style={{
+        position: 'absolute',
+        top: 100,
+        left: 20,
+        background: 'rgba(10, 0, 30, 0.85)',
+        border: '1px solid #ff00ff',
+        borderRadius: '4px',
+        padding: '15px',
+        minWidth: '240px',
+        boxShadow: '0 0 20px rgba(255,0,255,0.3), inset 0 0 20px rgba(255,0,255,0.1)',
+        display: (show2DGraph || showConvolver) ? 'none' : 'block',
+      }}>
+        <div style={{ 
+          fontSize: '0.7rem', 
+          color: '#00ffff', 
+          marginBottom: '10px',
+          letterSpacing: '0.2em',
+          borderBottom: '1px solid #301050',
+          paddingBottom: '5px',
+        }}>
+          ◆ DISTRIBUTION SELECT ◆
+        </div>
+        
+        <select
+          value={selectedDist}
+          onChange={(e) => setSelectedDist(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '8px',
+            background: '#1a0030',
+            border: '1px solid #ff00ff',
+            color: '#fff',
+            fontSize: '0.85rem',
+            cursor: 'pointer',
+            marginBottom: '15px',
+          }}
+        >
+          {Object.entries(distributions).map(([key, d]) => (
+            <option key={key} value={key}>{d.name}</option>
+          ))}
+        </select>
+        
+        {dist && Object.keys(dist.params).length > 0 && (
+          <>
+            <div style={{ 
+              fontSize: '0.7rem', 
+              color: '#00ffff', 
+              marginBottom: '10px',
+              letterSpacing: '0.2em',
+            }}>
+              ◆ PARAMETERS ◆
+            </div>
+            
+            {Object.entries(dist.params).map(([key, config]) => (
+              <div key={key} style={{ marginBottom: '12px' }}>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between',
+                  fontSize: '0.75rem',
+                  marginBottom: '4px',
+                }}>
+                  <span style={{ color: '#ff88ff' }}>{config.label}</span>
+                  <span style={{ color: '#00ffff' }}>{(params[key] || config.default).toFixed(2)}</span>
+                </div>
+                <input
+                  type="range"
+                  min={config.min}
+                  max={config.max}
+                  step={0.01}
+                  value={params[key] || config.default}
+                  onChange={(e) => setParams({ ...params, [key]: parseFloat(e.target.value) })}
+                  style={{
+                    width: '100%',
+                    accentColor: '#ff00ff',
+                  }}
+                />
+              </div>
+            ))}
+          </>
+        )}
+        
+        <div style={{ 
+          fontSize: '0.7rem', 
+          color: '#00ffff', 
+          margin: '15px 0 10px 0',
+          letterSpacing: '0.2em',
+        }}>
+          ◆ VIEW OPTIONS ◆
+        </div>
+        
+        <label style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '8px',
+          fontSize: '0.75rem',
+          color: '#ff88ff',
+          cursor: 'pointer',
+          marginBottom: '8px',
+        }}>
+          <input
+            type="checkbox"
+            checked={autoRotate}
+            onChange={(e) => setAutoRotate(e.target.checked)}
+            style={{ accentColor: '#ff00ff' }}
+          />
+          Auto-rotate
+        </label>
+        
+        <label style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          gap: '8px',
+          fontSize: '0.75rem',
+          color: '#ff88ff',
+          cursor: 'pointer',
+          marginBottom: '8px',
+        }}>
+          <input
+            type="checkbox"
+            checked={showSlice3D}
+            onChange={(e) => setShowSlice3D(e.target.checked)}
+            style={{ accentColor: '#ff00ff' }}
+          />
+          3D Slice mode
+        </label>
+        
+        {showSlice3D && (
+          <div style={{ marginTop: '10px', marginBottom: '10px' }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between',
+              fontSize: '0.75rem',
+              marginBottom: '4px',
+            }}>
+              <span style={{ color: '#ff88ff' }}>Slice Y</span>
+              <span style={{ color: '#00ffff' }}>{sliceY.toFixed(2)}</span>
+            </div>
+            <input
+              type="range"
+              min={-3}
+              max={3}
+              step={0.1}
+              value={sliceY}
+              onChange={(e) => setSliceY(parseFloat(e.target.value))}
+              style={{ width: '100%', accentColor: '#00ffff' }}
+            />
+          </div>
+        )}
+        
+        <button
+          onClick={() => setShow2DGraph(true)}
+          style={{
+            width: '100%',
+            padding: '10px',
+            background: 'linear-gradient(90deg, #ff00ff33, #00ffff33)',
+            border: '1px solid #00ffff',
+            color: '#00ffff',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            fontSize: '0.75rem',
+            letterSpacing: '0.1em',
+            marginTop: '10px',
+          }}
+        >
+          📊 OPEN 2D GRAPH MODE
+        </button>
+        
+        <button
+          onClick={() => setShowConvolver(true)}
+          style={{
+            width: '100%',
+            padding: '10px',
+            background: 'linear-gradient(90deg, #ff00ff33, #00ffff33)',
+            border: '1px solid #ff00ff',
+            color: '#ff00ff',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            fontSize: '0.75rem',
+            letterSpacing: '0.1em',
+            marginTop: '8px',
+          }}
+        >
+          ⊛ CONVOLVER LAB
+        </button>
+      </div>
+      
+      {/* Probability Sampler */}
+      <div style={{
+        position: 'absolute',
+        top: 100,
+        right: 20,
+        background: 'rgba(10, 0, 30, 0.85)',
+        border: '1px solid #00ffff',
+        borderRadius: '4px',
+        padding: '15px',
+        minWidth: '200px',
+        boxShadow: '0 0 20px rgba(0,255,255,0.3), inset 0 0 20px rgba(0,255,255,0.1)',
+        display: (show2DGraph || showConvolver) ? 'none' : 'block',
+      }}>
+        <div style={{ 
+          fontSize: '0.7rem', 
+          color: '#ff00ff', 
+          marginBottom: '10px',
+          letterSpacing: '0.2em',
+          borderBottom: '1px solid #301050',
+          paddingBottom: '5px',
+        }}>
+          ◆ PROBABILITY SAMPLER ◆
+        </div>
+        
+        <div style={{ marginBottom: '12px' }}>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between',
+            fontSize: '0.75rem',
+            marginBottom: '4px',
+          }}>
+            <span style={{ color: '#88ffff' }}>X coordinate</span>
+            <span style={{ color: '#ff00ff' }}>{samplePoint.x.toFixed(2)}</span>
+          </div>
+          <input
+            type="range"
+            min={-3}
+            max={3}
+            step={0.1}
+            value={samplePoint.x}
+            onChange={(e) => setSamplePoint({ ...samplePoint, x: parseFloat(e.target.value) })}
+            style={{ width: '100%', accentColor: '#00ffff' }}
+          />
+        </div>
+        
+        <div style={{ marginBottom: '15px' }}>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between',
+            fontSize: '0.75rem',
+            marginBottom: '4px',
+          }}>
+            <span style={{ color: '#88ffff' }}>Y coordinate</span>
+            <span style={{ color: '#ff00ff' }}>{samplePoint.y.toFixed(2)}</span>
+          </div>
+          <input
+            type="range"
+            min={-3}
+            max={3}
+            step={0.1}
+            value={samplePoint.y}
+            onChange={(e) => setSamplePoint({ ...samplePoint, y: parseFloat(e.target.value) })}
+            style={{ width: '100%', accentColor: '#00ffff' }}
+          />
+        </div>
+        
+        <div style={{
+          background: 'linear-gradient(90deg, #ff00ff22, #00ffff22)',
+          border: '1px solid #ff00ff',
+          padding: '12px',
+          textAlign: 'center',
+        }}>
+          <div style={{ 
+            fontSize: '0.65rem', 
+            color: '#888',
+            marginBottom: '5px',
+            letterSpacing: '0.1em',
+          }}>
+            P({samplePoint.x.toFixed(1)}, {samplePoint.y.toFixed(1)})
+          </div>
+          <div style={{
+            fontSize: '1.5rem',
+            fontWeight: 'bold',
+            color: '#00ffff',
+            textShadow: '0 0 10px #00ffff',
+          }}>
+            {probability.toExponential(3)}
+          </div>
+        </div>
+        
+        {selectedDist === 'priorUpdater' && (
+          <div style={{
+            marginTop: '10px',
+            fontSize: '0.65rem',
+            color: '#ff88ff',
+            fontStyle: 'italic',
+            textAlign: 'center',
+            opacity: 0.8,
+          }}>
+            "updating my priors..."
+          </div>
+        )}
+        
+        {/* VEV Display for Higgs potential */}
+        {(selectedDist === 'higgs' || selectedDist === 'higgsPotentialDirect') && dist.getVEV && (
+          <div style={{
+            marginTop: '15px',
+            background: 'linear-gradient(180deg, #1a0030, #0a0020)',
+            border: '1px solid #ff00ff',
+            padding: '12px',
+          }}>
+            <div style={{
+              fontSize: '0.65rem',
+              color: '#ff00ff',
+              letterSpacing: '0.15em',
+              marginBottom: '8px',
+              textAlign: 'center',
+            }}>
+              ◆ VACUUM STATE ◆
+            </div>
+            {(() => {
+              const vevData = dist.getVEV(params);
+              const thermalCoeff = 0.2;
+              const mu2_eff = (params.mu2 || -1) + thermalCoeff * (params.temp || 0) ** 2;
+              const Tc = params.mu2 < 0 ? Math.sqrt(-params.mu2 / thermalCoeff) : 0;
+              
+              return (
+                <>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: '0.7rem',
+                    marginBottom: '4px',
+                  }}>
+                    <span style={{ color: '#88ffff' }}>⟨φ⟩ (VEV):</span>
+                    <span style={{ 
+                      color: vevData.phase === 'broken' ? '#00ff88' : '#ff8800',
+                      fontWeight: 'bold',
+                    }}>
+                      {vevData.v.toFixed(3)}
+                    </span>
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: '0.7rem',
+                    marginBottom: '4px',
+                  }}>
+                    <span style={{ color: '#88ffff' }}>μ²_eff:</span>
+                    <span style={{ color: '#ff88ff' }}>
+                      {mu2_eff.toFixed(3)}
+                    </span>
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    fontSize: '0.7rem',
+                    marginBottom: '8px',
+                  }}>
+                    <span style={{ color: '#88ffff' }}>T_c:</span>
+                    <span style={{ color: '#ffff00' }}>
+                      {Tc > 0 ? Tc.toFixed(3) : 'N/A'}
+                    </span>
+                  </div>
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '6px',
+                    background: vevData.phase === 'broken' 
+                      ? 'rgba(0,255,136,0.15)' 
+                      : 'rgba(255,136,0,0.15)',
+                    border: `1px solid ${vevData.phase === 'broken' ? '#00ff88' : '#ff8800'}`,
+                    fontSize: '0.7rem',
+                    fontWeight: 'bold',
+                    color: vevData.phase === 'broken' ? '#00ff88' : '#ff8800',
+                    letterSpacing: '0.1em',
+                  }}>
+                    {vevData.phase === 'broken' ? '⚡ SYMMETRY BROKEN' : '○ SYMMETRIC PHASE'}
+                  </div>
+                  {vevData.asymmetric && (
+                    <div style={{
+                      marginTop: '6px',
+                      fontSize: '0.6rem',
+                      color: '#888',
+                      textAlign: 'center',
+                    }}>
+                      (explicit breaking via η)
+                    </div>
+                  )}
+                </>
+              );
+            })()}
+          </div>
+        )}
+      </div>
+      
+      {/* CSS Animation */}
+      <style>{`
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+      `}</style>
+    </div>
+  );
+};
+
+export default VaporwaveVisualizer;

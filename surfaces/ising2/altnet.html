@@ -1,0 +1,1593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Debug Altruism Network</title>
+  <style>
+    body { 
+      margin: 0; 
+      overflow: hidden; 
+      background-color: #000; 
+      font-family: Arial, sans-serif; 
+      color: #fff;
+    }
+    #info { 
+      position: absolute; 
+      bottom: 10px; 
+      left: 10px; 
+      color: white; 
+      z-index: 100; 
+      font-size: 16px;
+      background: rgba(0,0,0,0.7);
+      padding: 10px;
+      border-radius: 5px;
+    }
+    #simulationStats {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0,0,0,0.7);
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 14px;
+      width: 350px;
+    }
+    #simulationControls {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.7);
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 14px;
+      z-index: 1000;
+      max-height: 90vh;
+      overflow-y: auto;
+      width: 300px;
+    }
+    #simulationControls h3 {
+      margin-top: 10px;
+      margin-bottom: 5px;
+      color: #aaddff;
+    }
+    #simulationControls button {
+      background: #4a5fa3;
+      color: white;
+      border: none;
+      padding: 5px 10px;
+      margin: 5px;
+      border-radius: 3px;
+      cursor: pointer;
+    }
+    #simulationControls button:hover {
+      background: #677bc4;
+    }
+    #simulationControls button.active {
+      background: #ff77aa;
+    }
+    .control-group {
+      margin-bottom: 10px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+    }
+    #utilityGraph {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.7);
+      padding: 10px;
+      border-radius: 5px;
+      width: 300px;
+    }
+    canvas {
+      display: block;
+    }
+    .debug-label {
+      position: absolute;
+      font-size: 10px;
+      color: white;
+      text-shadow: 0 0 3px black;
+      opacity: 0.9;
+      pointer-events: none;
+      background: rgba(0,0,0,0.5);
+      padding: 2px 4px;
+      border-radius: 2px;
+    }
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      font-size: 12px;
+    }
+    .value-display {
+      font-size: 12px;
+      color: #cccccc;
+      margin-top: 2px;
+    }
+    #debugValues {
+      font-family: monospace;
+      font-size: 12px;
+      max-height: 100px;
+      overflow-y: auto;
+      margin-top: 10px;
+      background: rgba(0,0,0,0.3);
+      padding: 5px;
+    }
+    .agent-debug-panel {
+      position: absolute;
+      background: rgba(0,0,0,0.8);
+      border: 1px solid #555;
+      border-radius: 5px;
+      padding: 10px;
+      font-size: 12px;
+      display: none;
+      max-width: 250px;
+      z-index: 200;
+    }
+  </style>
+</head>
+<body>
+  <div id="info">Debug Altruism Network — drag to rotate, scroll to zoom</div>
+  
+  <div id="simulationStats">
+    <h3>Simulation Statistics</h3>
+    <div id="iterationCount">Iteration: 0</div>
+    <div id="avgUtility">Average Utility: 0</div>
+    <div id="minMaxUtility">Utility Range: [0, 0]</div>
+    <div id="transferCount">Transfers: 0</div>
+    <div id="inequalityMeasure">Consumption Gini: 0</div>
+    <div id="debugValues"></div>
+  </div>
+  
+  <div id="simulationControls">
+    <h3>Simulation Controls</h3>
+    <div class="control-group">
+      <button id="pauseBtn">Pause</button>
+      <button id="stepBtn">Step Once</button>
+      <button id="resetBtn">Reset</button>
+      <button id="shockBtn">Add Income Shock</button>
+      
+      <label for="simSpeedSlider">Simulation Speed:</label>
+      <input type="range" id="simSpeedSlider" min="1" max="20" value="1">
+      <div id="simSpeedValue" class="value-display">Speed: 1</div>
+      
+      <label for="altruismStrength">Altruism Strength:</label>
+      <input type="range" id="altruismStrength" min="0.1" max="2" step="0.1" value="1">
+      <div id="altruismValue" class="value-display">Strength: 1.0</div>
+      
+      <label for="incomeInequalitySlider">Income Inequality:</label>
+      <input type="range" id="incomeInequalitySlider" min="0.1" max="10" step="0.1" value="5">
+      <div id="inequalityValue" class="value-display">Inequality: 5.0</div>
+      
+      <label for="transferFrictionSlider">Transfer Friction:</label>
+      <input type="range" id="transferFrictionSlider" min="0.9" max="0.999" step="0.001" value="0.99">
+      <div id="frictionValue" class="value-display">Friction: 0.99</div>
+      
+      <label for="agentCountSlider">Number of Agents:</label>
+      <input type="range" id="agentCountSlider" min="10" max="50" step="1" value="15">
+      <div id="agentCountValue" class="value-display">Agents: 15</div>
+    </div>
+    
+    <h3>Display Options</h3>
+    <div class="control-group">
+      <label for="nodeSizeSlider">Node Size:</label>
+      <input type="range" id="nodeSizeSlider" min="0.5" max="3" step="0.1" value="1">
+      <div id="nodeSizeValue" class="value-display">Size: 1.0</div>
+      
+      <div>
+        <label for="showLabelsToggle">Show Labels:</label>
+        <input type="checkbox" id="showLabelsToggle" checked>
+      </div>
+      
+      <div>
+        <label for="showTransfersToggle">Show Transfers:</label>
+        <input type="checkbox" id="showTransfersToggle" checked>
+      </div>
+      
+      <div>
+        <label for="showConnectionsToggle">Show Connections:</label>
+        <input type="checkbox" id="showConnectionsToggle" checked>
+      </div>
+    </div>
+    
+    <h3>Visualization Mode</h3>
+    <div class="control-group">
+      <button id="colorByUtilityBtn" class="active">Color by Utility</button>
+      <button id="colorByIncomeBtn">Color by Income</button>
+      <button id="colorByTransfersBtn">Color by Transfers</button>
+    </div>
+    
+    <h3>Network Layout</h3>
+    <div class="control-group">
+      <button id="layoutCircleBtn" class="active">Circle</button>
+      <button id="layoutGridBtn">Grid</button>
+      <button id="layoutRandomBtn">Random</button>
+    </div>
+  </div>
+  
+  <div id="utilityGraph">
+    <canvas id="graphCanvas" width="300" height="150"></canvas>
+  </div>
+  
+  <!-- Agent detail panel (appears when clicking an agent) -->
+  <div id="agentDetailPanel" class="agent-debug-panel">
+    <h4 id="agentTitle">Agent Details</h4>
+    <div id="agentStats"></div>
+    <div id="agentHistory"></div>
+    <canvas id="agentHistoryGraph" width="230" height="100"></canvas>
+  </div>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  
+  <script>
+    // Global variables
+    let scene, camera, renderer, controls, raycaster, mouse;
+    let agents = [];
+    let connections = [];
+    let activeTransfers = [];
+    let utilityHistory = [];
+    let inequalityHistory = [];
+    let transferParticles = [];
+    let debugLabels = [];
+    let selectedAgent = null;
+    
+    // Display parameters
+    let displayParams = {
+      nodeSize: 1.0,
+      showLabels: true,
+      showTransfers: true,
+      showConnections: true,
+      colorMode: 'utility', // 'utility', 'income', 'transfers'
+      layout: 'circle' // 'circle', 'grid', 'random'
+    };
+    
+    // Simulation parameters
+    let params = {
+      numAgents: 15,
+      altruismStrength: 1.0,
+      incomeInequality: 5.0, // Higher inequality
+      transferFriction: 0.99, // Very high friction
+      simulationSpeed: 1,
+      iterationCount: 0,
+      transferCount: 0,
+      isPaused: true, // Start paused so we can see initial state
+      stepMode: false
+    };
+    
+    // Colors for different utility levels
+    const highUtilityColor = new THREE.Color(0xff77ff); // Pink - happy
+    const medUtilityColor = new THREE.Color(0xffff77);  // Yellow - neutral
+    const lowUtilityColor = new THREE.Color(0x77ffff);  // Blue - sad
+    
+    // For income coloring
+    const lowIncomeColor = new THREE.Color(0x3333ff);   // Blue - poor
+    const highIncomeColor = new THREE.Color(0xff3333);  // Red - rich
+    
+    // For transfer coloring
+    const lowTransferColor = new THREE.Color(0x33ff33); // Green - low activity
+    const highTransferColor = new THREE.Color(0xffaa33); // Orange - high activity
+    
+    // Initialize scene
+    function init() {
+      // Create scene
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x111133);
+      
+      // Setup camera
+      camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.set(0, 0, 50);
+      
+      // Setup renderer
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      document.body.appendChild(renderer.domElement);
+      
+      // Add controls
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      
+      // Setup raycaster for object interaction
+      raycaster = new THREE.Raycaster();
+      mouse = new THREE.Vector2();
+      
+      // Add lights
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+      scene.add(ambientLight);
+      
+      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      directionalLight.position.set(0, 1, 1);
+      scene.add(directionalLight);
+      
+      // Initialize UI elements
+      setupUIControls();
+      
+      // Create agents and connections
+      createAgentsAndConnections();
+      
+      // Add click event for agent selection
+      renderer.domElement.addEventListener('click', onDocumentClick, false);
+      
+      // Handle window resize
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        updateLabelPositions();
+      });
+    }
+    
+    // Handle mouse click
+    function onDocumentClick(event) {
+      // Calculate mouse position in normalized device coordinates
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+      
+      // Update the picking ray with the camera and mouse position
+      raycaster.setFromCamera(mouse, camera);
+      
+      // Calculate objects intersecting the picking ray
+      const meshes = agents.map(agent => agent.mesh);
+      const intersects = raycaster.intersectObjects(meshes);
+      
+      if (intersects.length > 0) {
+        const clickedMesh = intersects[0].object;
+        const clickedAgent = agents.find(agent => agent.mesh === clickedMesh);
+        
+        if (clickedAgent) {
+          selectAgent(clickedAgent);
+        }
+      } else {
+        // Click on empty space - hide agent panel
+        hideAgentPanel();
+      }
+    }
+    
+    // Select an agent to show details
+    function selectAgent(agent) {
+      selectedAgent = agent;
+      
+      // Update agent detail panel
+      const panel = document.getElementById('agentDetailPanel');
+      const title = document.getElementById('agentTitle');
+      const stats = document.getElementById('agentStats');
+      
+      // Set agent information
+      title.textContent = `Agent #${agents.indexOf(agent)}`;
+      
+      // Display agent stats
+      stats.innerHTML = `
+        <div>Income: ${agent.income.toFixed(2)}</div>
+        <div>Consumption: ${agent.consumption.toFixed(2)}</div>
+        <div>Utility: ${agent.utility.toFixed(4)}</div>
+        <div>Transfers: ${agent.transferCount || 0}</div>
+      `;
+      
+      // Update agent history graph
+      updateAgentHistoryGraph(agent);
+      
+      // Position and show panel
+      const screenPos = toScreenPosition(agent.mesh, camera, renderer);
+      panel.style.left = (screenPos.x + 20) + 'px';
+      panel.style.top = (screenPos.y - 100) + 'px';
+      panel.style.display = 'block';
+    }
+    
+    // Hide agent panel
+    function hideAgentPanel() {
+      document.getElementById('agentDetailPanel').style.display = 'none';
+      selectedAgent = null;
+    }
+    
+    // Update agent history graph
+    function updateAgentHistoryGraph(agent) {
+      if (!agent.utilityHistory) {
+        return; // No history data
+      }
+      
+      const canvas = document.getElementById('agentHistoryGraph');
+      const ctx = canvas.getContext('2d');
+      const width = canvas.width;
+      const height = canvas.height;
+      
+      // Clear canvas
+      ctx.clearRect(0, 0, width, height);
+      
+      // Draw background
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+      ctx.fillRect(0, 0, width, height);
+      
+      // Draw grid
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.lineWidth = 1;
+      
+      // Horizontal grid lines
+      for (let i = 0; i <= 4; i++) {
+        const y = i * (height / 4);
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+      
+      // No data to draw
+      if (agent.utilityHistory.length < 2) return;
+      
+      // Find max utility for scaling
+      const maxUtil = Math.max(...agent.utilityHistory) * 1.1;
+      
+      // Draw utility history
+      ctx.strokeStyle = 'rgba(255, 119, 255, 0.8)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      
+      const history = agent.utilityHistory;
+      for (let i = 0; i < history.length; i++) {
+        const x = (i / (history.length - 1)) * width;
+        const y = height - (history[i] / maxUtil) * height;
+        
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.stroke();
+      
+      // Add label
+      ctx.font = '10px Arial';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('Utility History', 10, 12);
+    }
+    
+    // Setup UI controls
+    function setupUIControls() {
+      // Pause button
+      document.getElementById('pauseBtn').addEventListener('click', () => {
+        params.isPaused = !params.isPaused;
+        document.getElementById('pauseBtn').textContent = params.isPaused ? 'Resume' : 'Pause';
+      });
+      
+      // Step button
+      document.getElementById('stepBtn').addEventListener('click', () => {
+        // Run one simulation step
+        params.stepMode = true;
+        simulateOneStep();
+      });
+      
+      // Reset button
+      document.getElementById('resetBtn').addEventListener('click', () => {
+        hideAgentPanel(); // Hide agent panel when resetting
+        resetSimulation();
+      });
+      
+      // Add income shock
+      document.getElementById('shockBtn').addEventListener('click', () => {
+        addIncomeShock();
+      });
+      
+      // Speed slider
+      document.getElementById('simSpeedSlider').addEventListener('input', (e) => {
+        params.simulationSpeed = parseInt(e.target.value);
+        document.getElementById('simSpeedValue').textContent = `Speed: ${params.simulationSpeed}`;
+      });
+      
+      // Altruism strength slider
+      document.getElementById('altruismStrength').addEventListener('input', (e) => {
+        params.altruismStrength = parseFloat(e.target.value);
+        document.getElementById('altruismValue').textContent = `Strength: ${params.altruismStrength.toFixed(1)}`;
+        updateConnectionStrengths();
+      });
+      
+      // Income inequality slider
+      document.getElementById('incomeInequalitySlider').addEventListener('input', (e) => {
+        params.incomeInequality = parseFloat(e.target.value);
+        document.getElementById('inequalityValue').textContent = `Inequality: ${params.incomeInequality.toFixed(1)}`;
+      });
+      
+      // Transfer friction slider
+      document.getElementById('transferFrictionSlider').addEventListener('input', (e) => {
+        params.transferFriction = parseFloat(e.target.value);
+        document.getElementById('frictionValue').textContent = `Friction: ${params.transferFriction.toFixed(3)}`;
+      });
+      
+      // Agent count slider
+      document.getElementById('agentCountSlider').addEventListener('input', (e) => {
+        params.numAgents = parseInt(e.target.value);
+        document.getElementById('agentCountValue').textContent = `Agents: ${params.numAgents}`;
+      });
+      
+      // Node size slider
+      document.getElementById('nodeSizeSlider').addEventListener('input', (e) => {
+        displayParams.nodeSize = parseFloat(e.target.value);
+        document.getElementById('nodeSizeValue').textContent = `Size: ${displayParams.nodeSize.toFixed(1)}`;
+        updateAgentSizes();
+      });
+      
+      // Show labels toggle
+      document.getElementById('showLabelsToggle').addEventListener('change', (e) => {
+        displayParams.showLabels = e.target.checked;
+        updateLabelsVisibility();
+      });
+      
+      // Show transfers toggle
+      document.getElementById('showTransfersToggle').addEventListener('change', (e) => {
+        displayParams.showTransfers = e.target.checked;
+      });
+      
+      // Show connections toggle
+      document.getElementById('showConnectionsToggle').addEventListener('change', (e) => {
+        displayParams.showConnections = e.target.checked;
+        updateConnectionsVisibility();
+      });
+      
+      // Color mode buttons
+      document.getElementById('colorByUtilityBtn').addEventListener('click', () => {
+        displayParams.colorMode = 'utility';
+        setActiveButton('colorByUtilityBtn', ['colorByIncomeBtn', 'colorByTransfersBtn']);
+        updateAgentColors();
+      });
+      
+      document.getElementById('colorByIncomeBtn').addEventListener('click', () => {
+        displayParams.colorMode = 'income';
+        setActiveButton('colorByIncomeBtn', ['colorByUtilityBtn', 'colorByTransfersBtn']);
+        updateAgentColors();
+      });
+      
+      document.getElementById('colorByTransfersBtn').addEventListener('click', () => {
+        displayParams.colorMode = 'transfers';
+        setActiveButton('colorByTransfersBtn', ['colorByUtilityBtn', 'colorByIncomeBtn']);
+        updateAgentColors();
+      });
+      
+      // Layout buttons
+      document.getElementById('layoutCircleBtn').addEventListener('click', () => {
+        displayParams.layout = 'circle';
+        setActiveButton('layoutCircleBtn', ['layoutGridBtn', 'layoutRandomBtn']);
+        repositionAgents();
+      });
+      
+      document.getElementById('layoutGridBtn').addEventListener('click', () => {
+        displayParams.layout = 'grid';
+        setActiveButton('layoutGridBtn', ['layoutCircleBtn', 'layoutRandomBtn']);
+        repositionAgents();
+      });
+      
+      document.getElementById('layoutRandomBtn').addEventListener('click', () => {
+        displayParams.layout = 'random';
+        setActiveButton('layoutRandomBtn', ['layoutCircleBtn', 'layoutGridBtn']);
+        repositionAgents();
+      });
+    }
+    
+    // Helper to set active button
+    function setActiveButton(activeId, inactiveIds) {
+      document.getElementById(activeId).classList.add('active');
+      inactiveIds.forEach(id => {
+        document.getElementById(id).classList.remove('active');
+      });
+    }
+    
+    // Update agent sizes
+    function updateAgentSizes() {
+      agents.forEach(agent => {
+        // Apply base scale
+        let baseScale = displayParams.nodeSize;
+        
+        // Additional scaling based on utility or other factors
+        let utilityScale = 0.8 + Math.min(0.4, agent.utility * 0.1); // Cap scaling factor
+        
+        // Apply scale
+        let finalScale = baseScale * utilityScale;
+        agent.mesh.scale.set(finalScale, finalScale, finalScale);
+      });
+    }
+    
+    // Update labels visibility
+    function updateLabelsVisibility() {
+      debugLabels.forEach(label => {
+        label.style.display = displayParams.showLabels ? 'block' : 'none';
+      });
+    }
+    
+    // Update connections visibility
+    function updateConnectionsVisibility() {
+      connections.forEach(conn => {
+        if (conn.object) {
+          conn.object.visible = displayParams.showConnections;
+        }
+      });
+    }
+    
+    // Create debug label for agent
+    function createDebugLabel(agent, index) {
+      const label = document.createElement('div');
+      label.className = 'debug-label';
+      label.style.display = displayParams.showLabels ? 'block' : 'none';
+      document.body.appendChild(label);
+      
+      // Update label content
+      updateDebugLabel(label, agent, index);
+      
+      return label;
+    }
+    
+    // Update debug label
+    function updateDebugLabel(label, agent, index) {
+      label.innerHTML = `
+        <div>#${index}</div>
+        <div>U: ${agent.utility.toFixed(2)}</div>
+        <div>$: ${agent.consumption.toFixed(1)}</div>
+      `;
+      
+      // Position label near agent
+      const screenPos = toScreenPosition(agent.mesh, camera, renderer);
+      label.style.left = (screenPos.x + 15) + 'px';
+      label.style.top = (screenPos.y - 20) + 'px';
+    }
+    
+    // Update all debug labels
+    function updateLabelPositions() {
+      agents.forEach((agent, index) => {
+        if (index < debugLabels.length) {
+          updateDebugLabel(debugLabels[index], agent, index);
+        }
+      });
+    }
+    
+    // Reposition agents based on layout
+    function repositionAgents() {
+      if (displayParams.layout === 'circle') {
+        agents.forEach((agent, i) => {
+          const angle = (i / agents.length) * Math.PI * 2;
+          const radius = 15 + (Math.random() - 0.5) * 5;
+          const x = Math.cos(angle) * radius;
+          const y = Math.sin(angle) * radius;
+          const z = (Math.random() - 0.5) * 5;
+          
+          // Animate position change
+          animatePosition(agent, new THREE.Vector3(x, y, z));
+        });
+      } 
+      else if (displayParams.layout === 'grid') {
+        const gridSize = Math.ceil(Math.sqrt(agents.length));
+        const spacing = 30 / gridSize;
+        
+        agents.forEach((agent, i) => {
+          const row = Math.floor(i / gridSize);
+          const col = i % gridSize;
+          
+          const x = (col - gridSize/2 + 0.5) * spacing;
+          const y = (row - gridSize/2 + 0.5) * spacing;
+          const z = (Math.random() - 0.5) * 3;
+          
+          // Animate position change
+          animatePosition(agent, new THREE.Vector3(x, y, z));
+        });
+      }
+      else if (displayParams.layout === 'random') {
+        agents.forEach(agent => {
+          const x = (Math.random() - 0.5) * 30;
+          const y = (Math.random() - 0.5) * 30;
+          const z = (Math.random() - 0.5) * 10;
+          
+          // Animate position change
+          animatePosition(agent, new THREE.Vector3(x, y, z));
+        });
+      }
+      
+      // Update connections after a brief delay to allow agent positions to update
+      setTimeout(updateConnections, 1000);
+    }
+    
+    // Animate position change
+    function animatePosition(agent, newPosition) {
+      const originalPosition = agent.position.clone();
+      const startTime = Date.now();
+      const duration = 1000; // Animation duration in ms
+      
+      function animate() {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        // Ease in-out function for smoother animation
+        const easedProgress = progress < 0.5 
+          ? 2 * progress * progress 
+          : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+        
+        // Interpolate position
+        const currentPosition = new THREE.Vector3().lerpVectors(
+          originalPosition,
+          newPosition,
+          easedProgress
+        );
+        
+        // Update position
+        agent.position.copy(currentPosition);
+        agent.mesh.position.copy(currentPosition);
+        
+        // Continue animation if not complete
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        }
+      }
+      
+      animate();
+    }
+    
+    // Update connections after agent positions change
+    function updateConnections() {
+      connections.forEach(conn => {
+        // Get updated positions
+        const fromPos = agents[conn.from].position;
+        const toPos = agents[conn.to].position;
+        
+        // Update connection geometry
+        if (conn.object) {
+          scene.remove(conn.object);
+          
+          // Create new connection with updated positions
+          const points = [fromPos, toPos];
+          const geometry = new THREE.BufferGeometry().setFromPoints(points);
+          const material = new THREE.LineBasicMaterial({
+            color: 0x88aaff,
+            transparent: true,
+            opacity: 0.4
+          });
+          
+          const line = new THREE.Line(geometry, material);
+          scene.add(line);
+          
+          // Update connection object
+          conn.object = line;
+        }
+      });
+      
+      // Update label positions
+      setTimeout(updateLabelPositions, 100);
+    }
+    
+    // Update agent colors based on selected mode
+    function updateAgentColors() {
+      agents.forEach(agent => {
+        let color;
+        
+        if (displayParams.colorMode === 'utility') {
+          // Color based on utility with a simple gradient
+          const normalizedUtility = Math.min(1, agent.utility / 5); // Cap at 5 for color purposes
+          
+          if (normalizedUtility > 0.66) {
+            color = highUtilityColor;
+          } else if (normalizedUtility > 0.33) {
+            color = medUtilityColor;
+          } else {
+            color = lowUtilityColor;
+          }
+        } 
+        else if (displayParams.colorMode === 'income') {
+          // Color based on income
+          // Find max income for normalization
+          const maxIncome = Math.max(...agents.map(a => a.income));
+          const normalizedIncome = agent.income / maxIncome;
+          
+          // Interpolate between low and high income colors
+          color = lowIncomeColor.clone().lerp(highIncomeColor, normalizedIncome);
+        } 
+        else if (displayParams.colorMode === 'transfers') {
+          // Color based on transfer activity
+          // Normalize by max transfer count
+          const maxTransfers = Math.max(1, ...agents.map(a => a.transferCount || 0));
+          const normalizedTransfers = (agent.transferCount || 0) / maxTransfers;
+          
+          // Interpolate between low and high transfer colors
+          color = lowTransferColor.clone().lerp(highTransferColor, normalizedTransfers);
+        }
+        
+        // Apply color
+        if (agent.mesh && agent.mesh.material) {
+          agent.mesh.material.color.copy(color);
+        }
+        
+        // Update labels
+        updateDebugLabels();
+      });
+    }
+    
+    // Update connection strengths when altruism parameter changes
+    function updateConnectionStrengths() {
+      connections.forEach(conn => {
+        // Keep the random component but update the base strength
+        conn.strength = params.altruismStrength * conn.randomFactor;
+      });
+    }
+    
+    // Update debug label for agents
+    function updateDebugLabels() {
+      agents.forEach((agent, index) => {
+        if (index < debugLabels.length) {
+          updateDebugLabel(debugLabels[index], agent, index);
+        }
+      });
+    }
+    
+    // Generate agent incomes with controlled inequality
+    function generateIncomes(count, inequalityFactor) {
+      const incomes = [];
+      
+      if (inequalityFactor <= 1) {
+        // Close to uniform distribution
+        for (let i = 0; i < count; i++) {
+          incomes.push(2 + Math.random() * 8); // range [2-10]
+        }
+      } else {
+        // Power law distribution with higher exponent for more extreme inequality
+        const exponent = 1 + inequalityFactor * 0.4;
+        
+        for (let i = 0; i < count; i++) {
+          const r = Math.random();
+          // More extreme distribution - map to [0.1, 35] for more visible differences
+          const base = Math.pow(r, -1/exponent);
+          incomes.push(0.1 + base * 35);
+        }
+      }
+      
+      return incomes;
+    }
+    
+    // Calculate utility using simple log utility function
+    function calculateUtility(consumption) {
+      // Using log utility: ln(consumption) - simpler and more intuitive for visualization
+      return Math.log(Math.max(0.1, consumption));
+    }
+    
+    // Calculate marginal utility
+    function calculateMarginalUtility(consumption) {
+      // Derivative of log utility: 1/consumption
+      return 1 / Math.max(0.1, consumption);
+    }
+    
+    // Create agents and connections
+    function createAgentsAndConnections() {
+      // Clear existing objects
+      clearScene();
+      
+      // Generate incomes with greater inequality
+      const incomes = generateIncomes(params.numAgents, params.incomeInequality);
+      
+      // Create agents
+      for (let i = 0; i < params.numAgents; i++) {
+        let position;
+        
+        if (displayParams.layout === 'circle') {
+          // Position agents in a circle with some randomness
+          const angle = (i / params.numAgents) * Math.PI * 2;
+          const radius = 15 + (Math.random() - 0.5) * 5;
+          position = new THREE.Vector3(
+            Math.cos(angle) * radius,
+            Math.sin(angle) * radius,
+            (Math.random() - 0.5) * 5
+          );
+        }
+        else if (displayParams.layout === 'grid') {
+          // Position agents in a grid
+          const gridSize = Math.ceil(Math.sqrt(params.numAgents));
+          const spacing = 30 / gridSize;
+          
+          const row = Math.floor(i / gridSize);
+          const col = i % gridSize;
+          
+          position = new THREE.Vector3(
+            (col - gridSize/2 + 0.5) * spacing,
+            (row - gridSize/2 + 0.5) * spacing,
+            (Math.random() - 0.5) * 3
+          );
+        }
+        else { // Random layout
+          position = new THREE.Vector3(
+            (Math.random() - 0.5) * 30,
+            (Math.random() - 0.5) * 30,
+            (Math.random() - 0.5) * 10
+          );
+        }
+        
+        // Create agent geometry
+        const geometry = new THREE.SphereGeometry(1, 16, 16);
+        
+        // Calculate initial utility and color
+        const consumption = incomes[i];
+        const utility = calculateUtility(consumption);
+        
+        // Normalize utility for display
+        const normalizedUtility = Math.min(1, utility / 5);
+        
+        let color;
+        if (normalizedUtility > 0.66) {
+          color = highUtilityColor;
+        } else if (normalizedUtility > 0.33) {
+          color = medUtilityColor;
+        } else {
+          color = lowUtilityColor;
+        }
+        
+        const material = new THREE.MeshPhongMaterial({ color: color });
+        const mesh = new THREE.Mesh(geometry, material);
+        mesh.position.copy(position);
+        
+        // Apply base size scaling
+        const baseScale = displayParams.nodeSize;
+        const utilityScale = 0.8 + Math.min(0.4, utility * 0.1);
+        const finalScale = baseScale * utilityScale;
+        mesh.scale.set(finalScale, finalScale, finalScale);
+        
+        scene.add(mesh);
+        
+        // Create debug label
+        const label = createDebugLabel({
+          mesh: mesh,
+          utility: utility,
+          consumption: consumption,
+          position: position
+        }, i);
+        debugLabels.push(label);
+        
+        // Store agent data
+        agents.push({
+          mesh: mesh,
+          income: incomes[i],
+          consumption: consumption,
+          utility: utility,
+          position: position,
+          lastUpdated: 0,
+          transferCount: 0,
+          utilityHistory: [utility] // Initialize utility history
+        });
+      }
+      
+      // Create connections between agents
+      createConnections();
+      
+      // Initialize history arrays
+      utilityHistory = [];
+      inequalityHistory = [];
+      
+      // Reset stats
+      params.iterationCount = 0;
+      params.transferCount = 0;
+      
+      updateStats();
+      updateDebugDisplay();
+    }
+    
+    // Create connections between agents
+    function createConnections() {
+      connections = [];
+      
+      for (let i = 0; i < agents.length; i++) {
+        // Connect to neighbors with some probability
+        for (let j = 0; j < agents.length; j++) {
+          if (i !== j) {
+            const distance = agents[i].position.distanceTo(agents[j].position);
+            // Higher probability for closer agents
+            const probability = 0.3 * (1 / (1 + distance * 0.05));
+            
+            if (Math.random() < probability) {
+              createConnection(i, j);
+            }
+          }
+        }
+        
+        // Ensure each agent has at least one connection
+        if (!connections.some(c => c.from === i || c.to === i)) {
+          // Connect to the closest agent
+          let closestIdx = -1;
+          let minDist = Infinity;
+          
+          for (let j = 0; j < agents.length; j++) {
+            if (i !== j) {
+              const distance = agents[i].position.distanceTo(agents[j].position);
+              if (distance < minDist) {
+                minDist = distance;
+                closestIdx = j;
+              }
+            }
+          }
+          
+          if (closestIdx >= 0) {
+            createConnection(i, closestIdx);
+          }
+        }
+      }
+    }
+    
+    // Create a connection between two agents
+    function createConnection(i, j) {
+      const points = [
+        agents[i].position,
+        agents[j].position
+      ];
+      
+      const geometry = new THREE.BufferGeometry().setFromPoints(points);
+      const material = new THREE.LineBasicMaterial({
+        color: 0x88aaff,
+        transparent: true,
+        opacity: 0.4
+      });
+      
+      const line = new THREE.Line(geometry, material);
+      line.visible = displayParams.showConnections;
+      scene.add(line);
+      
+      // Random factor for connection strength
+      const randomFactor = 0.8 + Math.random() * 0.4;
+      
+      connections.push({
+        from: i,
+        to: j,
+        strength: params.altruismStrength * randomFactor,
+        randomFactor: randomFactor, // Store for updates
+        object: line
+      });
+    }
+    
+    // Create a transfer visualization
+    function createTransferVisualization(fromAgent, toAgent, amount) {
+      if (!displayParams.showTransfers) return null;
+      
+      // Create a small sphere representing the transfer
+      const geometry = new THREE.SphereGeometry(0.2, 8, 8);
+      const material = new THREE.MeshBasicMaterial({ 
+        color: 0x00ffff,
+        transparent: true,
+        opacity: 0.8
+      });
+      
+      const mesh = new THREE.Mesh(geometry, material);
+      
+      // Start at the giving agent
+      mesh.position.copy(fromAgent.position);
+      scene.add(mesh);
+      
+      // Store the transfer particle data
+      transferParticles.push({
+        mesh: mesh,
+        from: fromAgent,
+        to: toAgent,
+        amount: amount,
+        progress: 0,
+        speed: 0.01 + Math.random() * 0.01 // Slower transfers for visualization
+      });
+      
+      return mesh;
+    }
+    
+    // Update transfer particles
+    function updateTransferParticles() {
+      // Skip if transfers are hidden
+      if (!displayParams.showTransfers) {
+        transferParticles.forEach(particle => {
+          if (particle.mesh) particle.mesh.visible = false;
+        });
+        return;
+      }
+      
+      // Update existing particles
+      for (let i = transferParticles.length - 1; i >= 0; i--) {
+        const particle = transferParticles[i];
+        
+        // Show particles
+        if (particle.mesh) particle.mesh.visible = true;
+        
+        // Update progress
+        particle.progress += particle.speed;
+        
+        if (particle.progress >= 1) {
+          // Remove completed particles
+          scene.remove(particle.mesh);
+          transferParticles.splice(i, 1);
+        } else {
+          // Interpolate position
+          const newPos = new THREE.Vector3().lerpVectors(
+            particle.from.position,
+            particle.to.position,
+            particle.progress
+          );
+          
+          // Add a small arc to the path
+          const mid = new THREE.Vector3().lerpVectors(
+            particle.from.position,
+            particle.to.position,
+            0.5
+          );
+          
+          const up = new THREE.Vector3(0, 0, 1);
+          const dir = new THREE.Vector3().subVectors(particle.to.position, particle.from.position);
+          if (Math.abs(dir.dot(up)) > 0.9) up.set(1, 0, 0);
+          
+          const arcHeight = particle.from.position.distanceTo(particle.to.position) * 0.2;
+          const normal = new THREE.Vector3().crossVectors(dir, up).normalize();
+          
+          // Parabolic arc
+          const arcOffset = Math.sin(particle.progress * Math.PI) * arcHeight;
+          newPos.addScaledVector(normal, arcOffset);
+          
+          particle.mesh.position.copy(newPos);
+          
+          // Scale based on amount
+          const scale = 0.2 + particle.amount * 0.05;
+          particle.mesh.scale.set(scale, scale, scale);
+          
+          // Pulse effect
+          const pulse = 0.8 + 0.2 * Math.sin(particle.progress * Math.PI * 4);
+          particle.mesh.scale.multiplyScalar(pulse);
+        }
+      }
+    }
+    
+    // Clear scene
+    function clearScene() {
+      // Remove agents
+      agents.forEach(agent => {
+        scene.remove(agent.mesh);
+      });
+      
+      // Remove connections
+      connections.forEach(connection => {
+        scene.remove(connection.object);
+      });
+      
+      // Remove transfer particles
+      transferParticles.forEach(particle => {
+        scene.remove(particle.mesh);
+      });
+      
+      // Remove debug labels
+      debugLabels.forEach(label => {
+        document.body.removeChild(label);
+      });
+      
+      agents = [];
+      connections = [];
+      activeTransfers = [];
+      transferParticles = [];
+      debugLabels = [];
+      
+      // Hide agent panel
+      hideAgentPanel();
+    }
+    
+    // Reset simulation
+    function resetSimulation() {
+      createAgentsAndConnections();
+    }
+    
+    // Add an income shock to the system
+    function addIncomeShock() {
+      // Shock multiple agents for more dramatic effect
+      const shockCount = Math.max(1, Math.floor(agents.length * 0.1)); // Shock about 10% of agents
+      
+      for (let shockIndex = 0; shockIndex < shockCount; shockIndex++) {
+        // Choose target
+        let targetIdx;
+        const shockType = Math.random();
+        
+        if (shockType < 0.5) {
+          // Random agent
+          targetIdx = Math.floor(Math.random() * agents.length);
+        } else {
+          // Find the richest agent
+          let maxIncome = -Infinity;
+          let richestIdx = 0;
+          
+          for (let i = 0; i < agents.length; i++) {
+            if (agents[i].income > maxIncome) {
+              maxIncome = agents[i].income;
+              richestIdx = i;
+            }
+          }
+          
+          targetIdx = richestIdx;
+        }
+        
+        // Apply shock - either positive or negative
+        const direction = Math.random() < 0.7 ? 1 : -1; // 70% chance of positive shock
+        const magnitude = agents[targetIdx].income * (0.3 + Math.random() * 0.5); // 30-80% change
+        
+        // Apply the shock
+        agents[targetIdx].income += direction * magnitude;
+        agents[targetIdx].income = Math.max(0.1, agents[targetIdx].income); // Ensure minimum income
+        
+        // Update consumption as well (immediate effect)
+        agents[targetIdx].consumption += direction * magnitude;
+        agents[targetIdx].consumption = Math.max(0.1, agents[targetIdx].consumption);
+        
+        // Update utility
+        agents[targetIdx].utility = calculateUtility(agents[targetIdx].consumption);
+        
+        // Track utility history
+        agents[targetIdx].utilityHistory.push(agents[targetIdx].utility);
+        if (agents[targetIdx].utilityHistory.length > 50) {
+          agents[targetIdx].utilityHistory.shift();
+        }
+        
+        // Update appearance
+        updateAgentAppearance(agents[targetIdx]);
+        
+        // Visual indication of the shock
+        const agent = agents[targetIdx];
+        
+        // Briefly make the agent larger
+        const originalScale = agent.mesh.scale.x;
+        agent.mesh.scale.set(originalScale * 2, originalScale * 2, originalScale * 2);
+        
+        // Animate back to normal size
+        setTimeout(() => {
+          agent.mesh.scale.set(originalScale, originalScale, originalScale);
+        }, 500);
+        
+        // Show a message
+        const shockMsg = document.createElement('div');
+        shockMsg.style.position = 'absolute';
+        shockMsg.style.color = direction > 0 ? 'lime' : 'red';
+        shockMsg.style.fontSize = '16px';
+        shockMsg.style.fontWeight = 'bold';
+        shockMsg.style.textShadow = '0 0 3px black';
+        shockMsg.textContent = direction > 0 ? '+' + magnitude.toFixed(1) : magnitude.toFixed(1);
+        
+        // Position near the agent
+        const screenPos = toScreenPosition(agent.mesh, camera, renderer);
+        shockMsg.style.left = screenPos.x + 'px';
+        shockMsg.style.top = (screenPos.y - 30) + 'px';
+        
+        document.body.appendChild(shockMsg);
+        
+        // Remove after animation
+        setTimeout(() => {
+          shockMsg.style.transition = 'opacity 1s';
+          shockMsg.style.opacity = '0';
+        }, 1000);
+        
+        setTimeout(() => {
+          document.body.removeChild(shockMsg);
+        }, 2000);
+      }
+      
+      // Update stats
+      updateStats();
+      updateDebugDisplay();
+      
+      // Update colors and labels
+      updateAgentColors();
+      updateDebugLabels();
+      
+      // Update agent panel if needed
+      if (selectedAgent) {
+        selectAgent(selectedAgent);
+      }
+    }
+    
+    // Calculate Gini coefficient (inequality measure)
+    function calculateGini(values) {
+      // Sort values in ascending order
+      const sortedValues = [...values].sort((a, b) => a - b);
+      const n = sortedValues.length;
+      
+      if (n === 0) return 0;
+      
+      let sumOfAbsoluteDifferences = 0;
+      for (let i = 0; i < n; i++) {
+        for (let j = 0; j < n; j++) {
+          sumOfAbsoluteDifferences += Math.abs(sortedValues[i] - sortedValues[j]);
+        }
+      }
+      
+      // Gini formula
+      return sumOfAbsoluteDifferences / (2 * n * n * sortedValues.reduce((a, b) => a + b, 0) / n);
+    }
+    
+    // Update simulation statistics
+    function updateStats() {
+      // Calculate min, max, and average utility
+      let totalUtility = 0;
+      let minUtility = Infinity;
+      let maxUtility = -Infinity;
+      
+      for (const agent of agents) {
+        totalUtility += agent.utility;
+        minUtility = Math.min(minUtility, agent.utility);
+        maxUtility = Math.max(maxUtility, agent.utility);
+      }
+      
+      const avgUtility = totalUtility / agents.length;
+      
+      // Calculate consumption inequality (Gini coefficient)
+      const consumptions = agents.map(a => a.consumption);
+      const giniCoefficient = calculateGini(consumptions);
+      
+      // Update history arrays
+      utilityHistory.push(avgUtility);
+      inequalityHistory.push(giniCoefficient);
+      
+      // Limit history length
+      const maxHistory = 100;
+      if (utilityHistory.length > maxHistory) {
+        utilityHistory.shift();
+        inequalityHistory.shift();
+      }
+      
+      // Update UI
+      document.getElementById('iterationCount').textContent = `Iteration: ${params.iterationCount}`;
+      document.getElementById('avgUtility').textContent = `Average Utility: ${avgUtility.toFixed(3)}`;
+      document.getElementById('minMaxUtility').textContent = `Utility Range: [${minUtility.toFixed(2)}, ${maxUtility.toFixed(2)}]`;
+      document.getElementById('transferCount').textContent = `Transfers: ${params.transferCount}`;
+      document.getElementById('inequalityMeasure').textContent = `Consumption Gini: ${giniCoefficient.toFixed(3)}`;
+      
+      // Draw graph
+      drawUtilityGraph();
+    }
+    
+    // Update debug display
+    function updateDebugDisplay() {
+      // Display detailed utility values in the debug panel
+      const debugValues = document.getElementById('debugValues');
+      let debugText = 'Current Utilities:\n';
+      
+      agents.forEach((agent, idx) => {
+        debugText += `Agent #${idx}: ${agent.utility.toFixed(2)} (${agent.consumption.toFixed(1)})\n`;
+      });
+      
+      debugValues.textContent = debugText;
+    }
+    
+    // Draw utility graph
+    function drawUtilityGraph() {
+      const canvas = document.getElementById('graphCanvas');
+      const ctx = canvas.getContext('2d');
+      const width = canvas.width;
+      const height = canvas.height;
+      
+      // Clear canvas
+      ctx.clearRect(0, 0, width, height);
+      
+      // Draw background
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+      ctx.fillRect(0, 0, width, height);
+      
+      // Draw grid lines
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      ctx.lineWidth = 1;
+      
+      // Horizontal grid lines
+      for (let i = 0; i <= 5; i++) {
+        const y = height - (i / 5) * height;
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(width, y);
+        ctx.stroke();
+      }
+      
+      // Vertical grid lines
+      for (let i = 0; i <= 10; i++) {
+        const x = (i / 10) * width;
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, height);
+        ctx.stroke();
+      }
+      
+      // No data to draw
+      if (utilityHistory.length < 2) return;
+      
+      // Find max utility for scaling - use a comfortable range
+      const maxUtility = Math.max(...utilityHistory) * 1.2;
+      
+      // Draw utility history
+      ctx.strokeStyle = 'rgba(255, 119, 255, 0.8)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      
+      for (let i = 0; i < utilityHistory.length; i++) {
+        const x = (i / (utilityHistory.length - 1)) * width;
+        const y = height - (utilityHistory[i] / maxUtility) * height;
+        
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.stroke();
+      
+      // Draw inequality history
+      ctx.strokeStyle = 'rgba(119, 255, 255, 0.8)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      
+      for (let i = 0; i < inequalityHistory.length; i++) {
+        const x = (i / (inequalityHistory.length - 1)) * width;
+        const y = height - inequalityHistory[i] * height; // Gini is already [0-1]
+        
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.stroke();
+      
+      // Draw legend
+      ctx.font = '10px Arial';
+      ctx.fillStyle = 'rgba(255, 119, 255, 0.8)';
+      ctx.fillText('Utility', 10, 15);
+      
+      ctx.fillStyle = 'rgba(119, 255, 255, 0.8)';
+      ctx.fillText('Inequality', 70, 15);
+      
+      // Draw current values
+      if (utilityHistory.length > 0) {
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.fillText(`Current: ${utilityHistory[utilityHistory.length-1].toFixed(2)}`, 10, 30);
+      }
+    }
+    
+    // Helper function to convert 3D position to screen position
+    function toScreenPosition(obj, camera, renderer) {
+      const vector = new THREE.Vector3();
+      obj.getWorldPosition(vector);
+      
+      vector.project(camera);
+      
+      const widthHalf = renderer.domElement.width / 2;
+      const heightHalf = renderer.domElement.height / 2;
+      
+      return {
+        x: (vector.x * widthHalf) + widthHalf,
+        y: -(vector.y * heightHalf) + heightHalf
+      };
+    }
+    
+    // Simulation step - process transfers for one iteration
+    function simulateOneStep() {
+      // Increment iteration counter
+      params.iterationCount++;
+      
+      // Track if any transfers were made
+      let transfersMade = false;
+      
+      // Process potential transfers for each connection
+      for (let i = 0; i < params.simulationSpeed; i++) {
+        // Choose a random connection
+        const connIdx = Math.floor(Math.random() * connections.length);
+        const conn = connections[connIdx];
+        
+        const giver = agents[conn.from];
+        const receiver = agents[conn.to];
+        
+        // Check whether transfer should happen
+        const giverMarginalUtility = calculateMarginalUtility(giver.consumption);
+        const receiverMarginalUtility = calculateMarginalUtility(receiver.consumption);
+        
+        // Transfer happens if: giver's marginal utility * alpha < receiver's marginal utility
+        // And if giver is wealthier than receiver
+        if (giverMarginalUtility * conn.strength < receiverMarginalUtility && 
+            giver.consumption > receiver.consumption) {
+            
+          // Calculate optimal transfer amount (use much smaller coefficient)
+          const maxTransferAmount = (giver.consumption - receiver.consumption) * 0.01 * conn.strength;
+          
+          // Apply friction to slow down transfers even more
+          const frictionFactor = 1 - params.transferFriction;
+          const transferAmount = maxTransferAmount * frictionFactor;
+          
+          // Apply transfer if significant
+          if (transferAmount > 0.001 && transferAmount < giver.consumption * 0.5) {
+            // Update consumptions
+            giver.consumption -= transferAmount;
+            receiver.consumption += transferAmount;
+            
+            // Update utilities
+            giver.utility = calculateUtility(giver.consumption);
+            receiver.utility = calculateUtility(receiver.consumption);
+            
+            // Add to utility history
+            giver.utilityHistory.push(giver.utility);
+            receiver.utilityHistory.push(receiver.utility);
+            
+            // Limit history length
+            if (giver.utilityHistory.length > 50) giver.utilityHistory.shift();
+            if (receiver.utilityHistory.length > 50) receiver.utilityHistory.shift();
+            
+            // Track transfer activity
+            giver.transferCount = (giver.transferCount || 0) + 1;
+            receiver.transferCount = (receiver.transferCount || 0) + 1;
+            
+            // Update appearances
+            updateAgentAppearance(giver);
+            updateAgentAppearance(receiver);
+            
+            // Create transfer visualization
+            createTransferVisualization(giver, receiver, transferAmount);
+            
+            // Increment transfer counter
+            params.transferCount++;
+            
+            // Record when the agent was last updated
+            giver.lastUpdated = params.iterationCount;
+            receiver.lastUpdated = params.iterationCount;
+            
+            transfersMade = true;
+          }
+        }
+      }
+      
+      // Update stats
+      updateStats();
+      updateDebugDisplay();
+      
+      // Update labels
+      updateDebugLabels();
+      
+      // Update agent panel if needed
+      if (selectedAgent) {
+        selectAgent(selectedAgent);
+      }
+      
+      return transfersMade;
+    }
+    
+    // Update agent appearance based on utility
+    function updateAgentAppearance(agent) {
+      // Apply base scale
+      const baseScale = displayParams.nodeSize;
+      
+      // Additional utility-based scaling
+      const utility = agent.utility;
+      const utilityScale = 0.8 + Math.min(0.4, utility * 0.1);
+      
+      // Set final scale
+      const finalScale = baseScale * utilityScale;
+      agent.mesh.scale.set(finalScale, finalScale, finalScale);
+      
+      // Update color based on display mode
+      if (displayParams.colorMode === 'utility') {
+        // Color based on utility level
+        const normalizedUtility = Math.min(1, utility / 5);
+        
+        let color;
+        if (normalizedUtility > 0.66) {
+          color = highUtilityColor;
+        } else if (normalizedUtility > 0.33) {
+          color = medUtilityColor;
+        } else {
+          color = lowUtilityColor;
+        }
+        
+        agent.mesh.material.color.copy(color);
+      }
+    }
+    
+    // Animation loop
+    function animate() {
+      requestAnimationFrame(animate);
+      
+      // Simulation step if not paused
+      if (!params.isPaused && !params.stepMode) {
+        simulateOneStep();
+      }
+      params.stepMode = false;
+      
+      // Update transfer particles
+      updateTransferParticles();
+      
+      // Update label positions
+      updateLabelPositions();
+      
+      // Render scene
+      renderer.render(scene, camera);
+      controls.update();
+    }
+    
+    // Start everything
+    init();
+    animate();
+  </script>
+</body>
+</html>
