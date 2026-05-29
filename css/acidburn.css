@@ -1277,7 +1277,7 @@ body.bh-mode .link-card {
   font-size: 11px;
   padding: 1px 6px;
   cursor: pointer;
-  align-self: flex-end;
+  align-self: flex-start;
   appearance: none;
   -webkit-appearance: none;
   -moz-appearance: none;
