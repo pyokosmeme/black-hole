@@ -1085,14 +1085,14 @@ body.bh-mode .link-card {
   justify-content: space-between;
   align-items: center;
   color: color-mix(in srgb, var(--cyan) 60%, transparent);
-  font-size: 11px;
+  font-size: 14px;
   letter-spacing: 0.1em;
   user-select: none;
   transition: color 0.2s ease;
 }
 .tx-comments-summary::-webkit-details-marker { display: none; }
 .tx-comments-summary:hover { color: var(--cyan); }
-.tx-comments-count { color: color-mix(in srgb, var(--purple) 70%, transparent); font-size: 10px; margin-left: 4px; }
+.tx-comments-count { color: color-mix(in srgb, var(--purple) 70%, transparent); font-size: 13px; margin-left: 4px; }
 .tx-comments-body {
   overflow: hidden;
   max-height: 0;
@@ -1123,7 +1123,7 @@ body.bh-mode .link-card {
   padding-bottom: 8px;
   margin-bottom: 8px;
   border-bottom: 1px solid color-mix(in srgb, var(--purple) 15%, transparent);
-  font-size: 10px;
+  font-size: 13px;
 }
 .tx-auth-input {
   background: transparent;
@@ -1131,7 +1131,7 @@ body.bh-mode .link-card {
   color: inherit;
   padding: 2px 6px;
   font-family: inherit;
-  font-size: 10px;
+  font-size: 13px;
   min-width: 140px;
 }
 .tx-auth-btn, .tx-form-submit, .tx-mod-btn {
@@ -1140,7 +1140,7 @@ body.bh-mode .link-card {
   color: color-mix(in srgb, var(--cyan) 70%, transparent);
   padding: 2px 8px;
   font-family: inherit;
-  font-size: 9px;
+  font-size: 12px;
   letter-spacing: 0.08em;
   cursor: pointer;
   text-transform: lowercase;
@@ -1151,13 +1151,13 @@ body.bh-mode .link-card {
   color: var(--cyan);
 }
 .tx-auth-btn:disabled, .tx-form-submit:disabled { opacity: 0.4; cursor: wait; }
-.tx-admin-badge { color: color-mix(in srgb, var(--purple) 70%, transparent); font-weight: 700; font-size: 9px; }
-.tx-auth-err { color: color-mix(in srgb, var(--pink) 80%, transparent); font-size: 9px; }
+.tx-admin-badge { color: color-mix(in srgb, var(--purple) 70%, transparent); font-weight: 700; font-size: 12px; }
+.tx-auth-err { color: color-mix(in srgb, var(--pink) 80%, transparent); font-size: 12px; }
 .tx-auth-status { color: color-mix(in srgb, var(--cyan) 60%, transparent); }
 
 /* Comments — flat, thread-like */
 .tx-comments-list { display: flex; flex-direction: column; gap: 4px; }
-.tx-comments-empty { color: color-mix(in srgb, var(--cyan) 30%, transparent); font-size: 10px; }
+.tx-comments-empty { color: color-mix(in srgb, var(--cyan) 30%, transparent); font-size: 13px; }
 
 .tx-comment {
   padding: 4px 0 4px 12px;
@@ -1169,29 +1169,29 @@ body.bh-mode .link-card {
 }
 .tx-comment--reply .tx-comment-reply-to {
   color: color-mix(in srgb, var(--cyan) 35%, transparent);
-  font-size: 9px;
+  font-size: 12px;
   margin-bottom: 1px;
 }
 .tx-comment-hidden { opacity: 0.3; }
-.tx-comment-hidden-tag { color: color-mix(in srgb, var(--pink) 50%, transparent); font-size: 8px; margin-left: 6px; }
+.tx-comment-hidden-tag { color: color-mix(in srgb, var(--pink) 50%, transparent); font-size: 11px; margin-left: 6px; }
 
 .tx-comment-head {
   display: flex;
   gap: 6px;
   align-items: baseline;
-  font-size: 10px;
+  font-size: 13px;
   margin-bottom: 1px;
 }
 .tx-comment-author {
   color: color-mix(in srgb, var(--cyan) 70%, transparent);
   text-decoration: none;
   font-weight: 700;
-  font-size: 10px;
+  font-size: 13px;
 }
 .tx-comment-author:hover { text-decoration: underline; }
-.tx-comment-time { color: color-mix(in srgb, var(--cyan) 25%, transparent); font-size: 9px; }
+.tx-comment-time { color: color-mix(in srgb, var(--cyan) 25%, transparent); font-size: 12px; }
 .tx-comment-body {
-  font-size: 11px;
+  font-size: 14px;
   line-height: 1.45;
   white-space: pre-wrap;
   word-wrap: break-word;
@@ -1207,7 +1207,7 @@ body.bh-mode .link-card {
   border: none;
   color: color-mix(in srgb, var(--purple) 40%, transparent);
   font-family: inherit;
-  font-size: 9px;
+  font-size: 12px;
   cursor: pointer;
   letter-spacing: 0.05em;
   text-transform: lowercase;
@@ -1220,7 +1220,7 @@ body.bh-mode .link-card {
   border: none;
   color: color-mix(in srgb, var(--pink) 40%, transparent);
   font-family: inherit;
-  font-size: 10px;
+  font-size: 13px;
   cursor: pointer;
   padding: 0 6px 0 0;
   transition: color 0.15s ease;
@@ -1232,12 +1232,12 @@ body.bh-mode .link-card {
 .tx-like-btn:disabled { opacity: 0.4; cursor: wait; }
 .tx-like-btn--active { color: color-mix(in srgb, var(--pink) 80%, transparent); }
 .tx-like-count {
-  font-size: 8px;
+  font-size: 11px;
   color: color-mix(in srgb, var(--pink) 30%, transparent);
 }
 .tx-reply-indicator {
   color: color-mix(in srgb, var(--purple) 40%, transparent);
-  font-size: 9px;
+  font-size: 12px;
   margin-bottom: 3px;
   display: block;
 }
@@ -1257,15 +1257,15 @@ body.bh-mode .link-card {
   color: color-mix(in srgb, var(--cyan) 65%, transparent);
   padding: 5px 8px;
   font-family: inherit;
-  font-size: 11px;
+  font-size: 14px;
   resize: vertical;
 }
 .tx-form-text:focus { outline: none; border-color: color-mix(in srgb, var(--cyan) 50%, transparent); }
 .tx-form-submit { align-self: flex-start; }
 .tx-form-row { display: flex; justify-content: space-between; align-items: center; }
-.tx-form-counter { font-size: 8px; color: color-mix(in srgb, var(--cyan) 25%, transparent); }
+.tx-form-counter { font-size: 11px; color: color-mix(in srgb, var(--cyan) 25%, transparent); }
 .tx-form-counter-warn { color: color-mix(in srgb, var(--pink) 60%, transparent); }
-.tx-form-err { color: color-mix(in srgb, var(--pink) 70%, transparent); font-size: 9px; }
+.tx-form-err { color: color-mix(in srgb, var(--pink) 70%, transparent); font-size: 12px; }
 
 /* ── Light mode ── */
 body.light-mode .post-view,
