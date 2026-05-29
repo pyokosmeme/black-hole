@@ -1069,7 +1069,7 @@ body.bh-mode .link-card {
    ════════════════════════════════════════════════════════════════ */
 
 #post-comments-host {
-  border-top: 1px solid color-mix(in srgb, var(--purple) 30%, transparent);
+  border-top: 1px solid rgba(191, 0, 255, 0.3);
   margin: 0;
 }
 
