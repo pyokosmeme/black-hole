@@ -79,9 +79,8 @@ export async function mount(container, { slug, authorDid }) {
   let deletedUris = new Set();
   let likeCounts = new Map();
   let userLikes = new Map();
-  let sentimentCounts = new Map();
-  let myVotes = { up: new Map(), down: new Map() };
   let collapsedThreads = new Set();
+  let sortMode = 'recent'; // 'recent' | 'top' | 'oldest'
   let replyToUri = null;
   let allComments = [];
 
@@ -115,19 +114,9 @@ export async function mount(container, { slug, authorDid }) {
       // Load current user's likes for any logged-in session — not just admin
       if (session) {
         userLikes = await Comment.loadAllLikes(session.did);
-        const votes = await Comment.loadMyVotes(session.did);
-        myVotes.up = votes.up;
-        myVotes.down = votes.down;
       }
     } catch {
       // Silently ignore — likes just won't show
-    }
-
-    // Load sentiment counts (non-critical)
-    try {
-      sentimentCounts = await Comment.loadAllSentiments(authorDid);
-    } catch {
-      // Silently ignore
     }
   }
 
@@ -177,8 +166,18 @@ export async function mount(container, { slug, authorDid }) {
 
   function renderComments() {
     const isAdmin = session?.did === authorDid;
-    const visible = allComments.filter(c => isAdmin || !hides.has(c.uri));
+    let visible = allComments.filter(c => isAdmin || !hides.has(c.uri));
     summary.querySelector('.tx-comments-count').textContent = ' ' + visible.length;
+
+    // Sort
+    if (sortMode === 'oldest') {
+      visible.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    } else if (sortMode === 'top') {
+      visible.sort((a, b) => (likeCounts.get(b.uri) || 0) - (likeCounts.get(a.uri) || 0));
+    } else {
+      // recent — default
+      visible.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
 
     list.innerHTML = '';
     if (!visible.length) {
@@ -202,19 +201,16 @@ export async function mount(container, { slug, authorDid }) {
     const card = renderComment(c, isAdmin, depth, threadSize, isCollapsed);
     if (card) fragment.appendChild(card);
 
-    if (threadSize > 0) {
-      const threadWrap = el('div', {
-        class: 'tx-thread-wrap',
-        style: isCollapsed ? 'display:none' : '',
-      });
-      const replies = getDirectReplies(c.uri);
-      for (const reply of replies) {
-        threadWrap.appendChild(renderThread(reply, isAdmin, depth + 1));
-      }
-      if (threadWrap.children.length > 0) {
-        fragment.appendChild(threadWrap);
-      }
+    // Always create thread wrap — every comment is collapsible
+    const threadWrap = el('div', {
+      class: 'tx-thread-wrap',
+      style: isCollapsed ? 'display:none' : '',
+    });
+    const replies = getDirectReplies(c.uri);
+    for (const reply of replies) {
+      threadWrap.appendChild(renderThread(reply, isAdmin, depth + 1));
     }
+    fragment.appendChild(threadWrap);
 
     return fragment;
   }
@@ -250,23 +246,15 @@ export async function mount(container, { slug, authorDid }) {
       ));
     }
 
-    // Sentiment from sentimentCounts (sentimentCounts is Map<targetUri, {up, down}>)
-    const sent = sentimentCounts.get(c.uri) || { up: 0, down: 0 };
-    const total = sent.up + sent.down;
-    const avg = total > 0 ? (sent.up - sent.down) / total : 0;
-
-    // ── Head row: [collapse] @handle ◆+1 ▼-1 date [HIDDEN]
+    // ── Head row: [collapse] @handle date [HIDDEN]
     const head = el('div', { class: 'tx-comment-head' });
 
-    if (threadSize > 0) {
-      const collapseBtn = el('button', {
-        class: 'tx-thread-toggle',
-        onclick: (e) => { e.stopPropagation(); toggleThread(c.uri); },
-      }, isCollapsed ? '[+]' : '[-]');
-      head.appendChild(collapseBtn);
-    } else {
-      head.appendChild(el('span', { class: 'tx-thread-spacer' }));
-    }
+    // Every comment is collapsible
+    const collapseBtn = el('button', {
+      class: 'tx-thread-toggle',
+      onclick: (e) => { e.stopPropagation(); toggleThread(c.uri); },
+    }, isCollapsed ? '[+]' : '[-]');
+    head.appendChild(collapseBtn);
 
     head.appendChild(
       el('a', {
@@ -275,18 +263,6 @@ export async function mount(container, { slug, authorDid }) {
         target: '_blank', rel: 'noopener',
       }, '@' + author)
     );
-
-    // Ising sentiment indicators
-    const sentRow = el('div', { class: 'tx-ising' });
-    sentRow.appendChild(el('span', {
-      class: 'tx-ising-up',
-      title: 'aligned — Ising model +1 state',
-    }, '◆' + (sent.up || '')));
-    sentRow.appendChild(el('span', {
-      class: 'tx-ising-down',
-      title: 'misaligned — Ising model -1 state',
-    }, '▼' + (sent.down || '')));
-    head.appendChild(sentRow);
 
     head.appendChild(el('time', { class: 'tx-comment-time' }, fmtTime(c.createdAt)));
     if (hidden) head.appendChild(el('span', { class: 'tx-comment-hidden-tag' }, '[HIDDEN]'));
@@ -507,9 +483,24 @@ export async function mount(container, { slug, authorDid }) {
     }
   }
 
+  function renderSortControl() {
+    const select = el('select', {
+      class: 'tx-sort-select',
+      onchange: (e) => { sortMode = e.target.value; renderComments(); },
+    });
+    for (const [val, label] of [['recent', 'recent'], ['top', 'top liked'], ['oldest', 'oldest']]) {
+      select.appendChild(new Option(label, val, val === sortMode, val === sortMode));
+    }
+    return select;
+  }
+
   function renderForm() {
     form.innerHTML = '';
-    if (!session) return;
+    if (!session) {
+      form.style.display = 'none';
+      return;
+    }
+    form.style.display = '';
 
     const textarea = el('textarea', {
       class: 'tx-form-text',
@@ -560,5 +551,8 @@ export async function mount(container, { slug, authorDid }) {
   session = await Auth.getSession();
   renderAuth();
   renderForm();
+  // Sort control between auth bar and form
+  const sortControl = renderSortControl();
+  body.querySelector('.tx-comments-inner').insertBefore(sortControl, form);
   await refresh();
 }
