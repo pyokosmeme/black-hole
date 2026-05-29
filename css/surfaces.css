@@ -1,0 +1,435 @@
+/* ═══════════════════════════════════════════════════════════════
+   SURFACES — whiskey-translucent vectorpunk
+   palette: indigo night ;; amber-whiskey glass ;; magenta heat
+   typography: matches acidburn (Share Tech Mono / Orbitron)
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  --srf-bg-0:        #0a0618;
+  --srf-bg-1:        #160a2e;
+  --srf-bg-2:        #2a0d3f;
+  --srf-ink:         #f4e9d4;
+  --srf-ink-dim:     rgba(244, 233, 212, 0.55);
+  --srf-amber:       #ffb347;
+  --srf-amber-deep:  #e08a2c;
+  --srf-amber-hot:   #ffd56b;
+  --srf-magenta:     #ff7eb6;
+  --srf-violet:      #c79bff;
+  --srf-line:        rgba(244, 233, 212, 0.12);
+  --srf-line-hot:    rgba(255, 179, 71, 0.35);
+  --srf-mono:        'Share Tech Mono', 'Courier New', monospace;
+  --srf-display:     'Orbitron', 'Share Tech Mono', sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  font-family: var(--srf-mono);
+  color: var(--srf-ink);
+  background:
+    radial-gradient(ellipse at 30% 20%, var(--srf-bg-2) 0%, transparent 55%),
+    radial-gradient(ellipse at 70% 80%, #1a0830 0%, transparent 60%),
+    linear-gradient(180deg, var(--srf-bg-0) 0%, var(--srf-bg-1) 100%);
+  background-attachment: fixed;
+  overflow-x: hidden;
+}
+
+/* drifting starfield */
+.srf-stars {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    radial-gradient(1px 1px at 12% 18%, rgba(244,233,212,0.6), transparent 50%),
+    radial-gradient(1px 1px at 38% 72%, rgba(255,179,71,0.5), transparent 50%),
+    radial-gradient(1px 1px at 67% 22%, rgba(199,155,255,0.5), transparent 50%),
+    radial-gradient(1px 1px at 84% 58%, rgba(244,233,212,0.4), transparent 50%),
+    radial-gradient(1px 1px at 21% 88%, rgba(255,126,182,0.4), transparent 50%),
+    radial-gradient(1px 1px at 91% 12%, rgba(244,233,212,0.5), transparent 50%),
+    radial-gradient(1px 1px at 53% 41%, rgba(244,233,212,0.3), transparent 50%);
+  opacity: 0.7;
+}
+
+/* ─────────────────────── HEADER ─────────────────────── */
+.srf-header {
+  position: relative;
+  z-index: 10;
+  padding: 18px 28px 14px;
+  border-bottom: 1px solid var(--srf-line);
+  display: flex;
+  align-items: baseline;
+  gap: 24px;
+  flex-wrap: wrap;
+  backdrop-filter: blur(6px);
+  background: rgba(10, 6, 24, 0.4);
+}
+
+.srf-brand {
+  font-family: var(--srf-display);
+  font-weight: 900;
+  letter-spacing: 4px;
+  font-size: 14px;
+  color: var(--srf-amber);
+  text-decoration: none;
+  text-shadow: 0 0 18px rgba(255, 179, 71, 0.4);
+}
+
+.srf-brand:hover { color: var(--srf-amber-hot); }
+
+.srf-handle {
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--srf-ink-dim);
+}
+
+.srf-handle a {
+  color: var(--srf-violet);
+  text-decoration: none;
+}
+.srf-handle a:hover { color: var(--srf-magenta); }
+
+/* ─────────────────────── HERO ─────────────────────── */
+.srf-hero {
+  position: relative;
+  z-index: 5;
+  padding: 38px 28px 18px;
+  max-width: 980px;
+  margin: 0 auto;
+}
+
+.srf-tagline {
+  font-family: var(--srf-display);
+  font-weight: 700;
+  letter-spacing: 3px;
+  font-size: 22px;
+  color: var(--srf-ink);
+  margin: 0 0 8px;
+  text-shadow: 0 0 22px rgba(255, 179, 71, 0.18);
+}
+
+.srf-subtitle {
+  font-size: 13px;
+  letter-spacing: 1px;
+  color: var(--srf-ink-dim);
+  margin: 0 0 22px;
+  font-style: italic;
+}
+
+.srf-intro {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--srf-ink);
+  max-width: 640px;
+}
+
+.srf-intro code {
+  font-family: var(--srf-mono);
+  background: rgba(255, 179, 71, 0.08);
+  border: 1px solid rgba(255, 179, 71, 0.2);
+  padding: 2px 6px;
+  color: var(--srf-amber-hot);
+  font-size: 12px;
+}
+
+/* ─────────────────────── VIEW SWITCH ─────────────────────── */
+.srf-controls {
+  position: relative;
+  z-index: 5;
+  max-width: 980px;
+  margin: 22px auto 0;
+  padding: 0 28px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.srf-view-btn {
+  font-family: var(--srf-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  padding: 7px 14px;
+  background: transparent;
+  color: var(--srf-ink-dim);
+  border: 1px solid var(--srf-line);
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.srf-view-btn:hover {
+  color: var(--srf-amber);
+  border-color: var(--srf-line-hot);
+}
+
+.srf-view-btn.active {
+  color: var(--srf-amber-hot);
+  border-color: var(--srf-amber);
+  background: rgba(255, 179, 71, 0.06);
+  box-shadow: 0 0 18px rgba(255, 179, 71, 0.18) inset;
+}
+
+.srf-count {
+  margin-left: auto;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--srf-ink-dim);
+}
+
+/* ─────────────────────── STAGE ─────────────────────── */
+.srf-stage {
+  position: relative;
+  z-index: 4;
+  max-width: 1200px;
+  margin: 22px auto 0;
+  padding: 0 28px 60px;
+  min-height: 640px;
+}
+
+/* CONSTELLATION + FORCE share the same canvas-mode container */
+.srf-canvas {
+  position: relative;
+  width: 100%;
+  height: 720px;
+  border: 1px solid var(--srf-line);
+  background: radial-gradient(ellipse at center, rgba(42, 13, 63, 0.5) 0%, transparent 70%);
+  overflow: hidden;
+}
+
+.srf-canvas svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.srf-node-group {
+  cursor: pointer;
+  transition: filter 0.2s ease, transform 0.2s ease;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.srf-node-group:hover {
+  filter: brightness(1.4) drop-shadow(0 0 18px var(--srf-amber));
+}
+
+.srf-node-label {
+  font-family: var(--srf-mono);
+  font-size: 11px;
+  letter-spacing: 2px;
+  fill: var(--srf-ink);
+  text-anchor: middle;
+  pointer-events: none;
+  text-transform: uppercase;
+}
+
+.srf-node-flavor {
+  font-family: var(--srf-mono);
+  font-size: 9px;
+  letter-spacing: 1px;
+  fill: var(--srf-ink-dim);
+  text-anchor: middle;
+  pointer-events: none;
+  font-style: italic;
+}
+
+.srf-edge {
+  stroke: var(--srf-line-hot);
+  stroke-width: 0.6;
+  fill: none;
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+/* ─────────────────────── PERIODIC GRID ─────────────────────── */
+.srf-periodic {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 18px;
+}
+
+.srf-cell {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 18px 14px 16px;
+  border: 1px solid var(--srf-line);
+  background: rgba(10, 6, 24, 0.5);
+  text-decoration: none;
+  color: var(--srf-ink);
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+.srf-cell::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--srf-amber), transparent);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.srf-cell:hover {
+  border-color: var(--srf-amber);
+  background: rgba(255, 179, 71, 0.04);
+  transform: translateY(-2px);
+}
+
+.srf-cell:hover::before { opacity: 0.6; }
+
+.srf-cell svg { width: 88px; height: 88px; margin-bottom: 12px; }
+
+.srf-cell-title {
+  font-family: var(--srf-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--srf-amber-hot);
+  margin: 0 0 4px;
+  text-align: center;
+}
+
+.srf-cell-flavor {
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  color: var(--srf-ink-dim);
+  text-align: center;
+  font-style: italic;
+  min-height: 24px;
+  margin-bottom: 6px;
+  line-height: 1.4;
+}
+
+.srf-cell-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  justify-content: center;
+  margin-top: auto;
+}
+
+.srf-tag {
+  font-size: 9px;
+  letter-spacing: 1px;
+  padding: 2px 6px;
+  color: var(--srf-violet);
+  border: 1px solid rgba(199, 155, 255, 0.25);
+}
+
+/* ─────────────────────── DETAIL DRAWER ─────────────────────── */
+.srf-drawer {
+  position: fixed;
+  top: 0; right: 0;
+  width: 380px;
+  max-width: 100vw;
+  height: 100vh;
+  background: rgba(10, 6, 24, 0.96);
+  border-left: 1px solid var(--srf-amber);
+  backdrop-filter: blur(20px);
+  transform: translateX(100%);
+  transition: transform 0.28s ease;
+  z-index: 200;
+  padding: 28px 24px;
+  overflow-y: auto;
+  box-shadow: -20px 0 60px rgba(0, 0, 0, 0.6);
+}
+
+.srf-drawer.open { transform: translateX(0); }
+
+.srf-drawer-close {
+  position: absolute;
+  top: 14px; right: 18px;
+  font-family: var(--srf-mono);
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: var(--srf-ink-dim);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.srf-drawer-close:hover { color: var(--srf-magenta); }
+
+.srf-drawer svg { width: 140px; height: 140px; display: block; margin: 0 auto 18px; }
+
+.srf-drawer-title {
+  font-family: var(--srf-display);
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  color: var(--srf-amber-hot);
+  text-align: center;
+  margin: 0 0 8px;
+}
+
+.srf-drawer-flavor {
+  font-size: 12px;
+  letter-spacing: 0.5px;
+  color: var(--srf-violet);
+  text-align: center;
+  font-style: italic;
+  margin: 0 0 18px;
+}
+
+.srf-drawer-desc {
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--srf-ink);
+  margin-bottom: 18px;
+}
+
+.srf-drawer-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 22px;
+}
+
+.srf-drawer-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.srf-action {
+  display: block;
+  padding: 12px 14px;
+  font-family: var(--srf-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-align: center;
+  text-decoration: none;
+  border: 1px solid var(--srf-line);
+  color: var(--srf-ink);
+  transition: all 0.18s ease;
+}
+
+.srf-action.primary {
+  border-color: var(--srf-amber);
+  color: var(--srf-amber-hot);
+  background: rgba(255, 179, 71, 0.06);
+}
+
+.srf-action:hover {
+  background: rgba(255, 179, 71, 0.12);
+  border-color: var(--srf-amber);
+  color: var(--srf-amber-hot);
+}
+
+/* ─────────────────────── RESPONSIVE ─────────────────────── */
+@media (max-width: 720px) {
+  .srf-hero { padding: 26px 18px 12px; }
+  .srf-tagline { font-size: 17px; letter-spacing: 2px; }
+  .srf-stage { padding: 0 14px 40px; }
+  .srf-canvas { height: 540px; }
+  .srf-drawer { width: 100%; }
+  .srf-controls { padding: 0 14px; }
+}

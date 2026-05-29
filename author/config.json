@@ -54,6 +54,13 @@
       "url": "https://maps.lastnpcalex.agency",
       "icon": "✧",
       "desc": "maps of speculative worlds"
+    },
+       {
+      "id": "surfaces",
+      "label": "SURFACES",
+      "url": "/surfaces.html",
+      "icon": "✦",
+      "desc": "whiskey-translucent fractals ;; small vibe-coded surfaces"
     }
   ],
 

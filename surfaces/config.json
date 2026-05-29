@@ -1,0 +1,80 @@
+{
+  "node": {
+    "handle": "SURFACES",
+    "name": "surfaces",
+    "tagline": "whiskey-translucent fractals splayed in the night sky",
+    "subtitle": "vibe-coded surfaces ;; each a small burning thing"
+  },
+
+  "views": ["constellation", "force", "periodic"],
+  "defaultView": "constellation",
+
+  "tagColors": {
+    "interactive":   "#ffb347",
+    "generative":    "#ff7eb6",
+    "analysis":      "#c79bff",
+    "simulation":    "#ffd56b",
+    "tool":          "#9be7ff",
+    "archive":       "#e6a86b",
+    "physics":       "#ffd56b",
+    "text":          "#9be7ff",
+    "image":         "#ff7eb6"
+  },
+
+  "surfaces": [
+    {
+      "slug": "horizons-edge",
+      "title": "HORIZONS EDGE",
+      "url": "https://github.com/lastnpcalex/HorizonsEdge",
+      "repo": "https://github.com/lastnpcalex/HorizonsEdge",
+      "tags": ["interactive"],
+      "flavor": "boundary work ;; the line that bends back",
+      "desc": "horizons edge — a small surface at the limit case."
+    },
+    {
+      "slug": "spinnyrock",
+      "title": "SPINNYROCK",
+      "url": "https://github.com/lastnpcalex/SpinnyRock",
+      "repo": "https://github.com/lastnpcalex/SpinnyRock",
+      "tags": ["physics", "interactive"],
+      "flavor": "centrifugal lithology ;; mass becomes verb",
+      "desc": "rotating mineral ;; angular momentum as toy."
+    },
+    {
+      "slug": "pdfs",
+      "title": "PDFS",
+      "url": "https://github.com/pyokosmeme/PDFs",
+      "repo": "https://github.com/pyokosmeme/PDFs",
+      "tags": ["archive"],
+      "flavor": "paper, flattened to light",
+      "desc": "a small archive ;; documents kept against forgetting."
+    },
+    {
+      "slug": "fractalmemes",
+      "title": "FRACTAL MEMES",
+      "url": "https://github.com/lastnpcalex/fractalmemes",
+      "repo": "https://github.com/lastnpcalex/fractalmemes",
+      "tags": ["generative", "image"],
+      "flavor": "self-similar laughter ;; the joke nests",
+      "desc": "fractal generators producing recursive image memes."
+    },
+    {
+      "slug": "sentence-length",
+      "title": "SENTENCE LENGTH ANALYZER",
+      "url": "https://github.com/lastnpcalex/SentenceLengthAnalyzer",
+      "repo": "https://github.com/lastnpcalex/SentenceLengthAnalyzer",
+      "tags": ["analysis", "text", "tool"],
+      "flavor": "prose, measured ;; the cadence revealed",
+      "desc": "small tool ;; counting beats in written text."
+    },
+    {
+      "slug": "ising2",
+      "title": "ISING 2",
+      "url": "https://github.com/lastnpcalex/Ising2",
+      "repo": "https://github.com/lastnpcalex/Ising2",
+      "tags": ["physics", "simulation"],
+      "flavor": "spin glass ;; phase boundaries breathing",
+      "desc": "2D Ising model ;; magnetic phase transition as toy."
+    }
+  ]
+}
