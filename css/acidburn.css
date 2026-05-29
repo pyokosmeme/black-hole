@@ -1299,28 +1299,61 @@ body.bh-mode .link-card {
 }
 .tx-del-btn:disabled { opacity: 0.4; cursor: wait; }
 
-/* Delete confirmation dialog */
+/* Delete confirmation — mini transmission box */
 .tx-confirm-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.7);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
 }
 .tx-confirm-dialog {
-  background: #0a0a0c;
-  border: 1px solid rgba(224, 160, 192, 0.4);
-  padding: 24px 28px;
-  max-width: 420px;
+  background: var(--panel);
+  border: 2px solid transparent;
+  border-image: linear-gradient(135deg, var(--purple), var(--cyan)) 1;
+  padding: 0;
+  max-width: 380px;
   font-family: 'Space Mono', monospace;
+  position: relative;
+  backdrop-filter: blur(10px);
+}
+.tx-confirm-dialog::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background:
+    repeating-linear-gradient(-55deg, var(--purple) 0px, var(--purple) 4px, transparent 4px, transparent 8px),
+    repeating-linear-gradient(55deg, var(--cyan) 0px, var(--cyan) 3px, transparent 3px, transparent 9px),
+    linear-gradient(90deg, var(--purple), var(--cyan), var(--purple));
+}
+.tx-confirm-header {
+  padding: 16px 20px 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tx-confirm-header-text {
+  color: var(--cyan);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.tx-confirm-body {
+  padding: 12px 20px 20px;
 }
 .tx-confirm-msg {
   margin: 0 0 16px 0;
   color: #ddd8d0;
-  font-size: 14px;
+  font-size: 13px;
   line-height: 1.5;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(191, 0, 255, 0.3);
 }
 .tx-confirm-row {
   display: flex;
@@ -1344,12 +1377,12 @@ body.bh-mode .link-card {
   color: #fff;
 }
 .tx-confirm-btn--danger {
-  border-color: rgba(224, 160, 192, 0.5);
-  color: #e0a0c0;
+  border-color: rgba(255, 0, 153, 0.5);
+  color: var(--pink);
 }
 .tx-confirm-btn--danger:hover {
-  background: rgba(224, 160, 192, 0.15);
-  color: #e0a0c0;
+  background: rgba(255, 0, 153, 0.15);
+  color: #ff66b3;
 }
 
 /* ── Light mode ── */
@@ -1466,11 +1499,23 @@ body.light-reading .tx-del-btn:hover {
 
 body.light-mode .tx-confirm-dialog,
 body.light-reading .tx-confirm-dialog {
-  background: #f5f0ea;
-  border-color: #4a1868;
+  background: #fdfaf5;
+  border-image: linear-gradient(135deg, #bf00ff, #4a1868) 1;
 }
+body.light-mode .tx-confirm-dialog::before,
+body.light-reading .tx-confirm-dialog::before {
+  background:
+    repeating-linear-gradient(-55deg, #bf00ff 0px, #bf00ff 4px, transparent 4px, transparent 8px),
+    repeating-linear-gradient(55deg, #4a1868 0px, #4a1868 3px, transparent 3px, transparent 9px),
+    linear-gradient(90deg, #bf00ff, #4a1868, #bf00ff);
+}
+body.light-mode .tx-confirm-header-text,
+body.light-reading .tx-confirm-header-text { color: #bf00ff; }
 body.light-mode .tx-confirm-msg,
-body.light-reading .tx-confirm-msg { color: #2e2a26; }
+body.light-reading .tx-confirm-msg {
+  color: #2e2a26;
+  border-bottom-color: rgba(191, 0, 255, 0.3);
+}
 body.light-mode .tx-confirm-btn,
 body.light-reading .tx-confirm-btn {
   border-color: #4a1868;
@@ -1483,11 +1528,11 @@ body.light-reading .tx-confirm-btn:hover {
 }
 body.light-mode .tx-confirm-btn--danger,
 body.light-reading .tx-confirm-btn--danger {
-  border-color: #8b45a0;
-  color: #8b45a0;
+  border-color: #cc0066;
+  color: #cc0066;
 }
 body.light-mode .tx-confirm-btn--danger:hover,
 body.light-reading .tx-confirm-btn--danger:hover {
-  background: rgba(74, 24, 104, 0.1);
-  color: #8b45a0;
+  background: rgba(204, 0, 102, 0.08);
+  color: #cc0066;
 }

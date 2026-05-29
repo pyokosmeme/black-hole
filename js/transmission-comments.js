@@ -93,10 +93,15 @@ export async function mount(container, { slug, authorDid }) {
       function onKey(e) { if (e.key === 'Escape') dismiss(false); }
       const overlay = el('div', { class: 'tx-confirm-overlay', onclick: (e) => { if (e.target === overlay) dismiss(false); } });
       const dialog = el('div', { class: 'tx-confirm-dialog' },
-        el('p', { class: 'tx-confirm-msg' }, message),
-        el('div', { class: 'tx-confirm-row' },
-          el('button', { class: 'tx-confirm-btn', onclick: () => dismiss(false) }, 'cancel'),
-          el('button', { class: 'tx-confirm-btn tx-confirm-btn--danger', onclick: () => dismiss(true) }, 'delete')
+        el('div', { class: 'tx-confirm-header' },
+          el('span', { class: 'tx-confirm-header-text' }, '[ DELETE TRANSMISSION ]')
+        ),
+        el('div', { class: 'tx-confirm-body' },
+          el('p', { class: 'tx-confirm-msg' }, message),
+          el('div', { class: 'tx-confirm-row' },
+            el('button', { class: 'tx-confirm-btn', onclick: () => dismiss(false) }, 'cancel'),
+            el('button', { class: 'tx-confirm-btn tx-confirm-btn--danger', onclick: () => dismiss(true) }, 'delete')
+          )
         )
       );
       overlay.appendChild(dialog);
