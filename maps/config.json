@@ -18,6 +18,13 @@
       "url": "exu2374.html",
       "icon": "",
       "desc": "Interstellar Transit Map (K-Tube Network), Circa 2370"
+    },
+    {
+      "id": "trip-planner",
+      "label": "Inhabited Space Trip Planner",
+      "url": "/map/",
+      "icon": "",
+      "desc": "Trip planner for A Mote in Shadow ;; Inhabited Space transit network."
     }
   ],
 
