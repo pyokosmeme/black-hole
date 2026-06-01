@@ -151,7 +151,7 @@ async function handleLogin(request, env) {
     const state = crypto.randomUUID();
     const stateData = {
       codeVerifier: verifier, privateKeyJwk, publicKeyJwk, authServer,
-      redirectUri: 'https://black-hole.ex-astris-umbra.workers.dev/api/oauth/callback',
+      redirectUri: `${new URL(request.url).origin}/api/oauth/callback`,
       handle, did, pds, createdAt: Date.now(),
       returnTo: body?.returnTo,
     };
@@ -199,24 +199,28 @@ async function handleCallback(request, env) {
   const state = url.searchParams.get('state');
   const error = url.searchParams.get('error');
   const errorDescription = url.searchParams.get('error_description');
- if (error) {
+
+  if (!state) return jsonResponse({ error: 'Missing state' }, 400, request);
+
+  const stateRaw = await env.SESSIONS.get(`state:${state}`);
+  if (!stateRaw) {
+    console.log('[callback] state not found in KV');
+    return jsonResponse({ error: 'Invalid state' }, 400, request);
+  }
+  const stateData = JSON.parse(stateRaw);
+
+  if (error) {
     console.log('[callback] auth error:', error, errorDescription);
-    const redirectUrl = new URL(stateData?.returnTo || `${url.origin}/`);
-    redirectUrl.searchParams.set('auth_error', encodeURIComponent(errorDescription || error));
+    const redirectUrl = new URL(stateData.returnTo || `${url.origin}/`);
+    redirectUrl.searchParams.set('auth_error', errorDescription || error);
     return new Response(null, {
       status: 302,
       headers: { Location: redirectUrl.toString() },
     });
   }
-  if (!code || !state) return jsonResponse({ error: 'Missing code or state' }, 400, request);
+  if (!code) return jsonResponse({ error: 'Missing code' }, 400, request);
   try {
     console.log('[callback] state:', state, 'code:', code?.slice(0, 20) + '...');
-    const stateRaw = await env.SESSIONS.get(`state:${state}`);
-    if (!stateRaw) {
-      console.log('[callback] state not found in KV');
-      return jsonResponse({ error: 'Invalid state' }, 400, request);
-    }
-    const stateData = JSON.parse(stateRaw);
     if (Date.now() - stateData.createdAt > STATE_TTL) {
       await env.SESSIONS.delete(`state:${state}`);
       return jsonResponse({ error: 'State expired' }, 400, request);
@@ -263,7 +267,7 @@ async function handleCallback(request, env) {
     };
     await env.SESSIONS.put(`session:${sessionId}`, JSON.stringify(sessionData), { expirationTtl: SESSION_MAX_AGE });
     const cookie = `session=${sessionId}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${SESSION_MAX_AGE}`;
- const redirectUrl = new URL(stateData.returnTo || `${url.origin}/`);
+    const redirectUrl = new URL(stateData.returnTo || `${url.origin}/`);
     redirectUrl.searchParams.set('logged_in', '1');
     redirectUrl.searchParams.set('sid', sessionId);
     return new Response(null, {
