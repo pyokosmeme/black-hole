@@ -46,9 +46,25 @@
 
   <main class="srf-stage" id="srf-stage"></main>
 
+  <section class="srf-comments" id="surfaces-comments-host" aria-label="Latent Glosses"></section>
+
   <aside class="srf-drawer" id="srf-drawer" aria-hidden="true"></aside>
 
   <script src="js/surfaces.js"></script>
   <script src="nav-menu.js"></script>
+  <script type="module">
+    import { mount as mountComments } from './js/transmission-comments.js';
+
+    const host = document.getElementById('surfaces-comments-host');
+    if (host) {
+      mountComments(host, {
+        slug: 'surfaces-page',
+        authorDid: 'did:plc:ccxl3ictrlvtrrgh5swvvg47'
+      }).catch((error) => {
+        host.textContent = 'latent glosses unavailable';
+        console.error('[SURFACES] Comments mount failed:', error);
+      });
+    }
+  </script>
 </body>
 </html>

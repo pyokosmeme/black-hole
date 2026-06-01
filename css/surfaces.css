@@ -432,4 +432,40 @@ html, body {
   .srf-canvas { height: 540px; }
   .srf-drawer { width: 100%; }
   .srf-controls { padding: 0 14px; }
+  .srf-comments { padding: 0 14px; }
+}
+
+/* Latent Glosses */
+.srf-comments { position: relative; z-index: 4; max-width: 980px; margin: 0 auto 72px; padding: 0 28px; }
+.srf-comments .tx-comments-block { font-family: var(--srf-mono); border-top: 1px solid var(--srf-line-hot); }
+.srf-comments .tx-comments-summary { list-style: none; cursor: pointer; padding: 14px 0; font-family: var(--srf-display); font-size: 12px; font-weight: 700; letter-spacing: 3px; color: var(--srf-amber-hot); }
+.srf-comments .tx-comments-summary::-webkit-details-marker { display: none; }
+.srf-comments .tx-comments-count { color: var(--srf-ink-dim); margin-left: 6px; }
+.srf-comments .tx-comments-body { max-height: 380px; overflow-y: auto; padding: 8px 2px 16px; }
+.srf-comments .tx-comments-inner, .srf-comments .tx-comments-list, .srf-comments .tx-comments-form { display: flex; flex-direction: column; gap: 8px; }
+.srf-comments .tx-comments-auth { border-bottom: 1px solid var(--srf-line); padding-bottom: 8px; color: var(--srf-ink-dim); }
+.srf-comments .tx-comments-empty { color: var(--srf-ink-dim); font-size: 13px; }
+.srf-comments .tx-comment-box, .srf-comments .tx-comments-form, .srf-comments .tx-inline-reply, .srf-comments .tx-confirm-dialog { border: 1px solid rgba(255, 179, 71, 0.24); background: rgba(10, 6, 24, 0.52); padding: 8px 10px; }
+.srf-comments .tx-comment-head, .srf-comments .tx-comment-actions, .srf-comments .tx-form-row, .srf-comments .tx-inline-row, .srf-comments .tx-confirm-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.srf-comments .tx-comment-author { color: var(--srf-violet); text-decoration: none; }
+.srf-comments .tx-comment-author:hover { color: var(--srf-magenta); }
+.srf-comments .tx-comment-time, .srf-comments .tx-comment-reply-to, .srf-comments .tx-form-counter, .srf-comments .tx-auth-status { color: var(--srf-ink-dim); font-size: 12px; }
+.srf-comments .tx-comment-body, .srf-comments .tx-comment-content { color: var(--srf-ink); line-height: 1.55; }
+.srf-comments .tx-thread-wrap { margin-left: 18px; }
+.srf-comments .tx-comment-hidden { opacity: 0.55; }
+.srf-comments .tx-admin-badge, .srf-comments .tx-comment-hidden-tag, .srf-comments .tx-form-err, .srf-comments .tx-auth-err { color: var(--srf-magenta); }
+.srf-comments button, .srf-comments .tx-auth-btn, .srf-comments .tx-form-submit, .srf-comments .tx-confirm-btn { font-family: var(--srf-display); font-size: 11px; letter-spacing: 2px; color: var(--srf-amber-hot); background: rgba(255, 179, 71, 0.06); border: 1px solid var(--srf-line-hot); padding: 6px 10px; cursor: pointer; }
+.srf-comments button:hover, .srf-comments .tx-auth-btn:hover, .srf-comments .tx-form-submit:hover { border-color: var(--srf-amber); color: var(--srf-ink); }
+.srf-comments .tx-like-btn--active { color: var(--srf-magenta); }
+.srf-comments .tx-mod-btn, .srf-comments .tx-del-btn, .srf-comments .tx-reply-btn, .srf-comments .tx-thread-toggle { background: transparent; border-color: transparent; padding-inline: 0; }
+.srf-comments textarea, .srf-comments input, .srf-comments .tx-form-text, .srf-comments .tx-inline-text, .srf-comments .tx-auth-input, .srf-comments .tx-sort-select { width: 100%; font-family: var(--srf-mono); color: var(--srf-ink); background: rgba(10, 6, 24, 0.45); border: 1px solid var(--srf-line); padding: 7px 9px; }
+.srf-comments .tx-sort-select { width: auto; color: var(--srf-ink-dim); }
+.srf-comments textarea:focus, .srf-comments input:focus { outline: none; border-color: var(--srf-amber); }
+.srf-comments .tx-confirm-overlay { position: fixed; inset: 0; z-index: 2000; background: rgba(10, 6, 24, 0.76); display: flex; align-items: center; justify-content: center; padding: 24px; }
+.srf-comments .tx-confirm-dialog { max-width: 420px; }
+.srf-comments .tx-tip { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; margin-left: 6px; border: 1px solid var(--srf-line-hot); color: var(--srf-amber-hot); }
+.tx-tip-popup { position: fixed; z-index: 3000; max-width: 300px; padding: 8px 10px; background: var(--srf-bg-0); border: 1px solid var(--srf-line-hot); color: var(--srf-ink); font-family: var(--srf-mono); font-size: 12px; }
+
+@media (max-width: 720px) {
+  .srf-comments { padding: 0 14px; }
 }

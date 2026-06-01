@@ -29,6 +29,11 @@
     const CONTENT_DIR = PAGE.contentDir || 'author/';
     const TITLE_SUFFIX = PAGE.titleSuffix || 'transmissions';
     const STUB_BASE = PAGE.stubBasePath || '/p';
+    const COMMENTS_AUTHOR_DID = PAGE.commentsAuthorDid || 'did:plc:ccxl3ictrlvtrrgh5swvvg47';
+    const COMMENTS_ENABLED = PAGE.comments !== false;
+    const SCRIPT_BASE = document.currentScript
+        ? new URL('.', document.currentScript.src).href
+        : new URL('js/', window.location.origin + '/').href;
 
     // ═══════════════════════════════════════════════════════════════
     // STATE
@@ -38,6 +43,7 @@
     let POSTS = [];
     const SEED = Date.now();
     let rngState = SEED;
+    let commentsModulePromise = null;
 
     // ═══════════════════════════════════════════════════════════════
     // SEEDED RANDOM (for consistent effects)
@@ -151,6 +157,11 @@
 
     async function loadPostsIndex() {
         if (!CONFIG) return;
+        if (!CONFIG.posts_index) {
+            POSTS = [];
+            renderPostsList();
+            return;
+        }
         
         try {
             const response = await fetch(CONTENT_DIR + CONFIG.posts_index);
@@ -267,6 +278,7 @@
                 if (typeof marked !== 'undefined') {
                     postContent.innerHTML = marked.parse(markdown);
                 }
+                mountTransmissionComments(slug);
             } catch (error) {
                 console.error('[ACIDBURN Author] Fetch error:', error);
                 postContent.innerHTML = '<p class="error">ERROR: Signal corrupted.</p>';
@@ -282,7 +294,64 @@
         const postView = document.getElementById('post-view');
         if (indexView) indexView.classList.remove('hidden');
         if (postView) postView.classList.remove('active');
+        clearTransmissionComments();
         window.scrollTo(0, 0);
+    }
+
+    function getCommentsSlug(slug) {
+        if (PAGE.commentsSlugPrefix) return `${PAGE.commentsSlugPrefix}${slug}`;
+        const section = CONTENT_DIR.replace(/^\/+|\/+$/g, '');
+        if (!section || section === 'author') return slug;
+        return `${section.replace(/[^a-z0-9._~-]+/gi, '-')}--${slug}`;
+    }
+
+    function ensureCommentsHost() {
+        let host = document.getElementById('post-comments-host');
+        if (host) return host;
+
+        const postContent = document.getElementById('post-content');
+        if (!postContent || !postContent.parentNode) return null;
+
+        host = document.createElement('div');
+        host.id = 'post-comments-host';
+        postContent.insertAdjacentElement('afterend', host);
+        return host;
+    }
+
+    function clearTransmissionComments() {
+        const host = document.getElementById('post-comments-host');
+        if (host) {
+            host.innerHTML = '';
+            host._txMounted = false;
+            host._txSlug = null;
+        }
+    }
+
+    async function mountTransmissionComments(slug) {
+        if (!COMMENTS_ENABLED || !slug || !COMMENTS_AUTHOR_DID) return;
+        const host = ensureCommentsHost();
+        if (!host) return;
+
+        const commentsSlug = getCommentsSlug(slug);
+        if (host._txMounted && host._txSlug === commentsSlug) return;
+
+        host.innerHTML = '';
+        host._txMounted = true;
+        host._txSlug = commentsSlug;
+
+        try {
+            if (!commentsModulePromise) {
+                commentsModulePromise = import(new URL('transmission-comments.js', SCRIPT_BASE).href);
+            }
+            const mod = await commentsModulePromise;
+            const el = document.createElement('div');
+            host.appendChild(el);
+            await mod.mount(el, { slug: commentsSlug, authorDid: COMMENTS_AUTHOR_DID });
+        } catch (error) {
+            host._txMounted = false;
+            host.textContent = 'latent glosses unavailable';
+            console.error('[ACIDBURN Author] Comments mount failed:', error);
+        }
     }
 
     function handleHashChange() {
