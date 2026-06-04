@@ -23,6 +23,15 @@
 
   "surfaces": [
     {
+      "slug": "spacetime",
+      "title": "SPACETIME",
+      "url": "/surfaces/spacetime/",
+      "tags": ["physics", "interactive", "simulation"],
+      "flavor": "geometry as gravitation ;; mass curves the sheet",
+      "desc": "GR demo ;; warped grid, geodesics, frame dragging around star / gas giant / black hole.",
+      "local": true
+    },
+    {
       "slug": "horizons-edge",
       "title": "HORIZONS EDGE",
       "url": "/surfaces/horizons-edge/",
