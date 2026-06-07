@@ -4,14 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SPACETIME — geodesics, wells, frame-drag</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
 <style>
   * { margin:0; padding:0; box-sizing:border-box; }
   html, body { width:100%; height:100%; overflow:hidden; background:#05060c; color:#cfd8e4; font-family:'Share Tech Mono', monospace; }
   #app { position:fixed; inset:0; }
-  canvas { display:block; }
+  canvas { display:block; position:fixed; inset:0; z-index:1; }
+  #fallback-scene { position:fixed; inset:0; width:100vw; height:100vh; z-index:2; pointer-events:none; }
 
   #panel {
     position:fixed; top:14px; left:14px; z-index:20;
@@ -145,23 +143,62 @@
     <div class="ttl">CONTROLS</div>
     <div><span class="k">drag</span> orbit camera ;; <span class="k">scroll</span> zoom ;; <span class="k">right-drag</span> pan</div>
     <div><span class="k">click</span> on grid drops a test particle ;; <span class="k">shift+click</span> sets launch direction</div>
-    <div class="credit">textures: <a href="https://www.solarsystemscope.com/textures/" target="_blank" rel="noopener">Solar System Scope</a> (CC BY 4.0). visualization is qualitative — wells, spin, and orbits are exaggerated for visibility.</div>
+    <div class="credit">procedural body textures; no network assets required. visualization is qualitative - wells, spin, and orbits are exaggerated for visibility.</div>
   </div>
 
   <div id="toast"></div>
 
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+<script>
+window.addEventListener('error', function (event) {
+  var loading = document.getElementById('loading');
+  if (loading) {
+    loading.textContent = 'SPACETIME ERROR: ' + event.message;
+    loading.style.color = '#ff7eb6';
   }
-}
+});
+window.addEventListener('unhandledrejection', function (event) {
+  var loading = document.getElementById('loading');
+  if (loading) {
+    loading.textContent = 'SPACETIME ERROR: ' + (event.reason && event.reason.message ? event.reason.message : event.reason);
+    loading.style.color = '#ff7eb6';
+  }
+});
 </script>
+<script src="../../js-libs/three.min.js"></script>
+<script src="../../js-libs/OrbitControls.js"></script>
+<script>
+const OrbitControls = THREE.OrbitControls;
 
-<script type="module">
-import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+function setAttr(geo, name, attr) {
+  if (geo.setAttribute) geo.setAttribute(name, attr);
+  else geo.addAttribute(name, attr);
+}
+
+function rotateX(geo, radians) {
+  if (geo.rotateX) geo.rotateX(radians);
+  else geo.applyMatrix(new THREE.Matrix4().makeRotationX(radians));
+}
+
+function geometryFromPoints(points) {
+  const geo = new THREE.BufferGeometry();
+  const positions = new Float32Array(points.length * 3);
+  for (let i = 0; i < points.length; i++) {
+    positions[i*3] = points[i].x;
+    positions[i*3+1] = points[i].y;
+    positions[i*3+2] = points[i].z;
+  }
+  setAttr(geo, 'position', new THREE.BufferAttribute(positions, 3));
+  return geo;
+}
+
+function coneGeometry(radius, height, segments) {
+  if (THREE.ConeGeometry) return new THREE.ConeGeometry(radius, height, segments);
+  return new THREE.CylinderGeometry(0, radius, height, segments || 8, 1);
+}
+
+function setUniformScale(obj, size) {
+  obj.scale.set(size, size, size);
+}
 
 // ============================================================
 // CONFIG
@@ -179,12 +216,6 @@ const BODIES = {
   bh:    { pos: new THREE.Vector3( 28, 0,  16), radius: 1.6,  mass: 2.0, soft: 1.6,  spin: 0.90, color: 0x000000 },
 };
 
-const TEXTURE_URLS = {
-  sun:    'https://www.solarsystemscope.com/textures/download/2k_sun.jpg',
-  jupiter:'https://www.solarsystemscope.com/textures/download/2k_jupiter.jpg',
-  stars:  'https://www.solarsystemscope.com/textures/download/2k_stars_milky_way.jpg',
-};
-
 const COL = {
   grid: new THREE.Color(0x55b8ff),
   gridDeep: new THREE.Color(0x9a5cff),
@@ -198,11 +229,11 @@ const COL = {
 // STATE
 // ============================================================
 let scene, camera, renderer, controls;
-let gridMesh, gridUniforms;
+let gridMesh, gridGeometry, gridVertices;
 let starMesh, giantMesh, bhMesh, bhDisk, bhRing, bhCorona;
 let starGlow, starLight;
 let orbitsGroup, dragGroup, particlesGroup;
-let starfield;
+let starfield, fallbackSvg;
 const clock = new THREE.Clock();
 let frameCount = 0, lastFps = 0, fpsAccum = 0;
 
@@ -226,7 +257,6 @@ function init() {
   renderer = new THREE.WebGLRenderer({ antialias:true });
   renderer.setSize(innerWidth, innerHeight);
   renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
   document.getElementById('app').appendChild(renderer.domElement);
 
   controls = new OrbitControls(camera, renderer.domElement);
@@ -240,6 +270,7 @@ function init() {
   buildStarfield();
   buildGrid();
   buildBodies();
+  buildFallbackScene();
   buildOrbits();
   buildFrameDragging();
   buildParticlesGroup();
@@ -256,24 +287,8 @@ function init() {
 // STARFIELD
 // ============================================================
 function buildStarfield() {
-  // Procedural fallback so this works even if texture fails:
-  const fallback = makeStarfallback(1500);
-  scene.add(fallback);
-  starfield = fallback;
-
-  const loader = new THREE.TextureLoader();
-  loader.crossOrigin = 'anonymous';
-  loader.load(TEXTURE_URLS.stars, (tex) => {
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.mapping = THREE.EquirectangularReflectionMapping;
-    const geo = new THREE.SphereGeometry(900, 48, 32);
-    const mat = new THREE.MeshBasicMaterial({ map: tex, side: THREE.BackSide, depthWrite:false });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.renderOrder = -1;
-    scene.add(mesh);
-    scene.remove(fallback);
-    starfield = mesh;
-  }, undefined, () => {/* keep procedural */});
+  starfield = makeStarfallback(1500);
+  scene.add(starfield);
 }
 
 function makeStarfallback(count) {
@@ -287,7 +302,7 @@ function makeStarfallback(count) {
     positions[i*3+2] = r*Math.sin(v)*Math.sin(u);
   }
   const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  setAttr(geo, 'position', new THREE.BufferAttribute(positions, 3));
   const mat = new THREE.PointsMaterial({ color:0xa8c0e8, size:0.9, sizeAttenuation:false, transparent:true, opacity:0.85, depthWrite:false });
   return new THREE.Points(geo, mat);
 }
@@ -296,122 +311,184 @@ function makeStarfallback(count) {
 // GRID  (Flamm-like embedding diagram; sum of -GM/r wells)
 // ============================================================
 function buildGrid() {
-  const geom = new THREE.PlaneGeometry(GRID.size, GRID.size, GRID.segments, GRID.segments);
-  geom.rotateX(-Math.PI/2);
-
-  gridUniforms = {
-    uTime:      { value: 0 },
-    uDepthCap:  { value: GRID.depthCap },
-    uShowDrag:  { value: 1.0 },
-    uStarPos:   { value: BODIES.star.pos.clone() },
-    uStarMass:  { value: BODIES.star.mass },
-    uStarSoft:  { value: BODIES.star.soft },
-    uStarSpin:  { value: BODIES.star.spin },
-    uGiantPos:  { value: BODIES.giant.pos.clone() },
-    uGiantMass: { value: BODIES.giant.mass },
-    uGiantSoft: { value: BODIES.giant.soft },
-    uGiantSpin: { value: BODIES.giant.spin },
-    uBhPos:     { value: BODIES.bh.pos.clone() },
-    uBhMass:    { value: BODIES.bh.mass },
-    uBhSoft:    { value: BODIES.bh.soft },
-    uBhSpin:    { value: BODIES.bh.spin },
-    uColShallow:{ value: COL.grid },
-    uColDeep:   { value: COL.gridDeep },
-  };
-
-  const mat = new THREE.ShaderMaterial({
-    uniforms: gridUniforms,
+  gridGeometry = new THREE.Geometry();
+  gridVertices = [];
+  const half = GRID.size / 2;
+  const lines = 42;
+  const samples = 88;
+  for (let i = 0; i <= lines; i++) {
+    const a = -half + (i / lines) * GRID.size;
+    for (let k = 0; k < samples; k++) {
+      const x0 = -half + (k / samples) * GRID.size;
+      const x1 = -half + ((k + 1) / samples) * GRID.size;
+      addGridVertex(x0, a);
+      addGridVertex(x1, a);
+      addGridVertex(a, x0);
+      addGridVertex(a, x1);
+    }
+  }
+  const mat = new THREE.LineBasicMaterial({
+    color: COL.grid.getHex(),
     transparent: true,
-    side: THREE.DoubleSide,
-    wireframe: true,
-    vertexShader: `
-      uniform float uTime;
-      uniform float uDepthCap;
-      uniform float uShowDrag;
-      uniform vec3 uStarPos;  uniform float uStarMass;  uniform float uStarSoft;  uniform float uStarSpin;
-      uniform vec3 uGiantPos; uniform float uGiantMass; uniform float uGiantSoft; uniform float uGiantSpin;
-      uniform vec3 uBhPos;    uniform float uBhMass;    uniform float uBhSoft;    uniform float uBhSpin;
-      varying float vDepth;
-
-      float well(vec3 p, vec3 c, float m, float s) {
-        float r = distance(vec2(p.x,p.z), vec2(c.x,c.z));
-        return -m * 6.0 / max(r, s);
-      }
-
-      // tangential displacement to simulate Lense-Thirring frame dragging
-      vec2 drag(vec3 p, vec3 c, float m, float a) {
-        vec2 d = vec2(p.x,p.z) - vec2(c.x,c.z);
-        float r = length(d);
-        if (r < 0.001) return vec2(0.0);
-        float falloff = (m * a * 4.0) / (r*r + 4.0);
-        vec2 tangent = vec2(-d.y, d.x);
-        float ang = uTime * a * 0.8;
-        // a slow ripple along the swirl to make rotation visible
-        float ripple = sin(atan(d.y, d.x) * 2.0 + ang*3.0) * 0.15;
-        return tangent * falloff * (1.0 + ripple) * uShowDrag * 0.18;
-      }
-
-      void main() {
-        vec3 p = position;
-
-        float h = 0.0;
-        h += well(p, uStarPos,  uStarMass,  uStarSoft);
-        h += well(p, uGiantPos, uGiantMass, uGiantSoft);
-        h += well(p, uBhPos,    uBhMass,    uBhSoft);
-        h = max(h, -uDepthCap);
-
-        vec2 dxz = vec2(0.0);
-        dxz += drag(p, uStarPos,  uStarMass,  uStarSpin);
-        dxz += drag(p, uGiantPos, uGiantMass, uGiantSpin);
-        dxz += drag(p, uBhPos,    uBhMass,    uBhSpin);
-
-        p.x += dxz.x;
-        p.z += dxz.y;
-        p.y = h;
-        vDepth = clamp(-h / uDepthCap, 0.0, 1.0);
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
-      }
-    `,
-    fragmentShader: `
-      uniform vec3 uColShallow;
-      uniform vec3 uColDeep;
-      varying float vDepth;
-      void main() {
-        vec3 c = mix(uColShallow, uColDeep, pow(vDepth, 0.6));
-        float alpha = 0.35 + 0.55*vDepth;
-        gl_FragColor = vec4(c, alpha);
-      }
-    `
+    opacity: 0.72,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
   });
-
-  gridMesh = new THREE.Mesh(geom, mat);
+  gridMesh = new THREE.Line(gridGeometry, mat, THREE.LinePieces);
   scene.add(gridMesh);
+  updateGridGeometry(0);
+}
+
+function addGridVertex(x, z) {
+  gridVertices.push({x, z});
+  gridGeometry.vertices.push(new THREE.Vector3(x, 0, z));
+}
+
+function gridDragOffset(x, z, t) {
+  let ox = 0, oz = 0;
+  if (!flags.drag) return {x:0, z:0};
+  for (const body of [BODIES.star, BODIES.giant, BODIES.bh]) {
+    const dx = x - body.pos.x;
+    const dz = z - body.pos.z;
+    const r2 = dx*dx + dz*dz + 4.0;
+    const r = Math.sqrt(r2);
+    const ripple = 1 + 0.15 * Math.sin(Math.atan2(dz, dx) * 2 + t * body.spin * 2.4);
+    const mag = (body.mass * body.spin * 3.2 / r2) * ripple;
+    ox += (-dz / r) * mag;
+    oz += ( dx / r) * mag;
+  }
+  return {x: ox, z: oz};
+}
+
+function updateGridGeometry(t) {
+  if (!gridGeometry || !gridVertices) return;
+  for (let i = 0; i < gridVertices.length; i++) {
+    const base = gridVertices[i];
+    const d = gridDragOffset(base.x, base.z, t);
+    const v = gridGeometry.vertices[i];
+    v.x = base.x + d.x;
+    v.z = base.z + d.z;
+    v.y = gridHeight(base.x, base.z);
+  }
+  gridGeometry.verticesNeedUpdate = true;
+}
+
+function buildFallbackScene() {
+  fallbackSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  fallbackSvg.id = 'fallback-scene';
+  fallbackSvg.setAttribute('aria-hidden', 'true');
+  document.getElementById('app').appendChild(fallbackSvg);
+  updateFallbackScene(0);
+}
+
+function projectFallback(x, y, z) {
+  const scale = Math.min(innerWidth, innerHeight) / 145;
+  return {
+    x: innerWidth * 0.55 + (x - z * 0.62) * scale,
+    y: innerHeight * 0.56 + (x * 0.14 + z * 0.38 + y * 2.8) * scale,
+  };
+}
+
+function fallbackPath(points) {
+  return points.map((p, i) => (i ? 'L' : 'M') + p.x.toFixed(1) + ' ' + p.y.toFixed(1)).join(' ');
+}
+
+function updateFallbackScene(t) {
+  if (!fallbackSvg) return;
+  fallbackSvg.setAttribute('viewBox', '0 0 ' + innerWidth + ' ' + innerHeight);
+  const half = GRID.size / 2;
+  const lines = 28;
+  const samples = 70;
+  const parts = [
+    '<defs>',
+    '<radialGradient id="starGrad"><stop offset="0%" stop-color="#fff8c8"/><stop offset="45%" stop-color="#ffb347"/><stop offset="100%" stop-color="#d95d1e"/></radialGradient>',
+    '<radialGradient id="giantGrad"><stop offset="0%" stop-color="#f3dab0"/><stop offset="55%" stop-color="#b47b55"/><stop offset="100%" stop-color="#6e4634"/></radialGradient>',
+    '<radialGradient id="bhGrad"><stop offset="0%" stop-color="#05060c"/><stop offset="65%" stop-color="#000"/><stop offset="100%" stop-color="#496cff"/></radialGradient>',
+    '</defs>'
+  ];
+
+  if (flags.stars) {
+    for (let i = 0; i < 120; i++) {
+      const x = (Math.sin(i * 91.7) * 0.5 + 0.5) * innerWidth;
+      const y = (Math.sin(i * 37.3 + 2.0) * 0.5 + 0.5) * innerHeight;
+      const o = 0.18 + (i % 7) * 0.055;
+      parts.push('<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="' + (i % 3 ? 0.7 : 1.1) + '" fill="#bfe6ff" opacity="' + o.toFixed(2) + '"/>');
+    }
+  }
+
+  if (flags.grid) {
+    for (let i = 0; i <= lines; i++) {
+      const a = -half + (i / lines) * GRID.size;
+      const row = [], col = [];
+      for (let k = 0; k <= samples; k++) {
+        const b = -half + (k / samples) * GRID.size;
+        let d = gridDragOffset(b, a, t);
+        row.push(projectFallback(b + d.x, gridHeight(b, a), a + d.z));
+        d = gridDragOffset(a, b, t);
+        col.push(projectFallback(a + d.x, gridHeight(a, b), b + d.z));
+      }
+      const opacity = i % 4 === 0 ? 0.52 : 0.22;
+      parts.push('<path d="' + fallbackPath(row) + '" fill="none" stroke="#62d8ff" stroke-width="' + (i % 4 === 0 ? 1.1 : 0.65) + '" opacity="' + opacity + '"/>');
+      parts.push('<path d="' + fallbackPath(col) + '" fill="none" stroke="#9a5cff" stroke-width="' + (i % 4 === 0 ? 1.0 : 0.55) + '" opacity="' + opacity + '"/>');
+    }
+  }
+
+  if (flags.orbits) {
+    for (const body of [BODIES.star, BODIES.giant, BODIES.bh]) {
+      for (let i = 0; i < 3; i++) {
+        const r = body.radius * (2.4 + i * 1.6);
+        const pts = [];
+        for (let k = 0; k <= 96; k++) {
+          const a = (k / 96) * Math.PI * 2;
+          const x = body.pos.x + Math.cos(a) * r;
+          const z = body.pos.z + Math.sin(a) * r;
+          pts.push(projectFallback(x, gridHeight(x, z) + 0.2, z));
+        }
+        parts.push('<path d="' + fallbackPath(pts) + '" fill="none" stroke="#5ca8ff" stroke-width="1" opacity="' + (0.35 - i * 0.07).toFixed(2) + '"/>');
+      }
+    }
+  }
+
+  addFallbackBody(parts, BODIES.star, 'starGrad', 18, '#ffb347', t);
+  addFallbackBody(parts, BODIES.giant, 'giantGrad', 13, '#dbc39e', t);
+  addFallbackBlackHole(parts, t);
+  fallbackSvg.innerHTML = parts.join('');
+}
+
+function addFallbackBody(parts, body, grad, radius, glow, t) {
+  const p = projectFallback(body.pos.x, gridHeight(body.pos.x, body.pos.z) - body.radius * 0.2, body.pos.z);
+  parts.push('<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + (radius * 1.9).toFixed(1) + '" fill="' + glow + '" opacity="0.10"/>');
+  parts.push('<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="' + radius + '" fill="url(#' + grad + ')" opacity="0.95"/>');
+  for (let i = -2; i <= 2; i++) {
+    const yy = p.y + i * radius * 0.22 + Math.sin(t + i) * 1.2;
+    parts.push('<path d="M ' + (p.x-radius*0.78).toFixed(1) + ' ' + yy.toFixed(1) + ' C ' + p.x.toFixed(1) + ' ' + (yy + i*1.8).toFixed(1) + ' ' + (p.x+radius*0.78).toFixed(1) + ' ' + yy.toFixed(1) + '" stroke="#fff0c8" stroke-width="1" opacity="0.20" fill="none"/>');
+  }
+}
+
+function addFallbackBlackHole(parts, t) {
+  const body = BODIES.bh;
+  const p = projectFallback(body.pos.x, gridHeight(body.pos.x, body.pos.z) - body.radius * 0.1, body.pos.z);
+  parts.push('<ellipse cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" rx="54" ry="18" fill="none" stroke="#ffb347" stroke-width="5" opacity="0.65" transform="rotate(' + (t * 16).toFixed(1) + ' ' + p.x.toFixed(1) + ' ' + p.y.toFixed(1) + ')"/>');
+  parts.push('<ellipse cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" rx="70" ry="24" fill="none" stroke="#7b4dff" stroke-width="2" opacity="0.35" transform="rotate(' + (t * 10).toFixed(1) + ' ' + p.x.toFixed(1) + ' ' + p.y.toFixed(1) + ')"/>');
+  parts.push('<circle cx="' + p.x.toFixed(1) + '" cy="' + p.y.toFixed(1) + '" r="22" fill="url(#bhGrad)" stroke="#dce9ff" stroke-width="1.3" opacity="0.98"/>');
 }
 
 // ============================================================
 // BODIES
 // ============================================================
 function buildBodies() {
-  const loader = new THREE.TextureLoader();
-  loader.crossOrigin = 'anonymous';
-
   // ---- Star ----
-  const starMat = new THREE.MeshBasicMaterial({ color: BODIES.star.color });
+  const starMat = new THREE.MeshBasicMaterial({ color: BODIES.star.color, map: makeStarTexture() });
   starMesh = new THREE.Mesh(new THREE.SphereGeometry(BODIES.star.radius, 48, 32), starMat);
   starMesh.position.copy(BODIES.star.pos);
   scene.add(starMesh);
-  loader.load(TEXTURE_URLS.sun, (tex)=>{
-    tex.colorSpace = THREE.SRGBColorSpace;
-    starMesh.material.map = tex;
-    starMesh.material.needsUpdate = true;
-  });
 
   // corona sprite
   starGlow = new THREE.Sprite(new THREE.SpriteMaterial({
     map: makeRadialTexture('#ffd17a', '#ff8a00', '#000000'),
     color: 0xffe4a0, transparent: true, opacity: 0.9, depthWrite: false, blending: THREE.AdditiveBlending,
   }));
-  starGlow.scale.setScalar(BODIES.star.radius * 4.5);
+  setUniformScale(starGlow, BODIES.star.radius * 4.5);
   starGlow.position.copy(BODIES.star.pos);
   scene.add(starGlow);
 
@@ -420,15 +497,10 @@ function buildBodies() {
   scene.add(starLight);
 
   // ---- Gas giant ----
-  const giantMat = new THREE.MeshStandardMaterial({ color: BODIES.giant.color, roughness:0.95, metalness:0.0 });
+  const giantMat = new THREE.MeshPhongMaterial({ color: BODIES.giant.color, map: makeGasGiantTexture(), shininess: 8 });
   giantMesh = new THREE.Mesh(new THREE.SphereGeometry(BODIES.giant.radius, 48, 32), giantMat);
   giantMesh.position.copy(BODIES.giant.pos);
   scene.add(giantMesh);
-  loader.load(TEXTURE_URLS.jupiter, (tex)=>{
-    tex.colorSpace = THREE.SRGBColorSpace;
-    giantMesh.material.map = tex;
-    giantMesh.material.needsUpdate = true;
-  });
 
   // ---- Black hole ----
   // event horizon: pure black sphere
@@ -441,7 +513,7 @@ function buildBodies() {
 
   // photon ring (thin bright loop)
   const ringGeo = new THREE.RingGeometry(BODIES.bh.radius*1.45, BODIES.bh.radius*1.55, 96);
-  ringGeo.rotateX(-Math.PI/2);
+  rotateX(ringGeo, -Math.PI/2);
   bhRing = new THREE.Mesh(ringGeo, new THREE.MeshBasicMaterial({
     color: 0xfff0c8, side: THREE.DoubleSide, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false,
   }));
@@ -450,7 +522,7 @@ function buildBodies() {
 
   // accretion disk: large ring with radial gradient shader
   const diskGeo = new THREE.RingGeometry(BODIES.bh.radius*1.7, BODIES.bh.radius*7.5, 128, 1);
-  diskGeo.rotateX(-Math.PI/2);
+  rotateX(diskGeo, -Math.PI/2);
   const diskMat = new THREE.ShaderMaterial({
     uniforms: {
       uTime: { value: 0 },
@@ -513,7 +585,7 @@ function buildBodies() {
     map: makeRadialTexture('#3a5cff', '#1a0a40', '#000000'),
     transparent:true, opacity:0.55, depthWrite:false, blending: THREE.AdditiveBlending,
   }));
-  bhCorona.scale.setScalar(BODIES.bh.radius * 3.6);
+  setUniformScale(bhCorona, BODIES.bh.radius * 3.6);
   bhCorona.position.copy(BODIES.bh.pos);
   scene.add(bhCorona);
 }
@@ -529,8 +601,53 @@ function makeRadialTexture(c0, c1, c2) {
   g.fillStyle = grd;
   g.fillRect(0,0,256,256);
   const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
+}
+
+function makeStarTexture() {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 256;
+  const g = c.getContext('2d');
+  const img = g.createImageData(c.width, c.height);
+  for (let y = 0; y < c.height; y++) {
+    for (let x = 0; x < c.width; x++) {
+      const i = (y*c.width + x) * 4;
+      const band = Math.sin(y*0.12 + Math.sin(x*0.05)*1.4);
+      const cell = Math.sin(x*0.17 + y*0.11) * Math.sin(x*0.07 - y*0.19);
+      const heat = 0.65 + 0.2*band + 0.15*cell + Math.random()*0.08;
+      img.data[i] = Math.min(255, 230 + heat*35);
+      img.data[i+1] = Math.min(255, 110 + heat*100);
+      img.data[i+2] = Math.max(0, 25 + heat*45);
+      img.data[i+3] = 255;
+    }
+  }
+  g.putImageData(img, 0, 0);
+  return new THREE.CanvasTexture(c);
+}
+
+function makeGasGiantTexture() {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 256;
+  const g = c.getContext('2d');
+  const bands = ['#dbc39e', '#8f674d', '#e5d0aa', '#b08a69', '#f0d9b0', '#735145'];
+  for (let y = 0; y < c.height; y++) {
+    const wobble = Math.sin(y*0.07) * 10 + Math.sin(y*0.19) * 4;
+    const idx = Math.abs(Math.floor((y + wobble) / 18)) % bands.length;
+    g.fillStyle = bands[idx];
+    g.fillRect(0, y, c.width, 1);
+  }
+  for (let i = 0; i < 140; i++) {
+    const x = Math.random() * c.width;
+    const y = Math.random() * c.height;
+    const w = 18 + Math.random()*70;
+    g.fillStyle = Math.random() > 0.5 ? 'rgba(255,235,190,0.08)' : 'rgba(80,45,35,0.08)';
+    g.fillRect(x, y, w, 1 + Math.random()*2);
+  }
+  g.fillStyle = 'rgba(170,70,42,0.75)';
+  g.beginPath();
+  g.ellipse(350, 142, 34, 13, -0.08, 0, Math.PI*2);
+  g.fill();
+  return new THREE.CanvasTexture(c);
 }
 
 // ============================================================
@@ -556,7 +673,7 @@ function buildOrbits() {
           body.pos.z + r*wob*Math.sin(a),
         ));
       }
-      const geo = new THREE.BufferGeometry().setFromPoints(pts);
+      const geo = geometryFromPoints(pts);
       const mat = new THREE.LineBasicMaterial({ color: COL.orbit, transparent:true, opacity: 0.55 - i*0.08 });
       const ring = new THREE.Line(geo, mat);
       ring.userData = { body, idx:i, baseR: r };
@@ -589,7 +706,7 @@ function buildFrameDragging() {
     for (let i=0; i<segments; i++) {
       const a = (i/segments) * Math.PI*2;
       const arrow = new THREE.Mesh(
-        new THREE.ConeGeometry(0.12*intensity, 0.7*intensity, 6),
+        coneGeometry(0.12*intensity, 0.7*intensity, 6),
         new THREE.MeshBasicMaterial({ color, transparent:true, opacity:0.75 })
       );
       arrow.position.set(Math.cos(a)*r, 0.05, Math.sin(a)*r);
@@ -664,7 +781,7 @@ function spawnParticle(pos, dir) {
     positions[i*3+2] = pos.z;
   }
   const geo = new THREE.BufferGeometry();
-  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  setAttr(geo, 'position', new THREE.BufferAttribute(positions, 3));
   geo.setDrawRange(0, 2);
   const mat = new THREE.LineBasicMaterial({ color: COL.trail, transparent:true, opacity:0.9 });
   const line = new THREE.Line(geo, mat);
@@ -783,12 +900,15 @@ function setCameraPreset(name) {
   if (!camera) return;
   if (name === 'top') {
     camera.position.set(0, 110, 0.01);
+    camera.lookAt(0, 0, 0);
     if (controls) { controls.target.set(0,0,0); controls.update(); }
   } else if (name === 'side') {
     camera.position.set(40, 38, 70);
+    camera.lookAt(0, 0, 0);
     if (controls) { controls.target.set(0,0,0); controls.update(); }
   } else if (name === 'orbit') {
     camera.position.set(BODIES.bh.pos.x + 12, 14, BODIES.bh.pos.z + 20);
+    camera.lookAt(BODIES.bh.pos);
     if (controls) { controls.target.copy(BODIES.bh.pos); controls.update(); }
   }
   document.querySelectorAll('[data-cam]').forEach(b => {
@@ -846,6 +966,7 @@ function onResize() {
   camera.aspect = innerWidth/innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
+  updateFallbackScene(clock.elapsedTime);
 }
 
 let toastTimer = 0;
@@ -871,10 +992,10 @@ function bindUI() {
     });
   };
 
-  bindRange('m-star', 'v-star', v => { BODIES.star.mass = v; gridUniforms.uStarMass.value = v; rebuildOrbits(); });
-  bindRange('m-giant', 'v-giant', v => { BODIES.giant.mass = v; gridUniforms.uGiantMass.value = v; rebuildOrbits(); });
-  bindRange('m-bh', 'v-bh', v => { BODIES.bh.mass = v; gridUniforms.uBhMass.value = v; rebuildOrbits(); });
-  bindRange('s-bh', 'v-spin', v => { BODIES.bh.spin = v; gridUniforms.uBhSpin.value = v; });
+  bindRange('m-star', 'v-star', v => { BODIES.star.mass = v; updateGridGeometry(clock.elapsedTime); rebuildOrbits(); });
+  bindRange('m-giant', 'v-giant', v => { BODIES.giant.mass = v; updateGridGeometry(clock.elapsedTime); rebuildOrbits(); });
+  bindRange('m-bh', 'v-bh', v => { BODIES.bh.mass = v; updateGridGeometry(clock.elapsedTime); rebuildOrbits(); });
+  bindRange('s-bh', 'v-spin', v => { BODIES.bh.spin = v; updateGridGeometry(clock.elapsedTime); });
   bindRange('p-speed', 'v-speed', v => { launchSpeed.v = v; });
 
   const bindCheck = (id, key, onSet) => {
@@ -888,7 +1009,7 @@ function bindUI() {
   bindCheck('t-orbits', 'orbits', v => orbitsGroup.visible = v);
   bindCheck('t-drag', 'drag', v => {
     dragGroup.visible = v;
-    gridUniforms.uShowDrag.value = v ? 1.0 : 0.0;
+    updateGridGeometry(clock.elapsedTime);
   });
   bindCheck('t-trails', 'trails', v => particlesGroup.visible = v);
   bindCheck('t-stars', 'stars', v => { if (starfield) starfield.visible = v; });
@@ -929,7 +1050,8 @@ function animate() {
   const dt = Math.min(clock.getDelta(), 0.05);
   const t = clock.elapsedTime;
 
-  if (gridUniforms) gridUniforms.uTime.value = t;
+  updateGridGeometry(t);
+  updateFallbackScene(t);
   if (bhDisk) bhDisk.material.uniforms.uTime.value = t;
 
   // spin bodies on their axes
@@ -941,7 +1063,7 @@ function animate() {
   // pulse star glow gently
   if (starGlow) {
     const pulse = 1.0 + 0.05 * Math.sin(t*2.0);
-    starGlow.scale.setScalar(BODIES.star.radius * 4.5 * pulse);
+    setUniformScale(starGlow, BODIES.star.radius * 4.5 * pulse);
   }
 
   // rotate frame-dragging arrows

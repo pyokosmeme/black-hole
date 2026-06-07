@@ -370,10 +370,6 @@
       cell.href = s.url;
       cell.target = s.url.startsWith('http') ? '_blank' : '_self';
       cell.rel = 'noopener';
-      cell.addEventListener('click', (e) => {
-        e.preventDefault();
-        openDrawer(s);
-      });
 
       const svg = document.createElementNS(SVG_NS, 'svg');
       svg.setAttribute('viewBox', '0 0 88 88');
@@ -400,6 +396,11 @@
         tags.appendChild(span);
       });
       cell.appendChild(tags);
+
+      const open = document.createElement('div');
+      open.className = 'srf-cell-open';
+      open.textContent = s.local ? 'ENTER SURFACE ->' : 'OPEN PROJECT ->';
+      cell.appendChild(open);
 
       grid.appendChild(cell);
     });

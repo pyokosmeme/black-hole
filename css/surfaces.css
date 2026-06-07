@@ -316,6 +316,19 @@ html, body {
   margin-top: auto;
 }
 
+.srf-cell-open {
+  margin-top: 12px;
+  padding-top: 10px;
+  width: 100%;
+  border-top: 1px solid var(--srf-line);
+  font-family: var(--srf-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--srf-amber-hot);
+  text-align: center;
+}
+
 .srf-tag {
   font-size: 9px;
   letter-spacing: 1px;
