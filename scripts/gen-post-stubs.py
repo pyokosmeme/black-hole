@@ -59,6 +59,10 @@ STUB = """<!DOCTYPE html>
 <head>
 <meta charset="utf-8">
 <title>{title} // lastnpcalex.agency</title>
+<link rel="icon" href="/img/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/img/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/img/favicon-16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/img/apple-touch-icon.png">
 <meta name="description" content="{desc}">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="lastnpcalex.agency">
