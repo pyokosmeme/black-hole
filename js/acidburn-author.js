@@ -293,6 +293,20 @@
                     postContent.innerHTML = marked.parse(markdown);
                 }
                 typesetMath(postContent);
+                // Intercept intra-post anchor clicks so they scroll instead of
+                // triggering a hashchange that closes the post view.
+                postContent.onclick = (e) => {
+                    const a = e.target.closest('a[href^="#"]');
+                    if (!a) return;
+                    const hash = a.getAttribute('href');
+                    if (hash && hash.length > 1) {
+                        const target = document.getElementById(hash.slice(1));
+                        if (target) {
+                            e.preventDefault();
+                            target.scrollIntoView({ behavior: 'smooth' });
+                        }
+                    }
+                };
                 mountTransmissionComments(slug);
             } catch (error) {
                 console.error('[ACIDBURN Author] Fetch error:', error);

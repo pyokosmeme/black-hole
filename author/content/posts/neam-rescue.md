@@ -3,9 +3,8 @@
 <style>
 /* NEAM II · scoped equation styling */
 .nrol-doc .eq-block {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+  position: relative;
+  text-align: center;
   margin: 18px 0;
   padding: 12px 0;
   font-size: 14px;
@@ -18,8 +17,9 @@ body.light-reading .nrol-doc .eq-block {
   color: #bf00ff;
 }
 .nrol-doc .eq-block .eq-label {
-  flex-shrink: 0;
-  margin-left: 1em;
+  position: absolute;
+  top: 12px;
+  right: 0;
   font-size: 9px;
   color: var(--doc-dim);
   letter-spacing: 0.25em;
