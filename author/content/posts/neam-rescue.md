@@ -156,7 +156,7 @@ And that is where the last post made an error:
 </div>
 
 <p>
-does not require \(p_{ij}=p_{ji}\). It can satisfy detailed balance and yet produce zero entropy production in the Schnakenberg expression (<a href="#ref-schnakenberg-1976">Schnakenberg, 1976</a>).
+does not require \(p_{ij}=p_{ji}\). It can satisfy detailed balance and yield zero entropy production in the Schnakenberg expression (<a href="#ref-schnakenberg-1976">Schnakenberg, 1976</a>).
 </p>
 
 <p>
