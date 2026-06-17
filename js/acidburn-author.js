@@ -164,7 +164,7 @@
         }
         
         try {
-            const response = await fetch(CONTENT_DIR + CONFIG.posts_index);
+            const response = await fetch(CONTENT_DIR + CONFIG.posts_index, { cache: 'no-store' });
             if (!response.ok) throw new Error('Failed to load posts index');
             const markdown = await response.text();
             POSTS = parsePostsMarkdown(markdown);
