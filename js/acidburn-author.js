@@ -293,23 +293,6 @@
                     postContent.innerHTML = marked.parse(markdown);
                 }
                 typesetMath(postContent);
-                // Intercept intra-post anchor clicks so they scroll within the post
-                // instead of triggering a hashchange that closes the post view.
-                postContent.onclick = (e) => {
-                    const a = e.target.closest('a[href^="#"]');
-                    if (!a) return;
-                    const hash = a.getAttribute('href');
-                    if (hash && hash.length > 1) {
-                        const target = document.getElementById(hash.slice(1));
-                        if (target) {
-                            e.preventDefault();
-                            // Scroll the window so the target appears ~80px from the
-                            // viewport top, leaving room for the post-view chrome.
-                            const y = target.getBoundingClientRect().top + window.scrollY - 80;
-                            window.scrollTo({ top: y, behavior: 'smooth' });
-                        }
-                    }
-                };
                 mountTransmissionComments(slug);
             } catch (error) {
                 console.error('[ACIDBURN Author] Fetch error:', error);
@@ -390,9 +373,22 @@
         const hash = window.location.hash;
         if (hash.startsWith('#post/')) {
             loadPost(hash.replace('#post/', ''));
-        } else {
-            showIndex();
+            return;
         }
+        // If a post is active and the hash targets an element inside the post,
+        // scroll to it instead of closing the post view.
+        if (hash.length > 0) {
+            const postView = document.getElementById('post-view');
+            if (postView && postView.classList.contains('active')) {
+                const target = document.getElementById(hash.slice(1));
+                if (target) {
+                    const y = target.getBoundingClientRect().top + window.scrollY - 80;
+                    window.scrollTo({ top: y, behavior: 'smooth' });
+                    return;
+                }
+            }
+        }
+        showIndex();
     }
 
     // ═══════════════════════════════════════════════════════════════
