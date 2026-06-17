@@ -293,8 +293,8 @@
                     postContent.innerHTML = marked.parse(markdown);
                 }
                 typesetMath(postContent);
-                // Intercept intra-post anchor clicks so they scroll instead of
-                // triggering a hashchange that closes the post view.
+                // Intercept intra-post anchor clicks so they scroll within the post
+                // instead of triggering a hashchange that closes the post view.
                 postContent.onclick = (e) => {
                     const a = e.target.closest('a[href^="#"]');
                     if (!a) return;
@@ -303,7 +303,10 @@
                         const target = document.getElementById(hash.slice(1));
                         if (target) {
                             e.preventDefault();
-                            target.scrollIntoView({ behavior: 'smooth' });
+                            // Scroll the window so the target appears ~80px from the
+                            // viewport top, leaving room for the post-view chrome.
+                            const y = target.getBoundingClientRect().top + window.scrollY - 80;
+                            window.scrollTo({ top: y, behavior: 'smooth' });
                         }
                     }
                 };
