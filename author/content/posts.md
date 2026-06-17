@@ -6,8 +6,7 @@
 - tags: econophysics, spin-transformers, neam
 - file: content/posts/neam-rescue.md
 
-NEAM I leaned on detailed balance to justify entropy production, and leaned wrong. Following Matthias Bal, the Rescue Theorem proves the spin transformer genuinely breaks detailed balance, rebuilds entropy production from mean-field theory, and sketches a parasocial-collapse model: attention flows one way — celebrity to crowd, never back.
-
+In NEAM I, we leaned on detailed balance to justify entropy production, and leaned wrong. Following Matthias Bal, the Rescue Theorem proves the spin transformer genuinely breaks detailed balance, rebuilds entropy production from mean-field theory, and sketches a parasocial-collapse example model.
 ## neam
 - title: NON-EQUILIBRIUM ATTENTION MARKETS
 - date: 2026.05.16
