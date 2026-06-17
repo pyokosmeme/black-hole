@@ -899,6 +899,35 @@ body.bh-mode .link-card {
     flex-wrap: wrap;
 }
 
+/* Post view chrome — sticky so close/copy buttons and title bar stay
+   visible when scrolling to anchor targets inside long posts. */
+.post-close-btn,
+.post-share-btn {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--panel);
+    backdrop-filter: blur(10px);
+}
+.post-view-meta {
+    position: sticky;
+    top: 0;
+    z-index: 99;
+    background: var(--panel);
+    backdrop-filter: blur(10px);
+    padding-top: var(--space-sm);
+}
+
+/* Light mode: override sticky chrome background to match the panel */
+body.light-mode .post-close-btn,
+body.light-mode .post-share-btn,
+body.light-mode .post-view-meta,
+body.light-reading .post-close-btn,
+body.light-reading .post-share-btn,
+body.light-reading .post-view-meta {
+    background: #fdfaf5;
+}
+
 /* ═══════════════════════════════════════════════════════════════
    POST CONTENT (Markdown)
    ═══════════════════════════════════════════════════════════════ */
