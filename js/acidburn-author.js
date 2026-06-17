@@ -245,6 +245,20 @@
         });
     }
 
+    // Typeset LaTeX in an element using MathJax, if it is loaded on this page.
+    // Posts are injected after page load, so MathJax's initial on-load pass
+    // may miss them; this re-typesets the freshly rendered content. On pages
+    // that don't load MathJax (no math), this is a no-op.
+    function typesetMath(el) {
+        if (!el || !window.MathJax || typeof window.MathJax.typesetPromise !== 'function') return;
+        if (typeof window.MathJax.typesetClear === 'function') {
+            window.MathJax.typesetClear([el]);
+        }
+        window.MathJax.typesetPromise([el]).catch(err => {
+            console.error('[ACIDBURN Author] MathJax typeset failed:', err);
+        });
+    }
+
     async function loadPost(slug) {
         const post = POSTS.find(p => p.slug === slug);
         if (!post) return;
@@ -278,6 +292,7 @@
                 if (typeof marked !== 'undefined') {
                     postContent.innerHTML = marked.parse(markdown);
                 }
+                typesetMath(postContent);
                 mountTransmissionComments(slug);
             } catch (error) {
                 console.error('[ACIDBURN Author] Fetch error:', error);
