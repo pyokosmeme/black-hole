@@ -35,7 +35,43 @@ body.light-mode .nrol-doc .note-block,
 body.light-reading .nrol-doc .note-block {
   color: rgba(0,0,0,0.72);
 }
-.nrol-doc .refs li { margin-bottom: 10px; }
+.nrol-doc .refs li {
+  margin-bottom: 10px;
+  scroll-margin-top: 20px;
+}
+.nrol-doc .refs li:target {
+  background: rgba(125,211,252,0.08);
+  border-left: 3px solid var(--cyan);
+  padding-left: 12px;
+}
+/* In-text citation links */
+.nrol-doc p a,
+.nrol-doc li a {
+  color: var(--cyan);
+  text-decoration: underline;
+  text-decoration-color: rgba(125,211,252,0.3);
+  text-underline-offset: 2px;
+  transition: color 0.15s ease;
+}
+.nrol-doc p a:hover,
+.nrol-doc li a:hover {
+  color: var(--purple);
+  text-decoration-color: var(--purple);
+}
+body.light-mode .nrol-doc p a,
+body.light-mode .nrol-doc li a,
+body.light-reading .nrol-doc p a,
+body.light-reading .nrol-doc li a {
+  color: #0369a1;
+  text-decoration-color: rgba(3,105,161,0.3);
+}
+body.light-mode .nrol-doc p a:hover,
+body.light-mode .nrol-doc li a:hover,
+body.light-reading .nrol-doc p a:hover,
+body.light-reading .nrol-doc li a:hover {
+  color: #6d28d9;
+  text-decoration-color: #6d28d9;
+}
 </style>
 
 <h1>Non-Equilibrium Attention Markets II: The Rescue Theorem</h1>
