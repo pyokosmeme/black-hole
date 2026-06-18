@@ -294,9 +294,9 @@
                 }
                 typesetMath(postContent);
                 // Intercept intra-post anchor clicks. preventDefault stops the
-                // hash from changing, so handleHashChange never fires and the
-                // post stays open. CSS scroll-margin-top on [id] elements
-                // ensures the sticky chrome stays visible.
+                // hash from changing, so handleHashChange never fires.
+                // scrollIntoView scrolls within .post-content (overflow-y: auto),
+                // not the window — no page shift.
                 postContent.onclick = (e) => {
                     const a = e.target.closest('a[href^="#"]');
                     if (!a) return;
@@ -305,7 +305,7 @@
                     );
                     if (target) {
                         e.preventDefault();
-                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        target.scrollIntoView({ behavior: 'smooth' });
                     }
                 };
                 mountTransmissionComments(slug);

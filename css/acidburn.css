@@ -836,8 +836,18 @@ body.bh-mode .link-card {
     .post-view { padding: var(--space-lg) var(--space-md); }
 }
 
+/* When active, the post view is a fixed viewport panel with flexbox layout.
+   Chrome (buttons + meta) stays at the top; content scrolls independently. */
 .post-view.active {
-    display: block;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 200;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .post-view::before {
@@ -899,42 +909,6 @@ body.bh-mode .link-card {
     flex-wrap: wrap;
 }
 
-/* Post view chrome — sticky so close/copy buttons and title bar stay
-   visible when scrolling to anchor targets inside long posts. */
-.post-close-btn,
-.post-share-btn {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: var(--panel);
-    backdrop-filter: blur(10px);
-}
-.post-view-meta {
-    position: sticky;
-    top: 0;
-    z-index: 99;
-    background: var(--panel);
-    backdrop-filter: blur(10px);
-    padding-top: var(--space-sm);
-}
-
-/* Light mode: override sticky chrome background to match the panel */
-body.light-mode .post-close-btn,
-body.light-mode .post-share-btn,
-body.light-mode .post-view-meta,
-body.light-reading .post-close-btn,
-body.light-reading .post-share-btn,
-body.light-reading .post-view-meta {
-    background: #fdfaf5;
-}
-
-/* When scrolling to anchor targets inside posts (section headers,
-   references, equation blocks), leave space for the sticky chrome
-   (close/copy buttons + title bar). */
-.post-content [id] {
-    scroll-margin-top: 80px;
-}
-
 /* ═══════════════════════════════════════════════════════════════
    POST CONTENT (Markdown)
    ═══════════════════════════════════════════════════════════════ */
@@ -944,6 +918,10 @@ body.light-reading .post-view-meta {
     font-size: var(--text-base);
     line-height: 2;
     color: rgba(255,255,255,0.85);
+    /* Flex: fills remaining space in the fixed .post-view panel. */
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
 }
 
 .post-content h1 {
