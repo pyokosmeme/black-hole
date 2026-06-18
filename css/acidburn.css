@@ -928,6 +928,13 @@ body.light-reading .post-view-meta {
     background: #fdfaf5;
 }
 
+/* When scrolling to anchor targets inside posts (section headers,
+   references, equation blocks), leave space for the sticky chrome
+   (close/copy buttons + title bar). */
+.post-content [id] {
+    scroll-margin-top: 80px;
+}
+
 /* ═══════════════════════════════════════════════════════════════
    POST CONTENT (Markdown)
    ═══════════════════════════════════════════════════════════════ */

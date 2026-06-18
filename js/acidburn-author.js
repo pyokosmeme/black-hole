@@ -272,7 +272,7 @@
         const postContent = document.getElementById('post-content');
         
         if (indexView) indexView.classList.add('hidden');
-        if (postView) postView.classList.add('active');
+        if (postView) { postView.classList.add('active'); postView.setAttribute('data-slug', slug); }
         if (postDate) postDate.textContent = post.date || '';
         if (postTags) {
             postTags.innerHTML = (post.tags || [])
@@ -382,8 +382,12 @@
             if (postView && postView.classList.contains('active')) {
                 const target = document.getElementById(hash.slice(1));
                 if (target) {
-                    const y = target.getBoundingClientRect().top + window.scrollY - 80;
-                    window.scrollTo({ top: y, behavior: 'smooth' });
+                    // Revert the hash back to the post route so the post stays open.
+                    // Uses replaceState to avoid triggering another hashchange.
+                    const slug = postView.getAttribute('data-slug');
+                    if (slug) history.replaceState(null, '', '#post/' + slug);
+                    // Scroll to target — CSS scroll-margin-top ensures chrome stays visible.
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     return;
                 }
             }
