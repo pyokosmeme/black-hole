@@ -315,7 +315,7 @@
             }
         }
         
-        window.scrollTo(0, 0);
+        if (postContent) postContent.scrollTop = 0;
     }
 
     function showIndex() {
