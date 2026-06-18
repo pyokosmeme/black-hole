@@ -837,28 +837,28 @@ body.bh-mode .link-card {
 }
 
 /* When active, the post view is a fixed viewport panel with flexbox layout.
-   Width matches .header-bar for visual alignment. Offset below the header
-   bar (50px desktop, 44px mobile) so content doesn't render behind chrome. */
+   Centered and sized to match .header-bar. Offset below the header bar
+   (50px desktop, 44px mobile) so content doesn't render behind chrome. */
 .post-view.active {
     position: fixed;
     top: 50px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: calc(100% - var(--space-md) * 2);
-    max-width: calc(900px - var(--space-md) * 2);
+    left: var(--space-md);
+    right: var(--space-md);
     bottom: var(--space-md);
     z-index: 200;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    margin: 0 auto;
+    max-width: 900px;
 }
 
 @media (max-width: 600px) {
     .post-view.active {
         top: 44px;
         bottom: 0;
-        width: calc(100% - 16px);
-        max-width: calc(100% - 16px);
+        left: 8px;
+        right: 8px;
     }
 }
 
