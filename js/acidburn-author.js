@@ -293,19 +293,30 @@
                     postContent.innerHTML = marked.parse(markdown);
                 }
                 typesetMath(postContent);
-                // Intercept intra-post anchor clicks (e.g. citation "(Bal, 2023)"
-                // -> #ref-bal-spin-model). preventDefault stops the hash change
-                // that would otherwise close the post. Instead of scrolling the
-                // whole page to the reference list, open the cited source's link
-                // in a new tab. Non-citation anchors (no external link in the
-                // target) fall back to a smooth scroll.
+                // Handle link clicks inside post content. Different posts cite
+                // sources differently, so cover every case:
+                //  - external http(s) links (NEAM I cites doi/arxiv directly):
+                //    open in a new tab instead of navigating away from the post.
+                //  - #post/<slug> cross-post links (prev/next transmission):
+                //    leave alone so the normal hash router loads that post.
+                //  - #ref-* citation anchors (NEAM II): open the cited source's
+                //    link (found inside the reference <li>) in a new tab.
+                //  - other in-page anchors (#sec-* TOC links): smooth-scroll.
                 postContent.onclick = (e) => {
-                    const a = e.target.closest('a[href^="#"]');
+                    const a = e.target.closest('a[href]');
                     if (!a) return;
+                    const href = a.getAttribute('href');
+
+                    if (/^https?:/i.test(href)) {
+                        e.preventDefault();
+                        window.open(a.href, '_blank', 'noopener');
+                        return;
+                    }
+                    if (href.startsWith('#post/')) return; // let the router handle it
+                    if (!href.startsWith('#') || href.length < 2) return;
+
                     e.preventDefault();
-                    const target = document.getElementById(
-                        a.getAttribute('href').slice(1)
-                    );
+                    const target = document.getElementById(href.slice(1));
                     if (!target) return;
                     const src = target.querySelector('a[href^="http"]');
                     if (src) {
