@@ -272,7 +272,7 @@
         const postContent = document.getElementById('post-content');
         
         if (indexView) indexView.classList.add('hidden');
-        if (postView) { postView.classList.add('active'); postView.setAttribute('data-slug', slug); }
+        if (postView) postView.classList.add('active');
         if (postDate) postDate.textContent = post.date || '';
         if (postTags) {
             postTags.innerHTML = (post.tags || [])
@@ -293,6 +293,21 @@
                     postContent.innerHTML = marked.parse(markdown);
                 }
                 typesetMath(postContent);
+                // Intercept intra-post anchor clicks. preventDefault stops the
+                // hash from changing, so handleHashChange never fires and the
+                // post stays open. CSS scroll-margin-top on [id] elements
+                // ensures the sticky chrome stays visible.
+                postContent.onclick = (e) => {
+                    const a = e.target.closest('a[href^="#"]');
+                    if (!a) return;
+                    const target = document.getElementById(
+                        a.getAttribute('href').slice(1)
+                    );
+                    if (target) {
+                        e.preventDefault();
+                        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                };
                 mountTransmissionComments(slug);
             } catch (error) {
                 console.error('[ACIDBURN Author] Fetch error:', error);
@@ -373,26 +388,9 @@
         const hash = window.location.hash;
         if (hash.startsWith('#post/')) {
             loadPost(hash.replace('#post/', ''));
-            return;
+        } else {
+            showIndex();
         }
-        // If a post is active and the hash targets an element inside the post,
-        // scroll to it instead of closing the post view.
-        if (hash.length > 0) {
-            const postView = document.getElementById('post-view');
-            if (postView && postView.classList.contains('active')) {
-                const target = document.getElementById(hash.slice(1));
-                if (target) {
-                    // Revert the hash back to the post route so the post stays open.
-                    // Uses replaceState to avoid triggering another hashchange.
-                    const slug = postView.getAttribute('data-slug');
-                    if (slug) history.replaceState(null, '', '#post/' + slug);
-                    // Scroll to target — CSS scroll-margin-top ensures chrome stays visible.
-                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    return;
-                }
-            }
-        }
-        showIndex();
     }
 
     // ═══════════════════════════════════════════════════════════════
