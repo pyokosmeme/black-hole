@@ -850,7 +850,10 @@ body.bh-mode .link-card {
     flex-direction: column;
     overflow: hidden;
     margin: 0 auto;
-    max-width: 900px;
+    /* Match .header-bar exactly: it caps at calc(900px - space-md*2), not 900px.
+       Using the bare 900px here made the panel up to 2*space-md (48px) wider
+       than the header on desktop. */
+    max-width: calc(900px - var(--space-md) * 2);
 }
 
 @media (max-width: 600px) {
