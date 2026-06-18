@@ -836,33 +836,11 @@ body.bh-mode .link-card {
     .post-view { padding: var(--space-lg) var(--space-md); }
 }
 
-/* When active, the post view is a fixed viewport panel with flexbox layout.
-   Centered and sized to match .header-bar. Offset below the header bar
-   (50px desktop, 44px mobile) so content doesn't render behind chrome. */
+/* In-flow block inside .main-content (max-width:900px, centered, space-md
+   side padding) — same container as the index, so it lines up with the
+   header bar automatically. */
 .post-view.active {
-    position: fixed;
-    top: 50px;
-    left: var(--space-md);
-    right: var(--space-md);
-    bottom: var(--space-md);
-    z-index: 200;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    margin: 0 auto;
-    /* Match .header-bar exactly: it caps at calc(900px - space-md*2), not 900px.
-       Using the bare 900px here made the panel up to 2*space-md (48px) wider
-       than the header on desktop. */
-    max-width: calc(900px - var(--space-md) * 2);
-}
-
-@media (max-width: 600px) {
-    .post-view.active {
-        top: 44px;
-        bottom: 0;
-        left: 8px;
-        right: 8px;
-    }
+    display: block;
 }
 
 .post-view::before {
@@ -933,11 +911,10 @@ body.bh-mode .link-card {
     font-size: var(--text-base);
     line-height: 2;
     color: rgba(255,255,255,0.85);
-    /* Flex: fills remaining space in the fixed .post-view panel. */
-    flex: 1;
-    overflow-y: auto;
-    min-height: 0;
 }
+
+/* Keep anchor targets (refs, section headers) clear of the fixed header. */
+.post-content [id] { scroll-margin-top: 70px; }
 
 .post-content h1 {
     font-family: 'Orbitron', sans-serif;

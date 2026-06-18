@@ -294,9 +294,9 @@
                 }
                 typesetMath(postContent);
                 // Intercept intra-post anchor clicks. preventDefault stops the
-                // hash from changing, so handleHashChange never fires.
-                // scrollIntoView scrolls within .post-content (overflow-y: auto),
-                // not the window — no page shift.
+                // hash from changing, so handleHashChange never fires (which would
+                // close the post). scrollIntoView then scrolls the page to the
+                // target; CSS scroll-margin-top keeps it clear of the fixed header.
                 postContent.onclick = (e) => {
                     const a = e.target.closest('a[href^="#"]');
                     if (!a) return;
@@ -315,7 +315,7 @@
             }
         }
         
-        if (postContent) postContent.scrollTop = 0;
+        window.scrollTo(0, 0);
     }
 
     function showIndex() {
