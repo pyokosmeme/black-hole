@@ -293,18 +293,24 @@
                     postContent.innerHTML = marked.parse(markdown);
                 }
                 typesetMath(postContent);
-                // Intercept intra-post anchor clicks. preventDefault stops the
-                // hash from changing, so handleHashChange never fires (which would
-                // close the post). scrollIntoView then scrolls the page to the
-                // target; CSS scroll-margin-top keeps it clear of the fixed header.
+                // Intercept intra-post anchor clicks (e.g. citation "(Bal, 2023)"
+                // -> #ref-bal-spin-model). preventDefault stops the hash change
+                // that would otherwise close the post. Instead of scrolling the
+                // whole page to the reference list, open the cited source's link
+                // in a new tab. Non-citation anchors (no external link in the
+                // target) fall back to a smooth scroll.
                 postContent.onclick = (e) => {
                     const a = e.target.closest('a[href^="#"]');
                     if (!a) return;
+                    e.preventDefault();
                     const target = document.getElementById(
                         a.getAttribute('href').slice(1)
                     );
-                    if (target) {
-                        e.preventDefault();
+                    if (!target) return;
+                    const src = target.querySelector('a[href^="http"]');
+                    if (src) {
+                        window.open(src.href, '_blank', 'noopener');
+                    } else {
                         target.scrollIntoView({ behavior: 'smooth' });
                     }
                 };
