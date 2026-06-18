@@ -837,10 +837,11 @@ body.bh-mode .link-card {
 }
 
 /* When active, the post view is a fixed viewport panel with flexbox layout.
-   Chrome (buttons + meta) stays at the top; content scrolls independently. */
+   Offset below the header bar (50px desktop, 44px mobile) so content doesn't
+   render behind the site chrome. Content scrolls independently. */
 .post-view.active {
     position: fixed;
-    top: 0;
+    top: 50px;
     left: 0;
     right: 0;
     bottom: 0;
@@ -848,6 +849,10 @@ body.bh-mode .link-card {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+}
+
+@media (max-width: 600px) {
+    .post-view.active { top: 44px; }
 }
 
 .post-view::before {
@@ -922,6 +927,16 @@ body.bh-mode .link-card {
     flex: 1;
     overflow-y: auto;
     min-height: 0;
+    /* Content width constraints for readability. */
+    max-width: 800px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 0 var(--space-xl);
+    box-sizing: border-box;
+}
+
+@media (max-width: 600px) {
+    .post-content { padding: 0 var(--space-lg); }
 }
 
 .post-content h1 {
