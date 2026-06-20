@@ -837,7 +837,7 @@ body.bh-mode .link-card {
 }
 
 /* Tighten negative space in the transmission view and drop tags. */
-.post-view { padding-top: var(--space-md); padding-bottom: var(--space-lg); }
+.post-view { padding: var(--space-md) var(--space-sm); }
 .post-close-btn,
 .post-share-btn {
     position: absolute;
