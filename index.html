@@ -253,8 +253,29 @@
                 const el = document.getElementById('post-view-title');
                 if (!el) return;
                 if (!slug) { el.textContent = ''; return; }
-                const post = window.AcidburnAuthor.getPosts().find(p => p.slug === slug);
-                el.textContent = (post ? (post.title || slug) : slug).toUpperCase();
+                const posts = window.AcidburnAuthor.getPosts() || [];
+                const post = posts.find(p => p.slug === slug);
+                if (post && post.title) {
+                    el.textContent = post.title.toUpperCase();
+                    return;
+                }
+                // Posts index not loaded yet — show slug as fallback, then
+                // retry until the index resolves the real title.
+                el.textContent = slug.toUpperCase();
+                const start = Date.now();
+                const retry = setInterval(() => {
+                    if (window.location.hash.replace('#post/', '') !== slug) {
+                        clearInterval(retry);
+                        return;
+                    }
+                    const p = (window.AcidburnAuthor.getPosts() || []).find(x => x.slug === slug);
+                    if (p && p.title) {
+                        el.textContent = p.title.toUpperCase();
+                        clearInterval(retry);
+                    } else if (Date.now() - start > 10000) {
+                        clearInterval(retry);
+                    }
+                }, 100);
             }
 
             async function mountWidget(slug) {

@@ -403,6 +403,12 @@ body.light-reading .post-view {
     padding: 0 5rem 3rem; /* Pushed out padding on both sides */
 }
 
+/* Keep the comments host (e.g. [ LATENT GLOSSES ]) flush-left with the
+   close button and title, which all sit at 5rem on default screens. */
+#post-comments-host {
+    padding: 0 5rem;
+}
+
 /* Hide scrollbar but keep functionality */
 .post-view.active .post-content::-webkit-scrollbar {
     width: 8px;
@@ -711,11 +717,17 @@ body.light-reading .tag-filter-btn.active {
     .post-view.active .post-content {
         padding: 3.5rem 4rem;
     }
+    #post-comments-host {
+        padding: 0 4rem;
+    }
 }
 
 @media (min-width: 1600px) {
     .post-view.active .post-content {
         padding: 4rem 5rem;
+    }
+    #post-comments-host {
+        padding: 0 5rem;
     }
 }
 
@@ -745,6 +757,10 @@ body.light-reading .tag-filter-btn.active {
     .post-share-btn {
         right: 1rem;
         top: 0.5rem;
+    }
+
+    #post-comments-host {
+        padding: 0 1rem;
     }
 
     .post-content {
