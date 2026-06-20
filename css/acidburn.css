@@ -852,8 +852,8 @@ body.bh-mode .link-card {
     padding: var(--space-sm);
     transition: color 0.2s ease;
 }
-.post-close-btn { left: var(--space-md); }
-.post-share-btn { right: var(--space-md); }
+.post-close-btn { left: var(--space-sm); padding-left: 0; }
+.post-share-btn { right: var(--space-sm); padding-right: 0; }
 .post-close-btn:hover,
 .post-share-btn:hover { color: var(--purple); }
 .post-back { margin-bottom: var(--space-sm); }
@@ -1115,7 +1115,7 @@ body.bh-mode .link-card {
 }
 .tx-comments-summary {
   cursor: pointer;
-  padding: 10px 4px;
+  padding: 10px 4px 10px 0;
   list-style: none;
   display: flex;
   justify-content: space-between;
