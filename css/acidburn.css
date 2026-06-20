@@ -837,14 +837,33 @@ body.bh-mode .link-card {
 }
 
 /* Tighten negative space in the transmission view and drop tags. */
-.post-back { margin-bottom: var(--space-md); }
+.post-view { padding-top: var(--space-md); padding-bottom: var(--space-lg); }
+.post-close-btn,
+.post-share-btn {
+    position: absolute;
+    top: var(--space-sm);
+    z-index: 10;
+    background: none;
+    border: none;
+    color: var(--cyan);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: var(--text-sm);
+    cursor: pointer;
+    padding: var(--space-sm);
+    transition: color 0.2s ease;
+}
+.post-close-btn { left: var(--space-md); }
+.post-share-btn { right: var(--space-md); }
+.post-close-btn:hover,
+.post-share-btn:hover { color: var(--purple); }
+.post-back { margin-bottom: var(--space-sm); }
 .post-view-meta {
-    margin-top: var(--space-sm);
-    margin-bottom: var(--space-md);
+    margin-top: var(--space-md);
+    margin-bottom: var(--space-sm);
     padding-bottom: var(--space-sm);
 }
 .post-view-tags { display: none !important; }
-.post-content h1 { margin-bottom: var(--space-md); }
+.post-content h1 { margin-bottom: var(--space-sm); margin-top: 0; }
 
 /* In-flow block inside .main-content (max-width:900px, centered, space-md
    side padding) — same container as the index, so it lines up with the
