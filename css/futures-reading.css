@@ -504,7 +504,7 @@ body.light-reading .post-view {
 
 .post-content h1 {
     font-family: 'Inter', sans-serif;
-    font-size: 2rem;
+    font-size: 1.73rem;
     font-weight: 600;
     color: var(--rv-heading);
     text-shadow: none;
@@ -769,6 +769,6 @@ body.light-reading .tag-filter-btn.active {
     }
 
     .post-content h1 {
-        font-size: 1.6rem;
+        font-size: 1.58rem;
     }
 }
