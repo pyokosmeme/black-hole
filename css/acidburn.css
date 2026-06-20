@@ -837,7 +837,7 @@ body.bh-mode .link-card {
 }
 
 /* Tighten negative space in the transmission view and drop tags. */
-.post-view { padding: var(--space-md) var(--space-sm); }
+.post-view { padding: var(--space-md) var(--space-sm); padding-bottom: max(0px, calc(var(--space-md) - 10px)); }
 .post-close-btn,
 .post-share-btn {
     position: absolute;
@@ -858,9 +858,9 @@ body.bh-mode .link-card {
 .post-share-btn:hover { color: var(--purple); }
 .post-back { margin-bottom: var(--space-sm); }
 .post-view-meta {
-    margin-top: var(--space-md);
+    margin-top: max(0px, calc(var(--space-md) - 10px));
     margin-bottom: var(--space-sm);
-    padding-bottom: var(--space-sm);
+    padding-bottom: max(0px, calc(var(--space-sm) - 10px));
 }
 .post-view-tags { display: none !important; }
 .post-content h1 { margin-bottom: var(--space-sm); margin-top: 0; }
