@@ -90,6 +90,15 @@
       "flavor": "spin glass ;; phase boundaries breathing",
       "desc": "2D ising model ;; magnetic phase transition as toy. several attractors inside.",
       "local": true
+    },
+    {
+      "slug": "neam",
+      "title": "NEAM SHELL DOMAINS",
+      "url": "/surfaces/neam/",
+      "tags": ["physics", "interactive", "simulation"],
+      "flavor": "noisy denoising ;; domains emerge from chaos",
+      "desc": "shell lattice denoising with domain tracking — dynamic, Ising-tracked, and fixed modes.",
+      "local": true
     }
   ]
 }
