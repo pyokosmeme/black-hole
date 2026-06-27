@@ -29,34 +29,22 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js"></script>
 </head>
 <body>
-  <!-- 3D topography background — full viewport, behind everything -->
+  <!-- 3D topography background — full viewport, fixed behind everything -->
   <div id="srf-topo-bg" aria-hidden="true"></div>
   <div class="srf-stars" aria-hidden="true"></div>
 
-<header class="srf-header">
-    <a href="/" class="srf-brand" id="srf-brand">SURFACES</a>
-    <span class="srf-handle">
-      <a href="/">← lastnpcalex.agency</a>
-    </span>
-    <div id="nav-menu" style="margin-left:auto;"></div>
-  </header>
+  <!-- top frame: style changer -->
+  <div class="srf-frame srf-frame-top" id="srf-controls"></div>
 
-  <section class="srf-hero">
-    <h1 class="srf-tagline" id="srf-tagline">whiskey-translucent fractals splayed in the night sky</h1>
-    <div class="srf-subtitle" id="srf-subtitle">vibe-coded surfaces ;; each a small burning thing</div>
-    <div class="srf-intro" id="srf-intro">small surfaces, splayed.</div>
-  </section>
+  <!-- the circle overlay — fills the viewport over the background -->
+  <main class="srf-overlay" id="srf-stage"></main>
 
-  <div class="srf-controls" id="srf-controls"></div>
-
-  <main class="srf-stage" id="srf-stage"></main>
-
-  <section class="srf-comments" id="surfaces-comments-host" aria-label="Latent Glosses"></section>
+  <!-- bottom frame: latent glosses -->
+  <section class="srf-frame srf-frame-bottom srf-comments" id="surfaces-comments-host" aria-label="Latent Glosses"></section>
 
   <aside class="srf-drawer" id="srf-drawer" aria-hidden="true"></aside>
 
   <script src="js/surfaces.js"></script>
-  <script src="nav-menu.js"></script>
   <script type="module">
     import { mount as mountComments } from './js/transmission-comments.js';
 

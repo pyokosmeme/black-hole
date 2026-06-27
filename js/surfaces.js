@@ -193,17 +193,18 @@
     wrap.className = 'srf-circos-wrap';
     stage.appendChild(wrap);
 
-    const W = 1000, H = 1000;
+    // size the SVG to the viewport so the circle dynamically fits the screen
+    let W = window.innerWidth, H = window.innerHeight;
     const svg = document.createElementNS(SVG_NS,'svg');
     svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
     svg.setAttribute('preserveAspectRatio','xMidYMid meet');
     wrap.appendChild(svg);
 
-    const cx = W/2, cy = H/2;
-    const radius = 360;          // icons pinned here
-    const innerR = radius - 6;   // inner edge of arc segments
-    const outerR = radius + 26;  // outer edge of arc segments (title band)
-    const orbSize = 76;
+    let cx = W/2, cy = H/2;
+    let radius = Math.min(W, H) * 0.36; // icons pinned here
+    let innerR = radius - 6;   // inner edge of arc segments
+    let outerR = radius + 26;  // outer edge of arc segments (title band)
+    let orbSize = Math.max(54, Math.min(W, H) * 0.07);
 
     const items = SURFACES.concat([HOME]);
     const N = items.length;
@@ -299,31 +300,47 @@
       return g;
     });
 
-    // ─── stochastic flux ribbons ──────────────────────────────────
-    // each ribbon: two nodes connected by a quadratic Bezier whose control
-    // point is pulled toward the ring center (chord-diagram arc). spawned
-    // randomly, fade in, hold, fade out.
+    // ─── stochastic tracer flux ─────────────────────────────────────
+    // each tracer sweeps OUT from one node and reaches across to connect
+    // another (chord-diagram arc, control pulled toward center). dynamic
+    // ink thickness: the head is thick, the tail tapers thin — animated
+    // via a dashoffset reveal so the stroke "draws itself" outward. a
+    // linear gradient + frosted-glass blur stack gives the glassy glow.
     const ribbons = [];
-    const MAX_RIBBONS = 9;
-    function spawnRibbon(){
+    const MAX_RIBBONS = 8;
+
+    function spawnTracer(){
       if (ribbons.length >= MAX_RIBBONS) return;
       let i = Math.floor(Math.random()*N), j = Math.floor(Math.random()*N);
       if (j === i) j = (j+1)%N;
       const a = nodes[i], b = nodes[j];
-      const bow = 0.45 + Math.random()*0.30; // how far control points pull toward center
-      const aMid = a.a, bMid = b.a;
-      // control points on a smaller radius → ribbons arc inward
+      const bow = 0.40 + Math.random()*0.30;
       const ctrlR = radius * (1 - bow);
-      const cax = cx + Math.cos(aMid)*ctrlR, cay = cy + Math.sin(aMid)*ctrlR;
-      const cbx = cx + Math.cos(bMid)*ctrlR, cby = cy + Math.sin(bMid)*ctrlR;
-      const d = `M ${a.x} ${a.y} Q ${cax} ${cay} ${(a.x+b.x)/2} ${(a.y+b.y)/2} Q ${cbx} ${cby} ${b.x} ${b.y}`;
-      // 3 stacked paths: halo, mid, core
-      const make = (cls)=>{ const p=document.createElementNS(SVG_NS,'path'); p.setAttribute('d',d); p.setAttribute('class','srf-ribbon '+cls); fluxLayer.appendChild(p); return p; };
-      const halo = make('srf-rib-halo'), mid = make('srf-rib-mid'), core = make('srf-rib-core');
-      const pulse = document.createElementNS(SVG_NS,'circle');
-      pulse.setAttribute('r','5'); pulse.setAttribute('class','srf-rib-pulse');
-      fluxLayer.appendChild(pulse);
-      ribbons.push({ a, b, cax, cay, cbx, cby, halo, mid, core, pulse, age:0, life: 2.4 + Math.random()*2.6 });
+      const cax = cx + Math.cos(a.a)*ctrlR, cay = cy + Math.sin(a.a)*ctrlR;
+      const cbx = cx + Math.cos(b.a)*ctrlR, cby = cy + Math.sin(b.a)*ctrlR;
+      // a single smooth quadratic-Bezier arc from a → b (control near center)
+      const d = `M ${a.x} ${a.y} Q ${(cax+cbx)/2} ${(cay+cby)/2} ${b.x} ${b.y}`;
+
+      // unique gradient id, fading from bright (head/a) to translucent (tail)
+      const gid = 'rg' + Math.random().toString(36).slice(2,9);
+      const grad = document.createElementNS(SVG_NS,'linearGradient');
+      grad.setAttribute('id', gid);
+      grad.setAttribute('gradientUnits','userSpaceOnUse');
+      grad.setAttribute('x1', a.x); grad.setAttribute('y1', a.y);
+      grad.setAttribute('x2', b.x); grad.setAttribute('y2', b.y);
+      grad.innerHTML = `<stop offset="0%" stop-color="#fff4d0" stop-opacity="0.05"/><stop offset="40%" stop-color="#fff4d0" stop-opacity="0.55"/><stop offset="100%" stop-color="#fff4d0" stop-opacity="0.95"/>`;
+      fluxLayer.appendChild(grad);
+
+      // frosted-glass stack: blurred halo + soft mid + crisp core
+      const make = (cls)=>{ const p=document.createElementNS(SVG_NS,'path'); p.setAttribute('d',d); p.setAttribute('class','srf-tracer '+cls); p.setAttribute('stroke', `url(#${gid})`); fluxLayer.appendChild(p); return p; };
+      const halo = make('srf-tr-halo'), mid = make('srf-tr-mid'), core = make('srf-tr-core');
+
+      ribbons.push({
+        a, b, d, halo, mid, core, gid,
+        len: approxPathLen(a.x, a.y, (cax+cbx)/2, (cay+cby)/2, b.x, b.y),
+        age: 0, life: 1.6 + Math.random()*1.4,   // sweep + linger
+        drawDur: 0.7 + Math.random()*0.4          // portion spent sweeping out
+      });
     }
 
     // animation
@@ -334,36 +351,58 @@
 
       stepThree(t, dt);
 
-      // spawn cadence — stochastic
+      // stochastic spawn cadence
       spawnTimer += dt;
-      if (spawnTimer > 0.35 + Math.random()*0.5){ spawnTimer = 0; spawnRibbon(); }
+      if (spawnTimer > 0.4 + Math.random()*0.6){ spawnTimer = 0; spawnTracer(); }
 
       const col = lineCSS();
       const colA = (al)=> lineCSS(al);
 
-      // update ribbons
       for (let i = ribbons.length-1; i >= 0; i--){
         const r = ribbons[i];
         r.age += dt;
-        const k = r.age / r.life;          // 0→1
-        let op;
-        if (k < 0.2) op = k/0.2;            // fade in
-        else if (k > 0.8) op = (1-k)/0.2;  // fade out
-        else op = 1;                         // hold
+        const k = r.age / r.life;          // 0→1 overall
         if (k >= 1){
-          r.halo.remove(); r.mid.remove(); r.core.remove(); r.pulse.remove();
+          r.halo.remove(); r.mid.remove(); r.core.remove();
+          const g = fluxLayer.querySelector('#'+r.gid); if (g) g.remove();
           ribbons.splice(i,1); continue;
         }
-        r.halo.setAttribute('stroke', colA(0.10*op));
-        r.mid.setAttribute('stroke',  colA(0.32*op));
-        r.core.setAttribute('stroke', colA(0.85*op));
-        // traveling pulse along the ribbon (param along the Bezier-ish path)
-        const pp = (Math.sin(t*1.3 + i)*0.5+0.5);
-        const px = r.a.x + (r.b.x - r.a.x)*pp;
-        const py = r.a.y + (r.b.y - r.a.y)*pp;
-        r.pulse.setAttribute('cx', px.toFixed(2));
-        r.pulse.setAttribute('cy', py.toFixed(2));
-        r.pulse.setAttribute('fill', colA(0.9*op));
+
+        // sweep progress: how far the tracer has drawn itself (0→1)
+        const sweep = Math.min(1, k / (r.drawDur/r.life));
+        const drawn = r.len * sweep;
+
+        // dash: a "head" segment of length headLen reveals as it sweeps;
+        // the visible drawn portion grows from 0 → full length.
+        const headLen = r.len * 0.55;       // thick leading head
+        const gap = r.len * 4;              // big gap so only the head shows while sweeping
+        // while sweeping: show a moving head; after sweep done: full line visible
+        let dash, off;
+        if (sweep < 1){
+          // moving tapered head — animates outward from a
+          dash = headLen + ' ' + gap;
+          off = -(drawn - headLen);
+        } else {
+          // fully drawn; linger then fade
+          dash = r.len + ' 0'; off = 0;
+        }
+
+        // overall opacity: fade in during sweep, hold, fade out near end
+        let op;
+        if (k < 0.12) op = k/0.12;
+        else if (k > 0.78) op = (1-k)/0.22;
+        else op = 1;
+
+        // dynamic ink thickness — thicker mid-life, thinner at the very ends
+        const thick = 0.6 + Math.sin(Math.min(1, k/0.5) * Math.PI) * 1.0; // 0.6 → 1.6 → 0.6
+        [r.halo, r.mid, r.core].forEach((el)=>{
+          el.setAttribute('stroke-dasharray', dash);
+          el.setAttribute('stroke-dashoffset', off.toFixed(2));
+          el.setAttribute('opacity', op.toFixed(3));
+        });
+        r.halo.setAttribute('stroke-width', (thick * 9).toFixed(2));
+        r.mid.setAttribute('stroke-width',  (thick * 3.2).toFixed(2));
+        r.core.setAttribute('stroke-width',(thick * 1.1).toFixed(2));
       }
 
       // theme color → arc strokes + titles via a stage var
@@ -372,6 +411,12 @@
       stopAnim = requestAnimationFrame(tick);
     }
     stopAnim = requestAnimationFrame(tick);
+  }
+
+  // crude quadratic-Bezier length estimate (good enough for dash math)
+  function approxPathLen(x0,y0, cx,cy, x1,y1){
+    const d1 = Math.hypot(cx-x0, cy-y0), d2 = Math.hypot(x1-cx, y1-cy);
+    return d1 + d2;
   }
 
   // annular sector path between two radii and two angles
@@ -420,22 +465,23 @@
       const r = await fetch(CFG_PATH); if (!r.ok) throw new Error('cfg');
       CFG = await r.json(); SURFACES = CFG.surfaces || [];
       const n = CFG.node || {};
-      const setT = (id,v)=>{ const e=document.getElementById(id); if(e&&v) e.textContent=v; };
-      setT('srf-brand', n.handle||'SURFACES'); setT('srf-tagline', n.tagline||''); setT('srf-subtitle', n.subtitle||'');
-      document.title = (n.handle||'SURFACES') + ' // lastnpcalex.agency';
-      try { const mr = await fetch('surfaces/content/intro.md'); if (mr.ok && typeof marked!=='undefined') document.getElementById('srf-intro').innerHTML = marked.parse(await mr.text()); } catch(_){}
+      document.title = (n.handle || 'SURFACES') + ' // lastnpcalex.agency';
       buildControls();
       renderRing();
       document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') document.getElementById('srf-drawer').classList.remove('open'); });
     } catch(e){ console.error('[SURFACES]', e); }
   }
 
+  let resizeT = null;
   window.addEventListener('resize', ()=>{
     if (three){
       three.camera.aspect = window.innerWidth / window.innerHeight;
       three.camera.updateProjectionMatrix();
       three.renderer.setSize(window.innerWidth, window.innerHeight);
     }
+    // re-render the ring so the circle refits the new viewport
+    clearTimeout(resizeT);
+    resizeT = setTimeout(()=>{ if (SURFACES.length) renderRing(); }, 150);
   });
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);

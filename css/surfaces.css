@@ -26,15 +26,12 @@
 html, body {
   margin: 0;
   padding: 0;
-  min-height: 100vh;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
   font-family: var(--srf-mono);
   color: var(--srf-ink);
-  background:
-    radial-gradient(ellipse at 30% 20%, var(--srf-bg-2) 0%, transparent 55%),
-    radial-gradient(ellipse at 70% 80%, #1a0830 0%, transparent 60%),
-    linear-gradient(180deg, var(--srf-bg-0) 0%, var(--srf-bg-1) 100%);
-  background-attachment: fixed;
-  overflow-x: hidden;
+  background: transparent;
 }
 
 /* drifting starfield */
@@ -42,7 +39,7 @@ html, body {
   position: fixed;
   inset: 0;
   pointer-events: none;
-  z-index: 0;
+  z-index: 1;
   background-image:
     radial-gradient(1px 1px at 12% 18%, rgba(244,233,212,0.6), transparent 50%),
     radial-gradient(1px 1px at 38% 72%, rgba(255,179,71,0.5), transparent 50%),
@@ -51,7 +48,7 @@ html, body {
     radial-gradient(1px 1px at 21% 88%, rgba(255,126,182,0.4), transparent 50%),
     radial-gradient(1px 1px at 91% 12%, rgba(244,233,212,0.5), transparent 50%),
     radial-gradient(1px 1px at 53% 41%, rgba(244,233,212,0.3), transparent 50%);
-  opacity: 0.7;
+  opacity: 0.4;
 }
 
 /* ─────────────────────── HEADER ─────────────────────── */
@@ -502,51 +499,81 @@ html, body {
     linear-gradient(180deg, #0a0618 0%, #160a2e 100%);
 }
 
-/* everything else sits above the topography */
-.srf-header, .srf-hero, .srf-controls, .srf-stage, .srf-comments {
-  position: relative;
+/* the circle overlay fills the whole viewport over the background */
+.srf-overlay {
+  position: fixed;
+  inset: 0;
   z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none; /* the overlay doesn't eat clicks; nodes opt back in */
 }
-.srf-stars { z-index: 1; }
-
-/* the topography is bright; add a readable scrim behind text-heavy bands */
-.srf-hero, .srf-comments {
-  background: linear-gradient(180deg, rgba(5,5,12,0.55), rgba(5,5,12,0.25));
-  border-radius: 14px;
-  backdrop-filter: blur(2px);
-}
-
-/* Circos stage — centered SVG that fills a square */
 .srf-circos-wrap {
   position: relative;
-  width: 100%;
-  max-width: 1000px;
-  margin: 0 auto;
-  aspect-ratio: 1 / 1;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
 }
 .srf-circos-wrap svg { display: block; width: 100%; height: 100%; }
 
+/* frosted-glass frames above & below the circle, themed to the bg */
+.srf-frame {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 6;
+  width: min(680px, 92vw);
+  pointer-events: auto;
+  backdrop-filter: blur(14px) saturate(120%);
+  -webkit-backdrop-filter: blur(14px) saturate(120%);
+  background: rgba(5, 6, 12, 0.42);
+  border: 1px solid var(--ring-flux, rgba(255,179,71,0.4));
+  border-opacity: 0.5;
+  box-shadow: 0 0 30px rgba(0,0,0,0.4), inset 0 0 24px rgba(255,255,255,0.03);
+}
+.srf-frame-top {
+  top: 18px;
+  border-radius: 40px;
+  padding: 10px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+.srf-frame-bottom {
+  bottom: 18px;
+  border-radius: 16px;
+  padding: 10px 18px;
+  max-height: 34vh;
+  overflow: auto;
+}
+
 /* Circos arc segments around the ring */
 .srf-circos-arc {
-  fill: rgba(10, 6, 24, 0.55);
+  fill: rgba(10, 6, 24, 0.30);
   stroke: var(--ring-flux, var(--srf-amber));
   stroke-width: 1;
-  stroke-opacity: 0.4;
+  stroke-opacity: 0.35;
   transition: fill 0.2s ease, stroke-opacity 0.2s ease;
 }
 .srf-circos-arc:hover { fill: rgba(255, 179, 71, 0.10); stroke-opacity: 0.9; }
 
-/* stochastic flux ribbons — quadratic Bezier, themed */
+/* stochastic tracer flux — frosted-glass stack */
 .srf-flux-layer { fill: none; }
-.srf-ribbon { fill: none; stroke-linecap: round; }
-.srf-rib-halo { stroke-width: 8;   filter: blur(3px); }
-.srf-rib-mid  { stroke-width: 2.6; }
-.srf-rib-core { stroke-width: 0.9; }
-.srf-rib-pulse { mix-blend-mode: screen; filter: blur(0.5px); }
+.srf-tracer { fill: none; stroke-linecap: round; }
+.srf-tr-halo { filter: blur(6px); mix-blend-mode: screen; }
+.srf-tr-mid  { filter: blur(1.5px); mix-blend-mode: screen; }
+.srf-tr-core { mix-blend-mode: screen; }
 
 /* circumference nodes (icons pinned — do not move) */
 .srf-ring-group { transform-origin: center; }
-.srf-ring-node { transition: filter 0.2s ease; transform-box: fill-box; transform-origin: center; }
+.srf-ring-node {
+  transition: filter 0.2s ease;
+  transform-box: fill-box;
+  transform-origin: center;
+  pointer-events: auto; /* nodes are clickable; the rest of the overlay isn't */
+}
 .srf-ring-node:hover { filter: brightness(1.35) drop-shadow(0 0 16px var(--srf-amber)); }
 
 /* the favicon home node */
@@ -559,7 +586,7 @@ html, body {
 }
 .srf-ring-node:hover .srf-home-ring { fill: rgba(255, 179, 71, 0.14); }
 
-/* spike titles radiating off the ring */
+/* spike titles — radiate outward, non-interactive */
 .srf-spike-title {
   font-family: var(--srf-display);
   font-size: 12px;
@@ -569,7 +596,7 @@ html, body {
   text-transform: uppercase;
   pointer-events: none;
   paint-order: stroke;
-  stroke: rgba(5,5,12,0.6);
+  stroke: rgba(5,5,12,0.7);
   stroke-width: 3px;
 }
 .srf-spike-flavor {
@@ -580,7 +607,7 @@ html, body {
   font-style: italic;
   pointer-events: none;
   paint-order: stroke;
-  stroke: rgba(5,5,12,0.6);
+  stroke: rgba(5,5,12,0.7);
   stroke-width: 3px;
 }
 
@@ -591,14 +618,14 @@ html, body {
   z-index: 50;
   max-width: 260px;
   padding: 10px 12px;
-  background: rgba(10, 6, 24, 0.94);
-  border: 1px solid var(--srf-line-hot);
+  background: rgba(5, 6, 12, 0.88);
+  border: 1px solid var(--ring-flux, var(--srf-line-hot));
   color: var(--srf-ink);
   font-family: var(--srf-mono);
   font-size: 12px;
   line-height: 1.45;
   pointer-events: none;
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(10px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 .srf-ring-tooltip b {
@@ -615,23 +642,23 @@ html, body {
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  padding: 9px 18px 9px 14px;
+  padding: 7px 16px 7px 12px;
   font-family: var(--srf-display);
   font-size: 12px;
   font-weight: 700;
   letter-spacing: 2px;
-  color: var(--srf-amber-hot);
-  background: rgba(255, 179, 71, 0.08);
-  border: 1.4px solid var(--srf-amber);
-  border-radius: 2px;
+  color: var(--srf-ink);
+  background: rgba(5, 6, 12, 0.5);
+  border: 1.2px solid var(--ring-flux, var(--srf-amber));
+  border-radius: 30px;
   cursor: pointer;
   transition: all 0.18s ease;
-  box-shadow: 0 0 22px rgba(255, 179, 71, 0.18);
+  backdrop-filter: blur(6px);
 }
 .srf-style-btn:hover {
   background: rgba(255, 179, 71, 0.18);
-  box-shadow: 0 0 30px rgba(255, 179, 71, 0.4);
   transform: translateY(-1px);
+  box-shadow: 0 0 22px var(--ring-flux, rgba(255,179,71,0.4));
 }
 .srf-style-kicker {
   font-size: 10px;
@@ -642,10 +669,13 @@ html, body {
 }
 .srf-style-name { color: var(--srf-amber-hot); }
 
+/* latent glosses readability over the terrain */
+.srf-frame-bottom .tx-comments-block { font-family: var(--srf-mono); }
+.srf-frame-bottom .tx-comments-summary { color: var(--srf-amber-hot); }
+
 @media (max-width: 720px) {
   .srf-spike-title { font-size: 10px; letter-spacing: 1px; }
   .srf-spike-flavor { display: none; }
-  .srf-circos-wrap { max-width: 100%; }
-}
-}
+  .srf-frame-bottom { max-height: 30vh; }
+}}
 
