@@ -482,3 +482,128 @@ html, body {
 @media (max-width: 720px) {
   .srf-comments { padding: 0 14px; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   CIRCOS RING — surfaces on the circumference, flux chords, topography
+   ═══════════════════════════════════════════════════════════════ */
+
+/* the Circos canvas is taller so spike titles have room to radiate */
+.srf-canvas.srf-circos {
+  height: 820px;
+  background: #05050a;
+}
+
+/* 3D topography lives behind the ring SVG */
+.srf-topo-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+.srf-topo-bg canvas { display: block; }
+.srf-topo-bg.srf-topo-fallback {
+  background:
+    radial-gradient(ellipse at 50% 60%, #2a0d3f 0%, transparent 70%),
+    linear-gradient(180deg, #0a0618 0%, #160a2e 100%);
+}
+
+/* ring SVG sits above the topography */
+.srf-circos > svg {
+  z-index: 2;
+}
+
+/* guide circle — the Circos ring the nodes ride */
+.srf-ring-guide {
+  fill: none;
+  stroke: var(--srf-line);
+  stroke-width: 0.8;
+  stroke-dasharray: 3 5;
+  opacity: 0.5;
+}
+
+/* flux chord layers — wide halo → mid → bright core */
+.srf-flux-layer { fill: none; }
+.srf-flux-halo  .srf-flux-line { stroke-width: 7;   opacity: 0.05; }
+.srf-flux-mid   .srf-flux-line { stroke-width: 2.4; opacity: 0.12; }
+.srf-flux-core  .srf-flux-line { stroke-width: 0.9; opacity: 0.26; }
+/* line stroke color is set per-frame from the theme via JS attribute */
+
+/* traveling pulse — the "transmission" along each chord */
+.srf-flux-pulse {
+  mix-blend-mode: screen;
+  filter: blur(0.5px);
+}
+
+/* circumference nodes */
+.srf-ring-group { transform-origin: center; }
+.srf-ring-node { transition: filter 0.2s ease; transform-box: fill-box; transform-origin: center; }
+.srf-ring-node:hover { filter: brightness(1.35) drop-shadow(0 0 16px var(--srf-amber)); }
+
+/* the favicon home node */
+.srf-home-ring {
+  fill: rgba(10, 6, 24, 0.65);
+  stroke: var(--srf-amber);
+  stroke-width: 1.4;
+  stroke-opacity: 0.8;
+  filter: drop-shadow(0 0 10px rgba(255, 179, 71, 0.45));
+}
+.srf-ring-node:hover .srf-home-ring { fill: rgba(255, 179, 71, 0.12); }
+
+/* spike titles radiating off the ring */
+.srf-spike-title {
+  font-family: var(--srf-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  fill: var(--srf-ink);
+  text-transform: uppercase;
+  pointer-events: none;
+}
+.srf-spike-flavor {
+  font-family: var(--srf-mono);
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  fill: var(--srf-ink-dim);
+  font-style: italic;
+  pointer-events: none;
+}
+
+/* hover tooltip with full description */
+.srf-ring-tooltip {
+  display: none;
+  position: absolute;
+  z-index: 50;
+  max-width: 260px;
+  padding: 10px 12px;
+  background: rgba(10, 6, 24, 0.94);
+  border: 1px solid var(--srf-line-hot);
+  color: var(--srf-ink);
+  font-family: var(--srf-mono);
+  font-size: 12px;
+  line-height: 1.45;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+.srf-ring-tooltip b {
+  font-family: var(--srf-display);
+  font-size: 12px;
+  letter-spacing: 1.5px;
+  color: var(--srf-amber-hot);
+}
+.srf-ring-tooltip .srf-tt-flavor { color: var(--srf-violet); }
+.srf-ring-tooltip .srf-tt-desc { color: var(--srf-ink-dim); }
+
+/* theme cycle button — distinct from view switches */
+.srf-mode-btn {
+  margin-left: 6px;
+  color: var(--srf-amber-hot);
+  border-color: var(--srf-amber);
+}
+
+@media (max-width: 720px) {
+  .srf-canvas.srf-circos { height: 600px; }
+  .srf-spike-title { font-size: 9px; letter-spacing: 1px; }
+  .srf-spike-flavor { display: none; }
+}
+
