@@ -98,7 +98,7 @@ a:hover{border-color:var(--cyan)}
       <div class="tag">Necro Rationalist Operations Laboratory — Alpha Omega</div>
     </div>
   </div>
-  <div class="sub">A Bayesian epistemic engine: beliefs move only when the world moves, routed through pre-committed indicator likelihoods. This surface shows the dynamics-derived <b style="color:var(--purple)">shadow</b> posteriors against the committed <b style="color:var(--cyan)">active</b> posteriors — divergence is a calibration conversation, not an error.</div>
+  <div class="sub">A Bayesian forecasting engine: probabilities move only when the world moves. This surface compares two estimates side by side — the <b style="color:var(--cyan)">active</b> one (driven by news events) and an independent <b style="color:var(--purple)">shadow</b> one (driven by how much time has passed). When they disagree, the question is whether the active estimate is ignoring the passage of time.</div>
   <div class="meta" id="meta">loading…</div>
 
   <details class="explore">
@@ -110,8 +110,8 @@ a:hover{border-color:var(--cyan)}
       <p>When evidence matches an indicator, a typed transition (<code>FIRE</code> / <code>OBSERVE</code> / <code>PARK</code> / <code>SCHEMA_GAP</code>) is proposed. Only a validated, approved commit runs the Bayesian update — there is no freeform "set H3 to 0.72" path, even with approval.</p>
       <h3>Active vs Shadow</h3>
       <p>The <b style="color:var(--cyan)">active (committed)</b> posterior is moved only by approved typed commits through indicator likelihoods. It quantizes sub-threshold evidence to LR=1.0 and has only a deadline cliff for time.</p>
-      <p>The <b style="color:var(--purple)">shadow</b> posterior is derived independently from the topic's pre-committed <b>dynamics spec</b>: a 3-state regime-switching model (entrenched → ramping → reopen) whose transition-rate priors are lint-gated. Its key feature: <b>elapsed time in the current regime is priced as evidence</b> via exact Gamma conjugacy — "still closed, N days later" updates the exit-rate posterior exactly. This is a channel the active posterior lacks.</p>
-      <p>The shadow is a <b>guide, not the system</b>. It never writes topic state. Comparing the two asks: is the active posterior underpricing elapsed time? Divergence is the calibration conversation.</p>
+      <p>The <b style="color:var(--purple)">shadow</b> posterior is a second, independent estimate computed from a model of <i>how long these situations tend to last</i> — not from news. The key idea it captures: <b>elapsed time is itself evidence.</b> If a strait has been closed 60 days with no reopening, that fact alone makes an early reopening less likely — and the shadow reflects it. The active posterior doesn't count this; it only moves when a specific news event fires an indicator.</p>
+      <p>The shadow is a <b>guide, not the system</b>. It never changes the real probabilities — it just gives you a second opinion to compare against. When the two disagree, the useful question is: <i>is the active estimate ignoring how much time has passed?</i></p>
       <div class="kv">Source: <a href="https://github.com/lastnpcalex/nrol-alpha-omega" target="_blank" rel="noopener">lastnpcalex/nrol-alpha-omega</a> · Snapshot is sanitized (no evidence text, no source names).</div>
     </div>
   </details>
@@ -250,7 +250,7 @@ function renderDetail(t){
     <div class="explainer">The <b style="color:var(--cyan)">active</b> posterior — moved only by approved typed commits through pre-committed indicator likelihoods.</div>
     <div>${posteriorBars(t.posteriors, colors, keys, labels)}</div>
     <div class="section-label">shadow vs active</div>
-    <div class="explainer">The <b style="color:var(--purple)">shadow</b> posterior is derived independently from the topic's pre-committed dynamics spec — a regime-switching model where <b>elapsed time in the entrenched regime is priced as evidence</b> (exact Gamma conjugacy). ${t.shadow_elapsed_entrenched_days!=null?`Currently <b>${t.shadow_elapsed_entrenched_days} days</b> entrenched. `:''}This is a channel the active posterior lacks. Divergence is the calibration conversation.</div>
+    <div class="explainer"><b style="color:var(--purple)">Shadow</b> is a second, independent estimate of the same probabilities — computed from a model of <i>how long things take</i> rather than from news evidence. The key idea: if a strait has been closed for ${t.shadow_elapsed_entrenched_days!=null?`<b>${t.shadow_elapsed_entrenched_days} days</b>`:'a while'} with no reopening, that elapsed time itself is evidence about when it'll reopen (the longer it stays closed, the less likely an early reopening becomes). The <b style="color:var(--cyan)">active</b> bar doesn't count this — it only moves when a specific news event fires an indicator. So when the two bars disagree, the question is: is the active estimate ignoring how much time has passed? A big gap means the two methods disagree on how much the waiting itself should matter.</div>
     <div class="legend">
       <span><span class="sw" style="background:var(--cyan)"></span>active (committed)</span>
       <span><span class="sw" style="background:var(--mag)"></span>shadow (dynamics-derived)</span>
