@@ -299,12 +299,37 @@
       return { g, n };
     });
 
-    // ─── horizontal leader labels (drawn after nodes, stacked per side) ───
-    // split into left/right halves, order each top→bottom by y, then stack
-    // rows so labels never overlap each other or run off-screen.
+    // ─── leader labels ───────────────────────────────────────────────
+    // near-vertical nodes (top/bottom of the ring) place labels directly
+    // above/below the circle, stacked. side nodes place horizontal labels
+    // into the left/right gutters, stacked top→bottom.
     const rowH = 18;
     const labelR = radius + 8;            // leader bend point, just outside the ring
-    function placeLabels(side, isLeft){
+    const VERT_C = 0.30;                  // |cos(a)| < this → treat as top/bottom
+
+    function drawLabel(textX, y, anchor, leaderPath, bx, by, titleText, flavText){
+      const line = document.createElementNS(SVG_NS,'path');
+      line.setAttribute('class','srf-leader');
+      line.setAttribute('d', leaderPath);
+      labelLayer.appendChild(line);
+      const dot = document.createElementNS(SVG_NS,'circle');
+      dot.setAttribute('class','srf-leader-dot'); dot.setAttribute('cx',bx.toFixed(1)); dot.setAttribute('cy',by.toFixed(1)); dot.setAttribute('r','2');
+      labelLayer.appendChild(dot);
+      const title = document.createElementNS(SVG_NS,'text');
+      title.setAttribute('class','srf-leader-title');
+      title.setAttribute('x',textX.toFixed(1)); title.setAttribute('y',(y-2).toFixed(1));
+      title.setAttribute('text-anchor', anchor);
+      title.textContent = titleText;
+      labelLayer.appendChild(title);
+      const flav = document.createElementNS(SVG_NS,'text');
+      flav.setAttribute('class','srf-leader-flavor');
+      flav.setAttribute('x',textX.toFixed(1)); flav.setAttribute('y',(y+12).toFixed(1));
+      flav.setAttribute('text-anchor', anchor);
+      flav.textContent = flavText;
+      labelLayer.appendChild(flav);
+    }
+
+    function placeSide(side, isLeft){
       const placedY = [];
       side.forEach(({n})=>{
         let y = n.y;
@@ -312,39 +337,43 @@
           y = placedY[placedY.length-1] + rowH;
         }
         placedY.push(y);
-        // leader: node → radial bend point → horizontal to text x
         const bx = cx + Math.cos(n.a) * labelR;
         const by = cy + Math.sin(n.a) * labelR;
         const textX = isLeft ? leftTextX : rightTextX;
         const elbowX = isLeft ? cx - labelR : cx + labelR;
-        const line = document.createElementNS(SVG_NS,'path');
-        line.setAttribute('class','srf-leader');
-        line.setAttribute('d', `M ${n.x.toFixed(1)} ${n.y.toFixed(1)} L ${bx.toFixed(1)} ${by.toFixed(1)} L ${elbowX.toFixed(1)} ${y.toFixed(1)} L ${textX.toFixed(1)} ${y.toFixed(1)}`);
-        labelLayer.appendChild(line);
-
-        const dot = document.createElementNS(SVG_NS,'circle');
-        dot.setAttribute('class','srf-leader-dot'); dot.setAttribute('cx',bx.toFixed(1)); dot.setAttribute('cy',by.toFixed(1)); dot.setAttribute('r','2');
-        labelLayer.appendChild(dot);
-
-        const title = document.createElementNS(SVG_NS,'text');
-        title.setAttribute('class','srf-leader-title');
-        title.setAttribute('x',textX.toFixed(1)); title.setAttribute('y',(y-2).toFixed(1));
-        title.setAttribute('text-anchor', isLeft ? 'end' : 'start');
-        title.textContent = n.s.title;
-        labelLayer.appendChild(title);
-
-        const flav = document.createElementNS(SVG_NS,'text');
-        flav.setAttribute('class','srf-leader-flavor');
-        flav.setAttribute('x',textX.toFixed(1)); flav.setAttribute('y',(y+12).toFixed(1));
-        flav.setAttribute('text-anchor', isLeft ? 'end' : 'start');
-        flav.textContent = (n.s.flavor||'').slice(0,32) + ((n.s.flavor||'').length>32?'…':'');
-        labelLayer.appendChild(flav);
+        const d = `M ${n.x.toFixed(1)} ${n.y.toFixed(1)} L ${bx.toFixed(1)} ${by.toFixed(1)} L ${elbowX.toFixed(1)} ${y.toFixed(1)} L ${textX.toFixed(1)} ${y.toFixed(1)}`;
+        const flv = (n.s.flavor||'').slice(0,32) + ((n.s.flavor||'').length>32?'…':'');
+        drawLabel(textX, y, isLeft?'end':'start', d, bx, by, n.s.title, flv);
       });
     }
-    const leftSide = nodeEls.filter(({n}) => Math.cos(n.a) < 0).sort((a,b)=>a.n.y-b.n.y);
-    const rightSide = nodeEls.filter(({n}) => Math.cos(n.a) >= 0).sort((a,b)=>a.n.y-b.n.y);
-    placeLabels(leftSide, true);
-    placeLabels(rightSide, false);
+
+    function placeVertical(arr, isTop){
+      // stack labels directly above (top) or below (bottom) the circle,
+      // centered on cx, growing away from the ring.
+      let y = isTop ? (cy - radius - 24) : (cy + radius + 30);
+      const step = isTop ? -rowH : rowH;
+      arr.forEach(({n})=>{
+        const bx = cx + Math.cos(n.a) * labelR;
+        const by = cy + Math.sin(n.a) * labelR;
+        const d = `M ${n.x.toFixed(1)} ${n.y.toFixed(1)} L ${bx.toFixed(1)} ${by.toFixed(1)} L ${cx.toFixed(1)} ${y.toFixed(1)}`;
+        const flv = (n.s.flavor||'').slice(0,32) + ((n.s.flavor||'').length>32?'…':'');
+        drawLabel(cx, y, 'middle', d, bx, by, n.s.title, flv);
+        y += step;
+      });
+    }
+
+    const isTop    = ({n}) => Math.sin(n.a) < 0  && Math.abs(Math.cos(n.a)) < VERT_C;
+    const isBottom = ({n}) => Math.sin(n.a) > 0  && Math.abs(Math.cos(n.a)) < VERT_C;
+    const tops    = nodeEls.filter(isTop).sort((a,b)=>a.n.x-b.n.x);
+    const bottoms = nodeEls.filter(isBottom).sort((a,b)=>a.n.x-b.n.x);
+    const sideOnly = ({n}) => !isTop({n}) && !isBottom({n});
+    const leftSide  = nodeEls.filter(sideOnly).filter(({n})=>Math.cos(n.a) <  0).sort((a,b)=>a.n.y-b.n.y);
+    const rightSide = nodeEls.filter(sideOnly).filter(({n})=>Math.cos(n.a) >= 0).sort((a,b)=>a.n.y-b.n.y);
+
+    placeVertical(tops, true);
+    placeVertical(bottoms, false);
+    placeSide(leftSide, true);
+    placeSide(rightSide, false);
 
     // ─── stochastic tracer flux ─────────────────────────────────────
     // each tracer sweeps OUT from one node and reaches across to connect

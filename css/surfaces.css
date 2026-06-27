@@ -729,7 +729,8 @@ html, body {
   top: 64px;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 7;
+  z-index: 100;            /* above the ring overlay (z:2) and frames (z:6) */
+  pointer-events: auto;
   width: min(680px, 92vw);
   max-height: 60vh;
   overflow: auto;
