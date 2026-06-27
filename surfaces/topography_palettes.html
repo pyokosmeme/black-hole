@@ -1,306 +1,613 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Generative Topography & Splotches</title>
-    <!-- Simplex Noise for generating organic topographic waves -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js"></script>
-    <style>
-        body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #000;
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SURFACES // topology ring</title>
+<!-- Three.js r128 — needs PlaneGeometry→BufferGeometry + array uniforms (the local js-libs copy is r73, too old for this shader) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<!-- Simplex noise for terrain displacement -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/simplex-noise/2.4.0/simplex-noise.min.js"></script>
+<style>
+    :root{
+        --glass-bg: rgba(10,25,47,0.60);
+        --glass-border: rgba(100,255,218,0.35);
+        --accent: rgb(100,255,218);
+        --text: rgb(200,255,240);
+        --text-muted: rgba(200,255,240,0.62);
+    }
 
-        canvas {
-            display: block;
-            width: 100%;
-            height: 100%;
-        }
+    body, html {
+        margin: 0; padding: 0;
+        width: 100%; height: 100%;
+        overflow: hidden;
+        background: #000;
+        font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        color: var(--text);
+    }
 
-        #ui-container {
-            position: absolute;
-            bottom: 50px;
-            left: 50%;
-            transform: translateX(-50%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-            pointer-events: none; /* Let clicks pass through empty areas */
-            z-index: 10;
-        }
+    #canvas-container{
+        position: absolute; inset: 0;
+        z-index: 1;
+    }
+    #canvas-container canvas{ display:block; }
 
-        .info-panel {
-            background: rgba(10, 10, 15, 0.7);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 20px 40px;
-            border-radius: 16px;
-            text-align: center;
-            color: #fff;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.5);
-            pointer-events: auto;
-            min-width: 300px;
-        }
+    /* 2D overlay: the ring of transmitting nodes */
+    #ring{
+        position: absolute; inset: 0;
+        z-index: 5;
+        pointer-events: none;
+    }
 
-        h1 {
-            margin: 0 0 8px 0;
-            font-size: 1.4rem;
-            font-weight: 600;
-            letter-spacing: 1.5px;
-            text-transform: uppercase;
-        }
+    /* frosted glass window — colors driven by theme vars */
+    .panel{
+        position: absolute;
+        background: var(--glass-bg);
+        backdrop-filter: blur(14px) saturate(120%);
+        -webkit-backdrop-filter: blur(14px) saturate(120%);
+        border: 1px solid var(--glass-border);
+        border-radius: 16px;
+        box-shadow: 0 15px 35px rgba(0,0,0,0.45),
+                    inset 0 0 24px rgba(255,255,255,0.03);
+        padding: 18px 24px;
+        color: var(--text);
+        pointer-events: auto;
+        z-index: 8;
+    }
 
-        p {
-            margin: 0;
-            font-size: 0.95rem;
-            opacity: 0.8;
-            font-weight: 300;
-        }
+    #info{
+        top: 28px; left: 28px;
+        max-width: 340px;
+    }
+    #info .kicker{
+        font-size: 0.7rem; letter-spacing: 3px;
+        text-transform: uppercase;
+        color: var(--accent);
+        margin: 0 0 6px 0;
+        font-weight: 600;
+    }
+    #info h1{
+        margin: 0 0 6px 0;
+        font-size: 1.25rem; font-weight: 700;
+        letter-spacing: 1.5px; text-transform: uppercase;
+        color: var(--text);
+    }
+    #info p{
+        margin: 0;
+        font-size: 0.88rem; font-weight: 300;
+        color: var(--text-muted);
+        line-height: 1.45;
+    }
 
-        button {
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            color: white;
-            padding: 12px 30px;
-            border-radius: 30px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 500;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            transition: all 0.3s ease;
-            pointer-events: auto;
-            backdrop-filter: blur(5px);
-        }
+    #glosses{
+        top: 28px; right: 28px;
+        max-width: 360px;
+    }
+    #glosses .head{
+        display:flex; align-items:center; justify-content:space-between;
+        gap: 14px; margin-bottom: 12px;
+    }
+    #glosses .head .kicker{
+        font-size: 0.7rem; letter-spacing: 3px;
+        text-transform: uppercase;
+        color: var(--accent);
+        font-weight: 600;
+    }
+    #glosses ul{
+        list-style: none; padding: 0; margin: 0;
+        display: flex; flex-direction: column; gap: 10px;
+    }
+    #glosses li{
+        font-size: 0.82rem; line-height: 1.45;
+        color: var(--text-muted);
+        border-left: 2px solid var(--glass-border);
+        padding-left: 10px;
+    }
+    #glosses li b{
+        color: var(--text);
+        font-weight: 700;
+        letter-spacing: 0.5px;
+    }
 
-        button:hover {
-            background: rgba(255, 255, 255, 0.25);
-            border-color: rgba(255, 255, 255, 0.6);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-        }
+    /* control row */
+    #controls{
+        position: absolute;
+        bottom: 32px; left: 50%;
+        transform: translateX(-50%);
+        display: flex; align-items: center; gap: 14px;
+        z-index: 12;
+        pointer-events: none;
+    }
 
-        button:active {
-            transform: translateY(1px);
-        }
-    </style>
+    button{
+        pointer-events: auto;
+        background: var(--glass-bg);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid var(--glass-border);
+        color: var(--text);
+        padding: 12px 26px;
+        border-radius: 30px;
+        cursor: pointer;
+        font-size: 0.82rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+        transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.4s ease;
+    }
+    button:hover{
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(0,0,0,0.4), 0 0 18px var(--glass-border);
+    }
+    button:active{ transform: translateY(1px); }
+    button .accent{ color: var(--accent); }
+
+    /* favicon back-button → main site */
+    #back{
+        position: absolute;
+        bottom: 32px; right: 32px;
+        width: 48px; height: 48px;
+        padding: 0;
+        border-radius: 50%;
+        display: flex; align-items: center; justify-content: center;
+        z-index: 12;
+        text-decoration: none;
+        overflow: hidden;
+    }
+    #back img{
+        width: 26px; height: 26px;
+        display: block;
+        filter: drop-shadow(0 0 6px var(--glass-border));
+    }
+    #back:hover img{ filter: drop-shadow(0 0 10px var(--accent)); }
+
+    @media (max-width: 720px){
+        #info{ top: 16px; left: 16px; right: 16px; max-width: none; }
+        #glosses{ display:none; }
+        #controls{ bottom: 84px; flex-wrap: wrap; justify-content: center; }
+        #back{ bottom: 20px; right: 20px; }
+    }
+</style>
 </head>
 <body>
 
-    <canvas id="canvas"></canvas>
+    <div id="canvas-container"></div>
+    <canvas id="ring"></canvas>
 
-    <div id="ui-container">
-        <div class="info-panel">
-            <h1 id="palette-name">High-Contrast Cools</h1>
-            <p id="palette-desc">Deep Teal & Cyan to make warm eyes pop</p>
-        </div>
-        <button id="cycle-btn">Cycle Palette</button>
+    <div id="info" class="panel">
+        <p class="kicker">surfaces // topology ring</p>
+        <h1 id="palette-name">High-Contrast Cools</h1>
+        <p id="palette-desc">Deep Teal &amp; Cyan to make warm eyes pop</p>
     </div>
 
-    <script>
-        // --- 1. DEFINE COLOR PALETTES ---
-        // Colors are stored in [R, G, B, A] arrays for smooth math interpolation
-        const palettes = [
-            {
-                name: "High-Contrast Cools",
-                desc: "Deep Teal & Cyan to make warm eyes pop",
-                base: [10, 25, 47, 1], // Very dark slate blue
-                lines: [100, 255, 218, 0.25], // Glowing cyan
-                splotches: [
-                    [17, 34, 64, 1], // Teal shadow
-                    [2, 132, 199, 0.8], // Mid blue
-                    [255, 183, 77, 0.35] // Amber accent (matches eyes)
-                ]
-            },
-            {
-                name: "Analogous Darks",
-                desc: "Harmonizing with plum lips and iridescent tattoos",
-                base: [28, 11, 25, 1], // Deep plum/burgundy
-                lines: [199, 125, 255, 0.3], // Violet/Rose
-                splotches: [
-                    [74, 21, 75, 1], // Dark magenta
-                    [123, 44, 191, 0.8], // Electric purple
-                    [60, 9, 108, 0.9] // Deep violet
-                ]
-            },
-            {
-                name: "Monochromatic Warms",
-                desc: "Warm coppers and golds to enhance skin tones",
-                base: [41, 28, 20, 1], // Dark roasted brown
-                lines: [244, 162, 97, 0.25], // Copper/Gold
-                splotches: [
-                    [231, 111, 81, 0.7], // Burnt terracotta
-                    [233, 196, 106, 0.6], // Soft mustard
-                    [138, 90, 68, 0.9] // Warm leather
-                ]
-            },
-            {
-                name: "Cyberpunk Synergy",
-                desc: "Neon tropical contrast for high-tech environments",
-                base: [5, 5, 8, 1], // Near black
-                lines: [0, 243, 255, 0.35], // Neon cyan
-                splotches: [
-                    [255, 0, 60, 0.6], // Neon magenta/red
-                    [122, 4, 235, 0.7], // Deep neon purple
-                    [255, 170, 0, 0.4] // Amber/Orange glow
-                ]
-            }
-        ];
+    <div id="glosses" class="panel">
+        <div class="head">
+            <span class="kicker">latent glosses</span>
+        </div>
+        <ul id="gloss-list"></ul>
+    </div>
 
-        // --- 2. SETUP CANVAS & NOISE ---
-        const canvas = document.getElementById('canvas');
-        const ctx = canvas.getContext('2d');
-        const simplex = new SimplexNoise();
-        
-        let width, height;
-        function resize() {
-            width = canvas.width = window.innerWidth;
-            height = canvas.height = window.innerHeight;
+    <div id="controls">
+        <button id="mode-btn">mode: <span class="accent" id="mode-label">High-Contrast Cools</span></button>
+        <button id="shuffle-btn">shuffle</button>
+    </div>
+
+    <a id="back" class="panel" href="https://lastnpcalex.agency/" title="back to lastnpcalex.agency" aria-label="back to main site">
+        <img src="../img/favicon-32.png" alt="lastnpcalex.agency">
+    </a>
+
+<script>
+// =====================================================================
+// 1. COLOR THEMES — the four the mode button cycles through.
+//    base / lines / splotches feed the 3D topography shader.
+//    text is lerped alongside so the frosted glass + copy track the theme.
+// =====================================================================
+const palettes = [
+    {
+        name: "Tactical Stealth",
+        desc: "Neon green topology over Multicam Black flourishes.",
+        base: [8,8,9],
+        lines: [57,255,20],
+        splotches: [[140,145,150],[75,80,85],[35,40,38]],
+        text: [180,255,170]
+    },
+    {
+        name: "Acid Burn (Dark)",
+        desc: "Hacker-synthwave extracted from lastnpcalex.agency.",
+        base: [13,14,21],
+        lines: [0,255,240],
+        splotches: [[170,0,255],[210,0,255],[20,30,50]],
+        text: [185,255,250]
+    },
+    {
+        name: "Acid Burn (Light)",
+        desc: "Daylight overexposure extracted from lastnpcalex.agency.",
+        base: [215,210,205],
+        lines: [160,32,240],
+        splotches: [[0,220,230],[255,100,255],[200,190,255]],
+        text: [44,12,64]
+    },
+    {
+        name: "High-Contrast Cools",
+        desc: "Deep Teal & Cyan to make warm eyes pop.",
+        base: [10,25,47],
+        lines: [100,255,218],
+        splotches: [[17,34,64],[2,132,199],[255,183,77]],
+        text: [205,255,242]
+    }
+];
+
+// =====================================================================
+// 2. THREE.JS TOPOGRAPHY BACKGROUND — fixed in HYBRID motion.
+// =====================================================================
+const container = document.getElementById('canvas-container');
+const scene = new THREE.Scene();
+
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 300);
+camera.position.set(0, 45, 45);
+
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+container.appendChild(renderer.domElement);
+
+const simplex = new SimplexNoise();
+
+// --- state ---
+let targetPaletteIndex = 0;
+let targetPalette = palettes[0];
+
+// movement is FIXED to hybrid — no toggle, per spec.
+const movementMode = 'hybrid';
+let morphOffset = 0;
+let slideOffset = 0;
+
+const toColor = arr => new THREE.Color(arr[0]/255, arr[1]/255, arr[2]/255);
+
+const currentBase    = toColor(targetPalette.base);
+const currentLines   = toColor(targetPalette.lines);
+const currentText    = toColor(targetPalette.text);
+const currentSplotches = targetPalette.splotches.map(toColor);
+
+scene.background = currentBase;
+scene.fog = new THREE.FogExp2(currentBase, 0.018);
+
+// --- terrain shader (contour lines + splotch lighting) ---
+const mapSize = 200;
+const resolution = 300;
+const geometry = new THREE.PlaneGeometry(mapSize, mapSize, resolution, resolution);
+
+const uniforms = {
+    uBaseColor:  { value: currentBase },
+    uLineColor:  { value: currentLines },
+    uLightPos:   { value: [] },
+    uLightColor: { value: [] },
+    uTime:       { value: 0.0 }
+};
+
+const terrainMaterial = new THREE.ShaderMaterial({
+    uniforms,
+    extensions: { derivatives: true },
+    vertexShader: `
+        varying float vElevation;
+        varying vec3 vWorldPos;
+        void main(){
+            vElevation = position.z;
+            vec4 wp = modelMatrix * vec4(position, 1.0);
+            vWorldPos = wp.xyz;
+            gl_Position = projectionMatrix * viewMatrix * wp;
         }
-        window.addEventListener('resize', resize);
-        resize();
+    `,
+    fragmentShader: `
+        uniform vec3 uBaseColor;
+        uniform vec3 uLineColor;
+        uniform vec3 uLightPos[6];
+        uniform vec3 uLightColor[6];
+        varying float vElevation;
+        varying vec3 vWorldPos;
+        void main(){
+            float contourDensity = vElevation * 0.8;
+            float contourFract = fract(contourDensity);
+            float distToLine = min(contourFract, 1.0 - contourFract);
+            float pixelDist = distToLine / fwidth(contourDensity);
+            float lineThickness = 1.2;
+            float coreLine = 1.0 - clamp(pixelDist - lineThickness, 0.0, 1.0);
+            float glow = exp(-pixelDist / 8.0) * 0.55;
+            float line = clamp(coreLine + glow, 0.0, 1.0);
 
-        // --- 3. COLOR INTERPOLATION LOGIC ---
-        // We use an exponential smoothing function so the colors glide smoothly
-        // when you click the button, preventing sudden jarring snaps.
-        let targetPaletteIndex = 0;
-        let targetPalette = palettes[targetPaletteIndex];
-        
-        // Deep copy the starting palette to track our current rendering state
-        let currentState = JSON.parse(JSON.stringify(palettes[0]));
+            float normElevation = clamp((vElevation + 6.0) / 12.0, 0.0, 1.0);
+            vec3 surfaceColor = mix(uBaseColor * 0.4, uBaseColor * 1.2, normElevation);
 
-        function smoothColor(current, target, speed = 0.04) {
-            return [
-                current[0] + (target[0] - current[0]) * speed,
-                current[1] + (target[1] - current[1]) * speed,
-                current[2] + (target[2] - current[2]) * speed,
-                current[3] + (target[3] - current[3]) * speed,
-            ];
-        }
-
-        function formatColor(c) {
-            return `rgba(${Math.round(c[0])}, ${Math.round(c[1])}, ${Math.round(c[2])}, ${c[3]})`;
-        }
-
-        // --- 4. SPLOTCHES (ORBS) ---
-        class Splotch {
-            constructor(colorIndex) {
-                this.x = Math.random() * width;
-                this.y = Math.random() * height;
-                this.radius = Math.random() * 400 + 200; // Large, soft radius
-                this.vx = (Math.random() - 0.5) * 1.5;
-                this.vy = (Math.random() - 0.5) * 1.5;
-                this.colorIndex = colorIndex; // Refers to splotches[0], [1], or [2]
-            }
-
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
-
-                // Soft bounce off invisible walls slightly outside the screen
-                if (this.x < -100) this.vx = Math.abs(this.vx);
-                if (this.x > width + 100) this.vx = -Math.abs(this.vx);
-                if (this.y < -100) this.vy = Math.abs(this.vy);
-                if (this.y > height + 100) this.vy = -Math.abs(this.vy);
-            }
-
-            draw(ctx) {
-                let colorArr = currentState.splotches[this.colorIndex];
-                let centerColor = formatColor(colorArr);
-                
-                // Fade edge to transparent
-                let edgeColorArr = [...colorArr];
-                edgeColorArr[3] = 0; 
-                let edgeColor = formatColor(edgeColorArr);
-
-                const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius);
-                gradient.addColorStop(0, centerColor);
-                gradient.addColorStop(1, edgeColor);
-
-                ctx.fillStyle = gradient;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-
-        // Create 6 splotches, 2 of each palette color accent
-        const splotches = [];
-        for(let i = 0; i < 6; i++) {
-            splotches.push(new Splotch(i % 3));
-        }
-
-        // --- 5. ANIMATION LOOP ---
-        let time = 0;
-        function animate() {
-            // Smoothly update colors towards the target palette
-            currentState.base = smoothColor(currentState.base, targetPalette.base);
-            currentState.lines = smoothColor(currentState.lines, targetPalette.lines);
-            for(let i = 0; i < 3; i++){
-                currentState.splotches[i] = smoothColor(currentState.splotches[i], targetPalette.splotches[i]);
-            }
-
-            // Draw Base Background
-            ctx.fillStyle = formatColor(currentState.base);
-            ctx.fillRect(0, 0, width, height);
-
-            // Update & Draw Splotches (Additive/Screen style overlapping)
-            // standard source-over looks best and most consistent, relying on RGBA alphas
-            ctx.globalCompositeOperation = 'source-over';
-            splotches.forEach(s => {
-                s.update();
-                s.draw(ctx);
-            });
-
-            // Draw Topographic Wave Lines
-            ctx.strokeStyle = formatColor(currentState.lines);
-            ctx.lineWidth = 1.5;
-            
-            const lineSpacing = 35;
-            const xStep = 15;
-            
-            // Draw lines across the screen, offset by time and 3D noise
-            for (let y = -200; y < height + 200; y += lineSpacing) {
-                ctx.beginPath();
-                for (let x = -100; x <= width + 100; x += xStep) {
-                    // Combine a gentle sine wave with Simplex noise for organic contouring
-                    let baseWave = Math.sin(x * 0.003 + time * 0.001) * 30;
-                    let noise = simplex.noise3D(x * 0.0012, y * 0.0015, time * 0.0003);
-                    let yOffset = baseWave + (noise * 180); 
-                    
-                    if (x === -100) {
-                        ctx.moveTo(x, y + yOffset);
-                    } else {
-                        ctx.lineTo(x, y + yOffset);
-                    }
-                }
-                ctx.stroke();
+            vec3 lighting = vec3(0.0);
+            for(int i=0;i<6;i++){
+                float dist = distance(vWorldPos, uLightPos[i]);
+                float atten = smoothstep(50.0, 0.0, dist);
+                lighting += uLightColor[i] * atten;
             }
 
-            time += 1;
-            requestAnimationFrame(animate);
+            vec3 finalColor = surfaceColor + (lighting * 0.8);
+            vec3 glowingLine = (uLineColor * 1.2) + (lighting * 0.5);
+            finalColor = mix(finalColor, glowingLine, line);
+
+            gl_FragColor = vec4(finalColor, 1.0);
+
+            float depth = gl_FragCoord.z / gl_FragCoord.w;
+            float fogFactor = exp2(-0.018 * 0.018 * depth * depth * 1.442695);
+            gl_FragColor.rgb = mix(uBaseColor, gl_FragColor.rgb, fogFactor);
         }
+    `
+});
 
-        // --- 6. UI INTERACTION ---
-        document.getElementById('cycle-btn').addEventListener('click', () => {
-            targetPaletteIndex = (targetPaletteIndex + 1) % palettes.length;
-            targetPalette = palettes[targetPaletteIndex];
-            
-            // Immediately update the text UI, canvas colors will smoothly transition
-            document.getElementById('palette-name').innerText = targetPalette.name;
-            document.getElementById('palette-desc').innerText = targetPalette.desc;
-        });
+const terrain = new THREE.Mesh(geometry, terrainMaterial);
+terrain.rotation.x = -Math.PI / 2;
+scene.add(terrain);
 
-        // Start the loop
-        animate();
-    </script>
+// --- virtual splotch lights ---
+const virtualLights = [];
+for(let i=0;i<6;i++){
+    virtualLights.push({
+        position: new THREE.Vector3((Math.random()-0.5)*120, 4+Math.random()*8, (Math.random()-0.5)*120),
+        vx: (Math.random()-0.5)*0.05,
+        vz: (Math.random()-0.5)*0.05,
+        colorIndex: i % 3
+    });
+    uniforms.uLightPos.value.push(new THREE.Vector3());
+    uniforms.uLightColor.value.push(new THREE.Color());
+}
+
+// =====================================================================
+// 3. RING OVERLAY — nodes transmitting diffuse glow flux lines.
+// =====================================================================
+const ringCanvas = document.getElementById('ring');
+const rctx = ringCanvas.getContext('2d');
+let rw = 0, rh = 0, rdpr = 1;
+
+function resizeRing(){
+    rdpr = Math.min(window.devicePixelRatio || 1, 2);
+    rw = window.innerWidth;
+    rh = window.innerHeight;
+    ringCanvas.width  = Math.floor(rw * rdpr);
+    ringCanvas.height = Math.floor(rh * rdpr);
+    ringCanvas.style.width  = rw + 'px';
+    ringCanvas.style.height = rh + 'px';
+    rctx.setTransform(rdpr, 0, 0, rdpr, 0, 0);
+}
+resizeRing();
+
+const NODE_COUNT = 11;
+// chord offsets — gives a balanced, non-neighbor transmission pattern
+const EDGE_OFFSETS = [3, 5, 7];
+const edges = [];
+for(let i=0;i<NODE_COUNT;i++){
+    for(const off of EDGE_OFFSETS){
+        const j = (i + off) % NODE_COUNT;
+        const a = Math.min(i,j), b = Math.max(i,j);
+        if(!edges.find(e => e.a===a && e.b===b)){
+            edges.push({ a, b, phase: Math.random(), speed: 0.18 + Math.random()*0.22 });
+        }
+    }
+}
+
+// per-node accent index into splotches (for occasional color variance)
+const nodeAccent = [];
+for(let i=0;i<NODE_COUNT;i++) nodeAccent.push(i % 3);
+
+function cssRGB(c, a){
+    const r = Math.round(c.r*255), g = Math.round(c.g*255), b = Math.round(c.b*255);
+    return (a === undefined) ? `rgb(${r},${g},${b})` : `rgba(${r},${g},${b},${a})`;
+}
+
+function drawRing(t){
+    rctx.clearRect(0, 0, rw, rh);
+
+    const cx = rw / 2, cy = rh / 2;
+    const radius = Math.min(rw, rh) * 0.30;
+    const rot = t * 0.06;
+
+    // node positions
+    const pos = [];
+    for(let i=0;i<NODE_COUNT;i++){
+        const ang = (i / NODE_COUNT) * Math.PI * 2 + rot;
+        pos.push({ x: cx + Math.cos(ang)*radius, y: cy + Math.sin(ang)*radius, ang });
+    }
+
+    const lineCol = currentLines;
+    const splotchCols = currentSplotches;
+
+    // --- flux lines: diffuse multi-stroke glow + traveling pulses ---
+    rctx.lineCap = 'round';
+    for(const e of edges){
+        const p0 = pos[e.a], p1 = pos[e.b];
+
+        // diffuse halo (wide, very faint) → mid → bright core
+        rctx.strokeStyle = cssRGB(lineCol, 0.045);
+        rctx.lineWidth = 7;
+        rctx.beginPath(); rctx.moveTo(p0.x,p0.y); rctx.lineTo(p1.x,p1.y); rctx.stroke();
+
+        rctx.strokeStyle = cssRGB(lineCol, 0.10);
+        rctx.lineWidth = 2.4;
+        rctx.beginPath(); rctx.moveTo(p0.x,p0.y); rctx.lineTo(p1.x,p1.y); rctx.stroke();
+
+        rctx.strokeStyle = cssRGB(lineCol, 0.22);
+        rctx.lineWidth = 0.9;
+        rctx.beginPath(); rctx.moveTo(p0.x,p0.y); rctx.lineTo(p1.x,p1.y); rctx.stroke();
+
+        // traveling pulse — the "transmission"
+        const prog = (t * e.speed + e.phase) % 1;
+        const px = p0.x + (p1.x - p0.x) * prog;
+        const py = p0.y + (p1.y - p0.y) * prog;
+        const pulseR = 16;
+        const pg = rctx.createRadialGradient(px, py, 0, px, py, pulseR);
+        pg.addColorStop(0, cssRGB(lineCol, 0.95));
+        pg.addColorStop(0.4, cssRGB(lineCol, 0.35));
+        pg.addColorStop(1, cssRGB(lineCol, 0));
+        rctx.fillStyle = pg;
+        rctx.beginPath(); rctx.arc(px, py, pulseR, 0, Math.PI*2); rctx.fill();
+    }
+
+    // --- nodes ---
+    for(let i=0;i<NODE_COUNT;i++){
+        const p = pos[i];
+        const pulse = 0.5 + 0.5 * Math.sin(t * 1.6 + i * 0.9);
+        const nodeR = 5 + pulse * 3;
+        const acc = splotchCols[nodeAccent[i]];
+
+        // outer diffuse glow
+        const glowR = 26 + pulse * 8;
+        const g0 = rctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, glowR);
+        g0.addColorStop(0, cssRGB(lineCol, 0.55));
+        g0.addColorStop(0.5, cssRGB(acc, 0.18));
+        g0.addColorStop(1, cssRGB(lineCol, 0));
+        rctx.fillStyle = g0;
+        rctx.beginPath(); rctx.arc(p.x, p.y, glowR, 0, Math.PI*2); rctx.fill();
+
+        // core
+        const g1 = rctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, nodeR);
+        g1.addColorStop(0, cssRGB(lineCol, 1.0));
+        g1.addColorStop(1, cssRGB(lineCol, 0.2));
+        rctx.fillStyle = g1;
+        rctx.beginPath(); rctx.arc(p.x, p.y, nodeR, 0, Math.PI*2); rctx.fill();
+
+        // ring outline
+        rctx.strokeStyle = cssRGB(acc, 0.55);
+        rctx.lineWidth = 1;
+        rctx.beginPath(); rctx.arc(p.x, p.y, nodeR + 4, 0, Math.PI*2); rctx.stroke();
+    }
+}
+
+// =====================================================================
+// 4. THEME APPLICATION — push lerped colors into the frosted glass + copy
+// =====================================================================
+const root = document.documentElement;
+function applyThemeVars(){
+    root.style.setProperty('--glass-bg',     cssRGB(currentBase, 0.60));
+    root.style.setProperty('--glass-border', cssRGB(currentLines, 0.35));
+    root.style.setProperty('--accent',       cssRGB(currentLines));
+    root.style.setProperty('--text',         cssRGB(currentText));
+    root.style.setProperty('--text-muted',   cssRGB(currentText, 0.62));
+}
+
+// =====================================================================
+// 5. LATENT GLOSSES — shuffled into the second frosted window
+// =====================================================================
+const GLOSSES = [
+    ["FLUX",   "diffuse glow traded between nodes ;; evidence of relation, not of substance."],
+    ["NODE",   "a point that insists long enough to transmit."],
+    ["LATENT", "present in potential ;; suppressed by the active theme."],
+    ["GLOSS",  "a thin skin of meaning over a surface that refuses depth."],
+    ["REGIME", "the current attractor ;; everything else is weather."],
+    ["HYBRID", "slow morph under fast drift ;; the only honest motion."],
+    ["SURFACE","what you see when the dimension below won't fit."],
+    ["TRANSMIT","to push signal into the dark and not require a reply."],
+    ["STEALTH","low albedo, high coherence ;; visibility is a choice."],
+    ["BURN",   "acid on the grid ;; readable because it hurts a little."],
+    ["COOL",   "teal at the threshold where warm eyes give up."],
+    ["SHUFFLE","a cheap revolution ;; the deck was already stacked."],
+    ["RING",   "a closure with no outside ;; every node is a neighbor of the curve."],
+    ["PULSE",  "a node remembering, briefly, that it is not alone."]
+];
+const glossList = document.getElementById('gloss-list');
+function shuffleGlosses(){
+    const pool = GLOSSES.slice();
+    // Fisher–Yates pick 3
+    for(let i = pool.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    const three = pool.slice(0, 3);
+    glossList.innerHTML = three.map(([t,d]) =>
+        `<li><b>${t}</b> ;; ${d}</li>`
+    ).join('');
+}
+shuffleGlosses();
+
+// =====================================================================
+// 6. ANIMATION LOOP — one RAF drives terrain, ring overlay, and theme vars
+// =====================================================================
+let globalTime = 0;
+const clock = new THREE.Clock();
+
+function animate(){
+    requestAnimationFrame(animate);
+    const delta = clock.getDelta();
+
+    // fixed hybrid motion
+    morphOffset += delta * 0.008;
+    slideOffset += delta * 6.0;
+    globalTime  += delta * 0.08;
+    uniforms.uTime.value = globalTime;
+
+    // lerp colors toward target theme
+    currentBase.lerp(toColor(targetPalette.base), 0.04);
+    currentLines.lerp(toColor(targetPalette.lines), 0.04);
+    currentText.lerp(toColor(targetPalette.text), 0.04);
+    for(let i=0;i<3;i++) currentSplotches[i].lerp(toColor(targetPalette.splotches[i]), 0.04);
+
+    scene.background = currentBase;
+    scene.fog.color = currentBase;
+    uniforms.uBaseColor.value = currentBase;
+    uniforms.uLineColor.value = currentLines;
+
+    // terrain vertices
+    const positions = geometry.attributes.position;
+    for(let i=0;i<positions.count;i++){
+        const x = positions.getX(i);
+        const y = positions.getY(i);
+        const scale = 0.012;
+        const h = simplex.noise3D(x*scale, (y+slideOffset)*scale, morphOffset) * 8.5;
+        positions.setZ(i, h);
+    }
+    positions.needsUpdate = true;
+
+    // splotch lights
+    for(let i=0;i<6;i++){
+        const L = virtualLights[i];
+        L.position.x += L.vx;
+        L.position.z += L.vz;
+        if(L.position.x < -80 || L.position.x > 80) L.vx *= -1;
+        if(L.position.z < -80 || L.position.z > 80) L.vz *= -1;
+        uniforms.uLightPos.value[i].copy(L.position);
+        uniforms.uLightColor.value[i].copy(currentSplotches[L.colorIndex]);
+    }
+
+    // camera drift
+    camera.position.x = Math.sin(globalTime * 0.2) * 10;
+    camera.lookAt(0, 0, 0);
+
+    renderer.render(scene, camera);
+
+    // overlay + theme
+    drawRing(globalTime * 3.0);
+    applyThemeVars();
+}
+
+// =====================================================================
+// 7. RESIZE + UI
+// =====================================================================
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    resizeRing();
+});
+
+const modeBtn   = document.getElementById('mode-btn');
+const modeLabel = document.getElementById('mode-label');
+const paletteName = document.getElementById('palette-name');
+const paletteDesc = document.getElementById('palette-desc');
+
+modeBtn.addEventListener('click', () => {
+    targetPaletteIndex = (targetPaletteIndex + 1) % palettes.length;
+    targetPalette = palettes[targetPaletteIndex];
+    paletteName.textContent = targetPalette.name;
+    paletteDesc.textContent = targetPalette.desc;
+    modeLabel.textContent = targetPalette.name;
+});
+
+document.getElementById('shuffle-btn').addEventListener('click', shuffleGlosses);
+
+// start
+animate();
+</script>
 </body>
 </html>
