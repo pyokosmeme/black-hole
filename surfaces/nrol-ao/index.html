@@ -51,6 +51,8 @@ a:hover{border-color:var(--cyan)}
 .panel h2{margin:0 0 12px;font-size:12px;letter-spacing:.11em;text-transform:uppercase;color:#c7f6ff;border-bottom:1px solid var(--border);padding-bottom:6px}
 .tlist{display:flex;flex-direction:column;gap:6px;max-height:72vh;overflow-y:auto}
 .tlist::-webkit-scrollbar{width:7px} .tlist::-webkit-scrollbar-thumb{background:#70f7ff38;border-radius:999px}
+.group-head{font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin:12px 2px 4px;padding-bottom:3px;border-bottom:1px solid #ffffff14;font-weight:600}
+.group-head:first-child{margin-top:0}
 .tcard{border:1px solid #70f7ff1a;background:#02050db0;padding:9px 11px;cursor:pointer;transition:border-color .15s,background .15s}
 .tcard:hover{border-color:#70f7ff55}
 .tcard.sel{border-color:var(--cyan);background:#70f7ff12;box-shadow:inset 0 0 22px #70f7ff12}
@@ -151,20 +153,31 @@ async function load(){
 function renderList(){
   const el = document.getElementById('tlist');
   el.innerHTML = '';
-  for(const t of DATA.topics){
-    const d = document.createElement('div');
-    d.className = 'tcard';
-    d.dataset.slug = t.slug;
-    d.innerHTML = `
-      <div class="ttitle">${escapeHtml(t.title)}</div>
-      <div class="tmeta">
-        <span class="badge ${t.status}">${t.status}</span>
-        <span class="badge ${t.classification}">${t.classification}</span>
-        <span class="badge ${t.health||''}">${t.health||'?'}</span>
-      </div>`;
-    d.onclick = ()=>select(t);
-    el.appendChild(d);
+  const active = DATA.topics.filter(t => t.status !== 'RESOLVED');
+  const historical = DATA.topics.filter(t => t.status === 'RESOLVED');
+  if(active.length){
+    el.innerHTML += `<div class="group-head">active</div>`;
+    for(const t of active) el.appendChild(tcard(t));
   }
+  if(historical.length){
+    el.innerHTML += `<div class="group-head">historical (resolved)</div>`;
+    for(const t of historical) el.appendChild(tcard(t));
+  }
+}
+
+function tcard(t){
+  const d = document.createElement('div');
+  d.className = 'tcard';
+  d.dataset.slug = t.slug;
+  d.innerHTML = `
+    <div class="ttitle">${escapeHtml(t.title)}</div>
+    <div class="tmeta">
+      <span class="badge ${t.status}">${t.status}</span>
+      <span class="badge ${t.classification}">${t.classification}</span>
+      <span class="badge ${t.health||''}">${t.health||'?'}</span>
+    </div>`;
+  d.onclick = ()=>select(t);
+  return d;
 }
 
 function select(t){

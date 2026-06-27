@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-27T18:46:03+00:00",
+  "generated_at": "2026-06-27T20:41:01+00:00",
   "topic_count": 3,
   "topics": [
     {
@@ -35,8 +35,8 @@
       "status": "ACTIVE",
       "classification": "ALERT",
       "lastUpdated": "2026-06-27T16:12:19+00:00",
-      "question": "By what date will the Strait of Hormuz reopen to normal traffic (â‰¥80% of 2024-2025 baseline transit volume, sustained for â‰¥30 consecutive days, per Lloyd's List Intelligence + EIA tanker data)?",
-      "resolution": "First 30-day window where AIS-confirmed transit volume reaches â‰¥80% of baseline (mean of 2024 + 2025 daily transits per Lloyd's/EIA)",
+      "question": "By what date will the Strait of Hormuz reopen to normal traffic (≥80% of 2024-2025 baseline transit volume, sustained for ≥30 consecutive days, per Lloyd's List Intelligence + EIA tanker data)?",
+      "resolution": "First 30-day window where AIS-confirmed transit volume reaches ≥80% of baseline (mean of 2024 + 2025 daily transits per Lloyd's/EIA)",
       "hypothesis_labels": {
         "H1": "Reopens by 2026-09-30",
         "H2": "Reopens 2026-10-01 to 2027-03-31",
