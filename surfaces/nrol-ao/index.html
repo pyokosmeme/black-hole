@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>NROL-AO Shadow vs Active</title>
+<style>
+:root{--bg:#05070d;--ink:#eaf8ff;--muted:#91a6c0;--cyan:#70f7ff;--mag:#ff4fd8;--gold:#ffd36e;--green:#4fd8a0;--amber:#ffb347;--red:#ff6b6b;--panel:#0b1020de;--panel2:#160d22c8;--border:#70f7ff28}
+*{box-sizing:border-box} html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,Segoe UI,sans-serif;font-size:14px;line-height:1.5}
+body{background:radial-gradient(circle at 18% 12%,#123047,transparent 36%),radial-gradient(circle at 84% 72%,#35143d,transparent 36%),linear-gradient(135deg,#05070d,#080b16 54%,#080510);min-height:100vh}
+a{color:var(--cyan);text-decoration:none;border-bottom:1px solid #70f7ff66}
+.wrap{max-width:1100px;margin:0 auto;padding:24px 18px 60px}
+header{margin-bottom:22px}
+header h1{margin:0;font-size:24px;letter-spacing:.01em}
+header .sub{margin-top:6px;color:var(--muted);font-size:13px}
+header .meta{margin-top:8px;color:var(--muted);font-size:11px;font-family:ui-monospace,Consolas,monospace}
+.badge{display:inline-block;padding:1px 8px;border-radius:3px;font-size:10px;font-weight:700;letter-spacing:.06em;vertical-align:1px}
+.badge.ACTIVE{background:var(--green);color:#040}
+.badge.RESOLVED{background:var(--muted);color:#040}
+.badge.ALERT{background:transparent;color:var(--red);border:1px solid var(--red)}
+.badge.ROUTINE{background:var(--green);color:#040}
+.badge.HEALTHY{color:var(--green)}
+.badge.DEGRADED{color:var(--amber)}
+.badge.CRITICAL{color:var(--red)}
+.grid{display:grid;grid-template-columns:300px 1fr;gap:18px;align-items:start}
+@media (max-width:760px){.grid{grid-template-columns:1fr}}
+.panel{border:1px solid var(--border);background:linear-gradient(180deg,var(--panel),var(--panel2));padding:16px;box-shadow:0 18px 44px #0008,inset 0 0 36px #70f7ff0a}
+.panel h2{margin:0 0 12px;font-size:12px;letter-spacing:.11em;text-transform:uppercase;color:#c7f6ff;border-bottom:1px solid var(--border);padding-bottom:6px}
+.tlist{display:flex;flex-direction:column;gap:6px;max-height:70vh;overflow-y:auto}
+.tlist::-webkit-scrollbar{width:7px} .tlist::-webkit-scrollbar-thumb{background:#70f7ff38;border-radius:999px}
+.tcard{border:1px solid #70f7ff1a;background:#02050db0;padding:9px 11px;cursor:pointer;transition:border-color .15s,background .15s}
+.tcard:hover{border-color:#70f7ff55}
+.tcard.sel{border-color:var(--cyan);background:#70f7ff12;box-shadow:inset 0 0 22px #70f7ff12}
+.tcard .ttitle{font-weight:600;font-size:13px}
+.tcard .tmeta{color:var(--muted);font-size:11px;margin-top:3px}
+.empty{text-align:center;color:var(--muted);padding:50px 20px}
+.topic-head{margin-bottom:14px}
+.topic-head h3{margin:0;font-size:17px}
+.topic-head .q{color:var(--muted);font-size:12px;margin-top:4px;font-style:italic}
+.legend{display:flex;gap:16px;font-size:11px;color:var(--muted);margin:10px 0 12px}
+.legend span{display:flex;align-items:center;gap:5px}
+.legend .sw{width:11px;height:11px;border-radius:2px;display:inline-block}
+.hrow{display:grid;grid-template-columns:54px 1fr 1fr 78px;gap:10px;align-items:center;padding:7px 0;border-bottom:1px solid #ffffff0c;font-size:12px}
+.hrow:last-child{border-bottom:none}
+.hrow .hkey{font-weight:700;font-family:ui-monospace,Consolas,monospace}
+.bar{height:16px;border-radius:3px;overflow:hidden;background:#ffffff08}
+.bar > div{height:100%}
+.delta{font-weight:700;text-align:right;font-variant-numeric:tabular-nums;font-size:12px}
+.delta.up{color:var(--amber)}
+.delta.down{color:var(--cyan)}
+.note{font-size:11px;color:var(--muted);font-style:italic;margin-top:10px}
+.noshadow{color:var(--muted);font-size:12px;padding:14px 0;text-align:center}
+.stat{display:inline-block;margin-right:18px;color:var(--muted);font-size:11px}
+.stat b{color:var(--ink);font-family:ui-monospace,Consolas,monospace}
+.err{color:var(--red);padding:30px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>NROL-&alpha;&Omega; <span style="color:var(--muted);font-size:14px;font-weight:400">shadow vs active</span></h1>
+    <div class="sub">dynamics-derived shadow posteriors against committed (indicator-driven) posteriors. divergence is a calibration conversation, not an error.</div>
+    <div class="meta" id="meta">loading…</div>
+  </header>
+
+  <div class="grid">
+    <section class="panel">
+      <h2>topics</h2>
+      <div class="tlist" id="tlist"></div>
+    </section>
+    <section class="panel" id="detail">
+      <div class="empty">select a topic</div>
+    </section>
+  </div>
+</div>
+
+<script>
+let DATA = null;
+let SEL = null;
+
+const palette = (n) => {
+  const base = ['#70f7ff','#ff4fd8','#ffd36e','#4fd8a0','#c79bff','#ffb347','#6bdbff'];
+  return Array.from({length:n},(_,i)=>base[i%base.length]);
+};
+
+async function load(){
+  try{
+    const res = await fetch('data.json?'+Date.now());
+    DATA = await res.json();
+  }catch(e){
+    document.getElementById('detail').innerHTML = '<div class="err">could not load data.json — run the export script.</div>';
+    return;
+  }
+  const meta = document.getElementById('meta');
+  meta.textContent = `${DATA.topic_count} topics · generated ${DATA.generated_at}`;
+  renderList();
+  if(DATA.topics.length) select(DATA.topics.find(t=>t.status==='ACTIVE') || DATA.topics[0]);
+}
+
+function renderList(){
+  const el = document.getElementById('tlist');
+  el.innerHTML = '';
+  for(const t of DATA.topics){
+    const d = document.createElement('div');
+    d.className = 'tcard';
+    d.dataset.slug = t.slug;
+    d.innerHTML = `
+      <div class="ttitle">${escapeHtml(t.title)}</div>
+      <div class="tmeta">
+        <span class="badge ${t.status}">${t.status}</span>
+        <span class="badge ${t.classification}">${t.classification}</span>
+        <span class="badge ${t.health}">${t.health||'?'}</span>
+      </div>`;
+    d.onclick = ()=>select(t);
+    el.appendChild(d);
+  }
+}
+
+function select(t){
+  SEL = t;
+  document.querySelectorAll('.tcard').forEach(c=>c.classList.toggle('sel', c.dataset.slug===t.slug));
+  renderDetail(t);
+}
+
+function renderDetail(t){
+  const el = document.getElementById('detail');
+  const keys = Object.keys(t.posteriors||{});
+  const colors = palette(keys.length);
+  if(!t.shadow_posteriors){
+    el.innerHTML = `
+      <div class="topic-head"><h3>${escapeHtml(t.title)}</h3>
+        <div class="q">${escapeHtml(t.slug)} · last updated ${escapeHtml(t.lastUpdated||'?')}</div></div>
+      <div class="stat"><span>status</span> <b>${t.status}</b></div>
+      <div class="stat"><span>health</span> <b>${t.health||'?'}</b></div>
+      <div class="stat"><span>E[${escapeHtml(t.expectedUnit||'')}]</span> <b>${t.expectedValue ?? '?'}</b></div>
+      <h2 style="margin-top:18px">posteriors</h2>
+      ${posteriorBars(t.posteriors, colors, keys)}
+      <div class="noshadow">no dynamics spec — shadow posteriors unavailable for this topic.</div>`;
+    return;
+  }
+  const rows = keys.map((k,i)=>{
+    const cPct = (t.posteriors[k]*100);
+    const sPct = (t.shadow_posteriors[k]*100);
+    const delta = sPct - cPct;
+    const dCls = delta>=0?'up':'down';
+    const dSign = delta>=0?'+':'';
+    return `<div class="hrow">
+      <span class="hkey" style="color:${colors[i]}">${k}</span>
+      <div class="bar"><div style="width:${cPct.toFixed(1)}%;background:var(--cyan)"></div></div>
+      <div class="bar"><div style="width:${sPct.toFixed(1)}%;background:var(--mag)"></div></div>
+      <span class="delta ${dCls}">${dSign}${delta.toFixed(1)}pp</span>
+    </div>`;
+  }).join('');
+  el.innerHTML = `
+    <div class="topic-head"><h3>${escapeHtml(t.title)}</h3>
+      <div class="q">${escapeHtml(t.slug)} · last updated ${escapeHtml(t.lastUpdated||'?')}</div></div>
+    <div class="stat"><span>status</span> <b>${t.status}</b></div>
+    <div class="stat"><span>health</span> <b>${t.health||'?'}</b></div>
+    <div class="stat"><span>entrenched</span> <b>${t.shadow_elapsed_entrenched_days ?? '?'}d</b></div>
+    <h2 style="margin-top:18px">shadow vs active</h2>
+    <div class="legend">
+      <span><span class="sw" style="background:var(--cyan)"></span>committed (indicator-driven)</span>
+      <span><span class="sw" style="background:var(--mag)"></span>shadow (dynamics-derived)</span>
+    </div>
+    <div>${rows}</div>
+    <div class="note">SHADOW — guide, not authoritative. Elapsed time in the entrenched regime updates the exit-rate posterior exactly (Gamma conjugacy); the committed posterior lacks this channel. Divergence is the calibration conversation.</div>`;
+}
+
+function posteriorBars(post, colors, keys){
+  return keys.map((k,i)=>{
+    const pct = (post[k]*100);
+    return `<div class="hrow">
+      <span class="hkey" style="color:${colors[i]}">${k}</span>
+      <div class="bar"><div style="width:${pct.toFixed(1)}%;background:${colors[i]}"></div></div>
+      <div></div><div></div>
+    </div>`;
+  }).join('');
+}
+
+function escapeHtml(s){return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+load();
+</script>
+</body>
+</html>

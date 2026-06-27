@@ -99,6 +99,16 @@
       "flavor": "noisy denoising ;; domains emerge from chaos",
       "desc": "shell lattice denoising with domain tracking — dynamic, Ising-tracked, and fixed modes.",
       "local": true
+    },
+    {
+      "slug": "nrol-ao",
+      "title": "NROL-AO SHADOW",
+      "url": "/surfaces/nrol-ao/",
+      "repo": "https://github.com/lastnpcalex/nrol-alpha-omega",
+      "tags": ["analysis", "tool"],
+      "flavor": "beliefs, priced ;; time as evidence",
+      "desc": "dynamics-derived shadow posteriors vs committed (indicator-driven) posteriors — divergence is the calibration conversation.",
+      "local": true
     }
   ]
 }

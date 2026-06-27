@@ -1,0 +1,73 @@
+{
+  "generated_at": "2026-06-27T02:41:12+00:00",
+  "topic_count": 3,
+  "topics": [
+    {
+      "slug": "calibration-750gev-diphoton",
+      "title": "750 GeV Diphoton Excess",
+      "status": "RESOLVED",
+      "classification": "ALERT",
+      "lastUpdated": "2026-04-29T02:30:58+00:00",
+      "posteriors": {
+        "H1": 0.0,
+        "H2": 1.0,
+        "H3": 0.0,
+        "H4": 0.0
+      },
+      "shadow_posteriors": null,
+      "shadow_delta": null,
+      "shadow_elapsed_entrenched_days": null,
+      "health": "CRITICAL",
+      "expectedValue": 36.49,
+      "expectedUnit": "weeks to resolution"
+    },
+    {
+      "slug": "calibration-hormuz-reopen-2027",
+      "title": "Strait of Hormuz Reopen Date",
+      "status": "ACTIVE",
+      "classification": "ALERT",
+      "lastUpdated": "2026-06-26T23:32:40+00:00",
+      "posteriors": {
+        "H1": 0.0876,
+        "H2": 0.1378,
+        "H3": 0.7688,
+        "H4": 0.0058
+      },
+      "shadow_posteriors": {
+        "H1": 0.0929,
+        "H2": 0.2092,
+        "H3": 0.2065,
+        "H4": 0.4913
+      },
+      "shadow_delta": {
+        "H1": 0.0053,
+        "H2": 0.0714,
+        "H3": -0.5623,
+        "H4": 0.4855
+      },
+      "shadow_elapsed_entrenched_days": 64,
+      "health": "DEGRADED",
+      "expectedValue": 435.96,
+      "expectedUnit": "days from 2026-05-03"
+    },
+    {
+      "slug": "calibration-lk99-superconductor",
+      "title": "LK-99: Room-Temperature Superconductor or Not?",
+      "status": "RESOLVED",
+      "classification": "ROUTINE",
+      "lastUpdated": "2026-04-29T02:30:58+00:00",
+      "posteriors": {
+        "H1": 0.0,
+        "H2": 0.0,
+        "H3": 1.0,
+        "H4": 0.0
+      },
+      "shadow_posteriors": null,
+      "shadow_delta": null,
+      "shadow_elapsed_entrenched_days": null,
+      "health": "DEGRADED",
+      "expectedValue": 5.18,
+      "expectedUnit": "probability_of_SC"
+    }
+  ]
+}
