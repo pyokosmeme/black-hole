@@ -215,15 +215,17 @@
     const mobile = W < 720;
     // reserve gutters on each side so leader labels have room and never run
     // off-screen. on mobile, shrink the ring + widen the gutter so text fits.
-    const gutter = mobile ? Math.min(W * 0.26, 110) : Math.min(W * 0.18, 160);
-    let radius = Math.min(W/2 - gutter - 16, H * 0.34, Math.min(W, H) * (mobile ? 0.30 : 0.36));
-    radius = Math.max(mobile ? 70 : 90, radius);
+    // gutter is small now — text clamps itself to the viewport via getBBox,
+    // so the ring can stay large. keep just enough gutter for the leader bend.
+    const gutter = mobile ? 56 : Math.min(W * 0.18, 160);
+    let radius = Math.min(W/2 - gutter, H * 0.40, Math.min(W, H) * 0.42);
+    radius = Math.max(90, radius);
     let innerR = radius - 6;   // inner edge of arc segments
     let outerR = radius + 26;  // outer edge of arc segments (title band)
-    let orbSize = Math.max(mobile ? 42 : 54, Math.min(W, H) * (mobile ? 0.055 : 0.07));
+    let orbSize = Math.max(54, Math.min(W, H) * 0.07);
     // per-side label x: fixed inside the reserved gutter, never off-screen
-    const leftTextX  = Math.max(12, cx - radius - gutter + 24);
-    const rightTextX = Math.min(W - 12, cx + radius + gutter - 24);
+    const leftTextX  = Math.max(12, cx - radius - 24);
+    const rightTextX = Math.min(W - 12, cx + radius + 24);
     // mobile: truncate titles harder so they fit the narrow gutter
     const titleMax = mobile ? 14 : 32;
     const flavMax  = mobile ? 0 : 32;
@@ -328,15 +330,30 @@
       const dot = document.createElementNS(SVG_NS,'circle');
       dot.setAttribute('class','srf-leader-dot'); dot.setAttribute('cx',bx.toFixed(1)); dot.setAttribute('cy',by.toFixed(1)); dot.setAttribute('r','2');
       labelLayer.appendChild(dot);
+
+      const pad = mobile ? 8 : 14;
       const title = document.createElementNS(SVG_NS,'text');
       title.setAttribute('class','srf-leader-title');
-      title.setAttribute('x',textX.toFixed(1)); title.setAttribute('y',(y-2).toFixed(1));
+      title.setAttribute('y',(y-2).toFixed(1));
       title.setAttribute('text-anchor', anchor);
       title.textContent = titleText;
       labelLayer.appendChild(title);
+      // measure + clamp so the text never runs off the viewport edge
+      try {
+        const bb = title.getBBox();
+        let x = textX;
+        if (anchor === 'start') x = Math.min(x, W - pad - bb.width);
+        else if (anchor === 'end') x = Math.max(x, pad + bb.width);
+        else x = Math.min(Math.max(x, pad + bb.width/2), W - pad - bb.width/2);
+        title.setAttribute('x', x.toFixed(1));
+        // leader endpoint should meet the text edge
+        if (anchor !== 'middle') textX = x;
+      } catch(_){ title.setAttribute('x', textX.toFixed(1)); }
+
       const flav = document.createElementNS(SVG_NS,'text');
       flav.setAttribute('class','srf-leader-flavor');
-      flav.setAttribute('x',textX.toFixed(1)); flav.setAttribute('y',(y+12).toFixed(1));
+      flav.setAttribute('x', title.getAttribute('x'));
+      flav.setAttribute('y',(y+12).toFixed(1));
       flav.setAttribute('text-anchor', anchor);
       flav.textContent = flavText;
       labelLayer.appendChild(flav);
