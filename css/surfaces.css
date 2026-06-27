@@ -549,6 +549,39 @@ html, body {
   overflow: auto;
 }
 
+/* bottom-center pager (only when > 10 surfaces) */
+.srf-frame-pager {
+  bottom: 70px;
+  width: auto;
+  border-radius: 50px;
+  padding: 6px 14px;
+  display: none; /* shown by JS when totalPages > 1 */
+  align-items: center;
+  gap: 18px;
+}
+.srf-frame-pager:not(:empty) { display: flex; }
+.srf-page-arrow {
+  width: 42px; height: 42px;
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,0.04);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.18s ease, transform 0.18s ease;
+}
+.srf-page-arrow svg { width: 16px; height: 16px; fill: var(--srf-ink); }
+.srf-page-arrow:hover { background: rgba(255,179,71,0.18); transform: scale(1.08); }
+.srf-page-arrow:hover svg { fill: var(--srf-amber-hot); }
+.srf-page-count {
+  font-family: var(--srf-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--srf-ink);
+  min-width: 48px;
+  text-align: center;
+}
+
 /* Circos arc segments around the ring */
 .srf-circos-arc {
   fill: rgba(10, 6, 24, 0.30);
@@ -586,20 +619,28 @@ html, body {
 }
 .srf-ring-node:hover .srf-home-ring { fill: rgba(255, 179, 71, 0.14); }
 
-/* spike titles — radiate outward, non-interactive */
-.srf-spike-title {
+/* leader lines + horizontal labels — bend out from the ring, non-interactive */
+.srf-leader {
+  fill: none;
+  stroke: var(--ring-flux, var(--srf-amber));
+  stroke-width: 0.8;
+  stroke-opacity: 0.5;
+  pointer-events: none;
+}
+.srf-leader-dot { fill: var(--ring-flux, var(--srf-amber)); pointer-events: none; }
+.srf-leader-title {
   font-family: var(--srf-display);
   font-size: 12px;
   font-weight: 700;
-  letter-spacing: 2px;
+  letter-spacing: 1.5px;
   fill: var(--srf-ink);
   text-transform: uppercase;
   pointer-events: none;
   paint-order: stroke;
-  stroke: rgba(5,5,12,0.7);
+  stroke: rgba(5,5,12,0.75);
   stroke-width: 3px;
 }
-.srf-spike-flavor {
+.srf-leader-flavor {
   font-family: var(--srf-mono);
   font-size: 9px;
   letter-spacing: 0.5px;
@@ -607,7 +648,7 @@ html, body {
   font-style: italic;
   pointer-events: none;
   paint-order: stroke;
-  stroke: rgba(5,5,12,0.7);
+  stroke: rgba(5,5,12,0.75);
   stroke-width: 3px;
 }
 
@@ -669,13 +710,49 @@ html, body {
 }
 .srf-style-name { color: var(--srf-amber-hot); }
 
+/* latent glosses trigger (top bar) + fold-down panel */
+.srf-glosses-trigger {
+  font-family: var(--srf-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--srf-ink);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 6px 12px;
+  transition: color 0.18s ease;
+}
+.srf-glosses-trigger:hover { color: var(--srf-amber-hot); }
+.srf-glosses-panel {
+  position: fixed;
+  top: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 7;
+  width: min(680px, 92vw);
+  max-height: 60vh;
+  overflow: auto;
+  padding: 14px 20px;
+  border-radius: 16px;
+  backdrop-filter: blur(16px) saturate(120%);
+  -webkit-backdrop-filter: blur(16px) saturate(120%);
+  background: rgba(5, 6, 12, 0.66);
+  border: 1px solid var(--ring-flux, rgba(255,179,71,0.4));
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5);
+}
+.srf-glosses-panel[hidden] { display: none; }
+/* the widget's own summary is redundant — the top-bar trigger opens the panel */
+.srf-glosses-panel .tx-comments-summary { display: none; }
+.srf-glosses-panel .tx-comments-block { border-top: none; }
+
 /* latent glosses readability over the terrain */
 .srf-frame-bottom .tx-comments-block { font-family: var(--srf-mono); }
 .srf-frame-bottom .tx-comments-summary { color: var(--srf-amber-hot); }
 
 @media (max-width: 720px) {
-  .srf-spike-title { font-size: 10px; letter-spacing: 1px; }
-  .srf-spike-flavor { display: none; }
+  .srf-leader-title { font-size: 10px; letter-spacing: 1px; }
+  .srf-leader-flavor { display: none; }
   .srf-frame-bottom { max-height: 30vh; }
-}}
+}
 

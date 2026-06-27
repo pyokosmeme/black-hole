@@ -28,6 +28,8 @@
   let CFG = null;
   let SURFACES = [];
   let stopAnim = null;
+  const PER_PAGE = 10;
+  let page = 0; // current surfaces page (home node always present, not counted)
 
   // ─── themes ───────────────────────────────────────────────────────
   const palettes = [
@@ -201,12 +203,27 @@
     wrap.appendChild(svg);
 
     let cx = W/2, cy = H/2;
-    let radius = Math.min(W, H) * 0.36; // icons pinned here
+    // reserve gutters on each side so leader labels have room and never run
+    // off-screen. cap the ring at ~34% of the narrower dim minus the gutter.
+    const gutter = Math.min(W * 0.18, 160);
+    let radius = Math.min(W/2 - gutter - 20, H * 0.36, Math.min(W, H) * 0.36);
+    radius = Math.max(90, radius);
     let innerR = radius - 6;   // inner edge of arc segments
     let outerR = radius + 26;  // outer edge of arc segments (title band)
     let orbSize = Math.max(54, Math.min(W, H) * 0.07);
+    // per-side label x: fixed inside the reserved gutter, never off-screen
+    const leftTextX  = Math.max(14, cx - radius - gutter + 40);
+    const rightTextX = Math.min(W - 14, cx + radius + gutter - 40);
+    // the label layer sits above flux, below nodes' hover glow
+    const labelLayer = document.createElementNS(SVG_NS,'g');
+    labelLayer.setAttribute('class','srf-label-layer');
+    svg.appendChild(labelLayer);
 
-    const items = SURFACES.concat([HOME]);
+    // paginate surfaces: ≤10 per page, home node always appended
+    const totalPages = Math.max(1, Math.ceil(SURFACES.length / PER_PAGE));
+    page = ((page % totalPages) + totalPages) % totalPages;
+    const slice = SURFACES.slice(page * PER_PAGE, page * PER_PAGE + PER_PAGE);
+    const items = slice.concat([HOME]);
     const N = items.length;
     const seg = (Math.PI * 2) / N;
     const startAngle = -Math.PI / 2; // first node at top
@@ -268,37 +285,66 @@
         g.addEventListener('click', ()=> openDrawer(n.s));
       }
 
-      // spike title — radiates outward off the arc
-      const onLeft = Math.cos(n.a) < 0;
-      const tlen = radius + 44;
-      const tx = cx + Math.cos(n.a) * tlen, ty = cy + Math.sin(n.a) * tlen;
-      const deg = (n.a * 180) / Math.PI, rot = onLeft ? deg + 180 : deg;
-      const title = document.createElementNS(SVG_NS,'text');
-      title.setAttribute('class','srf-spike-title'); title.setAttribute('x',String(tx)); title.setAttribute('y',String(ty));
-      title.setAttribute('text-anchor', onLeft ? 'end' : 'start');
-      title.setAttribute('transform',`rotate(${rot.toFixed(2)},${tx.toFixed(2)},${ty.toFixed(2)})`);
-      title.textContent = n.s.title; g.appendChild(title);
-
-      const flav = document.createElementNS(SVG_NS,'text');
-      flav.setAttribute('class','srf-spike-flavor'); flav.setAttribute('x',String(tx)); flav.setAttribute('y',String(ty+13));
-      flav.setAttribute('text-anchor', onLeft ? 'end' : 'start');
-      flav.setAttribute('transform',`rotate(${rot.toFixed(2)},${tx.toFixed(2)},${ty.toFixed(2)})`);
-      flav.textContent = (n.s.flavor||'').slice(0,40) + ((n.s.flavor||'').length>40?'…':'');
-      g.appendChild(flav);
-
       // hover tooltip
       g.addEventListener('mouseenter', ()=>{
         tooltip.innerHTML = `<b>${n.s.title}</b><br><span class="srf-tt-flavor">${n.s.flavor||''}</span><br><span class="srf-tt-desc">${n.s.desc||''}</span>`;
         tooltip.style.display='block';
         const r = wrap.getBoundingClientRect();
-        tooltip.style.left = (n.x/W*r.width + 14) + 'px';
-        tooltip.style.top = (n.y/H*r.height - 12) + 'px';
+        tooltip.style.left = Math.min(r.width-240, n.x/W*r.width + 14) + 'px';
+        tooltip.style.top = Math.max(8, n.y/H*r.height - 12) + 'px';
       });
       g.addEventListener('mouseleave', ()=>{ tooltip.style.display='none'; });
 
       nodeLayer.appendChild(g);
-      return g;
+      return { g, n };
     });
+
+    // ─── horizontal leader labels (drawn after nodes, stacked per side) ───
+    // split into left/right halves, order each top→bottom by y, then stack
+    // rows so labels never overlap each other or run off-screen.
+    const rowH = 18;
+    const labelR = radius + 8;            // leader bend point, just outside the ring
+    function placeLabels(side, isLeft){
+      const placedY = [];
+      side.forEach(({n})=>{
+        let y = n.y;
+        while (placedY.length && y < placedY[placedY.length-1] + rowH){
+          y = placedY[placedY.length-1] + rowH;
+        }
+        placedY.push(y);
+        // leader: node → radial bend point → horizontal to text x
+        const bx = cx + Math.cos(n.a) * labelR;
+        const by = cy + Math.sin(n.a) * labelR;
+        const textX = isLeft ? leftTextX : rightTextX;
+        const elbowX = isLeft ? cx - labelR : cx + labelR;
+        const line = document.createElementNS(SVG_NS,'path');
+        line.setAttribute('class','srf-leader');
+        line.setAttribute('d', `M ${n.x.toFixed(1)} ${n.y.toFixed(1)} L ${bx.toFixed(1)} ${by.toFixed(1)} L ${elbowX.toFixed(1)} ${y.toFixed(1)} L ${textX.toFixed(1)} ${y.toFixed(1)}`);
+        labelLayer.appendChild(line);
+
+        const dot = document.createElementNS(SVG_NS,'circle');
+        dot.setAttribute('class','srf-leader-dot'); dot.setAttribute('cx',bx.toFixed(1)); dot.setAttribute('cy',by.toFixed(1)); dot.setAttribute('r','2');
+        labelLayer.appendChild(dot);
+
+        const title = document.createElementNS(SVG_NS,'text');
+        title.setAttribute('class','srf-leader-title');
+        title.setAttribute('x',textX.toFixed(1)); title.setAttribute('y',(y-2).toFixed(1));
+        title.setAttribute('text-anchor', isLeft ? 'end' : 'start');
+        title.textContent = n.s.title;
+        labelLayer.appendChild(title);
+
+        const flav = document.createElementNS(SVG_NS,'text');
+        flav.setAttribute('class','srf-leader-flavor');
+        flav.setAttribute('x',textX.toFixed(1)); flav.setAttribute('y',(y+12).toFixed(1));
+        flav.setAttribute('text-anchor', isLeft ? 'end' : 'start');
+        flav.textContent = (n.s.flavor||'').slice(0,32) + ((n.s.flavor||'').length>32?'…':'');
+        labelLayer.appendChild(flav);
+      });
+    }
+    const leftSide = nodeEls.filter(({n}) => Math.cos(n.a) < 0).sort((a,b)=>a.n.y-b.n.y);
+    const rightSide = nodeEls.filter(({n}) => Math.cos(n.a) >= 0).sort((a,b)=>a.n.y-b.n.y);
+    placeLabels(leftSide, true);
+    placeLabels(rightSide, false);
 
     // ─── stochastic tracer flux ─────────────────────────────────────
     // each tracer sweeps OUT from one node and reaches across to connect
@@ -411,6 +457,35 @@
       stopAnim = requestAnimationFrame(tick);
     }
     stopAnim = requestAnimationFrame(tick);
+
+    // pager (only rendered when more than one page of surfaces exists)
+    renderPager();
+  }
+
+  function renderPager(){
+    const host = document.getElementById('srf-pager');
+    if (!host) return;
+    host.innerHTML = '';
+    const totalPages = Math.max(1, Math.ceil(SURFACES.length / PER_PAGE));
+    if (totalPages <= 1) return; // no pager when ≤10 surfaces
+
+    const mk = (dir, label) => {
+      const b = document.createElement('button');
+      b.className = 'srf-page-arrow srf-page-' + dir;
+      b.setAttribute('aria-label', label);
+      b.innerHTML = dir === 'prev'
+        ? '<svg viewBox="0 0 24 24"><path d="M16 5 L8 12 L16 19 Z"/></svg>'
+        : '<svg viewBox="0 0 24 24"><path d="M8 5 L16 12 L8 19 Z"/></svg>';
+      b.addEventListener('click', () => { page = (page + (dir === 'next' ? 1 : -1) + totalPages) % totalPages; renderRing(); });
+      return b;
+    };
+    const counter = document.createElement('div');
+    counter.className = 'srf-page-count';
+    counter.textContent = (page + 1) + ' / ' + totalPages;
+
+    host.appendChild(mk('prev', 'previous surfaces'));
+    host.appendChild(counter);
+    host.appendChild(mk('next', 'next surfaces'));
   }
 
   // crude quadratic-Bezier length estimate (good enough for dash math)

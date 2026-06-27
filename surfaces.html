@@ -33,18 +33,23 @@
   <div id="srf-topo-bg" aria-hidden="true"></div>
   <div class="srf-stars" aria-hidden="true"></div>
 
-  <!-- top frame: style changer -->
-  <div class="srf-frame srf-frame-top" id="srf-controls"></div>
+  <!-- top frame: style changer + latent glosses trigger -->
+  <div class="srf-frame srf-frame-top" id="srf-controls">
+    <button class="srf-glosses-trigger" id="srf-glosses-btn" aria-expanded="false">LATENT GLOSSES ▾</button>
+  </div>
+
+  <!-- latent glosses fold-down panel (over the ring when open) -->
+  <section class="srf-glosses-panel srf-comments" id="surfaces-comments-host" aria-label="Latent Glosses" hidden></section>
 
   <!-- the circle overlay — fills the viewport over the background -->
   <main class="srf-overlay" id="srf-stage"></main>
 
-  <!-- bottom frame: latent glosses -->
-  <section class="srf-frame srf-frame-bottom srf-comments" id="surfaces-comments-host" aria-label="Latent Glosses"></section>
+  <!-- bottom center: page counter + arrows (only when > 10 surfaces) -->
+  <div class="srf-frame srf-frame-pager" id="srf-pager"></div>
 
   <aside class="srf-drawer" id="srf-drawer" aria-hidden="true"></aside>
 
-  <script src="js/surfaces.js?v=4"></script>
+  <script src="js/surfaces.js?v=5"></script>
   <script type="module">
     import { mount as mountComments } from './js/transmission-comments.js';
 
@@ -56,6 +61,18 @@
       }).catch((error) => {
         host.textContent = 'latent glosses unavailable';
         console.error('[SURFACES] Comments mount failed:', error);
+      });
+    }
+
+    // fold-down toggle for the glosses panel
+    const btn = document.getElementById('srf-glosses-btn');
+    const panel = document.getElementById('surfaces-comments-host');
+    if (btn && panel) {
+      btn.addEventListener('click', () => {
+        const open = !panel.hidden;
+        panel.hidden = open;
+        btn.setAttribute('aria-expanded', String(!open));
+        btn.textContent = open ? 'LATENT GLOSSES ▾' : 'LATENT GLOSSES ▴';
       });
     }
   </script>
