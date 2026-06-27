@@ -185,7 +185,12 @@
     // mount the global topography background (full viewport, fixed)
     const topoMount = document.getElementById('srf-topo-bg');
     if (!topoMount.querySelector('canvas')) {
-      three = setupThree(topoMount);
+      try {
+        three = setupThree(topoMount);
+      } catch (e) {
+        console.error('[SURFACES] topography init failed:', e);
+        three = null;
+      }
       if (!three) topoMount.classList.add('srf-topo-fallback');
     }
 
@@ -268,8 +273,9 @@
       // labels: horizontal leader lines, vertically spread to avoid overlap.
       // split nodes into left/right halves, sort by y, then stack text rows.
       const rowH = 17;
-      const labelR = radius + 18;          // leader bend point radius
-      const horizExt = Math.min(W*0.42, 230); // how far text extends horizontally
+      const labelR = radius + 8;            // leader bend point (just outside the ring)
+      const horizExt = Math.min(W*0.18, 150); // text sits closer on the x-axis
+      const margin = 28;                    // keep text off the viewport edges
       const leftSide = [], rightSide = [];
       nodes.forEach((n)=>{
         if (Math.cos(n.a) < 0) leftSide.push(n); else rightSide.push(n);
@@ -291,7 +297,11 @@
           // leader: from node, radially out to labelR, then horizontal to text x
           const bx = cx + Math.cos(n.a) * labelR;
           const by = cy + Math.sin(n.a) * labelR;
-          const textX = isLeft ? cx - labelR - horizExt : cx + labelR + horizExt;
+          // text x — clamped to the viewport so labels never run off-screen
+          let textX = isLeft ? cx - labelR - horizExt : cx + labelR + horizExt;
+          textX = isLeft
+            ? Math.max(margin, Math.min(textX, cx - labelR - 6))
+            : Math.min(W - margin, Math.max(textX, cx + labelR + 6));
           const line = document.createElementNS(SVG_NS,'path');
           const d = `M ${n.x.toFixed(1)} ${n.y.toFixed(1)} L ${bx.toFixed(1)} ${by.toFixed(1)} L ${(isLeft? cx-labelR : cx+labelR).toFixed(1)} ${y.toFixed(1)} L ${textX.toFixed(1)} ${y.toFixed(1)}`;
           line.setAttribute('d', d);
