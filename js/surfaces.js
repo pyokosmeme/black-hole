@@ -30,6 +30,9 @@
   let stopAnim = null;
 
   // ─── themes ───────────────────────────────────────────────────────
+  // colors are plain [r,g,b] arrays; lerp is manual so the whole color
+  // system works WITHOUT three.js. this keeps cycling + ring colors alive
+  // even if the topography WebGL layer fails to init.
   const palettes = [
     { name: 'High-Contrast Cools', base: [10, 25, 47], lines: [100, 255, 218], splotches: [[17, 34, 64], [2, 132, 199], [255, 183, 77]] },
     { name: 'Tactical Stealth',    base: [8, 8, 9],    lines: [57, 255, 20],  splotches: [[140, 145, 150], [75, 80, 85], [35, 40, 38]] },
@@ -39,10 +42,24 @@
   let themeIdx = 0;
   let target = palettes[0];
 
+  // current lerped colors, as plain arrays (independent of three.js)
+  const curBase = [...target.base];
+  const curLines = [...target.lines];
+  const curSplotch = target.splotches.map(s => [...s]);
+
+  // manual lerp toward target each frame
+  function lerpColor(cur, tgt, speed) {
+    cur[0] += (tgt[0] - cur[0]) * speed;
+    cur[1] += (tgt[1] - cur[1]) * speed;
+    cur[2] += (tgt[2] - cur[2]) * speed;
+  }
+  function stepColors(speed) {
+    lerpColor(curBase, target.base, speed);
+    lerpColor(curLines, target.lines, speed);
+    for (let i = 0; i < 3; i++) lerpColor(curSplotch[i], target.splotches[i], speed);
+  }
+  // THREE.Color wrappers (only used by the topography shader, when available)
   const toColor = (a) => (HAS_THREE ? new THREE.Color(a[0] / 255, a[1] / 255, a[2] / 255) : null);
-  const curBase = HAS_THREE ? toColor(target.base) : null;
-  const curLines = HAS_THREE ? toColor(target.lines) : null;
-  const curSplotch = HAS_THREE ? target.splotches.map(toColor) : null;
 
   // ─── three.js topography, fixed full-viewport ─────────────────────
   let three = null;
@@ -57,12 +74,13 @@
     mount.appendChild(renderer.domElement);
 
     const simplex = new SimplexNoise();
-    scene.background = curBase;
-    scene.fog = new THREE.FogExp2(curBase, 0.018);
+    const cBase0 = toColor(curBase), cLines0 = toColor(curLines);
+    scene.background = cBase0;
+    scene.fog = new THREE.FogExp2(cBase0, 0.018);
 
     const geometry = new THREE.PlaneGeometry(200, 200, 300, 300);
     const uniforms = {
-      uBaseColor: { value: curBase }, uLineColor: { value: curLines },
+      uBaseColor: { value: cBase0 }, uLineColor: { value: cLines0 },
       uLightPos: { value: [] }, uLightColor: { value: [] }, uTime: { value: 0.0 }
     };
     const mat = new THREE.ShaderMaterial({
@@ -103,13 +121,11 @@
   }
 
   function stepThree(t, dt) {
-    if (!three) return;
+    if (!three) return; // topography only; colors already updated in tick()
     three.mo += dt * 0.008; three.so += dt * 6.0;
-    curBase.lerp(toColor(target.base), 0.04);
-    curLines.lerp(toColor(target.lines), 0.04);
-    for (let i = 0; i < 3; i++) curSplotch[i].lerp(toColor(target.splotches[i]), 0.04);
-    three.scene.background = curBase; three.scene.fog.color = curBase;
-    three.uniforms.uBaseColor.value = curBase; three.uniforms.uLineColor.value = curLines; three.uniforms.uTime.value = t * 0.08;
+    const cBase = toColor(curBase), cLines = toColor(curLines);
+    three.scene.background = cBase; three.scene.fog.color = cBase;
+    three.uniforms.uBaseColor.value = cBase; three.uniforms.uLineColor.value = cLines; three.uniforms.uTime.value = t * 0.08;
     const p = three.geometry.attributes.position, so = three.so, mo = three.mo;
     for (let i = 0; i < p.count; i++) p.setZ(i, three.simplex.noise3D(p.getX(i) * 0.012, (p.getY(i) + so) * 0.012, mo) * 8.5);
     p.needsUpdate = true;
@@ -118,16 +134,15 @@
       if (L.position.x < -80 || L.position.x > 80) L.vx *= -1;
       if (L.position.z < -80 || L.position.z > 80) L.vz *= -1;
       three.uniforms.uLightPos.value[i].copy(L.position);
-      three.uniforms.uLightColor.value[i].copy(curSplotch[L.ci]);
+      three.uniforms.uLightColor.value[i].copy(toColor(curSplotch[L.ci]));
     }
     three.camera.position.x = Math.sin(t * 0.2) * 10; three.camera.lookAt(0, 0, 0);
     three.renderer.render(three.scene, three.camera);
   }
 
-  // current lerped line color as css color
+  // current lerped line color as css color (works without three.js)
   function lineCSS(a) {
-    if (!HAS_THREE) return a == null ? 'rgb(100,255,218)' : `rgba(100,255,218,${a})`;
-    const c = curLines, r = Math.round(c.r * 255), g = Math.round(c.g * 255), b = Math.round(c.b * 255);
+    const c = curLines, r = Math.round(c[0]), g = Math.round(c[1]), b = Math.round(c[2]);
     return a == null ? `rgb(${r},${g},${b})` : `rgba(${r},${g},${b},${a})`;
   }
 
@@ -433,6 +448,15 @@
     function tick(now){
       const t = (now - t0)/1000;
       const dt = Math.min(0.05, (now-last)/1000); last = now;
+
+      // color lerp — ALWAYS runs, independent of whether three.js mounted.
+      // this is what makes the STYLE button cycle the ring + flux colors.
+      stepColors(0.04);
+
+      // paint the background div with the lerped base color so it's never a
+      // dead black even if the WebGL canvas failed to init.
+      const bg = document.getElementById('srf-topo-bg');
+      if (bg) bg.style.background = `rgb(${Math.round(curBase[0])},${Math.round(curBase[1])},${Math.round(curBase[2])})`;
 
       stepThree(t, dt);
 
