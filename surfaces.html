@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/surfaces.css?v=3">
+  <link rel="stylesheet" href="css/surfaces.css?v=4">
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <!-- three r128 + simplex for the Circos ring's topography background (local js-libs is r73, too old) -->
@@ -33,23 +33,18 @@
   <div id="srf-topo-bg" aria-hidden="true"></div>
   <div class="srf-stars" aria-hidden="true"></div>
 
-  <!-- top frame: style changer + latent glosses trigger -->
-  <div class="srf-frame srf-frame-top" id="srf-controls">
-    <button class="srf-glosses-trigger" id="srf-glosses-btn" aria-expanded="false">LATENT GLOSSES ▾</button>
-  </div>
-
-  <!-- latent glosses fold-down panel (folds over the ring when open) -->
-  <section class="srf-glosses-panel" id="surfaces-comments-host" aria-label="Latent Glosses" hidden></section>
+  <!-- top frame: style changer -->
+  <div class="srf-frame srf-frame-top" id="srf-controls"></div>
 
   <!-- the circle overlay — fills the viewport over the background -->
   <main class="srf-overlay" id="srf-stage"></main>
 
-  <!-- bottom center: page counter + arrows (only when > 10 surfaces) -->
-  <div class="srf-frame srf-frame-pager" id="srf-pager"></div>
+  <!-- bottom frame: latent glosses -->
+  <section class="srf-frame srf-frame-bottom srf-comments" id="surfaces-comments-host" aria-label="Latent Glosses"></section>
 
   <aside class="srf-drawer" id="srf-drawer" aria-hidden="true"></aside>
 
-  <script src="js/surfaces.js?v=3"></script>
+  <script src="js/surfaces.js?v=4"></script>
   <script type="module">
     import { mount as mountComments } from './js/transmission-comments.js';
 
@@ -63,16 +58,6 @@
         console.error('[SURFACES] Comments mount failed:', error);
       });
     }
-
-    // fold-down toggle
-    const btn = document.getElementById('srf-glosses-btn');
-    const panel = document.getElementById('surfaces-comments-host');
-    btn.addEventListener('click', () => {
-      const open = !panel.hidden;
-      panel.hidden = open;
-      btn.setAttribute('aria-expanded', String(!open));
-      btn.textContent = open ? 'LATENT GLOSSES ▾' : 'LATENT GLOSSES ▴';
-    });
   </script>
 </body>
 </html>
