@@ -206,36 +206,24 @@
     let outerR = radius + 26;  // outer edge of arc segments (title band)
     let orbSize = Math.max(54, Math.min(W, H) * 0.07);
 
-    const items = SURFACES.concat([HOME]);
-    const N = items.length;
-    const seg = (Math.PI * 2) / N;
-    const startAngle = -Math.PI / 2; // first node at top
+    // ─── pagination: ≤10 surfaces per page, home node always present ───
+    const PER_PAGE = 10;
+    const totalPages = Math.max(1, Math.ceil(SURFACES.length / PER_PAGE));
+    let page = 0; // clamped in renderPage
 
-    // node positions pinned to the circle (icons do NOT move)
-    const nodes = items.map((s, i) => {
-      const a = startAngle + i * seg;
-      return { s, a, x: cx + Math.cos(a) * radius, y: cy + Math.sin(a) * radius };
-    });
-
-    // arc-segment bands around the circle (Circos signature)
+    // layers (declared once; renderPage clears & repopulates them)
     const arcLayer = document.createElementNS(SVG_NS,'g');
     arcLayer.setAttribute('class','srf-circos-arcs');
     svg.appendChild(arcLayer);
-    const arcEls = nodes.map((n, i) => {
-      const a0 = n.a - seg/2, a1 = n.a + seg/2;
-      const path = arcPath(cx, cy, innerR, outerR, a0, a1);
-      const p = document.createElementNS(SVG_NS,'path');
-      p.setAttribute('d', path); p.setAttribute('class','srf-circos-arc');
-      arcLayer.appendChild(p);
-      return p;
-    });
 
-    // flux ribbon layer (above arcs, below nodes)
     const fluxLayer = document.createElementNS(SVG_NS,'g');
     fluxLayer.setAttribute('class','srf-flux-layer');
     svg.appendChild(fluxLayer);
 
-    // node layer — icons pinned to the circumference
+    const labelLayer = document.createElementNS(SVG_NS,'g');
+    labelLayer.setAttribute('class','srf-label-layer');
+    svg.appendChild(labelLayer);
+
     const nodeLayer = document.createElementNS(SVG_NS,'g');
     nodeLayer.setAttribute('class','srf-ring-group');
     svg.appendChild(nodeLayer);
@@ -244,61 +232,141 @@
     tooltip.className = 'srf-ring-tooltip';
     wrap.appendChild(tooltip);
 
-    const nodeEls = nodes.map((n) => {
-      const g = document.createElementNS(SVG_NS,'g');
-      g.classList.add('srf-ring-node');
+    const ribbons = [];
+    let currentNodes = [];
 
-      if (n.s.isHome){
-        const ring = document.createElementNS(SVG_NS,'circle');
-        ring.setAttribute('class','srf-home-ring'); ring.setAttribute('cx',String(n.x)); ring.setAttribute('cy',String(n.y)); ring.setAttribute('r',String(orbSize*0.46));
-        g.appendChild(ring);
-        const img = document.createElementNS(SVG_NS,'image');
-        img.setAttributeNS('http://www.w3.org/1999/xlink','xlink:href','img/favicon-32.png');
-        img.setAttribute('href','img/favicon-32.png');
-        img.setAttribute('x',String(n.x-orbSize*0.28)); img.setAttribute('y',String(n.y-orbSize*0.28));
-        img.setAttribute('width',String(orbSize*0.56)); img.setAttribute('height',String(orbSize*0.56));
-        g.appendChild(img);
-        g.style.cursor='pointer';
-        g.addEventListener('click', ()=>{ window.location.href = n.s.url; });
-      } else {
-        const inner = nodeSVG(n.s, orbSize);
-        inner.setAttribute('transform', `translate(${(n.x-orbSize/2).toFixed(2)},${(n.y-orbSize/2).toFixed(2)})`);
-        g.appendChild(inner);
-        g.style.cursor='pointer';
-        g.addEventListener('click', ()=> openDrawer(n.s));
-      }
+    function renderPage(){
+      // clear prior page
+      arcLayer.innerHTML = '';
+      fluxLayer.innerHTML = '';
+      nodeLayer.innerHTML = '';
+      labelLayer.innerHTML = '';
+      ribbons.length = 0;
 
-      // spike title — radiates outward off the arc
-      const onLeft = Math.cos(n.a) < 0;
-      const tlen = radius + 44;
-      const tx = cx + Math.cos(n.a) * tlen, ty = cy + Math.sin(n.a) * tlen;
-      const deg = (n.a * 180) / Math.PI, rot = onLeft ? deg + 180 : deg;
-      const title = document.createElementNS(SVG_NS,'text');
-      title.setAttribute('class','srf-spike-title'); title.setAttribute('x',String(tx)); title.setAttribute('y',String(ty));
-      title.setAttribute('text-anchor', onLeft ? 'end' : 'start');
-      title.setAttribute('transform',`rotate(${rot.toFixed(2)},${tx.toFixed(2)},${ty.toFixed(2)})`);
-      title.textContent = n.s.title; g.appendChild(title);
+      page = (page + totalPages) % totalPages;
+      const start = page * PER_PAGE;
+      const pageSurfaces = SURFACES.slice(start, start + PER_PAGE);
+      const items = pageSurfaces.concat([HOME]); // home last, always present
+      const N = items.length;
+      const seg = (Math.PI * 2) / N;
+      const startAngle = -Math.PI / 2;
 
-      const flav = document.createElementNS(SVG_NS,'text');
-      flav.setAttribute('class','srf-spike-flavor'); flav.setAttribute('x',String(tx)); flav.setAttribute('y',String(ty+13));
-      flav.setAttribute('text-anchor', onLeft ? 'end' : 'start');
-      flav.setAttribute('transform',`rotate(${rot.toFixed(2)},${tx.toFixed(2)},${ty.toFixed(2)})`);
-      flav.textContent = (n.s.flavor||'').slice(0,40) + ((n.s.flavor||'').length>40?'…':'');
-      g.appendChild(flav);
-
-      // hover tooltip
-      g.addEventListener('mouseenter', ()=>{
-        tooltip.innerHTML = `<b>${n.s.title}</b><br><span class="srf-tt-flavor">${n.s.flavor||''}</span><br><span class="srf-tt-desc">${n.s.desc||''}</span>`;
-        tooltip.style.display='block';
-        const r = wrap.getBoundingClientRect();
-        tooltip.style.left = (n.x/W*r.width + 14) + 'px';
-        tooltip.style.top = (n.y/H*r.height - 12) + 'px';
+      const nodes = items.map((s, i) => {
+        const a = startAngle + i * seg;
+        return { s, a, x: cx + Math.cos(a) * radius, y: cy + Math.sin(a) * radius };
       });
-      g.addEventListener('mouseleave', ()=>{ tooltip.style.display='none'; });
 
-      nodeLayer.appendChild(g);
-      return g;
-    });
+      // arc bands
+      nodes.forEach((n) => {
+        const a0 = n.a - seg/2, a1 = n.a + seg/2;
+        const p = document.createElementNS(SVG_NS,'path');
+        p.setAttribute('d', arcPath(cx, cy, innerR, outerR, a0, a1));
+        p.setAttribute('class','srf-circos-arc');
+        arcLayer.appendChild(p);
+      });
+
+      // labels: horizontal leader lines, vertically spread to avoid overlap.
+      // split nodes into left/right halves, sort by y, then stack text rows.
+      const rowH = 17;
+      const labelR = radius + 18;          // leader bend point radius
+      const horizExt = Math.min(W*0.42, 230); // how far text extends horizontally
+      const leftSide = [], rightSide = [];
+      nodes.forEach((n)=>{
+        if (Math.cos(n.a) < 0) leftSide.push(n); else rightSide.push(n);
+      });
+      // order each side top→bottom by y
+      leftSide.sort((p,q)=>p.y-q.y);
+      rightSide.sort((p,q)=>p.y-q.y);
+      function place(side, isLeft){
+        // find vertical slot for each so labels don't collide
+        const placedY = [];
+        side.forEach((n)=>{
+          // desired y = n.y; push down if it collides with the previous
+          let y = n.y;
+          while (placedY.length && y < placedY[placedY.length-1] + rowH){
+            y = placedY[placedY.length-1] + rowH;
+          }
+          placedY.push(y);
+
+          // leader: from node, radially out to labelR, then horizontal to text x
+          const bx = cx + Math.cos(n.a) * labelR;
+          const by = cy + Math.sin(n.a) * labelR;
+          const textX = isLeft ? cx - labelR - horizExt : cx + labelR + horizExt;
+          const line = document.createElementNS(SVG_NS,'path');
+          const d = `M ${n.x.toFixed(1)} ${n.y.toFixed(1)} L ${bx.toFixed(1)} ${by.toFixed(1)} L ${(isLeft? cx-labelR : cx+labelR).toFixed(1)} ${y.toFixed(1)} L ${textX.toFixed(1)} ${y.toFixed(1)}`;
+          line.setAttribute('d', d);
+          line.setAttribute('class','srf-leader');
+          labelLayer.appendChild(line);
+
+          // dot at the bend
+          const dot = document.createElementNS(SVG_NS,'circle');
+          dot.setAttribute('cx', bx.toFixed(1)); dot.setAttribute('cy', by.toFixed(1)); dot.setAttribute('r','2');
+          dot.setAttribute('class','srf-leader-dot');
+          labelLayer.appendChild(dot);
+
+          // title text (horizontal)
+          const title = document.createElementNS(SVG_NS,'text');
+          title.setAttribute('class','srf-leader-title');
+          title.setAttribute('x', textX.toFixed(1));
+          title.setAttribute('y', (y - 2).toFixed(1));
+          title.setAttribute('text-anchor', isLeft ? 'end' : 'start');
+          title.textContent = n.s.title;
+          labelLayer.appendChild(title);
+
+          // flavor under it (only if there's room — skip if it would collide)
+          const flav = document.createElementNS(SVG_NS,'text');
+          flav.setAttribute('class','srf-leader-flavor');
+          flav.setAttribute('x', textX.toFixed(1));
+          flav.setAttribute('y', (y + 11).toFixed(1));
+          flav.setAttribute('text-anchor', isLeft ? 'end' : 'start');
+          flav.textContent = (n.s.flavor||'').slice(0,34) + ((n.s.flavor||'').length>34?'…':'');
+          labelLayer.appendChild(flav);
+        });
+      }
+      place(leftSide, true);
+      place(rightSide, false);
+
+      // nodes (icons pinned)
+      nodes.forEach((n) => {
+        const g = document.createElementNS(SVG_NS,'g');
+        g.classList.add('srf-ring-node');
+
+        if (n.s.isHome){
+          const ring = document.createElementNS(SVG_NS,'circle');
+          ring.setAttribute('class','srf-home-ring'); ring.setAttribute('cx',String(n.x)); ring.setAttribute('cy',String(n.y)); ring.setAttribute('r',String(orbSize*0.46));
+          g.appendChild(ring);
+          const img = document.createElementNS(SVG_NS,'image');
+          img.setAttributeNS('http://www.w3.org/1999/xlink','xlink:href','img/favicon-32.png');
+          img.setAttribute('href','img/favicon-32.png');
+          img.setAttribute('x',String(n.x-orbSize*0.28)); img.setAttribute('y',String(n.y-orbSize*0.28));
+          img.setAttribute('width',String(orbSize*0.56)); img.setAttribute('height',String(orbSize*0.56));
+          g.appendChild(img);
+          g.style.cursor='pointer';
+          g.addEventListener('click', ()=>{ window.location.href = n.s.url; });
+        } else {
+          const inner = nodeSVG(n.s, orbSize);
+          inner.setAttribute('transform', `translate(${(n.x-orbSize/2).toFixed(2)},${(n.y-orbSize/2).toFixed(2)})`);
+          g.appendChild(inner);
+          g.style.cursor='pointer';
+          g.addEventListener('click', ()=> openDrawer(n.s));
+        }
+
+        // hover tooltip
+        g.addEventListener('mouseenter', ()=>{
+          tooltip.innerHTML = `<b>${n.s.title}</b><br><span class="srf-tt-flavor">${n.s.flavor||''}</span><br><span class="srf-tt-desc">${n.s.desc||''}</span>`;
+          tooltip.style.display='block';
+          const r = wrap.getBoundingClientRect();
+          tooltip.style.left = Math.min(r.width-240, n.x/W*r.width + 14) + 'px';
+          tooltip.style.top = Math.max(8, n.y/H*r.height - 12) + 'px';
+        });
+        g.addEventListener('mouseleave', ()=>{ tooltip.style.display='none'; });
+
+        nodeLayer.appendChild(g);
+      });
+
+      // expose current nodes to the flux spawner
+      currentNodes = nodes;
+    }
 
     // ─── stochastic tracer flux ─────────────────────────────────────
     // each tracer sweeps OUT from one node and reaches across to connect
@@ -306,14 +374,15 @@
     // ink thickness: the head is thick, the tail tapers thin — animated
     // via a dashoffset reveal so the stroke "draws itself" outward. a
     // linear gradient + frosted-glass blur stack gives the glassy glow.
-    const ribbons = [];
     const MAX_RIBBONS = 8;
 
     function spawnTracer(){
       if (ribbons.length >= MAX_RIBBONS) return;
+      const N = currentNodes.length;
+      if (N < 2) return;
       let i = Math.floor(Math.random()*N), j = Math.floor(Math.random()*N);
       if (j === i) j = (j+1)%N;
-      const a = nodes[i], b = nodes[j];
+      const a = currentNodes[i], b = currentNodes[j];
       const bow = 0.40 + Math.random()*0.30;
       const ctrlR = radius * (1 - bow);
       const cax = cx + Math.cos(a.a)*ctrlR, cay = cy + Math.sin(a.a)*ctrlR;
@@ -410,7 +479,36 @@
 
       stopAnim = requestAnimationFrame(tick);
     }
-    stopAnim = requestAnimationFrame(tick);
+
+    // initial page + pager UI
+    renderPage();
+    renderPager();
+
+    function renderPager(){
+      const host = document.getElementById('srf-pager');
+      if (!host) return;
+      host.innerHTML = '';
+      if (totalPages <= 1) return; // no pager when ≤10 surfaces
+
+      const mk = (dir, label) => {
+        const b = document.createElement('button');
+        b.className = 'srf-page-arrow srf-page-' + dir;
+        b.setAttribute('aria-label', label);
+        b.innerHTML = dir === 'prev'
+          ? '<svg viewBox="0 0 24 24"><path d="M16 5 L8 12 L16 19 Z"/></svg>'
+          : '<svg viewBox="0 0 24 24"><path d="M8 5 L16 12 L8 19 Z"/></svg>';
+        b.addEventListener('click', ()=>{ page = (page + (dir==='next'?1:-1) + totalPages) % totalPages; renderPage(); renderPager(); });
+        return b;
+      };
+      const counter = document.createElement('div');
+      counter.className = 'srf-page-count';
+      counter.textContent = (page+1) + ' / ' + totalPages;
+
+      host.appendChild(mk('prev','previous surfaces'));
+      host.appendChild(counter);
+      host.appendChild(mk('next','next surfaces'));
+    }
+    // (re-render pager on resize too — handled by the resize re-render in init)
   }
 
   // crude quadratic-Bezier length estimate (good enough for dash math)
