@@ -746,6 +746,9 @@ html, body {
 /* the widget's own summary is redundant — the top-bar trigger opens the panel */
 .srf-glosses-panel .tx-comments-summary { display: none; }
 .srf-glosses-panel .tx-comments-block { border-top: none; }
+/* force the widget's <details> open inside the fold-down panel */
+.srf-glosses-panel details.tx-comments-block { display: block; }
+.srf-glosses-panel details.tx-comments-block > .tx-comments-body { display: block; }
 
 /* latent glosses readability over the terrain */
 .srf-frame-bottom .tx-comments-block { font-family: var(--srf-mono); }

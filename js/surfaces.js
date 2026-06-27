@@ -55,14 +55,17 @@
     camera.position.set(0, 45, 45);
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, window.innerWidth < 720 ? 1.5 : 2));
     mount.appendChild(renderer.domElement);
 
     const simplex = new SimplexNoise();
     scene.background = curBase;
     scene.fog = new THREE.FogExp2(curBase, 0.018);
 
-    const geometry = new THREE.PlaneGeometry(200, 200, 300, 300);
+    // lower resolution on small screens for perf; the morph is slow enough
+    // that the difference is barely visible at the viewing angle.
+    const mobileR = (window.innerWidth < 720) ? 140 : 220;
+    const geometry = new THREE.PlaneGeometry(200, 200, mobileR, mobileR);
     const uniforms = {
       uBaseColor: { value: curBase }, uLineColor: { value: curLines },
       uLightPos: { value: [] }, uLightColor: { value: [] }, uTime: { value: 0.0 }
@@ -104,6 +107,7 @@
     return { scene, camera, renderer, geometry, uniforms, vlights, simplex, mo: 0, so: 0 };
   }
 
+  let terrainFrame = 0;
   function stepThree(t, dt) {
     if (!three) return;
     three.mo += dt * 0.008; three.so += dt * 6.0;
@@ -112,9 +116,14 @@
     for (let i = 0; i < 3; i++) curSplotch[i].lerp(toColor(target.splotches[i]), 0.04);
     three.scene.background = curBase; three.scene.fog.color = curBase;
     three.uniforms.uBaseColor.value = curBase; three.uniforms.uLineColor.value = curLines; three.uniforms.uTime.value = t * 0.08;
-    const p = three.geometry.attributes.position, so = three.so, mo = three.mo;
-    for (let i = 0; i < p.count; i++) p.setZ(i, three.simplex.noise3D(p.getX(i) * 0.012, (p.getY(i) + so) * 0.012, mo) * 8.5);
-    p.needsUpdate = true;
+    // throttle terrain re-sim to every other frame; the morph is slow, so
+    // skipping a frame is invisible but halves the per-frame vertex cost.
+    terrainFrame++;
+    if (terrainFrame % 2 === 0) {
+      const p = three.geometry.attributes.position, so = three.so, mo = three.mo;
+      for (let i = 0; i < p.count; i++) p.setZ(i, three.simplex.noise3D(p.getX(i) * 0.012, (p.getY(i) + so) * 0.012, mo) * 8.5);
+      p.needsUpdate = true;
+    }
     for (let i = 0; i < 6; i++) {
       const L = three.vlights[i]; L.position.x += L.vx; L.position.z += L.vz;
       if (L.position.x < -80 || L.position.x > 80) L.vx *= -1;
@@ -203,17 +212,21 @@
     wrap.appendChild(svg);
 
     let cx = W/2, cy = H/2;
+    const mobile = W < 720;
     // reserve gutters on each side so leader labels have room and never run
-    // off-screen. cap the ring at ~34% of the narrower dim minus the gutter.
-    const gutter = Math.min(W * 0.18, 160);
-    let radius = Math.min(W/2 - gutter - 20, H * 0.36, Math.min(W, H) * 0.36);
-    radius = Math.max(90, radius);
+    // off-screen. on mobile, shrink the ring + widen the gutter so text fits.
+    const gutter = mobile ? Math.min(W * 0.26, 110) : Math.min(W * 0.18, 160);
+    let radius = Math.min(W/2 - gutter - 16, H * 0.34, Math.min(W, H) * (mobile ? 0.30 : 0.36));
+    radius = Math.max(mobile ? 70 : 90, radius);
     let innerR = radius - 6;   // inner edge of arc segments
     let outerR = radius + 26;  // outer edge of arc segments (title band)
-    let orbSize = Math.max(54, Math.min(W, H) * 0.07);
+    let orbSize = Math.max(mobile ? 42 : 54, Math.min(W, H) * (mobile ? 0.055 : 0.07));
     // per-side label x: fixed inside the reserved gutter, never off-screen
-    const leftTextX  = Math.max(14, cx - radius - gutter + 40);
-    const rightTextX = Math.min(W - 14, cx + radius + gutter - 40);
+    const leftTextX  = Math.max(12, cx - radius - gutter + 24);
+    const rightTextX = Math.min(W - 12, cx + radius + gutter - 24);
+    // mobile: truncate titles harder so they fit the narrow gutter
+    const titleMax = mobile ? 14 : 32;
+    const flavMax  = mobile ? 0 : 32;
     // the label layer sits above flux, below nodes' hover glow
     const labelLayer = document.createElementNS(SVG_NS,'g');
     labelLayer.setAttribute('class','srf-label-layer');
@@ -342,8 +355,9 @@
         const textX = isLeft ? leftTextX : rightTextX;
         const elbowX = isLeft ? cx - labelR : cx + labelR;
         const d = `M ${n.x.toFixed(1)} ${n.y.toFixed(1)} L ${bx.toFixed(1)} ${by.toFixed(1)} L ${elbowX.toFixed(1)} ${y.toFixed(1)} L ${textX.toFixed(1)} ${y.toFixed(1)}`;
-        const flv = (n.s.flavor||'').slice(0,32) + ((n.s.flavor||'').length>32?'…':'');
-        drawLabel(textX, y, isLeft?'end':'start', d, bx, by, n.s.title, flv);
+        const flv = flavMax ? ((n.s.flavor||'').slice(0,flavMax) + ((n.s.flavor||'').length>flavMax?'…':'')) : '';
+        const ttl = (n.s.title||'').slice(0,titleMax) + ((n.s.title||'').length>titleMax?'…':'');
+        drawLabel(textX, y, isLeft?'end':'start', d, bx, by, ttl, flv);
       });
     }
 
@@ -356,8 +370,9 @@
         const bx = cx + Math.cos(n.a) * labelR;
         const by = cy + Math.sin(n.a) * labelR;
         const d = `M ${n.x.toFixed(1)} ${n.y.toFixed(1)} L ${bx.toFixed(1)} ${by.toFixed(1)} L ${cx.toFixed(1)} ${y.toFixed(1)}`;
-        const flv = (n.s.flavor||'').slice(0,32) + ((n.s.flavor||'').length>32?'…':'');
-        drawLabel(cx, y, 'middle', d, bx, by, n.s.title, flv);
+        const flv = flavMax ? ((n.s.flavor||'').slice(0,flavMax) + ((n.s.flavor||'').length>flavMax?'…':'')) : '';
+        const ttl = (n.s.title||'').slice(0,titleMax) + ((n.s.title||'').length>titleMax?'…':'');
+        drawLabel(cx, y, 'middle', d, bx, by, ttl, flv);
         y += step;
       });
     }
