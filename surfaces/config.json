@@ -109,6 +109,15 @@
       "flavor": "beliefs, priced ;; time as evidence",
       "desc": "dynamics-derived shadow posteriors vs committed (indicator-driven) posteriors — divergence is the calibration conversation.",
       "local": true
+    },
+    {
+      "slug": "topography-ring",
+      "title": "TOPOLOGY RING",
+      "url": "/surfaces/topography_palettes.html",
+      "tags": ["interactive", "generative"],
+      "flavor": "topology as transmission ;; nodes glow flux across the ring",
+      "desc": "3D topography fixed in hybrid motion; a ring of nodes transmitting diffuse glow between themselves. mode button cycles tactical stealth / acid burn dark+light / high-contrast cools.",
+      "local": true
     }
   ]
 }
