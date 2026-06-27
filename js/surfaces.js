@@ -300,27 +300,30 @@
         g.addEventListener('click', ()=> openDrawer(n.s));
       }
 
-      // hover tooltip
+      // hover tooltip + flux targeting
       g.addEventListener('mouseenter', ()=>{
+        hoveredNode = n;
         tooltip.innerHTML = `<b>${n.s.title}</b><br><span class="srf-tt-flavor">${n.s.flavor||''}</span><br><span class="srf-tt-desc">${n.s.desc||''}</span>`;
         tooltip.style.display='block';
         const r = wrap.getBoundingClientRect();
         tooltip.style.left = Math.min(r.width-240, n.x/W*r.width + 14) + 'px';
         tooltip.style.top = Math.max(8, n.y/H*r.height - 12) + 'px';
       });
-      g.addEventListener('mouseleave', ()=>{ tooltip.style.display='none'; });
+      g.addEventListener('mouseleave', ()=>{ tooltip.style.display='none'; hoveredNode = null; });
 
       nodeLayer.appendChild(g);
       return { g, n };
     });
 
-    // ─── leader labels ───────────────────────────────────────────────
-    // near-vertical nodes (top/bottom of the ring) place labels directly
-    // above/below the circle, stacked. side nodes place horizontal labels
-    // into the left/right gutters, stacked top→bottom.
+    // ─── leader labels (unit-circle radial placement) ───────────────
+    // Each label sits radially just outside its node, along the node's angle,
+    // text horizontal. This keeps every label clear of the circle itself and
+    // of the top/bottom frames, instead of stacking at center where they collide.
     const rowH = 18;
-    const labelR = radius + 8;            // leader bend point, just outside the ring
-    const VERT_C = 0.30;                  // |cos(a)| < this → treat as top/bottom
+    const labelR = radius + 10;          // leader bend point, just outside the ring
+    const pad = mobile ? 8 : 14;
+    // vertical keep-out zones for the style bar (top) and bottom area
+    const topZone = 64, bottomZone = 24;
 
     function drawLabel(textX, y, anchor, leaderPath, bx, by, titleText, flavText){
       const line = document.createElementNS(SVG_NS,'path');
@@ -331,14 +334,13 @@
       dot.setAttribute('class','srf-leader-dot'); dot.setAttribute('cx',bx.toFixed(1)); dot.setAttribute('cy',by.toFixed(1)); dot.setAttribute('r','2');
       labelLayer.appendChild(dot);
 
-      const pad = mobile ? 8 : 14;
       const title = document.createElementNS(SVG_NS,'text');
       title.setAttribute('class','srf-leader-title');
       title.setAttribute('y',(y-2).toFixed(1));
       title.setAttribute('text-anchor', anchor);
       title.textContent = titleText;
       labelLayer.appendChild(title);
-      // measure + clamp so the text never runs off the viewport edge
+      // measure + clamp so text never runs off the viewport edges
       try {
         const bb = title.getBBox();
         let x = textX;
@@ -346,8 +348,6 @@
         else if (anchor === 'end') x = Math.max(x, pad + bb.width);
         else x = Math.min(Math.max(x, pad + bb.width/2), W - pad - bb.width/2);
         title.setAttribute('x', x.toFixed(1));
-        // leader endpoint should meet the text edge
-        if (anchor !== 'middle') textX = x;
       } catch(_){ title.setAttribute('x', textX.toFixed(1)); }
 
       const flav = document.createElementNS(SVG_NS,'text');
@@ -359,53 +359,47 @@
       labelLayer.appendChild(flav);
     }
 
-    function placeSide(side, isLeft){
-      const placedY = [];
-      side.forEach(({n})=>{
-        let y = n.y;
-        while (placedY.length && y < placedY[placedY.length-1] + rowH){
-          y = placedY[placedY.length-1] + rowH;
-        }
-        placedY.push(y);
-        const bx = cx + Math.cos(n.a) * labelR;
-        const by = cy + Math.sin(n.a) * labelR;
+    // place every node's label radially outward along its angle.
+    // near-vertical nodes stack their labels straight up/down (clearing
+    // the top/bottom keep-out zones); side nodes place horizontal labels
+    // stacked along the side, anchored away from the ring.
+    const placed = { left: [], right: [], top: [], bottom: [] };
+    function claimY(list, want, minGap){
+      let y = want;
+      while (list.some(p => Math.abs(p - y) < minGap)) y += minGap;
+      list.push(y);
+      return y;
+    }
+
+    nodeEls.forEach(({n})=>{
+      const bx = cx + Math.cos(n.a) * labelR;
+      const by = cy + Math.sin(n.a) * labelR;
+      const flv = flavMax ? ((n.s.flavor||'').slice(0,flavMax) + ((n.s.flavor||'').length>flavMax?'…':'')) : '';
+      const ttl = (n.s.title||'').slice(0,titleMax) + ((n.s.title||'').length>titleMax?'…':'');
+      const cos = Math.cos(n.a), sin = Math.sin(n.a);
+      const nearVert = Math.abs(cos) < 0.35;
+
+      if (nearVert){
+        // stack straight up (top half) or down (bottom half), clearing keep-outs
+        const isTop = sin < 0;
+        const list = isTop ? placed.top : placed.bottom;
+        let y = isTop ? (by - 16) : (by + 22);
+        y = isTop ? Math.min(y, cy - radius - 14) : Math.max(y, cy + radius + 22);
+        y = claimY(list, y, rowH);
+        if (isTop) y = Math.max(y, topZone + rowH);
+        else      y = Math.min(y, H - bottomZone - rowH);
+        const d = `M ${n.x.toFixed(1)} ${n.y.toFixed(1)} L ${bx.toFixed(1)} ${by.toFixed(1)} L ${cx.toFixed(1)} ${y.toFixed(1)}`;
+        drawLabel(cx, y, 'middle', d, bx, by, ttl, flv);
+      } else {
+        const isLeft = cos < 0;
+        const list = isLeft ? placed.left : placed.right;
+        let y = claimY(list, n.y, rowH);
         const textX = isLeft ? leftTextX : rightTextX;
         const elbowX = isLeft ? cx - labelR : cx + labelR;
         const d = `M ${n.x.toFixed(1)} ${n.y.toFixed(1)} L ${bx.toFixed(1)} ${by.toFixed(1)} L ${elbowX.toFixed(1)} ${y.toFixed(1)} L ${textX.toFixed(1)} ${y.toFixed(1)}`;
-        const flv = flavMax ? ((n.s.flavor||'').slice(0,flavMax) + ((n.s.flavor||'').length>flavMax?'…':'')) : '';
-        const ttl = (n.s.title||'').slice(0,titleMax) + ((n.s.title||'').length>titleMax?'…':'');
         drawLabel(textX, y, isLeft?'end':'start', d, bx, by, ttl, flv);
-      });
-    }
-
-    function placeVertical(arr, isTop){
-      // stack labels directly above (top) or below (bottom) the circle,
-      // centered on cx, growing away from the ring.
-      let y = isTop ? (cy - radius - 24) : (cy + radius + 30);
-      const step = isTop ? -rowH : rowH;
-      arr.forEach(({n})=>{
-        const bx = cx + Math.cos(n.a) * labelR;
-        const by = cy + Math.sin(n.a) * labelR;
-        const d = `M ${n.x.toFixed(1)} ${n.y.toFixed(1)} L ${bx.toFixed(1)} ${by.toFixed(1)} L ${cx.toFixed(1)} ${y.toFixed(1)}`;
-        const flv = flavMax ? ((n.s.flavor||'').slice(0,flavMax) + ((n.s.flavor||'').length>flavMax?'…':'')) : '';
-        const ttl = (n.s.title||'').slice(0,titleMax) + ((n.s.title||'').length>titleMax?'…':'');
-        drawLabel(cx, y, 'middle', d, bx, by, ttl, flv);
-        y += step;
-      });
-    }
-
-    const isTop    = ({n}) => Math.sin(n.a) < 0  && Math.abs(Math.cos(n.a)) < VERT_C;
-    const isBottom = ({n}) => Math.sin(n.a) > 0  && Math.abs(Math.cos(n.a)) < VERT_C;
-    const tops    = nodeEls.filter(isTop).sort((a,b)=>a.n.x-b.n.x);
-    const bottoms = nodeEls.filter(isBottom).sort((a,b)=>a.n.x-b.n.x);
-    const sideOnly = ({n}) => !isTop({n}) && !isBottom({n});
-    const leftSide  = nodeEls.filter(sideOnly).filter(({n})=>Math.cos(n.a) <  0).sort((a,b)=>a.n.y-b.n.y);
-    const rightSide = nodeEls.filter(sideOnly).filter(({n})=>Math.cos(n.a) >= 0).sort((a,b)=>a.n.y-b.n.y);
-
-    placeVertical(tops, true);
-    placeVertical(bottoms, false);
-    placeSide(leftSide, true);
-    placeSide(rightSide, false);
+      }
+    });
 
     // ─── stochastic tracer flux ─────────────────────────────────────
     // each tracer sweeps OUT from one node and reaches across to connect
@@ -415,12 +409,23 @@
     // linear gradient + frosted-glass blur stack gives the glassy glow.
     const ribbons = [];
     const MAX_RIBBONS = 8;
+    let hoveredNode = null;
 
     function spawnTracer(){
       if (ribbons.length >= MAX_RIBBONS) return;
-      let i = Math.floor(Math.random()*N), j = Math.floor(Math.random()*N);
-      if (j === i) j = (j+1)%N;
-      const a = nodes[i], b = nodes[j];
+      // when a node is hovered, bias tracers to point AT it (it's the bright head).
+      // otherwise pick two random nodes.
+      let a, b;
+      if (hoveredNode && Math.random() < 0.75){
+        b = hoveredNode;
+        let i = Math.floor(Math.random()*N);
+        if (nodes[i] === b) i = (i+1)%N;
+        a = nodes[i];
+      } else {
+        let i = Math.floor(Math.random()*N), j = Math.floor(Math.random()*N);
+        if (j === i) j = (j+1)%N;
+        a = nodes[i]; b = nodes[j];
+      }
       const bow = 0.40 + Math.random()*0.30;
       const ctrlR = radius * (1 - bow);
       const cax = cx + Math.cos(a.a)*ctrlR, cay = cy + Math.sin(a.a)*ctrlR;
@@ -428,14 +433,18 @@
       // a single smooth quadratic-Bezier arc from a → b (control near center)
       const d = `M ${a.x} ${a.y} Q ${(cax+cbx)/2} ${(cay+cby)/2} ${b.x} ${b.y}`;
 
-      // unique gradient id, fading from bright (head/a) to translucent (tail)
+      // unique gradient id, themed — fades from translucent (tail) to bright (head).
+      // stops are re-colored each frame in tick() so flux follows the theme.
       const gid = 'rg' + Math.random().toString(36).slice(2,9);
       const grad = document.createElementNS(SVG_NS,'linearGradient');
       grad.setAttribute('id', gid);
       grad.setAttribute('gradientUnits','userSpaceOnUse');
       grad.setAttribute('x1', a.x); grad.setAttribute('y1', a.y);
       grad.setAttribute('x2', b.x); grad.setAttribute('y2', b.y);
-      grad.innerHTML = `<stop offset="0%" stop-color="#fff4d0" stop-opacity="0.05"/><stop offset="40%" stop-color="#fff4d0" stop-opacity="0.55"/><stop offset="100%" stop-color="#fff4d0" stop-opacity="0.95"/>`;
+      const s0 = document.createElementNS(SVG_NS,'stop'); s0.setAttribute('offset','0%');
+      const s1 = document.createElementNS(SVG_NS,'stop'); s1.setAttribute('offset','45%');
+      const s2 = document.createElementNS(SVG_NS,'stop'); s2.setAttribute('offset','100%');
+      grad.appendChild(s0); grad.appendChild(s1); grad.appendChild(s2);
       fluxLayer.appendChild(grad);
 
       // frosted-glass stack: blurred halo + soft mid + crisp core
@@ -443,7 +452,7 @@
       const halo = make('srf-tr-halo'), mid = make('srf-tr-mid'), core = make('srf-tr-core');
 
       ribbons.push({
-        a, b, d, halo, mid, core, gid,
+        a, b, d, halo, mid, core, gid, stops: [s0, s1, s2],
         len: approxPathLen(a.x, a.y, (cax+cbx)/2, (cay+cby)/2, b.x, b.y),
         age: 0, life: 1.6 + Math.random()*1.4,   // sweep + linger
         drawDur: 0.7 + Math.random()*0.4          // portion spent sweeping out
@@ -510,6 +519,14 @@
         r.halo.setAttribute('stroke-width', (thick * 9).toFixed(2));
         r.mid.setAttribute('stroke-width',  (thick * 3.2).toFixed(2));
         r.core.setAttribute('stroke-width',(thick * 1.1).toFixed(2));
+
+        // recolor gradient stops to follow the lerped theme color
+        r.stops[0].setAttribute('stop-color', col);
+        r.stops[0].setAttribute('stop-opacity', (0.05 * op).toFixed(3));
+        r.stops[1].setAttribute('stop-color', col);
+        r.stops[1].setAttribute('stop-opacity', (0.55 * op).toFixed(3));
+        r.stops[2].setAttribute('stop-color', col);
+        r.stops[2].setAttribute('stop-opacity', (0.95 * op).toFixed(3));
       }
 
       // theme color → arc strokes + titles via a stage var

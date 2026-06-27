@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/surfaces.css?v=8">
+  <link rel="stylesheet" href="css/surfaces.css?v=9">
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <!-- three r128 + simplex for the Circos ring's topography background (local js-libs is r73, too old) -->
@@ -33,10 +33,11 @@
   <div id="srf-topo-bg" aria-hidden="true"></div>
   <div class="srf-stars" aria-hidden="true"></div>
 
-  <!-- top frame: style changer + latent glosses trigger -->
-  <div class="srf-frame srf-frame-top" id="srf-controls">
-    <button class="srf-glosses-trigger" id="srf-glosses-btn" aria-expanded="false">LATENT GLOSSES ▾</button>
-  </div>
+  <!-- top frame: style changer (JS fills #srf-controls) -->
+  <div class="srf-frame srf-frame-top" id="srf-controls"></div>
+
+  <!-- latent glosses trigger (separate slot so buildControls can't wipe it) -->
+  <button class="srf-glosses-trigger" id="srf-glosses-btn" aria-expanded="false">LATENT GLOSSES ▾</button>
 
   <!-- latent glosses fold-down panel (over the ring when open) -->
   <section class="srf-glosses-panel srf-comments" id="surfaces-comments-host" aria-label="Latent Glosses" hidden></section>
@@ -49,7 +50,7 @@
 
   <aside class="srf-drawer" id="srf-drawer" aria-hidden="true"></aside>
 
-  <script src="js/surfaces.js?v=8"></script>
+  <script src="js/surfaces.js?v=9"></script>
   <script type="module">
     import { mount as mountComments } from './js/transmission-comments.js';
 
