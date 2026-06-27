@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-27T02:41:12+00:00",
+  "generated_at": "2026-06-27T18:46:03+00:00",
   "topic_count": 3,
   "topics": [
     {
@@ -8,6 +8,14 @@
       "status": "RESOLVED",
       "classification": "ALERT",
       "lastUpdated": "2026-04-29T02:30:58+00:00",
+      "question": "Is the ~750 GeV diphoton excess observed by ATLAS and CMS at the LHC a new particle or a statistical fluctuation?",
+      "resolution": "Resolved when full Run 2 data (2016) confirms or excludes the excess at 5-sigma significance. If excess disappears with more data, H2 wins.",
+      "hypothesis_labels": {
+        "H1": "New particle — genuine resonance at ~750 GeV",
+        "H2": "Statistical fluctuation — disappears with more data",
+        "H3": "Detector artifact or analysis error",
+        "H4": "BSM physics but not a simple resonance (e.g., continuum, interference)"
+      },
       "posteriors": {
         "H1": 0.0,
         "H2": 1.0,
@@ -26,28 +34,36 @@
       "title": "Strait of Hormuz Reopen Date",
       "status": "ACTIVE",
       "classification": "ALERT",
-      "lastUpdated": "2026-06-26T23:32:40+00:00",
+      "lastUpdated": "2026-06-27T16:12:19+00:00",
+      "question": "By what date will the Strait of Hormuz reopen to normal traffic (â‰¥80% of 2024-2025 baseline transit volume, sustained for â‰¥30 consecutive days, per Lloyd's List Intelligence + EIA tanker data)?",
+      "resolution": "First 30-day window where AIS-confirmed transit volume reaches â‰¥80% of baseline (mean of 2024 + 2025 daily transits per Lloyd's/EIA)",
+      "hypothesis_labels": {
+        "H1": "Reopens by 2026-09-30",
+        "H2": "Reopens 2026-10-01 to 2027-03-31",
+        "H3": "Reopens 2027-04-01 to 2027-12-31",
+        "H4": "Not reopened by 2027-12-31"
+      },
       "posteriors": {
-        "H1": 0.0876,
-        "H2": 0.1378,
-        "H3": 0.7688,
-        "H4": 0.0058
+        "H1": 0.0893,
+        "H2": 0.1445,
+        "H3": 0.7608,
+        "H4": 0.0054
       },
       "shadow_posteriors": {
-        "H1": 0.0929,
-        "H2": 0.2092,
-        "H3": 0.2065,
-        "H4": 0.4913
+        "H1": 0.0911,
+        "H2": 0.209,
+        "H3": 0.2072,
+        "H4": 0.4927
       },
       "shadow_delta": {
-        "H1": 0.0053,
-        "H2": 0.0714,
-        "H3": -0.5623,
-        "H4": 0.4855
+        "H1": 0.0018,
+        "H2": 0.0645,
+        "H3": -0.5536,
+        "H4": 0.4873
       },
-      "shadow_elapsed_entrenched_days": 64,
+      "shadow_elapsed_entrenched_days": 65,
       "health": "DEGRADED",
-      "expectedValue": 435.96,
+      "expectedValue": 433.48,
       "expectedUnit": "days from 2026-05-03"
     },
     {
@@ -56,6 +72,14 @@
       "status": "RESOLVED",
       "classification": "ROUTINE",
       "lastUpdated": "2026-04-29T02:30:58+00:00",
+      "question": "Is LK-99 (copper-substituted lead apatite) a room-temperature, ambient-pressure superconductor as claimed by Lee & Kim (2023)?",
+      "resolution": "Resolved when: (a) 3+ independent labs replicate zero-resistance AND diamagnetic levitation in LK-99 samples, OR (b) 3+ independent labs fail to replicate AND a credible structural/electronic explanation for the original observations emerges.",
+      "hypothesis_labels": {
+        "H1": "Genuine RTSC â€” LK-99 is a room-temp superconductor",
+        "H2": "Partial â€” real but not full SC (e.g., filamentary, diamagnetic, but not bulk SC)",
+        "H3": "Not SC â€” mundane explanation (impurities, measurement error, Cu2S)",
+        "H4": "Fraud or severe methodological failure"
+      },
       "posteriors": {
         "H1": 0.0,
         "H2": 0.0,
