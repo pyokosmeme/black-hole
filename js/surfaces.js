@@ -206,7 +206,12 @@
     wrap.appendChild(svg);
 
     let cx = W/2, cy = H/2;
-    let radius = Math.min(W, H) * 0.36; // icons pinned here
+    // reserve horizontal gutters for labels on each side; cap the ring so it
+    // never eats more than ~70% of the width, leaving room for leader text.
+    const labelBudget = Math.min(W * 0.20, 170); // each side gets this much for text
+    const maxByWidth  = (W/2) - labelBudget - 20;
+    const maxByHeight = (H/2) * 0.72;
+    let radius = Math.max(80, Math.min(maxByWidth, maxByHeight, Math.min(W, H) * 0.36));
     let innerR = radius - 6;   // inner edge of arc segments
     let outerR = radius + 26;  // outer edge of arc segments (title band)
     let orbSize = Math.max(54, Math.min(W, H) * 0.07);
@@ -273,9 +278,13 @@
       // labels: horizontal leader lines, vertically spread to avoid overlap.
       // split nodes into left/right halves, sort by y, then stack text rows.
       const rowH = 17;
-      const labelR = radius + 8;            // leader bend point (just outside the ring)
-      const horizExt = Math.min(W*0.18, 150); // text sits closer on the x-axis
-      const margin = 28;                    // keep text off the viewport edges
+      const labelR = radius + 8;              // leader bend point (just outside the ring)
+      const margin = 16;                       // keep text off the viewport edges
+      // text x lands inside the reserved gutter: from (ring edge) → (viewport edge - margin)
+      const ringRight = cx + radius;
+      const ringLeft  = cx - radius;
+      const rightTextX = Math.min(W - margin, ringRight + (W - ringRight) / 2 + 40);
+      const leftTextX  = Math.max(margin, ringLeft - (ringLeft - 0) / 2 - 40);
       const leftSide = [], rightSide = [];
       nodes.forEach((n)=>{
         if (Math.cos(n.a) < 0) leftSide.push(n); else rightSide.push(n);
@@ -297,11 +306,8 @@
           // leader: from node, radially out to labelR, then horizontal to text x
           const bx = cx + Math.cos(n.a) * labelR;
           const by = cy + Math.sin(n.a) * labelR;
-          // text x — clamped to the viewport so labels never run off-screen
-          let textX = isLeft ? cx - labelR - horizExt : cx + labelR + horizExt;
-          textX = isLeft
-            ? Math.max(margin, Math.min(textX, cx - labelR - 6))
-            : Math.min(W - margin, Math.max(textX, cx + labelR + 6));
+          // text x — fixed per side, landing in the reserved gutter
+          const textX = isLeft ? leftTextX : rightTextX;
           const line = document.createElementNS(SVG_NS,'path');
           const d = `M ${n.x.toFixed(1)} ${n.y.toFixed(1)} L ${bx.toFixed(1)} ${by.toFixed(1)} L ${(isLeft? cx-labelR : cx+labelR).toFixed(1)} ${y.toFixed(1)} L ${textX.toFixed(1)} ${y.toFixed(1)}`;
           line.setAttribute('d', d);
