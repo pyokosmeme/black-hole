@@ -87,6 +87,38 @@ a:hover{border-color:var(--cyan)}
 .section-label{margin:22px 0 6px;font-size:12px;letter-spacing:.11em;text-transform:uppercase;color:var(--cyan);border-bottom:1px solid var(--border);padding-bottom:6px}
 .explainer{font-size:12px;color:#9bb4cc;margin:8px 0 14px;line-height:1.55;padding:10px 12px;border-left:2px solid var(--purple);background:#160d2200}
 .explainer b{color:var(--purple)}
+
+/* tabs */
+.tabs{display:flex;gap:2px;margin:14px 0 0;border-bottom:1px solid var(--border)}
+.tab-btn{background:none;border:none;color:var(--muted);font:inherit;font-size:12px;letter-spacing:.08em;text-transform:uppercase;padding:8px 14px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s,border-color .15s}
+.tab-btn:hover{color:var(--ink)}
+.tab-btn.active{color:var(--cyan);border-bottom-color:var(--cyan)}
+.tab-body{padding-top:6px}
+
+/* governance details */
+.gov-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:8px 0 14px}
+.gov-stat{border:1px solid #70f7ff14;background:#02050d80;padding:9px 11px}
+.gov-stat span{display:block;color:var(--muted);font-size:10px;letter-spacing:.07em;text-transform:uppercase;margin-bottom:4px}
+.gov-stat b{font-family:ui-monospace,Consolas,monospace;font-size:14px}
+.gov-sub{font-size:10px;color:var(--muted);margin-left:5px;font-family:ui-monospace,Consolas,monospace}
+.gov-alerts{display:flex;flex-direction:column;gap:8px;margin:8px 0 14px}
+.gov-alert{border-left:3px solid var(--amber);background:#1a120600;padding:9px 12px}
+.gov-alert.ATTENTION{border-left-color:var(--red)}
+.gov-alert-head{font-size:11px;font-family:ui-monospace,Consolas,monospace;color:#c7f6ff;margin-bottom:4px;display:flex;gap:8px;align-items:center}
+.gov-alert .sev{padding:1px 6px;border-radius:3px;font-size:9px;font-weight:700;letter-spacing:.06em}
+.gov-alert .sev.ATTENTION{background:var(--red);color:#040}
+.gov-alert .sev.REVIEW_NEEDED{background:var(--amber);color:#040}
+.gov-alert-lead{font-size:12px;color:#cfe4f5;line-height:1.5}
+.gov-list{margin:6px 0 14px;padding-left:18px;font-size:12px;color:#cfe4f5;line-height:1.6}
+.gov-list li{margin:3px 0}
+.gov-empty{color:var(--muted);font-size:12px;font-style:italic;padding:6px 0}
+.gov-tags{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 14px}
+.gov-tag{font-size:10px;background:#160d22a0;border:1px solid #70f7ff1a;padding:2px 7px;border-radius:3px;color:#9bb4cc;font-family:ui-monospace,Consolas,monospace}
+.gov-row{padding:7px 0;border-bottom:1px solid #ffffff0c;font-size:12px}
+.gov-row .hkey{font-family:ui-monospace,Consolas,monospace;font-weight:700;margin-right:10px}
+.gov-pct{color:var(--muted);font-size:11px}
+.gov-warn{color:var(--amber);font-size:11px;margin-top:3px}
+.gov-query{color:var(--muted);font-family:ui-monospace,Consolas,monospace;font-size:11px}
 </style>
 </head>
 <body>
@@ -156,13 +188,20 @@ function renderList(){
   const active = DATA.topics.filter(t => t.status !== 'RESOLVED');
   const historical = DATA.topics.filter(t => t.status === 'RESOLVED');
   if(active.length){
-    el.innerHTML += `<div class="group-head">active</div>`;
+    el.appendChild(groupHead('active'));
     for(const t of active) el.appendChild(tcard(t));
   }
   if(historical.length){
-    el.innerHTML += `<div class="group-head">historical (resolved)</div>`;
+    el.appendChild(groupHead('historical (resolved)'));
     for(const t of historical) el.appendChild(tcard(t));
   }
+}
+
+function groupHead(label){
+  const d = document.createElement('div');
+  d.className = 'group-head';
+  d.textContent = label;
+  return d;
 }
 
 function tcard(t){
@@ -230,33 +269,116 @@ function renderDetail(t){
       ${t.expectedValue!=null?`<div class="stat"><span>E[${escapeHtml(t.expectedUnit||'')}]</span> <b>${t.expectedValue}</b></div>`:''}
     </div>`;
 
+  // Overview tab content
+  let overview;
   if(!t.shadow_posteriors){
-    el.innerHTML = head + `
+    overview = `
       <div class="section-label">active priors</div>
       <div class="explainer">The <b>active</b> posterior — moved only by approved typed commits through pre-committed indicator likelihoods. No dynamics spec exists for this topic, so no shadow comparison is available.</div>
       <div>${posteriorBars(t.posteriors, colors, keys, labels)}</div>
       <div class="noshadow">no dynamics spec — shadow posteriors unavailable for this topic.</div>`;
-    return;
+  } else {
+    const rows = keys.map((k,i)=>{
+      const cPct = (t.posteriors[k]*100);
+      const sPct = (t.shadow_posteriors[k]*100);
+      return pctRow(k, colors[i], cPct, sPct, labels[k]);
+    }).join('');
+    overview = `
+      <div class="section-label">active priors</div>
+      <div class="explainer">The <b style="color:var(--cyan)">active</b> posterior — moved only by approved typed commits through pre-committed indicator likelihoods.</div>
+      <div>${posteriorBars(t.posteriors, colors, keys, labels)}</div>
+      <div class="section-label">shadow vs active</div>
+      <div class="explainer"><b style="color:var(--purple)">Shadow</b> is a second, independent estimate of the same probabilities — computed from a model of <i>how long things take</i> rather than from news evidence. The key idea: if a strait has been closed for ${t.shadow_elapsed_entrenched_days!=null?`<b>${t.shadow_elapsed_entrenched_days} days</b>`:'a while'} with no reopening, that elapsed time itself is evidence about when it'll reopen (the longer it stays closed, the less likely an early reopening becomes). The <b style="color:var(--cyan)">active</b> bar doesn't count this — it only moves when a specific news event fires an indicator. So when the two bars disagree, the question is: is the active estimate ignoring how much time has passed? A big gap means the two methods disagree on how much the waiting itself should matter.</div>
+      <div class="legend">
+        <span><span class="sw" style="background:var(--cyan)"></span>active (committed)</span>
+        <span><span class="sw" style="background:var(--mag)"></span>shadow (dynamics-derived)</span>
+      </div>
+      <div>${rows}</div>
+      <div class="note">SHADOW — guide, not authoritative. Never writes topic state. Positive delta (amber) = shadow thinks the hypothesis more likely than committed does; negative (cyan) = less likely.</div>`;
   }
 
-  const rows = keys.map((k,i)=>{
-    const cPct = (t.posteriors[k]*100);
-    const sPct = (t.shadow_posteriors[k]*100);
-    return pctRow(k, colors[i], cPct, sPct, labels[k]);
-  }).join('');
+  const hasGov = !!t.governance;
+  const tabs = `<div class="tabs">${tabBtn('overview','Overview',true)}${hasGov?tabBtn('details','Details',false):''}</div>`;
+  el.innerHTML = head + tabs + `
+    <div class="tab-body" id="tab-overview">${overview}</div>
+    ${hasGov?`<div class="tab-body" id="tab-details" style="display:none">${renderDetails(t)}</div>`:''}`;
+  // Wire tab clicks
+  el.querySelectorAll('.tab-btn').forEach(b=>b.onclick=()=>switchTab(b.dataset.tab));
+}
 
-  el.innerHTML = head + `
-    <div class="section-label">active priors</div>
-    <div class="explainer">The <b style="color:var(--cyan)">active</b> posterior — moved only by approved typed commits through pre-committed indicator likelihoods.</div>
-    <div>${posteriorBars(t.posteriors, colors, keys, labels)}</div>
-    <div class="section-label">shadow vs active</div>
-    <div class="explainer"><b style="color:var(--purple)">Shadow</b> is a second, independent estimate of the same probabilities — computed from a model of <i>how long things take</i> rather than from news evidence. The key idea: if a strait has been closed for ${t.shadow_elapsed_entrenched_days!=null?`<b>${t.shadow_elapsed_entrenched_days} days</b>`:'a while'} with no reopening, that elapsed time itself is evidence about when it'll reopen (the longer it stays closed, the less likely an early reopening becomes). The <b style="color:var(--cyan)">active</b> bar doesn't count this — it only moves when a specific news event fires an indicator. So when the two bars disagree, the question is: is the active estimate ignoring how much time has passed? A big gap means the two methods disagree on how much the waiting itself should matter.</div>
-    <div class="legend">
-      <span><span class="sw" style="background:var(--cyan)"></span>active (committed)</span>
-      <span><span class="sw" style="background:var(--mag)"></span>shadow (dynamics-derived)</span>
+function tabBtn(id,label,active){
+  return `<button class="tab-btn${active?' active':''}" data-tab="${id}">${label}</button>`;
+}
+
+function switchTab(id){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===id));
+  document.querySelectorAll('.tab-body').forEach(tb=>{
+    tb.style.display = tb.id===`tab-${id}` ? '' : 'none';
+  });
+}
+
+function renderDetails(t){
+  const g = t.governance || {};
+  const ef = g.evidence_freshness || {};
+  const kl = g.kl_from_prior || {};
+  const adm = g.hypothesis_admissibility || {};
+  const alerts = g.alerts || [];
+  const issues = g.issues || [];
+  const fm = g.failure_modes || [];
+  const tq = g.top_queries || [];
+
+  const alertHTML = alerts.length ? alerts.map(a=>`
+    <div class="gov-alert ${a.severity||''}">
+      <div class="gov-alert-head"><span class="sev ${(a.severity||'').toUpperCase()}">${a.severity||'?'}</span> ${escapeHtml(a.signature||'')}</div>
+      <div class="gov-alert-lead">${escapeHtml(a.lead||'')}</div>
+    </div>`).join('') : '<div class="gov-empty">no active alerts</div>';
+
+  const issueHTML = issues.length ? `<ul class="gov-list">${issues.map(i=>`<li>${escapeHtml(String(i))}</li>`).join('')}</ul>` : '<div class="gov-empty">no issues</div>';
+
+  const fmHTML = fm.length ? `<div class="gov-tags">${fm.map(m=>`<span class="gov-tag">${escapeHtml(m)}</span>`).join('')}</div>` : '';
+
+  const admHTML = Object.keys(adm).length ? Object.entries(adm).map(([h,info])=>{
+    const checks = info.checks || {};
+    const passed = Object.values(checks).filter(Boolean).length;
+    const total = Object.keys(checks).length;
+    return `<div class="gov-row"><span class="hkey">${h}</span>
+      <span class="gov-pct">${passed}/${total} admissibility checks</span>
+      ${info.warnings?.length?`<div class="gov-warn">${info.warnings.map(w=>escapeHtml(String(w))).join('; ')}</div>`:''}</div>`;
+  }).join('') : '';
+
+  const tqHTML = tq.length ? tq.slice(0,5).map(q=>`<li class="gov-query">${escapeHtml(String(q.query||q).slice(0,160))}</li>`).join('') : '<li class="gov-empty">none</li>';
+
+  return `
+    <div class="section-label">health & alerts</div>
+    <div class="gov-grid">
+      <div class="gov-stat"><span>health</span><b class="badge ${g.health||''}">${g.health||'?'}</b></div>
+      <div class="gov-stat"><span>entropy</span><b>${g.entropy!=null?Number(g.entropy).toFixed(3):'?'}</b><span class="gov-sub">/ ${g.max_entropy!=null?Number(g.max_entropy).toFixed(1):'?'}</span></div>
+      <div class="gov-stat"><span>uncertainty ratio</span><b>${g.uncertainty_ratio!=null?Number(g.uncertainty_ratio).toFixed(3):'?'}</b></div>
+      <div class="gov-stat"><span>R<t>t</t> regime</span><b>${(g.rt||{}).regime||'?'}</b><span class="gov-sub">${(g.rt||{}).rt!=null?'('+Number(g.rt.rt).toFixed(4)+')':''}</span></div>
     </div>
-    <div>${rows}</div>
-    <div class="note">SHADOW — guide, not authoritative. Never writes topic state. Positive delta (amber) = shadow thinks the hypothesis more likely than committed does; negative (cyan) = less likely.</div>`;
+    <div class="gov-alerts">${alertHTML}</div>
+
+    <div class="section-label">issues</div>
+    ${issueHTML}
+
+    <div class="section-label">evidence freshness</div>
+    <div class="gov-grid">
+      <div class="gov-stat"><span>total</span><b>${ef.total??'?'}</b></div>
+      <div class="gov-stat"><span>fresh</span><b style="color:var(--green)">${ef.fresh??'?'}</b></div>
+      <div class="gov-stat"><span>stale</span><b style="color:var(--amber)">${ef.stale??'?'}</b></div>
+      <div class="gov-stat"><span>unknown time</span><b>${ef.unknown_time??'?'}</b></div>
+    </div>
+
+    <div class="section-label">belief drift (KL from prior)</div>
+    <div class="gov-grid">
+      <div class="gov-stat"><span>KL divergence</span><b>${kl.kl_divergence!=null?Number(kl.kl_divergence).toFixed(4):'?'}</b></div>
+      <div class="gov-stat"><span>interpretation</span><b>${escapeHtml(kl.interpretation||'?')}</b></div>
+    </div>
+
+    ${admHTML?`<div class="section-label">hypothesis admissibility</div><div>${admHTML}</div>`:''}
+    ${fmHTML?`<div class="section-label">failure modes (watch list)</div>${fmHTML}`:''}
+    ${tq.length?`<div class="section-label">top search queries</div><ul class="gov-list">${tqHTML}</ul>`:''}
+  `;
 }
 
 function escapeHtml(s){return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}

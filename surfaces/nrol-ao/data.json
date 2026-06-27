@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-06-27T20:41:01+00:00",
+  "generated_at": "2026-06-27T21:24:03+00:00",
   "topic_count": 3,
   "topics": [
     {
@@ -27,7 +27,328 @@
       "shadow_elapsed_entrenched_days": null,
       "health": "CRITICAL",
       "expectedValue": 36.49,
-      "expectedUnit": "weeks to resolution"
+      "expectedUnit": "weeks to resolution",
+      "governance": {
+        "health": "DEGRADED",
+        "issues": [
+          "Majority of evidence is stale (14/14)",
+          "CRITICAL: Near-zero uncertainty on ACTIVE topic — epistemic overconfidence. Time horizons and unresolved indicators contradict certainty."
+        ],
+        "alerts": [],
+        "rt": {
+          "rt": 0.0,
+          "regime": "SAFE",
+          "worst_hypothesis": "H1",
+          "per_hypothesis": {
+            "H1": {
+              "rt": 0.0,
+              "regime": "SAFE",
+              "entropy_contribution": 0.0,
+              "time_decay": 5.93,
+              "evidence_recency": 1.0,
+              "delay_hours": 1434.9,
+              "priority_rank": 1
+            },
+            "H2": {
+              "rt": -0.0,
+              "regime": "SAFE",
+              "entropy_contribution": -0.0,
+              "time_decay": 5.93,
+              "evidence_recency": 1.0,
+              "delay_hours": 1434.9,
+              "priority_rank": 2
+            },
+            "H3": {
+              "rt": 0.0,
+              "regime": "SAFE",
+              "entropy_contribution": 0.0,
+              "time_decay": 5.93,
+              "evidence_recency": 1.0,
+              "delay_hours": 1434.9,
+              "priority_rank": 3
+            },
+            "H4": {
+              "rt": 0.0,
+              "regime": "SAFE",
+              "entropy_contribution": 0.0,
+              "time_decay": 5.93,
+              "evidence_recency": 1.0,
+              "delay_hours": 1434.9,
+              "priority_rank": 4
+            }
+          }
+        },
+        "entropy": 0.0,
+        "max_entropy": 2.0,
+        "uncertainty_ratio": 0.0,
+        "kl_from_prior": {
+          "kl_divergence": 0.5978,
+          "interpretation": "WELL_EVIDENCED",
+          "current_entropy": 0.0,
+          "initial_prior": {
+            "H1": 0.15,
+            "H2": 0.55,
+            "H3": 0.1,
+            "H4": 0.2
+          },
+          "current_posteriors": {
+            "H1": 0.0,
+            "H2": 1.0,
+            "H3": 0.0,
+            "H4": 0.0
+          }
+        },
+        "evidence_freshness": {
+          "total": 14,
+          "fresh": 0,
+          "stale": 14,
+          "unknown_time": 0,
+          "stale_entries": [
+            {
+              "index": 0,
+              "tag": "DATA",
+              "age_hours": 92339.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 1,
+              "tag": "THEORETICAL",
+              "age_hours": 91473.4,
+              "ttl_hours": 72,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 2,
+              "tag": "DATA",
+              "age_hours": 90079.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 3,
+              "tag": "DATA",
+              "age_hours": 88283.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 4,
+              "tag": "DATA",
+              "age_hours": 86724.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 5,
+              "tag": "INTEL",
+              "age_hours": 1610.3,
+              "ttl_hours": 72,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 6,
+              "tag": "INTEL",
+              "age_hours": 1605.3,
+              "ttl_hours": 72,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 7,
+              "tag": "INTEL",
+              "age_hours": 1604.4,
+              "ttl_hours": 72,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 8,
+              "tag": "EVENT",
+              "age_hours": 92349.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 9,
+              "tag": "EVENT",
+              "age_hours": 88293.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 10,
+              "tag": "EVENT",
+              "age_hours": 86733.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 11,
+              "tag": "INTEL",
+              "age_hours": 1604.4,
+              "ttl_hours": 72,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 12,
+              "tag": "INTEL",
+              "age_hours": 1604.4,
+              "ttl_hours": 72,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 13,
+              "tag": "INTEL",
+              "age_hours": 1604.4,
+              "ttl_hours": 72,
+              "ledger": "DECISION"
+            }
+          ],
+          "by_tag": {
+            "DATA": {
+              "fresh": 0,
+              "stale": 4
+            },
+            "THEORETICAL": {
+              "fresh": 0,
+              "stale": 1
+            },
+            "INTEL": {
+              "fresh": 0,
+              "stale": 6
+            },
+            "EVENT": {
+              "fresh": 0,
+              "stale": 3
+            }
+          }
+        },
+        "hypothesis_admissibility": {
+          "H1": {
+            "checks": {
+              "has_label": true,
+              "has_midpoint": true,
+              "has_unit": true,
+              "resolution_defined": true,
+              "has_supporting_indicators": true,
+              "has_contrary_indicators": true,
+              "distinguishable": false,
+              "prior_nonzero": false,
+              "prior_not_certain": true
+            },
+            "passed": 7,
+            "total": 9,
+            "grade": "ADMISSIBLE",
+            "setpoint_clarity": "HIGH",
+            "observability": "HIGH",
+            "falsifiability": "YES"
+          },
+          "H2": {
+            "checks": {
+              "has_label": true,
+              "has_midpoint": true,
+              "has_unit": true,
+              "resolution_defined": true,
+              "has_supporting_indicators": true,
+              "has_contrary_indicators": true,
+              "distinguishable": false,
+              "prior_nonzero": true,
+              "prior_not_certain": false
+            },
+            "passed": 7,
+            "total": 9,
+            "grade": "ADMISSIBLE",
+            "setpoint_clarity": "HIGH",
+            "observability": "HIGH",
+            "falsifiability": "YES"
+          },
+          "H3": {
+            "checks": {
+              "has_label": true,
+              "has_midpoint": true,
+              "has_unit": true,
+              "resolution_defined": true,
+              "has_supporting_indicators": true,
+              "has_contrary_indicators": true,
+              "distinguishable": true,
+              "prior_nonzero": false,
+              "prior_not_certain": true
+            },
+            "passed": 8,
+            "total": 9,
+            "grade": "ADMISSIBLE",
+            "setpoint_clarity": "HIGH",
+            "observability": "HIGH",
+            "falsifiability": "YES"
+          },
+          "H4": {
+            "checks": {
+              "has_label": true,
+              "has_midpoint": true,
+              "has_unit": true,
+              "resolution_defined": true,
+              "has_supporting_indicators": false,
+              "has_contrary_indicators": true,
+              "distinguishable": true,
+              "prior_nonzero": false,
+              "prior_not_certain": true
+            },
+            "passed": 7,
+            "total": 9,
+            "grade": "ADMISSIBLE",
+            "setpoint_clarity": "HIGH",
+            "observability": "LOW",
+            "falsifiability": "YES"
+          }
+        },
+        "top_queries": [
+          {
+            "query": "Evidence for: Either ATLAS or CMS reports >=5 sigma local significance for diphoton excess at ~750 GeV with full 2016 dataset",
+            "source": "tier1_critical/t1_5sigma_confirmation",
+            "voi_score": 1.0,
+            "reason": "Unfired Tier 1 indicator — would trigger ALERT and major posterior shift"
+          },
+          {
+            "query": "Evidence for: Excess seen in a second decay channel (ZZ, Zh, WW) at ~750 GeV",
+            "source": "tier2_strong/t2_corroborating_channel",
+            "voi_score": 0.7,
+            "reason": "Unfired Tier 2 indicator — would trigger ELEVATED"
+          },
+          {
+            "query": "Evidence for: Updated analysis shows narrow width consistent with single resonance",
+            "source": "tier2_strong/t2_width_narrows",
+            "voi_score": 0.7,
+            "reason": "Unfired Tier 2 indicator — would trigger ELEVATED"
+          },
+          {
+            "query": "Evidence for: ATLAS and CMS report the excess at significantly different masses (>10 GeV apart) or one experiment sees it while the other does not at >2 sigma. Observable: comparison of fitted parameters in conference presentations or publications.",
+            "source": "tier2_strong/t2_detector_discrepancy",
+            "voi_score": 0.7,
+            "reason": "Unfired Tier 2 indicator — would trigger ELEVATED"
+          },
+          {
+            "query": "750 GeV diphoton excess LHC",
+            "source": "searchQueries",
+            "voi_score": 0.2,
+            "reason": "Configured search query"
+          }
+        ],
+        "failure_modes": [
+          "no_evidence",
+          "confidence_inflation",
+          "repetition_as_validation",
+          "stale_evidence",
+          "circular_reasoning",
+          "scope_creep",
+          "modal_confusion",
+          "citation_drift",
+          "evidence_laundering",
+          "quorum_failure",
+          "rhetoric_as_evidence",
+          "unresolved_contradiction",
+          "discredited_source",
+          "red_team_override"
+        ]
+      }
     },
     {
       "slug": "calibration-hormuz-reopen-2027",
@@ -64,7 +385,2829 @@
       "shadow_elapsed_entrenched_days": 65,
       "health": "DEGRADED",
       "expectedValue": 433.48,
-      "expectedUnit": "days from 2026-05-03"
+      "expectedUnit": "days from 2026-05-03",
+      "governance": {
+        "health": "DEGRADED",
+        "issues": [
+          "Majority of evidence is stale (366/670)"
+        ],
+        "alerts": [
+          {
+            "severity": "ATTENTION",
+            "slug": "calibration-hormuz-reopen-2027",
+            "signature": "stale_evidence:calibration-hormuz-reopen-2027",
+            "lead": "Evidence base on calibration-hormuz-reopen-2027 is mostly stale (366/670 past TTL). Posterior is increasingly based on aged observations.",
+            "action": "Run skills/triage.md on recent headlines to refresh the evidence base, or run skills/news-scan.md for a sweep.",
+            "buttons": [
+              {
+                "label": "Mark reviewed",
+                "action": "mark_reviewed",
+                "context": {
+                  "alert_signature": "stale_evidence:calibration-hormuz-reopen-2027"
+                }
+              }
+            ],
+            "details": {
+              "stale": 366,
+              "fresh": 298,
+              "total": 670
+            }
+          }
+        ],
+        "rt": {
+          "rt": 0.0005,
+          "regime": "SAFE",
+          "worst_hypothesis": "H2",
+          "per_hypothesis": {
+            "H1": {
+              "rt": 0.0004,
+              "regime": "SAFE",
+              "entropy_contribution": 0.3112,
+              "time_decay": 0.28,
+              "evidence_recency": 226.0,
+              "delay_hours": 5.2,
+              "priority_rank": 2
+            },
+            "H2": {
+              "rt": 0.0005,
+              "regime": "SAFE",
+              "entropy_contribution": 0.4033,
+              "time_decay": 0.28,
+              "evidence_recency": 226.0,
+              "delay_hours": 5.2,
+              "priority_rank": 1
+            },
+            "H3": {
+              "rt": 0.0004,
+              "regime": "SAFE",
+              "entropy_contribution": 0.3001,
+              "time_decay": 0.28,
+              "evidence_recency": 226.0,
+              "delay_hours": 5.2,
+              "priority_rank": 3
+            },
+            "H4": {
+              "rt": 0.0001,
+              "regime": "SAFE",
+              "entropy_contribution": 0.0407,
+              "time_decay": 0.28,
+              "evidence_recency": 226.0,
+              "delay_hours": 5.2,
+              "priority_rank": 4
+            }
+          }
+        },
+        "entropy": 1.0553,
+        "max_entropy": 2.0,
+        "uncertainty_ratio": 0.5276,
+        "kl_from_prior": {
+          "kl_divergence": 0.3842,
+          "interpretation": "MODERATE",
+          "current_entropy": 1.0553,
+          "initial_prior": {
+            "H1": 0.0472,
+            "H2": 0.2238,
+            "H3": 0.4427,
+            "H4": 0.2863
+          },
+          "current_posteriors": {
+            "H1": 0.0893,
+            "H2": 0.1445,
+            "H3": 0.7608,
+            "H4": 0.0054
+          }
+        },
+        "evidence_freshness": {
+          "total": 670,
+          "fresh": 298,
+          "stale": 366,
+          "unknown_time": 6,
+          "stale_entries": [
+            {
+              "index": 0,
+              "tag": "COMPACTED",
+              "age_hours": 410.3,
+              "ttl_hours": 72,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 1,
+              "tag": "EVENT",
+              "age_hours": 1274.3,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 2,
+              "tag": "EVENT",
+              "age_hours": 1274.3,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 3,
+              "tag": "DATA",
+              "age_hours": 1274.3,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 4,
+              "tag": "EVENT",
+              "age_hours": 1274.3,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 5,
+              "tag": "EVENT",
+              "age_hours": 1274.3,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 6,
+              "tag": "DATA",
+              "age_hours": 1274.3,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 7,
+              "tag": "EVENT",
+              "age_hours": 1274.3,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 8,
+              "tag": "DATA",
+              "age_hours": 1274.3,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 9,
+              "tag": "EVENT",
+              "age_hours": 1274.3,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 10,
+              "tag": "EVENT",
+              "age_hours": 1274.3,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 11,
+              "tag": "POLICY",
+              "age_hours": 1274.3,
+              "ttl_hours": 720,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 12,
+              "tag": "EVENT",
+              "age_hours": 1274.3,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 13,
+              "tag": "EVENT",
+              "age_hours": 1274.3,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 14,
+              "tag": "EVENT",
+              "age_hours": 1272.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 15,
+              "tag": "RHETORIC",
+              "age_hours": 1272.9,
+              "ttl_hours": 24,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 16,
+              "tag": "EVENT",
+              "age_hours": 1272.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 17,
+              "tag": "EVENT",
+              "age_hours": 1272.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 18,
+              "tag": "EVENT",
+              "age_hours": 1272.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 19,
+              "tag": "DATA",
+              "age_hours": 1272.9,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 20,
+              "tag": "EVENT",
+              "age_hours": 1272.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 21,
+              "tag": "EVENT",
+              "age_hours": 1272.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 22,
+              "tag": "DATA",
+              "age_hours": 1272.9,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 23,
+              "tag": "EVENT",
+              "age_hours": 1272.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 24,
+              "tag": "DATA",
+              "age_hours": 1272.9,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 25,
+              "tag": "EVENT",
+              "age_hours": 1272.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 26,
+              "tag": "EVENT",
+              "age_hours": 1272.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 27,
+              "tag": "POLICY",
+              "age_hours": 1272.9,
+              "ttl_hours": 720,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 28,
+              "tag": "EVENT",
+              "age_hours": 1272.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 29,
+              "tag": "EVENT",
+              "age_hours": 1272.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 30,
+              "tag": "POLICY",
+              "age_hours": 1272.9,
+              "ttl_hours": 720,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 31,
+              "tag": "MARKET",
+              "age_hours": 1249.8,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 32,
+              "tag": "EVENT",
+              "age_hours": 1249.8,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 33,
+              "tag": "EVENT",
+              "age_hours": 1249.8,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 34,
+              "tag": "EVENT",
+              "age_hours": 1240.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 35,
+              "tag": "EVENT",
+              "age_hours": 1240.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 36,
+              "tag": "EVENT",
+              "age_hours": 1240.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 37,
+              "tag": "EVENT",
+              "age_hours": 1240.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 38,
+              "tag": "DATA",
+              "age_hours": 1240.9,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 39,
+              "tag": "EVENT",
+              "age_hours": 1240.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 40,
+              "tag": "DATA",
+              "age_hours": 1240.9,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 41,
+              "tag": "EVENT",
+              "age_hours": 1240.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 42,
+              "tag": "DATA",
+              "age_hours": 1240.9,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 43,
+              "tag": "EVENT",
+              "age_hours": 1240.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 44,
+              "tag": "POLICY",
+              "age_hours": 1240.9,
+              "ttl_hours": 720,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 45,
+              "tag": "EVENT",
+              "age_hours": 1240.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 46,
+              "tag": "EVENT",
+              "age_hours": 1240.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 47,
+              "tag": "POLICY",
+              "age_hours": 1240.9,
+              "ttl_hours": 720,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 48,
+              "tag": "EVENT",
+              "age_hours": 1240.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 49,
+              "tag": "EVENT",
+              "age_hours": 1240.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 50,
+              "tag": "EVENT",
+              "age_hours": 1240.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 51,
+              "tag": "EVENT",
+              "age_hours": 1240.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 52,
+              "tag": "DATA",
+              "age_hours": 1240.9,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 53,
+              "tag": "EVENT",
+              "age_hours": 1240.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 54,
+              "tag": "DATA",
+              "age_hours": 1240.9,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 55,
+              "tag": "EVENT",
+              "age_hours": 1240.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 56,
+              "tag": "DATA",
+              "age_hours": 1240.9,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 57,
+              "tag": "EVENT",
+              "age_hours": 1240.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 58,
+              "tag": "POLICY",
+              "age_hours": 1240.9,
+              "ttl_hours": 720,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 59,
+              "tag": "EVENT",
+              "age_hours": 1240.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 60,
+              "tag": "EVENT",
+              "age_hours": 1240.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 61,
+              "tag": "POLICY",
+              "age_hours": 1240.9,
+              "ttl_hours": 720,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 62,
+              "tag": "DATA",
+              "age_hours": 1232.6,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 63,
+              "tag": "DATA",
+              "age_hours": 1232.6,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 64,
+              "tag": "EVENT",
+              "age_hours": 1232.6,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 65,
+              "tag": "DATA",
+              "age_hours": 1232.6,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 66,
+              "tag": "EVENT",
+              "age_hours": 1232.6,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 67,
+              "tag": "EVENT",
+              "age_hours": 1232.5,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 68,
+              "tag": "EVENT",
+              "age_hours": 1232.5,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 69,
+              "tag": "EVENT",
+              "age_hours": 1232.5,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 70,
+              "tag": "POLICY",
+              "age_hours": 1232.5,
+              "ttl_hours": 720,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 71,
+              "tag": "POLICY",
+              "age_hours": 1232.5,
+              "ttl_hours": 720,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 72,
+              "tag": "EVENT",
+              "age_hours": 1232.5,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 73,
+              "tag": "EVENT",
+              "age_hours": 1232.5,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 74,
+              "tag": "EVENT",
+              "age_hours": 1232.5,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 75,
+              "tag": "EVENT",
+              "age_hours": 1232.5,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 76,
+              "tag": "EVENT",
+              "age_hours": 1232.5,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 77,
+              "tag": "DATA",
+              "age_hours": 1232.5,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 78,
+              "tag": "DATA",
+              "age_hours": 1232.5,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 79,
+              "tag": "EVENT",
+              "age_hours": 1232.5,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 80,
+              "tag": "DATA",
+              "age_hours": 1232.5,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 81,
+              "tag": "EVENT",
+              "age_hours": 1232.5,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 82,
+              "tag": "POLICY",
+              "age_hours": 1232.5,
+              "ttl_hours": 720,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 83,
+              "tag": "EVENT",
+              "age_hours": 1232.2,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 84,
+              "tag": "EVENT",
+              "age_hours": 1232.2,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 85,
+              "tag": "EVENT",
+              "age_hours": 1232.2,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 86,
+              "tag": "POLICY",
+              "age_hours": 1232.2,
+              "ttl_hours": 720,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 87,
+              "tag": "POLICY",
+              "age_hours": 1232.2,
+              "ttl_hours": 720,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 88,
+              "tag": "EVENT",
+              "age_hours": 1232.2,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 89,
+              "tag": "EVENT",
+              "age_hours": 1232.2,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 90,
+              "tag": "EVENT",
+              "age_hours": 1232.2,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 91,
+              "tag": "EVENT",
+              "age_hours": 1232.2,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 92,
+              "tag": "EVENT",
+              "age_hours": 1232.2,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 93,
+              "tag": "DATA",
+              "age_hours": 1232.2,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 94,
+              "tag": "EVENT",
+              "age_hours": 1232.2,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 95,
+              "tag": "DATA",
+              "age_hours": 1232.2,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 96,
+              "tag": "EVENT",
+              "age_hours": 1232.2,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 97,
+              "tag": "POLICY",
+              "age_hours": 1232.2,
+              "ttl_hours": 720,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 98,
+              "tag": "EVENT",
+              "age_hours": 1232.2,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 99,
+              "tag": "EVENT",
+              "age_hours": 1232.2,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 100,
+              "tag": "EVENT",
+              "age_hours": 1232.2,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 101,
+              "tag": "POLICY",
+              "age_hours": 1232.2,
+              "ttl_hours": 720,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 102,
+              "tag": "POLICY",
+              "age_hours": 1232.2,
+              "ttl_hours": 720,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 103,
+              "tag": "EVENT",
+              "age_hours": 1232.2,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 104,
+              "tag": "EVENT",
+              "age_hours": 1232.2,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 105,
+              "tag": "EVENT",
+              "age_hours": 1232.2,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 106,
+              "tag": "EVENT",
+              "age_hours": 1232.2,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 107,
+              "tag": "EVENT",
+              "age_hours": 1232.2,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 108,
+              "tag": "DATA",
+              "age_hours": 1232.2,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 109,
+              "tag": "DATA",
+              "age_hours": 1232.2,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 110,
+              "tag": "EVENT",
+              "age_hours": 1232.2,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 111,
+              "tag": "DATA",
+              "age_hours": 1232.2,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 112,
+              "tag": "EVENT",
+              "age_hours": 1232.2,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 113,
+              "tag": "POLICY",
+              "age_hours": 1232.2,
+              "ttl_hours": 720,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 114,
+              "tag": "EVENT",
+              "age_hours": 1169.2,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 115,
+              "tag": "EVENT",
+              "age_hours": 1169.2,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 116,
+              "tag": "POLICY",
+              "age_hours": 1169.2,
+              "ttl_hours": 720,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 117,
+              "tag": "POLICY",
+              "age_hours": 1169.2,
+              "ttl_hours": 720,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 118,
+              "tag": "DATA",
+              "age_hours": 1169.2,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 119,
+              "tag": "DATA",
+              "age_hours": 1169.2,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 120,
+              "tag": "POLICY",
+              "age_hours": 1169.2,
+              "ttl_hours": 720,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 121,
+              "tag": "POLICY",
+              "age_hours": 1169.2,
+              "ttl_hours": 720,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 122,
+              "tag": "POLICY",
+              "age_hours": 1169.2,
+              "ttl_hours": 720,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 123,
+              "tag": "POLICY",
+              "age_hours": 1169.2,
+              "ttl_hours": 720,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 124,
+              "tag": "DATA",
+              "age_hours": 1169.2,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 125,
+              "tag": "KINETIC",
+              "age_hours": 1094.7,
+              "ttl_hours": 48,
+              "ledger": "FACT"
+            },
+            {
+              "index": 126,
+              "tag": "KINETIC",
+              "age_hours": 1094.7,
+              "ttl_hours": 48,
+              "ledger": "FACT"
+            },
+            {
+              "index": 127,
+              "tag": "EVENT",
+              "age_hours": 1094.7,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 128,
+              "tag": "POLICY",
+              "age_hours": 1094.7,
+              "ttl_hours": 720,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 129,
+              "tag": "POLICY",
+              "age_hours": 1094.7,
+              "ttl_hours": 720,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 130,
+              "tag": "EVENT",
+              "age_hours": 1094.7,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 131,
+              "tag": "EVENT",
+              "age_hours": 1094.7,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 132,
+              "tag": "DATA",
+              "age_hours": 1094.7,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 133,
+              "tag": "KINETIC",
+              "age_hours": 1094.6,
+              "ttl_hours": 48,
+              "ledger": "FACT"
+            },
+            {
+              "index": 134,
+              "tag": "DATA",
+              "age_hours": 1094.6,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 135,
+              "tag": "EVENT",
+              "age_hours": 1094.6,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 136,
+              "tag": "POLICY",
+              "age_hours": 1094.6,
+              "ttl_hours": 720,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 137,
+              "tag": "DATA",
+              "age_hours": 1094.6,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 138,
+              "tag": "DATA",
+              "age_hours": 1094.6,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 139,
+              "tag": "DATA",
+              "age_hours": 410.3,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 141,
+              "tag": "EVENT",
+              "age_hours": 381.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 142,
+              "tag": "EVENT",
+              "age_hours": 381.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 144,
+              "tag": "DATA",
+              "age_hours": 381.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 145,
+              "tag": "DATA",
+              "age_hours": 381.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 146,
+              "tag": "DATA",
+              "age_hours": 381.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 147,
+              "tag": "DATA",
+              "age_hours": 381.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 148,
+              "tag": "EVENT",
+              "age_hours": 381.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 149,
+              "tag": "EVENT",
+              "age_hours": 381.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 150,
+              "tag": "DATA",
+              "age_hours": 381.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 151,
+              "tag": "EVENT",
+              "age_hours": 381.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 152,
+              "tag": "DATA",
+              "age_hours": 381.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 153,
+              "tag": "EVENT",
+              "age_hours": 381.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 154,
+              "tag": "DATA",
+              "age_hours": 381.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 155,
+              "tag": "RHETORIC",
+              "age_hours": 381.4,
+              "ttl_hours": 24,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 157,
+              "tag": "EVENT",
+              "age_hours": 357.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 158,
+              "tag": "EVENT",
+              "age_hours": 357.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 159,
+              "tag": "EVENT",
+              "age_hours": 357.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 160,
+              "tag": "EVENT",
+              "age_hours": 357.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 161,
+              "tag": "EVENT",
+              "age_hours": 357.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 162,
+              "tag": "EVENT",
+              "age_hours": 357.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 164,
+              "tag": "DATA",
+              "age_hours": 357.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 165,
+              "tag": "DATA",
+              "age_hours": 357.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 167,
+              "tag": "DATA",
+              "age_hours": 357.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 168,
+              "tag": "RHETORIC",
+              "age_hours": 357.4,
+              "ttl_hours": 24,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 169,
+              "tag": "DATA",
+              "age_hours": 357.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 170,
+              "tag": "DATA",
+              "age_hours": 357.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 172,
+              "tag": "RHETORIC",
+              "age_hours": 357.4,
+              "ttl_hours": 24,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 173,
+              "tag": "RHETORIC",
+              "age_hours": 357.4,
+              "ttl_hours": 24,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 177,
+              "tag": "RHETORIC",
+              "age_hours": 357.4,
+              "ttl_hours": 24,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 178,
+              "tag": "RHETORIC",
+              "age_hours": 357.4,
+              "ttl_hours": 24,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 185,
+              "tag": "DATA",
+              "age_hours": 357.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 188,
+              "tag": "MARKET",
+              "age_hours": 357.4,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 189,
+              "tag": "MARKET",
+              "age_hours": 357.4,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 190,
+              "tag": "MARKET",
+              "age_hours": 357.4,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 191,
+              "tag": "MARKET",
+              "age_hours": 357.4,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 192,
+              "tag": "DATA",
+              "age_hours": 357.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 200,
+              "tag": "RHETORIC",
+              "age_hours": 357.4,
+              "ttl_hours": 24,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 201,
+              "tag": "RHETORIC",
+              "age_hours": 357.4,
+              "ttl_hours": 24,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 202,
+              "tag": "DATA",
+              "age_hours": 357.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 203,
+              "tag": "DATA",
+              "age_hours": 357.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 207,
+              "tag": "RHETORIC",
+              "age_hours": 357.4,
+              "ttl_hours": 24,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 208,
+              "tag": "RHETORIC",
+              "age_hours": 357.4,
+              "ttl_hours": 24,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 209,
+              "tag": "EVENT",
+              "age_hours": 357.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 210,
+              "tag": "INTEL",
+              "age_hours": 352.3,
+              "ttl_hours": 72,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 211,
+              "tag": "DATA",
+              "age_hours": 357.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 212,
+              "tag": "RHETORIC",
+              "age_hours": 357.4,
+              "ttl_hours": 24,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 229,
+              "tag": "DATA",
+              "age_hours": 357.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 235,
+              "tag": "MARKET",
+              "age_hours": 357.4,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 236,
+              "tag": "MARKET",
+              "age_hours": 357.4,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 237,
+              "tag": "MARKET",
+              "age_hours": 357.4,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 238,
+              "tag": "MARKET",
+              "age_hours": 357.4,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 239,
+              "tag": "MARKET",
+              "age_hours": 357.4,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 240,
+              "tag": "MARKET",
+              "age_hours": 357.4,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 249,
+              "tag": "EVENT",
+              "age_hours": 357.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 250,
+              "tag": "DATA",
+              "age_hours": 357.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 251,
+              "tag": "EVENT",
+              "age_hours": 341.0,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 252,
+              "tag": "EVENT",
+              "age_hours": 341.0,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 253,
+              "tag": "EVENT",
+              "age_hours": 341.0,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 254,
+              "tag": "INTEL",
+              "age_hours": 341.0,
+              "ttl_hours": 72,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 255,
+              "tag": "MARKET",
+              "age_hours": 341.0,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 256,
+              "tag": "MARKET",
+              "age_hours": 341.0,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 258,
+              "tag": "EVENT",
+              "age_hours": 341.0,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 259,
+              "tag": "DATA",
+              "age_hours": 341.0,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 264,
+              "tag": "DATA",
+              "age_hours": 326.6,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 265,
+              "tag": "EVENT",
+              "age_hours": 326.6,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 266,
+              "tag": "DATA",
+              "age_hours": 326.6,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 272,
+              "tag": "DATA",
+              "age_hours": 310.9,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 273,
+              "tag": "EVENT",
+              "age_hours": 310.7,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 274,
+              "tag": "INTEL",
+              "age_hours": 310.7,
+              "ttl_hours": 72,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 275,
+              "tag": "DATA",
+              "age_hours": 295.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 276,
+              "tag": "DATA",
+              "age_hours": 295.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 278,
+              "tag": "MARKET",
+              "age_hours": 297.6,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 299,
+              "tag": "EVENT",
+              "age_hours": 295.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 300,
+              "tag": "DATA",
+              "age_hours": 295.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 307,
+              "tag": "EVENT",
+              "age_hours": 279.3,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 308,
+              "tag": "DATA",
+              "age_hours": 279.3,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 309,
+              "tag": "DATA",
+              "age_hours": 279.3,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 312,
+              "tag": "EVENT",
+              "age_hours": 278.5,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 314,
+              "tag": "EVENT",
+              "age_hours": 287.6,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 315,
+              "tag": "EVENT",
+              "age_hours": 278.5,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 316,
+              "tag": "DATA",
+              "age_hours": 278.5,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 317,
+              "tag": "DATA",
+              "age_hours": 278.5,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 319,
+              "tag": "EVENT",
+              "age_hours": 278.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 321,
+              "tag": "EVENT",
+              "age_hours": 271.1,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 322,
+              "tag": "EVENT",
+              "age_hours": 268.5,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 323,
+              "tag": "EVENT",
+              "age_hours": 268.0,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 324,
+              "tag": "MARKET",
+              "age_hours": 268.0,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 326,
+              "tag": "DATA",
+              "age_hours": 268.0,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 327,
+              "tag": "DATA",
+              "age_hours": 268.0,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 328,
+              "tag": "RHETORIC",
+              "age_hours": 268.0,
+              "ttl_hours": 24,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 329,
+              "tag": "MARKET",
+              "age_hours": 267.7,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 331,
+              "tag": "EVENT",
+              "age_hours": 268.6,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 332,
+              "tag": "RHETORIC",
+              "age_hours": 267.7,
+              "ttl_hours": 24,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 340,
+              "tag": "EVENT",
+              "age_hours": 257.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 341,
+              "tag": "DATA",
+              "age_hours": 257.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 342,
+              "tag": "EVENT",
+              "age_hours": 261.5,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 343,
+              "tag": "EVENT",
+              "age_hours": 268.5,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 344,
+              "tag": "RHETORIC",
+              "age_hours": 234.4,
+              "ttl_hours": 24,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 345,
+              "tag": "EVENT",
+              "age_hours": 234.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 346,
+              "tag": "EVENT",
+              "age_hours": 236.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 347,
+              "tag": "EVENT",
+              "age_hours": 235.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 348,
+              "tag": "EVENT",
+              "age_hours": 240.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 349,
+              "tag": "EVENT",
+              "age_hours": 237.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 350,
+              "tag": "EVENT",
+              "age_hours": 197.3,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 351,
+              "tag": "EVENT",
+              "age_hours": 213.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 352,
+              "tag": "EVENT",
+              "age_hours": 221.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 353,
+              "tag": "EVENT",
+              "age_hours": 197.3,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 355,
+              "tag": "EVENT",
+              "age_hours": 199.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 356,
+              "tag": "EVENT",
+              "age_hours": 215.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 357,
+              "tag": "EVENT",
+              "age_hours": 203.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 358,
+              "tag": "EVENT",
+              "age_hours": 217.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 359,
+              "tag": "EVENT",
+              "age_hours": 197.3,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 362,
+              "tag": "EVENT",
+              "age_hours": 221.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 363,
+              "tag": "EVENT",
+              "age_hours": 197.3,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 366,
+              "tag": "EVENT",
+              "age_hours": 221.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 368,
+              "tag": "EVENT",
+              "age_hours": 195.3,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 371,
+              "tag": "RHETORIC",
+              "age_hours": 150.0,
+              "ttl_hours": 24,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 372,
+              "tag": "RHETORIC",
+              "age_hours": 150.0,
+              "ttl_hours": 24,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 375,
+              "tag": "RHETORIC",
+              "age_hours": 150.0,
+              "ttl_hours": 24,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 376,
+              "tag": "RHETORIC",
+              "age_hours": 150.0,
+              "ttl_hours": 24,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 377,
+              "tag": "RHETORIC",
+              "age_hours": 140.5,
+              "ttl_hours": 24,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 379,
+              "tag": "MARKET",
+              "age_hours": 140.5,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 383,
+              "tag": "EVENT",
+              "age_hours": 140.5,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 384,
+              "tag": "EVENT",
+              "age_hours": 140.5,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 385,
+              "tag": "EVENT",
+              "age_hours": 140.5,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 386,
+              "tag": "EVENT",
+              "age_hours": 140.5,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 387,
+              "tag": "EVENT",
+              "age_hours": 140.5,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 389,
+              "tag": "MARKET",
+              "age_hours": 140.5,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 392,
+              "tag": "EVENT",
+              "age_hours": 140.5,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 394,
+              "tag": "EVENT",
+              "age_hours": 146.6,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 397,
+              "tag": "EVENT",
+              "age_hours": 141.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 398,
+              "tag": "EVENT",
+              "age_hours": 141.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 403,
+              "tag": "EVENT",
+              "age_hours": 141.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 404,
+              "tag": "EVENT",
+              "age_hours": 141.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 405,
+              "tag": "EVENT",
+              "age_hours": 141.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 406,
+              "tag": "EVENT",
+              "age_hours": 141.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 407,
+              "tag": "EVENT",
+              "age_hours": 141.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 408,
+              "tag": "MARKET",
+              "age_hours": 141.4,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 409,
+              "tag": "EVENT",
+              "age_hours": 141.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 410,
+              "tag": "MARKET",
+              "age_hours": 118.1,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 411,
+              "tag": "EVENT",
+              "age_hours": 141.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 412,
+              "tag": "EVENT",
+              "age_hours": 141.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 413,
+              "tag": "EVENT",
+              "age_hours": 141.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 414,
+              "tag": "EVENT",
+              "age_hours": 141.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 418,
+              "tag": "EVENT",
+              "age_hours": 141.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 419,
+              "tag": "EVENT",
+              "age_hours": 141.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 420,
+              "tag": "EVENT",
+              "age_hours": 118.1,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 423,
+              "tag": "EVENT",
+              "age_hours": 141.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 429,
+              "tag": "EVENT",
+              "age_hours": 141.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 437,
+              "tag": "EVENT",
+              "age_hours": 141.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 438,
+              "tag": "EVENT",
+              "age_hours": 141.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 439,
+              "tag": "EVENT",
+              "age_hours": 141.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 440,
+              "tag": "EVENT",
+              "age_hours": 141.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 441,
+              "tag": "EVENT",
+              "age_hours": 118.1,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 442,
+              "tag": "EVENT",
+              "age_hours": 133.2,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 443,
+              "tag": "EVENT",
+              "age_hours": 141.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 444,
+              "tag": "EVENT",
+              "age_hours": 141.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 445,
+              "tag": "EVENT",
+              "age_hours": 141.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 446,
+              "tag": "EVENT",
+              "age_hours": 141.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 447,
+              "tag": "EVENT",
+              "age_hours": 141.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 448,
+              "tag": "INTEL",
+              "age_hours": 117.9,
+              "ttl_hours": 72,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 449,
+              "tag": "EVENT",
+              "age_hours": 141.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 450,
+              "tag": "MARKET",
+              "age_hours": 103.2,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 451,
+              "tag": "EVENT",
+              "age_hours": 117.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 452,
+              "tag": "EVENT",
+              "age_hours": 117.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 454,
+              "tag": "EVENT",
+              "age_hours": 117.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 455,
+              "tag": "MARKET",
+              "age_hours": 103.2,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 456,
+              "tag": "EVENT",
+              "age_hours": 103.2,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 460,
+              "tag": "EVENT",
+              "age_hours": 103.2,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 463,
+              "tag": "EVENT",
+              "age_hours": 117.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 464,
+              "tag": "EVENT",
+              "age_hours": 117.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 465,
+              "tag": "EVENT",
+              "age_hours": 103.2,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 469,
+              "tag": "MARKET",
+              "age_hours": 103.2,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 470,
+              "tag": "MARKET",
+              "age_hours": 117.4,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 471,
+              "tag": "EVENT",
+              "age_hours": 103.2,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 472,
+              "tag": "EVENT",
+              "age_hours": 103.2,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 473,
+              "tag": "EVENT",
+              "age_hours": 117.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 476,
+              "tag": "EVENT",
+              "age_hours": 103.2,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 477,
+              "tag": "EVENT",
+              "age_hours": 117.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 478,
+              "tag": "EVENT",
+              "age_hours": 117.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 481,
+              "tag": "EVENT",
+              "age_hours": 103.9,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 483,
+              "tag": "EVENT",
+              "age_hours": 92.6,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 488,
+              "tag": "EVENT",
+              "age_hours": 94.8,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 489,
+              "tag": "RHETORIC",
+              "age_hours": 98.8,
+              "ttl_hours": 24,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 490,
+              "tag": "EVENT",
+              "age_hours": 92.6,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 491,
+              "tag": "MARKET",
+              "age_hours": 92.6,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 492,
+              "tag": "EVENT",
+              "age_hours": 92.6,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 493,
+              "tag": "EVENT",
+              "age_hours": 92.6,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 494,
+              "tag": "EVENT",
+              "age_hours": 92.6,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 496,
+              "tag": "MARKET",
+              "age_hours": 92.6,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 497,
+              "tag": "EVENT",
+              "age_hours": 95.8,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 498,
+              "tag": "EVENT",
+              "age_hours": 93.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 501,
+              "tag": "EVENT",
+              "age_hours": 93.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 503,
+              "tag": "EVENT",
+              "age_hours": 93.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 504,
+              "tag": "EVENT",
+              "age_hours": 93.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 505,
+              "tag": "EVENT",
+              "age_hours": 93.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 506,
+              "tag": "EVENT",
+              "age_hours": 93.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 509,
+              "tag": "EVENT",
+              "age_hours": 93.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 510,
+              "tag": "EVENT",
+              "age_hours": 93.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 511,
+              "tag": "EVENT",
+              "age_hours": 93.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 513,
+              "tag": "EVENT",
+              "age_hours": 93.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 514,
+              "tag": "EVENT",
+              "age_hours": 93.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 515,
+              "tag": "EVENT",
+              "age_hours": 93.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 516,
+              "tag": "EVENT",
+              "age_hours": 93.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 517,
+              "tag": "EVENT",
+              "age_hours": 93.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 518,
+              "tag": "EVENT",
+              "age_hours": 93.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 519,
+              "tag": "EVENT",
+              "age_hours": 93.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 520,
+              "tag": "EVENT",
+              "age_hours": 93.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 521,
+              "tag": "EVENT",
+              "age_hours": 93.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 522,
+              "tag": "EVENT",
+              "age_hours": 93.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 523,
+              "tag": "EVENT",
+              "age_hours": 93.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 524,
+              "tag": "EVENT",
+              "age_hours": 93.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 525,
+              "tag": "EVENT",
+              "age_hours": 93.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 526,
+              "tag": "EVENT",
+              "age_hours": 93.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 527,
+              "tag": "EVENT",
+              "age_hours": 93.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 528,
+              "tag": "EVENT",
+              "age_hours": 93.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 529,
+              "tag": "EVENT",
+              "age_hours": 93.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 548,
+              "tag": "RHETORIC",
+              "age_hours": 69.4,
+              "ttl_hours": 24,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 554,
+              "tag": "RHETORIC",
+              "age_hours": 69.4,
+              "ttl_hours": 24,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 570,
+              "tag": "MARKET",
+              "age_hours": 69.4,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 578,
+              "tag": "RHETORIC",
+              "age_hours": 69.4,
+              "ttl_hours": 24,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 582,
+              "tag": "MARKET",
+              "age_hours": 69.4,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 595,
+              "tag": "MARKET",
+              "age_hours": 69.4,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 596,
+              "tag": "MARKET",
+              "age_hours": 45.4,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 607,
+              "tag": "MARKET",
+              "age_hours": 45.4,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            },
+            {
+              "index": 645,
+              "tag": "MARKET",
+              "age_hours": 45.4,
+              "ttl_hours": 24,
+              "ledger": "FACT"
+            }
+          ],
+          "by_tag": {
+            "COMPACTED": {
+              "fresh": 1,
+              "stale": 1
+            },
+            "EVENT": {
+              "fresh": 75,
+              "stale": 213
+            },
+            "DATA": {
+              "fresh": 19,
+              "stale": 64
+            },
+            "POLICY": {
+              "fresh": 193,
+              "stale": 25
+            },
+            "RHETORIC": {
+              "fresh": 1,
+              "stale": 24
+            },
+            "MARKET": {
+              "fresh": 1,
+              "stale": 32
+            },
+            "KINETIC": {
+              "fresh": 0,
+              "stale": 3
+            },
+            "INTEL": {
+              "fresh": 8,
+              "stale": 4
+            }
+          }
+        },
+        "hypothesis_admissibility": {
+          "H1": {
+            "checks": {
+              "has_label": true,
+              "has_midpoint": true,
+              "has_unit": true,
+              "resolution_defined": true,
+              "has_supporting_indicators": true,
+              "has_contrary_indicators": true,
+              "distinguishable": true,
+              "prior_nonzero": true,
+              "prior_not_certain": true
+            },
+            "passed": 9,
+            "total": 9,
+            "grade": "ADMISSIBLE",
+            "setpoint_clarity": "HIGH",
+            "observability": "HIGH",
+            "falsifiability": "YES"
+          },
+          "H2": {
+            "checks": {
+              "has_label": true,
+              "has_midpoint": true,
+              "has_unit": true,
+              "resolution_defined": true,
+              "has_supporting_indicators": true,
+              "has_contrary_indicators": true,
+              "distinguishable": true,
+              "prior_nonzero": true,
+              "prior_not_certain": true
+            },
+            "passed": 9,
+            "total": 9,
+            "grade": "ADMISSIBLE",
+            "setpoint_clarity": "HIGH",
+            "observability": "HIGH",
+            "falsifiability": "YES"
+          },
+          "H3": {
+            "checks": {
+              "has_label": true,
+              "has_midpoint": true,
+              "has_unit": true,
+              "resolution_defined": true,
+              "has_supporting_indicators": true,
+              "has_contrary_indicators": true,
+              "distinguishable": true,
+              "prior_nonzero": true,
+              "prior_not_certain": true
+            },
+            "passed": 9,
+            "total": 9,
+            "grade": "ADMISSIBLE",
+            "setpoint_clarity": "HIGH",
+            "observability": "HIGH",
+            "falsifiability": "YES"
+          },
+          "H4": {
+            "checks": {
+              "has_label": true,
+              "has_midpoint": true,
+              "has_unit": true,
+              "resolution_defined": true,
+              "has_supporting_indicators": true,
+              "has_contrary_indicators": true,
+              "distinguishable": true,
+              "prior_nonzero": true,
+              "prior_not_certain": true
+            },
+            "passed": 9,
+            "total": 9,
+            "grade": "ADMISSIBLE",
+            "setpoint_clarity": "HIGH",
+            "observability": "HIGH",
+            "falsifiability": "YES"
+          }
+        },
+        "top_queries": [
+          {
+            "query": "Evidence for: AIS-confirmed Hormuz transit reaches 40-55% of 2024-2025 baseline sustained 30 days in any window after May 2026 (precursor; resolution band starts at 80%, gap widened from prior 60% threshold). Source: Lloyd's List + EIA.",
+            "source": "tier1_critical/t1_transit_band_40_to_55",
+            "voi_score": 1.0,
+            "reason": "Unfired Tier 1 indicator — would trigger ALERT and major posterior shift"
+          },
+          {
+            "query": "Evidence for: AIS-confirmed Hormuz transit at 40-65% sustained 30 days WITHIN 2026-10-01 to 2027-03-31 window only. Source: Lloyd's / EIA.",
+            "source": "tier1_critical/t1_transit_band_h2_window",
+            "voi_score": 1.0,
+            "reason": "Unfired Tier 1 indicator — would trigger ALERT and major posterior shift"
+          },
+          {
+            "query": "Evidence for: AIS-confirmed Hormuz transit at 40-75% sustained 30 days WITHIN 2027-04-01 to 2027-09-30 window only. Source: Lloyd's / EIA.",
+            "source": "tier1_critical/t1_transit_band_h3_window",
+            "voi_score": 1.0,
+            "reason": "Unfired Tier 1 indicator — would trigger ALERT and major posterior shift"
+          },
+          {
+            "query": "Evidence against: Iranian government issues on-record decree/announcement formalizing closure or restricted-passage regime for Hormuz. Source: IRNA / Iranian MFA.",
+            "source": "anti_indicators/anti_iran_formal_blockade_decree",
+            "voi_score": 0.6,
+            "reason": "Primary thesis at 76% — anti-indicator check prevents confirmation bias"
+          },
+          {
+            "query": "Evidence against: Iran rial APPRECIATES >=15% sustained 60 days OR Iranian crude exports recover to >=2.0 mbpd sustained 90 days (genuine anti-H4: economic relief reduces regime incentive to maintain closure). Source: bonbast.com + Kpler.",
+            "source": "anti_indicators/anti_h4_iran_economic_recovery",
+            "voi_score": 0.6,
+            "reason": "Primary thesis at 76% — anti-indicator check prevents confirmation bias"
+          }
+        ],
+        "failure_modes": [
+          "no_evidence",
+          "confidence_inflation",
+          "repetition_as_validation",
+          "stale_evidence",
+          "circular_reasoning",
+          "scope_creep",
+          "modal_confusion",
+          "citation_drift",
+          "evidence_laundering",
+          "quorum_failure",
+          "rhetoric_as_evidence",
+          "unresolved_contradiction",
+          "discredited_source",
+          "red_team_override"
+        ]
+      }
     },
     {
       "slug": "calibration-lk99-superconductor",
@@ -91,7 +3234,426 @@
       "shadow_elapsed_entrenched_days": null,
       "health": "DEGRADED",
       "expectedValue": 5.18,
-      "expectedUnit": "probability_of_SC"
+      "expectedUnit": "probability_of_SC",
+      "governance": {
+        "health": "CRITICAL",
+        "issues": [
+          "Majority of evidence is stale (23/23)",
+          "CRITICAL: Near-zero uncertainty on ACTIVE topic — epistemic overconfidence. Time horizons and unresolved indicators contradict certainty.",
+          "DRIFT-FLAGGED indicators (1) need regrounding before next firing: t2_cu2s_explanation"
+        ],
+        "alerts": [
+          {
+            "severity": "ATTENTION",
+            "slug": "calibration-lk99-superconductor",
+            "signature": "stale_evidence:calibration-lk99-superconductor",
+            "lead": "Evidence base on calibration-lk99-superconductor is mostly stale (23/23 past TTL). Posterior is increasingly based on aged observations.",
+            "action": "Run skills/triage.md on recent headlines to refresh the evidence base, or run skills/news-scan.md for a sweep.",
+            "buttons": [
+              {
+                "label": "Mark reviewed",
+                "action": "mark_reviewed",
+                "context": {
+                  "alert_signature": "stale_evidence:calibration-lk99-superconductor"
+                }
+              }
+            ],
+            "details": {
+              "stale": 23,
+              "fresh": 0,
+              "total": 23
+            }
+          }
+        ],
+        "rt": {
+          "rt": 0.0,
+          "regime": "SAFE",
+          "worst_hypothesis": "H1",
+          "per_hypothesis": {
+            "H1": {
+              "rt": 0.0,
+              "regime": "SAFE",
+              "entropy_contribution": 0.0,
+              "time_decay": 5.93,
+              "evidence_recency": 1.0,
+              "delay_hours": 1434.9,
+              "priority_rank": 1
+            },
+            "H2": {
+              "rt": 0.0,
+              "regime": "SAFE",
+              "entropy_contribution": 0.0,
+              "time_decay": 5.93,
+              "evidence_recency": 1.0,
+              "delay_hours": 1434.9,
+              "priority_rank": 2
+            },
+            "H3": {
+              "rt": -0.0,
+              "regime": "SAFE",
+              "entropy_contribution": -0.0,
+              "time_decay": 5.93,
+              "evidence_recency": 1.0,
+              "delay_hours": 1434.9,
+              "priority_rank": 3
+            },
+            "H4": {
+              "rt": 0.0,
+              "regime": "SAFE",
+              "entropy_contribution": 0.0,
+              "time_decay": 5.93,
+              "evidence_recency": 1.0,
+              "delay_hours": 1434.9,
+              "priority_rank": 4
+            }
+          }
+        },
+        "entropy": 0.0,
+        "max_entropy": 2.0,
+        "uncertainty_ratio": 0.0,
+        "kl_from_prior": {
+          "kl_divergence": 0.6931,
+          "interpretation": "WELL_EVIDENCED",
+          "current_entropy": 0.0,
+          "initial_prior": {
+            "H1": 0.1,
+            "H2": 0.2,
+            "H3": 0.5,
+            "H4": 0.2
+          },
+          "current_posteriors": {
+            "H1": 0.0,
+            "H2": 0.0,
+            "H3": 1.0,
+            "H4": 0.0
+          }
+        },
+        "evidence_freshness": {
+          "total": 23,
+          "fresh": 0,
+          "stale": 23,
+          "unknown_time": 0,
+          "stale_entries": [
+            {
+              "index": 0,
+              "tag": "SCIENTIFIC",
+              "age_hours": 25713.4,
+              "ttl_hours": 720,
+              "ledger": "FACT"
+            },
+            {
+              "index": 1,
+              "tag": "RHETORIC",
+              "age_hours": 25645.4,
+              "ttl_hours": 24,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 2,
+              "tag": "ANALYSIS",
+              "age_hours": 25615.4,
+              "ttl_hours": 72,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 3,
+              "tag": "EXPERIMENTAL",
+              "age_hours": 25571.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 4,
+              "tag": "EXPERIMENTAL",
+              "age_hours": 25493.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 5,
+              "tag": "SCIENTIFIC",
+              "age_hours": 25476.4,
+              "ttl_hours": 720,
+              "ledger": "FACT"
+            },
+            {
+              "index": 6,
+              "tag": "EXPERIMENTAL",
+              "age_hours": 25450.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 7,
+              "tag": "EXPERIMENTAL",
+              "age_hours": 25423.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 8,
+              "tag": "SCIENTIFIC",
+              "age_hours": 25417.4,
+              "ttl_hours": 720,
+              "ledger": "FACT"
+            },
+            {
+              "index": 9,
+              "tag": "EXPERIMENTAL",
+              "age_hours": 25355.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 10,
+              "tag": "SCIENTIFIC",
+              "age_hours": 25332.4,
+              "ttl_hours": 720,
+              "ledger": "FACT"
+            },
+            {
+              "index": 11,
+              "tag": "EXPERIMENTAL",
+              "age_hours": 25302.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 12,
+              "tag": "DATA",
+              "age_hours": 25301.4,
+              "ttl_hours": 168,
+              "ledger": "FACT"
+            },
+            {
+              "index": 13,
+              "tag": "SCIENTIFIC",
+              "age_hours": 25161.4,
+              "ttl_hours": 720,
+              "ledger": "FACT"
+            },
+            {
+              "index": 14,
+              "tag": "SCIENTIFIC",
+              "age_hours": 25115.4,
+              "ttl_hours": 720,
+              "ledger": "FACT"
+            },
+            {
+              "index": 15,
+              "tag": "INTEL",
+              "age_hours": 1610.3,
+              "ttl_hours": 72,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 16,
+              "tag": "INTEL",
+              "age_hours": 1605.3,
+              "ttl_hours": 72,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 17,
+              "tag": "INTEL",
+              "age_hours": 1604.4,
+              "ttl_hours": 72,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 18,
+              "tag": "EVENT",
+              "age_hours": 25615.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 19,
+              "tag": "INTEL",
+              "age_hours": 1604.4,
+              "ttl_hours": 72,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 20,
+              "tag": "EVENT",
+              "age_hours": 25571.4,
+              "ttl_hours": 72,
+              "ledger": "FACT"
+            },
+            {
+              "index": 21,
+              "tag": "INTEL",
+              "age_hours": 1604.4,
+              "ttl_hours": 72,
+              "ledger": "DECISION"
+            },
+            {
+              "index": 22,
+              "tag": "INTEL",
+              "age_hours": 1604.4,
+              "ttl_hours": 72,
+              "ledger": "DECISION"
+            }
+          ],
+          "by_tag": {
+            "SCIENTIFIC": {
+              "fresh": 0,
+              "stale": 6
+            },
+            "RHETORIC": {
+              "fresh": 0,
+              "stale": 1
+            },
+            "ANALYSIS": {
+              "fresh": 0,
+              "stale": 1
+            },
+            "EXPERIMENTAL": {
+              "fresh": 0,
+              "stale": 6
+            },
+            "DATA": {
+              "fresh": 0,
+              "stale": 1
+            },
+            "INTEL": {
+              "fresh": 0,
+              "stale": 6
+            },
+            "EVENT": {
+              "fresh": 0,
+              "stale": 2
+            }
+          }
+        },
+        "hypothesis_admissibility": {
+          "H1": {
+            "checks": {
+              "has_label": true,
+              "has_midpoint": true,
+              "has_unit": true,
+              "resolution_defined": true,
+              "has_supporting_indicators": true,
+              "has_contrary_indicators": true,
+              "distinguishable": false,
+              "prior_nonzero": false,
+              "prior_not_certain": true
+            },
+            "passed": 7,
+            "total": 9,
+            "grade": "ADMISSIBLE",
+            "setpoint_clarity": "HIGH",
+            "observability": "HIGH",
+            "falsifiability": "YES"
+          },
+          "H2": {
+            "checks": {
+              "has_label": true,
+              "has_midpoint": true,
+              "has_unit": true,
+              "resolution_defined": true,
+              "has_supporting_indicators": true,
+              "has_contrary_indicators": true,
+              "distinguishable": true,
+              "prior_nonzero": false,
+              "prior_not_certain": true
+            },
+            "passed": 8,
+            "total": 9,
+            "grade": "ADMISSIBLE",
+            "setpoint_clarity": "HIGH",
+            "observability": "HIGH",
+            "falsifiability": "YES"
+          },
+          "H3": {
+            "checks": {
+              "has_label": true,
+              "has_midpoint": true,
+              "has_unit": true,
+              "resolution_defined": true,
+              "has_supporting_indicators": true,
+              "has_contrary_indicators": true,
+              "distinguishable": false,
+              "prior_nonzero": true,
+              "prior_not_certain": false
+            },
+            "passed": 7,
+            "total": 9,
+            "grade": "ADMISSIBLE",
+            "setpoint_clarity": "HIGH",
+            "observability": "HIGH",
+            "falsifiability": "YES"
+          },
+          "H4": {
+            "checks": {
+              "has_label": true,
+              "has_midpoint": true,
+              "has_unit": true,
+              "resolution_defined": true,
+              "has_supporting_indicators": false,
+              "has_contrary_indicators": true,
+              "distinguishable": true,
+              "prior_nonzero": false,
+              "prior_not_certain": true
+            },
+            "passed": 7,
+            "total": 9,
+            "grade": "ADMISSIBLE",
+            "setpoint_clarity": "HIGH",
+            "observability": "LOW",
+            "falsifiability": "YES"
+          }
+        },
+        "top_queries": [
+          {
+            "query": "Evidence for: Independent lab measures zero resistance in LK-99 sample below critical temperature",
+            "source": "tier1_critical/t1_independent_zero_resistance",
+            "voi_score": 1.0,
+            "reason": "Unfired Tier 1 indicator — would trigger ALERT and major posterior shift"
+          },
+          {
+            "query": "Evidence for: Independent lab confirms full Meissner effect (flux expulsion, not just partial levitation)",
+            "source": "tier1_critical/t1_meissner_confirmed",
+            "voi_score": 1.0,
+            "reason": "Unfired Tier 1 indicator — would trigger ALERT and major posterior shift"
+          },
+          {
+            "query": "Evidence for: 3+ independent labs fail to observe any SC signatures in high-quality samples",
+            "source": "tier1_critical/t1_bulk_failure",
+            "voi_score": 1.0,
+            "reason": "Unfired Tier 1 indicator — would trigger ALERT and major posterior shift"
+          },
+          {
+            "query": "Evidence for: Lab observes partial levitation or diamagnetic response but not full Meissner",
+            "source": "tier2_strong/t2_partial_levitation",
+            "voi_score": 0.7,
+            "reason": "Unfired Tier 2 indicator — would trigger ELEVATED"
+          },
+          {
+            "query": "Evidence for: Lab observes sharp resistivity drop but not zero resistance",
+            "source": "tier2_strong/t2_resistivity_drop",
+            "voi_score": 0.7,
+            "reason": "Unfired Tier 2 indicator — would trigger ELEVATED"
+          }
+        ],
+        "failure_modes": [
+          "no_evidence",
+          "confidence_inflation",
+          "repetition_as_validation",
+          "stale_evidence",
+          "circular_reasoning",
+          "scope_creep",
+          "modal_confusion",
+          "citation_drift",
+          "evidence_laundering",
+          "quorum_failure",
+          "rhetoric_as_evidence",
+          "unresolved_contradiction",
+          "discredited_source",
+          "red_team_override"
+        ]
+      }
     }
   ]
 }
