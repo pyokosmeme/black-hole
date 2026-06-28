@@ -227,9 +227,11 @@
     let innerR = radius - 6;   // inner edge of arc segments
     let outerR = radius + 26;  // outer edge of arc segments (title band)
     let orbSize = Math.max(54, Math.min(W, H) * 0.07);
-    // per-side label x: fixed inside the reserved gutter, never off-screen
-    const leftTextX  = Math.max(12, cx - radius - 24);
-    const rightTextX = Math.min(W - 12, cx + radius + 24);
+    // per-side label x: clear the OUTER arc edge + leader gap, clamped to viewport.
+    // (was cx ± radius ± 24, which sat inside the outer arc band.)
+    const sideGap = 30;
+    const leftTextX  = Math.max(12, cx - outerR - sideGap);
+    const rightTextX = Math.min(W - 12, cx + outerR + sideGap);
     // mobile: truncate titles harder so they fit the narrow gutter
     const titleMax = mobile ? 14 : 32;
     const flavMax  = mobile ? 0 : 32;
@@ -384,11 +386,12 @@
       const nearVert = Math.abs(cos) < 0.35;
 
       if (nearVert){
-        // stack straight up (top half) or down (bottom half), clearing keep-outs
+        // stack straight up (top half) or down (bottom half), clearing the
+        // OUTER arc edge + the top/bottom frame keep-out zones.
         const isTop = sin < 0;
         const list = isTop ? placed.top : placed.bottom;
-        let y = isTop ? (by - 16) : (by + 22);
-        y = isTop ? Math.min(y, cy - radius - 14) : Math.max(y, cy + radius + 22);
+        const clear = outerR + 16; // distance from ring center the label must clear
+        let y = isTop ? (cy - clear) : (cy + clear + rowH);
         y = claimY(list, y, rowH);
         if (isTop) y = Math.max(y, topZone + rowH);
         else      y = Math.min(y, H - bottomZone - rowH);
