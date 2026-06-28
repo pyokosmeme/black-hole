@@ -417,17 +417,19 @@
         const d = `M ${n.x.toFixed(1)} ${n.y.toFixed(1)} L ${bx.toFixed(1)} ${by.toFixed(1)} L ${cx.toFixed(1)} ${y.toFixed(1)}`;
         drawLabel(cx, y, 'middle', d, bx, by, ttl, flv);
       } else if (mobile){
-        // mobile: text sits in the side margin (fixed x per side, well outside the
-        // node cluster), anchored start so it reads L→R away from the ring. The
-        // leader bridges node → radial bend → text. Vertical position follows the
-        // node's y, stacked so labels don't collide with each other.
+        // mobile: the screen is tall but narrow, so place side labels BELOW their
+        // node (stacked into the bottom area), anchored toward the nearer edge so
+        // text reads outward. This keeps labels off the ring and off the icons.
         const isLeft = cos < 0;
-        const list = isLeft ? placed.left : placed.right;
-        let y = claimY(list, n.y, rowH);
-        y = Math.min(Math.max(y, topZone + rowH), H - bottomZone - rowH);
-        // fixed text x just inside the viewport edge — clears the node cluster
+        const isTop = sin < 0;
+        const list = placed.bottom;
+        // stagger each successive label downward; start just below the node
+        let y = claimY(list, n.y + orbSize * 0.7, rowH);
+        y = Math.min(y, H - bottomZone - rowH);
+        // text x: pull toward the nearer viewport edge, just inside it
         const textX = isLeft ? pad + 2 : W - pad - 2;
-        const elbowX = isLeft ? cx - labelR : cx + labelR;
+        // leader: node → bend → down to label row → across to text
+        const elbowX = isLeft ? Math.min(bx, n.x) : Math.max(bx, n.x);
         const d = `M ${n.x.toFixed(1)} ${n.y.toFixed(1)} L ${bx.toFixed(1)} ${by.toFixed(1)} L ${elbowX.toFixed(1)} ${y.toFixed(1)} L ${textX.toFixed(1)} ${y.toFixed(1)}`;
         drawLabel(textX, y, isLeft ? 'start' : 'end', d, bx, by, ttl, flv);
       } else {
