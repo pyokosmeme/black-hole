@@ -417,21 +417,19 @@
         const d = `M ${n.x.toFixed(1)} ${n.y.toFixed(1)} L ${bx.toFixed(1)} ${by.toFixed(1)} L ${cx.toFixed(1)} ${y.toFixed(1)}`;
         drawLabel(cx, y, 'middle', d, bx, by, ttl, flv);
       } else if (mobile){
-        // mobile: place the label radially along the node's angle, fanning into
-        // the diagonal space (top-left/top-right/bottom-left/bottom-right corners).
-        // The leader goes straight out from the node; the text sits just past it,
-        // anchored toward the nearer horizontal edge so it reads inward→outward.
+        // mobile: text sits in the side margin (fixed x per side, well outside the
+        // node cluster), anchored start so it reads L→R away from the ring. The
+        // leader bridges node → radial bend → text. Vertical position follows the
+        // node's y, stacked so labels don't collide with each other.
         const isLeft = cos < 0;
-        const isTop = sin < 0;
-        // push well past the orb so text clears the icon; the leader bridges the gap
-        const radialR = orbSize * 0.9 + 18;
-        const lx = cx + cos * (radius + radialR);
-        let ly = cy + sin * (radius + radialR);
-        // keep text within vertical keep-out zones
-        ly = Math.min(Math.max(ly, topZone + rowH), H - bottomZone - rowH);
-        // leader: node → bend point → text anchor (straight radial, no elbow into ring)
-        const d = `M ${n.x.toFixed(1)} ${n.y.toFixed(1)} L ${bx.toFixed(1)} ${by.toFixed(1)} L ${lx.toFixed(1)} ${ly.toFixed(1)}`;
-        drawLabel(lx, ly, isLeft ? 'end' : 'start', d, bx, by, ttl, flv);
+        const list = isLeft ? placed.left : placed.right;
+        let y = claimY(list, n.y, rowH);
+        y = Math.min(Math.max(y, topZone + rowH), H - bottomZone - rowH);
+        // fixed text x just inside the viewport edge — clears the node cluster
+        const textX = isLeft ? pad + 2 : W - pad - 2;
+        const elbowX = isLeft ? cx - labelR : cx + labelR;
+        const d = `M ${n.x.toFixed(1)} ${n.y.toFixed(1)} L ${bx.toFixed(1)} ${by.toFixed(1)} L ${elbowX.toFixed(1)} ${y.toFixed(1)} L ${textX.toFixed(1)} ${y.toFixed(1)}`;
+        drawLabel(textX, y, isLeft ? 'start' : 'end', d, bx, by, ttl, flv);
       } else {
         const isLeft = cos < 0;
         const list = isLeft ? placed.left : placed.right;
