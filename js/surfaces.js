@@ -23,7 +23,6 @@
   const CFG_PATH = (window.SURFACES_CONFIG && window.SURFACES_CONFIG.configPath) || 'surfaces/config.json';
   const SVG_NS = 'http://www.w3.org/2000/svg';
   const HAS_THREE = typeof window.THREE !== 'undefined';
-  const HAS_SIMPLEX = typeof window.SimplexNoise !== 'undefined';
 
   let CFG = null;
   let SURFACES = [];
@@ -49,7 +48,7 @@
   // ─── three.js topography, fixed full-viewport ─────────────────────
   let three = null;
   function setupThree(mount) {
-    if (!HAS_THREE || !HAS_SIMPLEX) return null;
+    if (!HAS_THREE) return null;
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 300);
     camera.position.set(0, 45, 45);
@@ -58,12 +57,14 @@
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, window.innerWidth < 720 ? 1.5 : 2));
     mount.appendChild(renderer.domElement);
 
-    const simplex = new SimplexNoise();
     scene.background = curBase;
     scene.fog = new THREE.FogExp2(curBase, 0.018);
 
-    // resolution: 300 for crisp near-camera detail
-    // (perf handled by distance-dependent updates — far vertices update infrequently)
+    // resolution: 300 for crisp near-camera detail.
+    // Terrain displacement now runs entirely in the GPU vertex shader (a hash-based
+    // value-noise approximation of the original simplex), so there is NO per-frame
+    // CPU vertex loop and NO vertex-buffer re-upload — geometry is static. This
+    // keeps the morph fully animated while eliminating the 90k-vertex CPU cost.
     const gridRes = 300;
     const geometry = new THREE.PlaneGeometry(200, 200, gridRes, gridRes);
     const uniforms = {
@@ -73,8 +74,33 @@
     const mat = new THREE.ShaderMaterial({
       uniforms, extensions: { derivatives: true },
       vertexShader: `
+        uniform float uTime;
         varying float vE; varying vec3 vW;
-        void main(){ vE = position.z; vec4 wp = modelMatrix * vec4(position,1.0); vW = wp.xyz; gl_Position = projectionMatrix * viewMatrix * wp; }
+        // hash + value noise (GPU-friendly simplex substitute). two octaves give
+        // rolling hills matching the original simplex character.
+        float hash(vec3 p){ p = fract(p*0.3183099+0.1); p *= 17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
+        float vnoise(vec3 p){
+          vec3 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
+          return mix(mix(mix(hash(i+vec3(0,0,0)),hash(i+vec3(1,0,0)),f.x),
+                        mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),
+                    mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),
+                        mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);
+        }
+        void main(){
+          // p is plane-local (x,y in -100..100, z=0 pre-displacement). so = fast
+          // scroll, mo = slow morph — mirrors the original simplex call:
+          // noise3D(x*0.012, (y+so)*0.012, mo) * 8.5, with so = uTime*6, mo = uTime*0.048
+          vec3 p = position.xyz;
+          float morph = uTime * 0.048;
+          float scroll = uTime * 6.0;
+          float h = vnoise(vec3(p.x*0.012, (p.y+scroll)*0.012, morph));
+          h = (h*2.0-1.0) * 8.5;                 // center on 0, ±8.5 amplitude
+          vec3 disp = vec3(p.x, p.y, h);
+          vE = h;
+          vec4 wp = modelMatrix * vec4(disp,1.0);
+          vW = wp.xyz;
+          gl_Position = projectionMatrix * viewMatrix * wp;
+        }
       `,
       fragmentShader: `
         uniform vec3 uBaseColor, uLineColor, uLightPos[6], uLightColor[6];
@@ -104,34 +130,18 @@
       uniforms.uLightPos.value.push(new THREE.Vector3());
       uniforms.uLightColor.value.push(new THREE.Color());
     }
-    return { scene, camera, renderer, geometry, uniforms, vlights, simplex, mo: 0, so: 0 };
+    return { scene, camera, renderer, geometry, uniforms, vlights, mo: 0, so: 0 };
   }
 
-  let terrainFrame = 0;
   function stepThree(t, dt) {
     if (!three) return;
-    three.mo += dt * 0.008; three.so += dt * 6.0;
+    // colors + lights still lerp on CPU (cheap: 6 lights + a few colors)
     curBase.lerp(toColor(target.base), 0.04);
     curLines.lerp(toColor(target.lines), 0.04);
     for (let i = 0; i < 3; i++) curSplotch[i].lerp(toColor(target.splotches[i]), 0.04);
     three.scene.background = curBase; three.scene.fog.color = curBase;
-    three.uniforms.uBaseColor.value = curBase; three.uniforms.uLineColor.value = curLines; three.uniforms.uTime.value = t * 0.08;
-    // distance-dependent terrain update: near-camera vertices every frame (crisp),
-    // mid-range every 3 frames, far every 6 frames.
-    // The morph is slow enough that the lag on distant vertices is invisible.
-    terrainFrame++;
-    const p = three.geometry.attributes.position;
-    const so = three.so, mo = three.mo;
-    const nearDist = 50; // units from camera center (plane y≈30)
-    const midDist = 80;
-    for (let i = 0; i < p.count; i++) {
-      const dist = Math.abs(p.getY(i) - 30);
-      const update = (dist < nearDist) ? true : (dist < midDist ? terrainFrame % 3 === 0 : terrainFrame % 6 === 0);
-      if (update) {
-        p.setZ(i, three.simplex.noise3D(p.getX(i) * 0.012, (p.getY(i) + so) * 0.012, mo) * 8.5);
-      }
-    }
-    p.needsUpdate = true;
+    three.uniforms.uBaseColor.value = curBase; three.uniforms.uLineColor.value = curLines;
+    three.uniforms.uTime.value = t * 0.08;  // drives the GPU vertex-shader morph
     for (let i = 0; i < 6; i++) {
       const L = three.vlights[i]; L.position.x += L.vx; L.position.z += L.vz;
       if (L.position.x < -80 || L.position.x > 80) L.vx *= -1;
@@ -226,17 +236,18 @@
     const usableH = H - topFrame - bottomFrame;
     let cy = topFrame + usableH/2;
     const mobile = W < 720;
-    // gutter is small — text clamps itself to the viewport via getBBox,
-    // so the ring can stay large. keep just enough gutter for the leader bend.
-    const gutter = mobile ? 56 : Math.min(W * 0.18, 160);
-    // radius fits the usable height (leaving room for top/bottom labels) and width
-    let radius = Math.min(W/2 - gutter, usableH * 0.36, Math.min(W, H) * 0.40);
-    radius = Math.max(90, radius);
+    // On mobile the screen is narrow, so reserve a WIDE gutter on each side and
+    // let the ring shrink — side labels fan radially into the diagonal space,
+    // never colliding with the ring or icons. On desktop keep a small gutter
+    // since the screen is wide enough for fixed side columns.
+    const gutter = mobile ? Math.min(W * 0.30, 130) : Math.min(W * 0.18, 160);
+    let radius = Math.min(W/2 - gutter, usableH * 0.34, Math.min(W, H) * (mobile ? 0.30 : 0.40));
+    radius = Math.max(mobile ? 80 : 90, radius);
     let innerR = radius - 6;   // inner edge of arc segments
     let outerR = radius + 26;  // outer edge of arc segments (title band)
-    let orbSize = Math.max(54, Math.min(W, H) * 0.07);
-    // per-side label x: clear the OUTER arc edge + leader gap, clamped to viewport.
-    // (was cx ± radius ± 24, which sat inside the outer arc band.)
+    let orbSize = Math.max(mobile ? 44 : 54, Math.min(W, H) * (mobile ? 0.055 : 0.07));
+    // per-side label x (desktop only — mobile uses radial placement):
+    // clear the OUTER arc edge + leader gap, clamped to viewport.
     const sideGap = 30;
     const leftTextX  = Math.max(12, cx - outerR - sideGap);
     const rightTextX = Math.min(W - 12, cx + outerR + sideGap);
@@ -405,6 +416,22 @@
         else      y = Math.min(y, H - bottomZone - rowH);
         const d = `M ${n.x.toFixed(1)} ${n.y.toFixed(1)} L ${bx.toFixed(1)} ${by.toFixed(1)} L ${cx.toFixed(1)} ${y.toFixed(1)}`;
         drawLabel(cx, y, 'middle', d, bx, by, ttl, flv);
+      } else if (mobile){
+        // mobile: place the label radially along the node's angle, fanning into
+        // the diagonal space (top-left/top-right/bottom-left/bottom-right corners).
+        // The leader goes straight out from the node; the text sits just past it,
+        // anchored toward the nearer horizontal edge so it reads inward→outward.
+        const isLeft = cos < 0;
+        const isTop = sin < 0;
+        // push well past the orb so text clears the icon; the leader bridges the gap
+        const radialR = orbSize * 0.9 + 18;
+        const lx = cx + cos * (radius + radialR);
+        let ly = cy + sin * (radius + radialR);
+        // keep text within vertical keep-out zones
+        ly = Math.min(Math.max(ly, topZone + rowH), H - bottomZone - rowH);
+        // leader: node → bend point → text anchor (straight radial, no elbow into ring)
+        const d = `M ${n.x.toFixed(1)} ${n.y.toFixed(1)} L ${bx.toFixed(1)} ${by.toFixed(1)} L ${lx.toFixed(1)} ${ly.toFixed(1)}`;
+        drawLabel(lx, ly, isLeft ? 'end' : 'start', d, bx, by, ttl, flv);
       } else {
         const isLeft = cos < 0;
         const list = isLeft ? placed.left : placed.right;
