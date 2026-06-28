@@ -21,7 +21,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="css/surfaces.css?v=100">
+  <link rel="stylesheet" href="css/surfaces.css?v=101">
 
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <!-- three r128 + simplex for the Circos ring's topography background (local js-libs is r73, too old) -->
@@ -33,11 +33,8 @@
   <div id="srf-topo-bg" aria-hidden="true"></div>
   <div class="srf-stars" aria-hidden="true"></div>
 
-  <!-- top frame: style changer (JS fills #srf-controls) -->
+  <!-- top frame: style changer + count + glosses trigger (JS fills #srf-controls) -->
   <div class="srf-frame srf-frame-top" id="srf-controls"></div>
-
-  <!-- latent glosses trigger (separate slot so buildControls can't wipe it) -->
-  <button class="srf-glosses-trigger" id="srf-glosses-btn" aria-expanded="false">LATENT GLOSSES ▾</button>
 
   <!-- latent glosses fold-down panel (over the ring when open) -->
   <section class="srf-glosses-panel srf-comments" id="surfaces-comments-host" aria-label="Latent Glosses" hidden></section>
@@ -50,10 +47,9 @@
 
   <aside class="srf-drawer" id="srf-drawer" aria-hidden="true"></aside>
 
-  <script src="js/surfaces.js?v=100"></script>
+  <script src="js/surfaces.js?v=101"></script>
   <script type="module">
     import { mount as mountComments } from './js/transmission-comments.js';
-
     const host = document.getElementById('surfaces-comments-host');
     if (host) {
       mountComments(host, {
@@ -64,20 +60,8 @@
         console.error('[SURFACES] Comments mount failed:', error);
       });
     }
-
-    // fold-down toggle for the glosses panel
-    const btn = document.getElementById('srf-glosses-btn');
-    const panel = document.getElementById('surfaces-comments-host');
-    if (btn && panel) {
-      btn.addEventListener('click', () => {
-        const open = !panel.hidden;
-        panel.hidden = open;
-        // ensure the comments <details> is open so its body shows
-        panel.querySelectorAll('details').forEach(d => { d.open = !open; });
-        btn.setAttribute('aria-expanded', String(!open));
-        btn.textContent = open ? 'LATENT GLOSSES ▾' : 'LATENT GLOSSES ▴';
-      });
-    }
+    // NOTE: the glosses toggle is handled by buildControls() in surfaces.js,
+    // not here — it creates #srf-glosses-btn inside #srf-controls.
   </script>
 </body>
 </html>
