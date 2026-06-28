@@ -54,7 +54,10 @@
     camera.position.set(0, 45, 45);
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
     renderer.setSize(window.innerWidth, window.innerHeight);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, window.innerWidth < 720 ? 1.5 : 2));
+    // pixel ratio: higher cap on desktop for crisper contour lines (the main
+    // source of pixelation). The GPU shader keeps per-frame cost low, so the
+    // extra fill is affordable.
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, window.innerWidth < 720 ? 1.75 : 2.5));
     mount.appendChild(renderer.domElement);
 
     scene.background = curBase;
@@ -428,9 +431,12 @@
     // the top/bottom keep-out zones); side nodes place horizontal labels
     // stacked along the side, anchored away from the ring.
     const placed = { left: [], right: [], top: [], bottom: [] };
-    function claimY(list, want, minGap){
+    // dir: +1 pushes downward (for bottom labels, stacking toward the ring),
+    // -1 pushes upward (for top labels). Keeps each side's label order aligned
+    // with its nodes instead of reversing when collisions resolve.
+    function claimY(list, want, minGap, dir){
       let y = want;
-      while (list.some(p => Math.abs(p - y) < minGap)) y += minGap;
+      while (list.some(p => Math.abs(p - y) < minGap)) y += minGap * (dir || 1);
       list.push(y);
       return y;
     }
@@ -450,7 +456,7 @@
         const list = isTop ? placed.top : placed.bottom;
         const clear = outerR + 16; // distance from ring center the label must clear
         let y = isTop ? (cy - clear) : (cy + clear + rowH);
-        y = claimY(list, y, rowH);
+        y = claimY(list, y, rowH, isTop ? -1 : 1);
         if (isTop) y = Math.max(y, topZone + rowH);
         else      y = Math.min(y, H - bottomZone - rowH);
         const d = `M ${n.x.toFixed(1)} ${n.y.toFixed(1)} L ${bx.toFixed(1)} ${by.toFixed(1)} L ${cx.toFixed(1)} ${y.toFixed(1)}`;
@@ -464,7 +470,7 @@
         const isTop = sin < 0;
         const list = isTop ? placed.top : placed.bottom;
         const offset = orbSize * 0.7 + (isTop ? rowH : 0);
-        let y = claimY(list, isTop ? (n.y - offset) : (n.y + offset), rowH);
+        let y = claimY(list, isTop ? (n.y - offset) : (n.y + offset), rowH, isTop ? -1 : 1);
         if (isTop) y = Math.max(y, topZone + rowH);
         else       y = Math.min(y, H - bottomZone - rowH);
         const textX = isLeft ? pad + 2 : W - pad - 2;
