@@ -76,8 +76,8 @@
       vertexShader: `
         uniform float uTime;
         varying float vE; varying vec3 vW;
-        // hash + value noise (GPU-friendly simplex substitute). two octaves give
-        // rolling hills matching the original simplex character.
+        // hash + value noise (GPU-friendly simplex substitute), fbm-summed for
+        // the ridged detail simplex had.
         float hash(vec3 p){ p = fract(p*0.3183099+0.1); p *= 17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
         float vnoise(vec3 p){
           vec3 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
@@ -86,15 +86,22 @@
                     mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),
                         mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);
         }
+        // 3-octave fbm: recovers the high-frequency ridges single-octave value
+        // noise lacked, so the topography isn't flattened.
+        float fbm(vec3 p){
+          float a = 0.5, s = 0.0, f = 1.0;
+          for(int i=0;i<3;i++){ s += a * vnoise(p*f); f *= 2.0; a *= 0.5; }
+          return s;
+        }
         void main(){
-          // p is plane-local (x,y in -100..100, z=0 pre-displacement). so = fast
-          // scroll, mo = slow morph — mirrors the original simplex call:
-          // noise3D(x*0.012, (y+so)*0.012, mo) * 8.5, with so = uTime*6, mo = uTime*0.048
+          // uTime is raw seconds. scroll = so (6/sec, fast vertical slide),
+          // morph = mo (0.008/sec, slow shape change) — matches the original
+          // CPU simplex call: noise3D(x*0.012, (y+so)*0.012, mo) * 8.5
           vec3 p = position.xyz;
-          float morph = uTime * 0.048;
           float scroll = uTime * 6.0;
-          float h = vnoise(vec3(p.x*0.012, (p.y+scroll)*0.012, morph));
-          h = (h*2.0-1.0) * 8.5;                 // center on 0, ±8.5 amplitude
+          float morph  = uTime * 0.008;
+          float n = fbm(vec3(p.x*0.012, (p.y+scroll)*0.012, morph));
+          float h = (n*2.0-1.0) * 8.5;            // center on 0, ±8.5 amplitude
           vec3 disp = vec3(p.x, p.y, h);
           vE = h;
           vec4 wp = modelMatrix * vec4(disp,1.0);
@@ -141,7 +148,7 @@
     for (let i = 0; i < 3; i++) curSplotch[i].lerp(toColor(target.splotches[i]), 0.04);
     three.scene.background = curBase; three.scene.fog.color = curBase;
     three.uniforms.uBaseColor.value = curBase; three.uniforms.uLineColor.value = curLines;
-    three.uniforms.uTime.value = t * 0.08;  // drives the GPU vertex-shader morph
+    three.uniforms.uTime.value = t;  // raw seconds — shader derives scroll (×6) + morph (×0.008)
     for (let i = 0; i < 6; i++) {
       const L = three.vlights[i]; L.position.x += L.vx; L.position.z += L.vz;
       if (L.position.x < -80 || L.position.x > 80) L.vx *= -1;
