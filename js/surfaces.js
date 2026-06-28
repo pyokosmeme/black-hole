@@ -62,10 +62,9 @@
     scene.background = curBase;
     scene.fog = new THREE.FogExp2(curBase, 0.018);
 
-    // lower resolution on small screens for perf; the morph is slow enough
-    // that the difference is barely visible at the viewing angle.
-    const mobileR = (window.innerWidth < 720) ? 140 : 220;
-    const geometry = new THREE.PlaneGeometry(200, 200, mobileR, mobileR);
+    // resolution: 260 for quality (perf handled by distance-dependent updates below)
+    const gridRes = 260;
+    const geometry = new THREE.PlaneGeometry(200, 200, gridRes, gridRes);
     const uniforms = {
       uBaseColor: { value: curBase }, uLineColor: { value: curLines },
       uLightPos: { value: [] }, uLightColor: { value: [] }, uTime: { value: 0.0 }
@@ -116,12 +115,25 @@
     for (let i = 0; i < 3; i++) curSplotch[i].lerp(toColor(target.splotches[i]), 0.04);
     three.scene.background = curBase; three.scene.fog.color = curBase;
     three.uniforms.uBaseColor.value = curBase; three.uniforms.uLineColor.value = curLines; three.uniforms.uTime.value = t * 0.08;
-    // throttle terrain re-sim to every other frame; the morph is slow, so
-    // skipping a frame is invisible but halves the per-frame vertex cost.
+    // distance-dependent terrain update: vertices near the camera view update
+    // every 2 frames (crisp detail where it matters); distant vertices update
+    // every 6 frames (morph is slow enough that the tiny lag is invisible).
+    // This avoids seams because far vertices catch up periodically.
     terrainFrame++;
-    if (terrainFrame % 2 === 0) {
-      const p = three.geometry.attributes.position, so = three.so, mo = three.mo;
-      for (let i = 0; i < p.count; i++) p.setZ(i, three.simplex.noise3D(p.getX(i) * 0.012, (p.getY(i) + so) * 0.012, mo) * 8.5);
+    const updateNear = terrainFrame % 2 === 0;
+    const updateFar = terrainFrame % 6 === 0;
+    if (updateNear || updateFar) {
+      const p = three.geometry.attributes.position;
+      const so = three.so, mo = three.mo;
+      const nearDist = 55; // radius from camera center (plane y≈30) where full update is needed
+      for (let i = 0; i < p.count; i++) {
+        const dist = Math.abs(p.getY(i) - 30);
+        if (updateNear && dist < nearDist) {
+          p.setZ(i, three.simplex.noise3D(p.getX(i) * 0.012, (p.getY(i) + so) * 0.012, mo) * 8.5);
+        } else if (updateFar) {
+          p.setZ(i, three.simplex.noise3D(p.getX(i) * 0.012, (p.getY(i) + so) * 0.012, mo) * 8.5);
+        }
+      }
       p.needsUpdate = true;
     }
     for (let i = 0; i < 6; i++) {
@@ -616,7 +628,6 @@
       document.getElementById('srf-style-name').textContent = target.name.toUpperCase();
     });
     c.appendChild(mode);
-    const count = document.createElement('span'); count.className='srf-count'; count.textContent = SURFACES.length + ' surface' + (SURFACES.length===1?'':'s'); c.appendChild(count);
 
     // latent glosses trigger — rendered here so it survives innerHTML clears,
     // and sits inside the top frame next to STYLE + the count.
