@@ -211,14 +211,18 @@
     svg.setAttribute('preserveAspectRatio','xMidYMid meet');
     wrap.appendChild(svg);
 
-    let cx = W/2, cy = H/2;
+    // center the ring in the vertical space BELOW the top frame and ABOVE the
+    // bottom, so top/bottom labels clear the style bar and the bottom edge.
+    const topFrame = 80, bottomFrame = 40;
+    let cx = W/2;
+    const usableH = H - topFrame - bottomFrame;
+    let cy = topFrame + usableH/2;
     const mobile = W < 720;
-    // reserve gutters on each side so leader labels have room and never run
-    // off-screen. on mobile, shrink the ring + widen the gutter so text fits.
-    // gutter is small now — text clamps itself to the viewport via getBBox,
+    // gutter is small — text clamps itself to the viewport via getBBox,
     // so the ring can stay large. keep just enough gutter for the leader bend.
     const gutter = mobile ? 56 : Math.min(W * 0.18, 160);
-    let radius = Math.min(W/2 - gutter, H * 0.40, Math.min(W, H) * 0.42);
+    // radius fits the usable height (leaving room for top/bottom labels) and width
+    let radius = Math.min(W/2 - gutter, usableH * 0.36, Math.min(W, H) * 0.40);
     radius = Math.max(90, radius);
     let innerR = radius - 6;   // inner edge of arc segments
     let outerR = radius + 26;  // outer edge of arc segments (title band)
@@ -323,7 +327,7 @@
     const labelR = radius + 10;          // leader bend point, just outside the ring
     const pad = mobile ? 8 : 14;
     // vertical keep-out zones for the style bar (top) and bottom area
-    const topZone = 64, bottomZone = 24;
+    const topZone = topFrame + 6, bottomZone = bottomFrame + 6;
 
     function drawLabel(textX, y, anchor, leaderPath, bx, by, titleText, flavText){
       const line = document.createElementNS(SVG_NS,'path');
