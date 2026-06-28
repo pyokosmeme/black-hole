@@ -617,6 +617,22 @@
     });
     c.appendChild(mode);
     const count = document.createElement('span'); count.className='srf-count'; count.textContent = SURFACES.length + ' surface' + (SURFACES.length===1?'':'s'); c.appendChild(count);
+
+    // latent glosses trigger — rendered here so it survives innerHTML clears,
+    // and sits inside the top frame next to STYLE + the count.
+    const gloss = document.createElement('button');
+    gloss.className = 'srf-glosses-trigger'; gloss.id = 'srf-glosses-btn';
+    gloss.setAttribute('aria-expanded','false'); gloss.textContent = 'LATENT GLOSSES ▾';
+    gloss.addEventListener('click', ()=>{
+      const panel = document.getElementById('surfaces-comments-host');
+      if (!panel) return;
+      const open = !panel.hidden;
+      panel.hidden = open;
+      panel.querySelectorAll('details').forEach(d => { d.open = !open; });
+      gloss.setAttribute('aria-expanded', String(!open));
+      gloss.textContent = open ? 'LATENT GLOSSES ▾' : 'LATENT GLOSSES ▴';
+    });
+    c.appendChild(gloss);
   }
 
   // ─── boot ────────────────────────────────────────────────────────
