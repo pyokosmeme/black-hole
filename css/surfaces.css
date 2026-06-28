@@ -170,13 +170,6 @@ html, body {
   box-shadow: 0 0 18px rgba(255, 179, 71, 0.18) inset;
 }
 
-.srf-count {
-  margin-left: auto;
-  font-size: 11px;
-  letter-spacing: 2px;
-  color: var(--srf-ink-dim);
-}
-
 /* ─────────────────────── STAGE ─────────────────────── */
 .srf-stage {
   position: relative;
