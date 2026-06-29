@@ -119,6 +119,16 @@ a:hover{border-color:var(--cyan)}
 .gov-pct{color:var(--muted);font-size:11px}
 .gov-warn{color:var(--amber);font-size:11px;margin-top:3px}
 .gov-query{color:var(--muted);font-family:ui-monospace,Consolas,monospace;font-size:11px}
+
+/* Monte Carlo reopen-date distribution */
+.mc-wrap{margin-top:6px}
+.mc-canvas{width:100%;height:220px;display:block;background:#02050d70;border:1px solid #70f7ff14;border-radius:4px}
+.mc-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-top:10px}
+.mc-stat{border:1px solid #70f7ff14;background:#02050d80;padding:7px 9px}
+.mc-stat span{display:block;color:var(--muted);font-size:9px;letter-spacing:.07em;text-transform:uppercase;margin-bottom:3px}
+.mc-stat b{font-family:ui-monospace,Consolas,monospace;font-size:12px}
+.mc-col-active b{color:var(--cyan)} .mc-col-shadow b{color:var(--mag)}
+.mc-note{font-size:11px;color:var(--muted);font-style:italic;margin-top:8px;line-height:1.5}
 </style>
 </head>
 <body>
@@ -294,6 +304,9 @@ function renderDetail(t){
         <span><span class="sw" style="background:var(--mag)"></span>shadow (dynamics-derived)</span>
       </div>
       <div>${rows}</div>
+      <div class="section-label">reopen-date distribution (Monte Carlo)</div>
+      <div class="explainer">A simulation of <i>when</i> the strait might reopen under each estimate. For each distribution, we draw a hypothesis weighted by its posterior, then sample a reopen date uniformly within that hypothesis's date band. The <b style="color:var(--cyan)">active</b> histogram concentrates reopen in late 2027; the <b style="color:var(--purple)">shadow</b> spreads mass toward "no reopen" (the dynamics model prices elapsed entrenched time as evidence against early reopening). H4's mass ("not reopened by end of 2027") is an open tail — shown as a number, not a date on the axis.</div>
+      ${renderMC(t.posteriors, t.shadow_posteriors, t.slug, t.shadow_elapsed_entrenched_days)}
       <div class="note">SHADOW — guide, not authoritative. Never writes topic state. Positive delta (amber) = shadow thinks the hypothesis more likely than committed does; negative (cyan) = less likely.</div>`;
   }
 
@@ -382,6 +395,148 @@ function renderDetails(t){
 }
 
 function escapeHtml(s){return String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+// ---- Monte Carlo reopen-date distribution ----
+const ORIGIN_DATES = { 'calibration-hormuz-reopen-2027': '2026-05-03' };
+const BUCKETS = {
+  'calibration-hormuz-reopen-2027': {
+    'H1': ['2026-05-04', '2026-09-30'],
+    'H2': ['2026-10-01', '2027-03-31'],
+    'H3': ['2027-04-01', '2027-12-31'],
+    'H4': 'tail'
+  }
+};
+const MC_DRAWS = 10000;
+
+function daysBetween(a, b){
+  const da = new Date(a+'T00:00:00Z'), db = new Date(b+'T00:00:00Z');
+  return Math.round((db - da) / 86400000);
+}
+function addDays(iso, n){
+  const d = new Date(iso+'T00:00:00Z'); d.setUTCDate(d.getUTCDate()+n);
+  return d.toISOString().slice(0,10);
+}
+
+function monteCarloReopen(post, slug){
+  const buckets = BUCKETS[slug], origin = ORIGIN_DATES[slug];
+  if(!buckets || !origin) return null;
+  const keys = Object.keys(post);
+  let tailMass = 0;
+  const cont = [];
+  for(const k of keys){
+    const b = buckets[k];
+    const p = Math.max(0, post[k]||0);
+    if(b === 'tail' || !b){ tailMass += p; continue; }
+    cont.push({k, p, lo: daysBetween(origin, b[0]), hi: daysBetween(origin, b[1])});
+  }
+  const contTotal = cont.reduce((s,c)=>s+c.p,0) || 1;
+  const total = contTotal + tailMass;
+  const out = [];
+  let prng = (function(seed){
+    let x = seed >>> 0;
+    return ()=>{ x ^= x << 13; x ^= x >>> 17; x ^= x << 5; return ((x>>>0)/4294967296); };
+  })(20260629);
+  for(let i=0;i<MC_DRAWS;i++){
+    const r = prng() * contTotal;
+    let acc = 0, picked = null;
+    for(const c of cont){ acc += c.p; if(r <= acc){ picked = c; break; } }
+    if(!picked) picked = cont[cont.length-1];
+    if(!picked) break;
+    const span = Math.max(1, picked.hi - picked.lo);
+    out.push(picked.lo + Math.floor(prng() * (span+1)));
+  }
+  out.sort((a,b)=>a-b);
+  return {samples: out, origin, tailMass: tailMass/total};
+}
+
+function pct(arr, q){
+  if(!arr.length) return null;
+  const idx = Math.min(arr.length-1, Math.floor(q * arr.length));
+  return arr[idx];
+}
+function fmtDate(origin, days){ return addDays(origin, days); }
+
+function renderMC(post, shadowPost, slug, elapsedDays){
+  const a = monteCarloReopen(post, slug);
+  const b = shadowPost ? monteCarloReopen(shadowPost, slug) : null;
+  if(!a) return '';
+  const tailPctA = (a.tailMass*100).toFixed(1);
+  const tailPctB = b ? (b.tailMass*100).toFixed(1) : '—';
+  const all = a.samples.concat(b ? b.samples : []);
+  if(!all.length) return '';
+  const lo = Math.min(...all), hi = Math.max(...all);
+  const binW = 30;
+  const nBins = Math.max(1, Math.ceil((hi - lo + 1) / binW));
+  const binOf = d => Math.min(nBins-1, Math.floor((d - lo) / binW));
+  const histA = new Array(nBins).fill(0), histB = new Array(nBins).fill(0);
+  for(const d of a.samples) histA[binOf(d)]++;
+  if(b) for(const d of b.samples) histB[binOf(d)]++;
+  const maxC = Math.max(...histA, ...(b?histB:[]), 1);
+  const cv = '<canvas class="mc-canvas" id="mc-canvas" width="780" height="220"></canvas>';
+  const stats = `
+    <div class="mc-stats">
+      <div class="mc-stat mc-col-active"><span>active median</span><b>${fmtDate(a.origin, pct(a.samples,0.5))}</b></div>
+      <div class="mc-stat mc-col-active"><span>active 80% range</span><b>${fmtDate(a.origin, pct(a.samples,0.1))}–${fmtDate(a.origin, pct(a.samples,0.9))}</b></div>
+      <div class="mc-stat mc-col-active"><span>active "no reopen" mass</span><b>${tailPctA}%</b></div>
+      ${b ? `<div class="mc-stat mc-col-shadow"><span>shadow median</span><b>${fmtDate(b.origin, pct(b.samples,0.5))}</b></div>
+      <div class="mc-stat mc-col-shadow"><span>shadow 80% range</span><b>${fmtDate(b.origin, pct(b.samples,0.1))}–${fmtDate(b.origin, pct(b.samples,0.9))}</b></div>
+      <div class="mc-stat mc-col-shadow"><span>shadow "no reopen" mass</span><b>${tailPctB}%</b></div>` : ''}
+    </div>`;
+  setTimeout(()=>drawMC('mc-canvas', histA, histB, lo, binW, maxC, a.origin), 0);
+  return `
+    <div class="mc-wrap">
+      ${cv}
+      ${stats}
+      <div class="mc-note">${MC_DRAWS.toLocaleString()} draws each. Each draw: pick a hypothesis weighted by its posterior, then sample a reopen date uniformly within that hypothesis's date band. H4 ("not reopened by end of 2027") is an open tail — its mass is reported above, not plotted as a date. Shadow is no-authority, dynamics-derived (regime-switching, ${elapsedDays} days entrenched).</div>
+    </div>`;
+}
+
+function drawMC(id, histA, histB, lo, binW, maxC, origin){
+  const cv = document.getElementById(id);
+  if(!cv) return;
+  const ctx = cv.getContext('2d');
+  const W = cv.width, H = cv.height;
+  const padL = 40, padR = 10, padT = 10, padB = 36;
+  const plotW = W - padL - padR, plotH = H - padT - padB;
+  ctx.clearRect(0,0,W,H);
+  ctx.strokeStyle = '#70f7ff28'; ctx.fillStyle = '#91a6c0';
+  ctx.font = '9px ui-monospace, Consolas, monospace';
+  ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(padL,padT); ctx.lineTo(padL,H-padB); ctx.lineTo(W-padR,H-padB); ctx.stroke();
+  const nBins = histA.length;
+  const barW = plotW / nBins;
+  ctx.fillStyle = '#91a6c080'; ctx.textAlign = 'right';
+  for(const f of [0,0.5,1]){
+    const y = H-padB - f*plotH;
+    ctx.fillText(Math.round(f*maxC), padL-4, y+3);
+    ctx.strokeStyle = '#70f7ff10'; ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(W-padR,y); ctx.stroke();
+  }
+  const drawBars = (hist, color, alpha)=>{
+    ctx.fillStyle = color + alpha;
+    for(let i=0;i<hist.length;i++){
+      const h = (hist[i]/maxC)*plotH;
+      const x = padL + i*barW;
+      ctx.fillRect(x, H-padB-h, Math.max(1, barW-1), h);
+    }
+  };
+  if(histB.length) drawBars(histB, '#ff4fd8', '44');
+  drawBars(histA, '#70f7ff', '66');
+  ctx.fillStyle = '#91a6c0'; ctx.textAlign = 'center';
+  const step = Math.ceil(nBins / 8);
+  for(let i=0;i<nBins;i+=step){
+    const d = lo + i*binW + Math.floor(binW/2);
+    const x = padL + i*barW + barW/2;
+    ctx.fillText(fmtDate(origin, d).slice(5), x, H-padB+12);
+  }
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#70f7ff'; ctx.fillRect(padL+4, padT+4, 10, 8);
+  ctx.fillStyle = '#cfe4f5'; ctx.fillText('active', padL+18, padT+11);
+  if(histB.length){
+    ctx.fillStyle = '#ff4fd8'; ctx.fillRect(padL+72, padT+4, 10, 8);
+    ctx.fillStyle = '#cfe4f5'; ctx.fillText('shadow', padL+86, padT+11);
+  }
+}
+
 
 load();
 </script>
