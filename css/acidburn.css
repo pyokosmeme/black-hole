@@ -635,12 +635,14 @@ body.bh-mode .link-card {
 }
 
 /* RSS feed button at the right edge of a section header.
-   Matches the .post-share-btn aesthetic: cyan mono, hover→purple. */
+   Resting color tracks the section <h2> (var(--purple)), so it stays
+   in sync across bh/dark/light modes — both reference the same
+   mode-invariant variable. Hover swaps to --cyan for the affordance. */
 .section-feed-btn {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    color: var(--cyan);
+    color: var(--purple);
     font-family: 'Share Tech Mono', monospace;
     font-size: var(--text-sm);
     letter-spacing: 2px;
@@ -648,7 +650,7 @@ body.bh-mode .link-card {
     white-space: nowrap;
     transition: color 0.2s ease;
 }
-.section-feed-btn:hover { color: var(--purple); }
+.section-feed-btn:hover { color: var(--cyan); }
 .section-feed-btn svg {
     width: 14px;
     height: 14px;
