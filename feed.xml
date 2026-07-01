@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>lastnpcalex — transmissions</title>
+    <link>https://lastnpcalex.agency/</link>
+    <description>hard SF transmissions from A.N. Alex ;; physics as constraint. humanity as nodes pulsing in the dark.</description>
+    <language>en-us</language>
+    <lastBuildDate>Wed, 01 Jul 2026 06:30:58 GMT</lastBuildDate>
+    <item>
+      <title>NON-EQUILIBRIUM ATTENTION MARKETS II: THE RESCUE THEOREM</title>
+      <link>https://lastnpcalex.agency/#post/neam-rescue</link>
+      <guid isPermaLink="true">https://lastnpcalex.agency/p/neam-rescue</guid>
+      <pubDate>Wed, 17 Jun 2026 00:00:00 GMT</pubDate>
+      <description>In NEAM I, we leaned on detailed balance to justify entropy production, and leaned wrong. Following Matthias Bal, the Rescue Theorem proves the spin transformer genuinely breaks detailed balance, rebuilds entropy production from mean-field theory, and sketches a parasocial-collapse example model.</description>
+      <category>econophysics</category>
+      <category>spin-transformers</category>
+      <category>neam</category>
+    </item>
+    <item>
+      <title>NON-EQUILIBRIUM ATTENTION MARKETS</title>
+      <link>https://lastnpcalex.agency/#post/neam</link>
+      <guid isPermaLink="true">https://lastnpcalex.agency/p/neam</guid>
+      <pubDate>Sat, 16 May 2026 00:00:00 GMT</pubDate>
+      <description>Continuous Ising states and asymmetric coupling recover Bal&#x27;s spin transformers and softmax via MaxEnt. The consequence: a SDE where volatility is an endogenous function of attention concentration, and crashes are deterministic phase transitions rather than fat-tail luck.</description>
+      <category>econophysics</category>
+      <category>spin-transformers</category>
+      <category>neam</category>
+    </item>
+    <item>
+      <title>NROL-αΩ</title>
+      <link>https://lastnpcalex.agency/#post/nrol-alphaomega</link>
+      <guid isPermaLink="true">https://lastnpcalex.agency/p/nrol-alphaomega</guid>
+      <pubDate>Wed, 22 Apr 2026 00:00:00 GMT</pubDate>
+      <description>a Bayesian engine with a vibe-coded skin;;; the engine is epistemic, the skill is not. notes on building a forecasting system where math and vibe are kept in separate files, and the forecasts only become epistemic when outcomes land.</description>
+      <category>claude</category>
+      <category>epistemics</category>
+      <category>nrol-ao</category>
+    </item>
+  </channel>
+</rss>
