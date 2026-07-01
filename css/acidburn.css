@@ -634,26 +634,23 @@ body.bh-mode .link-card {
     background: linear-gradient(90deg, var(--purple), transparent);
 }
 
-/* RSS feed button at the right edge of a section header.
-   Resting color tracks the section <h2> (var(--purple)), so it stays
-   in sync across bh/dark/light modes — both reference the same
-   mode-invariant variable. Hover swaps to --cyan for the affordance. */
+/* RSS feed button — lives inside #tag-filter as the first chip.
+   Shares .tag-filter-btn for shape/mode theming; this rule only adds
+   icon+label layout and the cyan hover affordance. */
 .section-feed-btn {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    color: var(--purple);
-    font-family: 'Share Tech Mono', monospace;
-    font-size: var(--text-sm);
-    letter-spacing: 2px;
+    gap: 5px;
     text-decoration: none;
     white-space: nowrap;
-    transition: color 0.2s ease;
 }
-.section-feed-btn:hover { color: var(--cyan); }
+.section-feed-btn:hover {
+    color: #00ffff;
+    border-color: rgba(0, 255, 255, 0.5);
+}
 .section-feed-btn svg {
-    width: 14px;
-    height: 14px;
+    width: 11px;
+    height: 11px;
     fill: currentColor;
 }
 
