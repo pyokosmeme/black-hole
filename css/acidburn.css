@@ -634,23 +634,27 @@ body.bh-mode .link-card {
     background: linear-gradient(90deg, var(--purple), transparent);
 }
 
-/* RSS feed button — lives inside #tag-filter as the first chip.
-   Shares .tag-filter-btn for shape/mode theming; this rule only adds
-   icon+label layout and the cyan hover affordance. */
+/* RSS feed button — lives inside #tag-filter, left of the tag chips.
+   Styled to match the // TRANSMISSIONS <h2> (Orbitron, var(--purple),
+   letter-spacing 4px) so it reads as a section label, not a tag chip.
+   Hover swaps to --cyan for the affordance. */
 .section-feed-btn {
     display: inline-flex;
     align-items: center;
     gap: 5px;
+    color: var(--purple);
+    font-family: 'Orbitron', sans-serif;
+    font-size: var(--text-sm);
+    letter-spacing: 4px;
     text-decoration: none;
     white-space: nowrap;
+    cursor: pointer;
+    transition: color 0.2s ease;
 }
-.section-feed-btn:hover {
-    color: #00ffff;
-    border-color: rgba(0, 255, 255, 0.5);
-}
+.section-feed-btn:hover { color: var(--cyan); }
 .section-feed-btn svg {
-    width: 11px;
-    height: 11px;
+    width: 12px;
+    height: 12px;
     fill: currentColor;
 }
 
