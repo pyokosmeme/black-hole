@@ -416,11 +416,12 @@
                     });
                 }
 
-                filterEl.innerHTML =
+                filterEl.insertAdjacentHTML('beforeend',
                     `<button class="tag-filter-btn active" data-tag="">ALL</button>` +
-                    tags.map(t => `<button class="tag-filter-btn" data-tag="${t}">#${t}</button>`).join('');
+                    tags.map(t => `<button class="tag-filter-btn" data-tag="${t}">#${t}</button>`).join(''));
 
                 filterEl.addEventListener('click', e => {
+                    if (e.target.closest('.section-feed-btn')) return;
                     const btn = e.target.closest('.tag-filter-btn');
                     if (!btn) return;
                     applyFilter(btn.dataset.tag || null);
