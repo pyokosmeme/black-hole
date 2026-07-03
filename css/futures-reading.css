@@ -376,7 +376,6 @@ body.light-reading .post-view {
 }
 
 .reading-mode-toggle:hover .mode-icon {
-    transform: scale(1.1);
     filter: drop-shadow(0 0 8px var(--rv-accent));
 }
 

@@ -182,7 +182,6 @@
     .nav-link:hover {
       background: rgba(0, 255, 255, 0.1);
       color: #00ffff;
-      padding-left: 25px;
     }
 
     .nav-link-icon {
@@ -240,7 +239,7 @@
     }
 
     .nav-submenu .nav-link:hover {
-      padding-left: 55px;
+      /* color/bg inherited from .nav-link:hover */
     }
 
     .nav-submenu .nav-link-icon {

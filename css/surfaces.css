@@ -270,7 +270,6 @@ html, body {
 .srf-cell:hover {
   border-color: var(--srf-amber);
   background: rgba(255, 179, 71, 0.04);
-  transform: translateY(-2px);
 }
 
 .srf-cell:hover::before { opacity: 0.6; }
@@ -568,7 +567,7 @@ html, body {
   transition: background 0.18s ease, transform 0.18s ease;
 }
 .srf-page-arrow svg { width: 16px; height: 16px; fill: var(--srf-ink); }
-.srf-page-arrow:hover { background: rgba(255,179,71,0.18); transform: scale(1.08); }
+.srf-page-arrow:hover { background: rgba(255,179,71,0.18); }
 .srf-page-arrow:hover svg { fill: var(--srf-amber-hot); }
 .srf-page-count {
   font-family: var(--srf-display);
@@ -696,7 +695,6 @@ html, body {
 }
 .srf-style-btn:hover {
   background: rgba(255, 179, 71, 0.18);
-  transform: translateY(-1px);
   box-shadow: 0 0 22px var(--ring-flux, rgba(255,179,71,0.4));
 }
 .srf-style-kicker {

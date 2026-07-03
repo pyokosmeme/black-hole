@@ -693,7 +693,6 @@ body.bh-mode .link-card {
 
 .link-card:hover {
     border-color: var(--cyan);
-    transform: translateX(10px);
     box-shadow: 0 0 calc(30px * var(--glow-intensity)) rgba(0,255,255,0.3);
 }
 
@@ -739,7 +738,6 @@ body.bh-mode .link-card {
 }
 
 .link-card:hover .link-arrow {
-    transform: translateX(5px);
     color: var(--cyan);
 }
 
@@ -777,7 +775,6 @@ body.bh-mode .link-card {
 
 .post-card:hover {
     border-color: var(--purple);
-    transform: translateX(10px);
     box-shadow: 0 0 calc(30px * var(--glow-intensity)) rgba(191,0,255,0.2);
 }
 
@@ -927,7 +924,6 @@ body.bh-mode .link-card {
 
 .post-back:hover {
     color: var(--purple);
-    transform: translateX(-5px);
 }
 
 .post-back:focus {
