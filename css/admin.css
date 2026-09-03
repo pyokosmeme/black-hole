@@ -67,9 +67,9 @@
   border-radius: 0;
   background: #12121a;
   color: var(--cyan);
-  font-family: 'Orbitron', sans-serif;
-  font-size: var(--text-xs);
-  letter-spacing: 1.5px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: var(--text-sm);
+  letter-spacing: 0;
   text-decoration: none;
   cursor: pointer;
   transition: border-color 0.2s ease, box-shadow 0.2s ease, color 0.2s ease;
@@ -131,12 +131,21 @@
 .panel-heading .section-line { min-width: 0; }
 .panel-heading > button,
 .panel-heading > .button-link { flex: 0 0 auto; }
+.transmission-index .panel-heading {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px 15px;
+}
+.transmission-index .panel-heading > button {
+  grid-column: 1 / -1;
+  justify-self: start;
+}
 
 .admin-page label {
   display: block;
   color: var(--admin-muted);
   font-size: var(--text-xs);
-  letter-spacing: 1.5px;
+  letter-spacing: 0.06em;
 }
 
 .admin-page input,
@@ -213,7 +222,7 @@
 .admin-page table { width: 100%; border-collapse: collapse; }
 .admin-page th,
 .admin-page td { padding: 11px 10px; border-top: 1px solid rgba(0, 255, 255, 0.13); text-align: left; }
-.admin-page th { color: var(--purple); font-weight: 400; font-size: var(--text-xs); letter-spacing: 1.5px; }
+.admin-page th { color: var(--purple); font-weight: 400; font-size: var(--text-xs); letter-spacing: 0.06em; }
 .admin-page td { overflow-wrap: anywhere; color: rgba(255, 255, 255, 0.78); }
 
 @media (min-width: 1180px) {

@@ -23,12 +23,12 @@
     <div class="header-noise" aria-hidden="true"></div>
     <div class="header-shimmer" aria-hidden="true"></div>
     <div class="header-content-wrapper">
-      <a class="header-brand" href="/">LASTNPCALEx.AGENCY</a>
-      <span class="admin-header-title">// TRANSMISSION CONTROL</span>
+      <a class="header-brand" href="/">lastnpcalex.agency</a>
+      <span class="admin-header-title">// transmission control</span>
     </div>
     <nav class="admin-nav" aria-label="Admin navigation">
-      <a class="admin-header-action" href="/">VIEW SITE</a>
-      <button id="logout-button" type="button" hidden>LOG OUT</button>
+      <a class="admin-header-action" href="/">View site</a>
+      <button id="logout-button" type="button" hidden>Log out</button>
     </nav>
   </header>
 
@@ -40,13 +40,13 @@
       </div>
       <p class="auth-command">Authenticate with ATProto</p>
       <p>Publishing access is restricted to approved ATProto owner identities.</p>
-      <label class="auth-owner" for="owner-handle">OWNER IDENTITY
+      <label class="auth-owner" for="owner-handle">Owner identity
         <select id="owner-handle">
           <option value="lastnpcalex.agency">lastnpcalex.agency</option>
           <option value="spin.pyokosmeme.group">spin.pyokosmeme.group</option>
         </select>
       </label>
-      <button id="login-button" type="button">SIGN IN WITH ATProto</button>
+      <button id="login-button" type="button">Sign in with ATProto</button>
       <p id="auth-status" class="status" role="status"></p>
     </section>
 
@@ -61,10 +61,10 @@
           <div class="panel-heading section-header">
             <h2 id="editor-title">// TRANSMISSIONS</h2>
             <div class="section-line"></div>
-            <button id="new-button" type="button">NEW</button>
+            <button id="new-button" type="button">New</button>
           </div>
           <label>
-            <span>FILTER SECTION</span>
+            <span>Filter section</span>
             <select id="section-filter">
               <option value="">All sections</option>
               <option value="author">Main page</option>
@@ -79,7 +79,7 @@
         <form id="transmission-form" class="transmission-editor">
           <div class="editor-fields">
             <div class="field-row">
-              <label>SECTION
+              <label>Section
                 <select name="section" required>
                   <option value="author">Main page transmissions</option>
                   <option value="ams">A Mote in Shadow</option>
@@ -87,23 +87,23 @@
                   <option value="maps">Possible territories</option>
                 </select>
               </label>
-              <label>DATE
+              <label>Date
                 <input name="date" inputmode="numeric" placeholder="YYYY.MM.DD" required>
               </label>
             </div>
-            <label>TITLE
+            <label>Title
               <input name="title" maxlength="240" required>
             </label>
-            <label>SLUG
+            <label>Slug
               <input name="slug" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" required>
             </label>
-            <label>TAGS <small>comma separated</small>
+            <label>Tags <small>comma separated</small>
               <input name="tags" placeholder="signal, infrastructure, fiction">
             </label>
-            <label>EXCERPT
+            <label>Excerpt
               <textarea name="excerpt" rows="3" maxlength="1000"></textarea>
             </label>
-            <label>MARKDOWN
+            <label>Markdown
               <textarea name="markdown" id="markdown-editor" rows="24" spellcheck="true" required></textarea>
             </label>
           </div>
@@ -123,9 +123,9 @@
               <a id="share-link" class="share-link" href="#" target="_blank" rel="noopener" hidden></a>
             </div>
             <div class="editor-actions">
-              <button id="delete-button" class="danger" type="button" hidden>DELETE MANAGED COPY</button>
-              <button id="draft-button" type="button">SAVE DRAFT</button>
-              <button id="publish-button" class="primary" type="button">PUBLISH</button>
+              <button id="delete-button" class="danger" type="button" hidden>Delete managed copy</button>
+              <button id="draft-button" type="button">Save draft</button>
+              <button id="publish-button" class="primary" type="button">Publish</button>
             </div>
           </div>
         </form>
@@ -135,7 +135,7 @@
         <div class="panel-heading section-header">
           <h2 id="subscriber-title">// SUBSCRIBERS <span id="subscriber-count">0</span></h2>
           <div class="section-line"></div>
-          <a class="button-link" href="/api/admin/subscribers.csv">EXPORT CSV</a>
+          <a class="button-link" href="/api/admin/subscribers.csv">Export CSV</a>
         </div>
         <div class="table-wrap">
           <table>
