@@ -3,6 +3,7 @@
 .codex/
 .gemini/
 .git/
+.gitignore
 .wrangler/
 .github/
 canvas/
