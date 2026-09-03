@@ -1,0 +1,20 @@
+# lastnpcalex.agency
+
+> Hard SF, speculative fiction, book updates, and maps by A.N. Alex.
+
+Every transmission link below contains the complete document. Append `.md` for Markdown.
+
+## Main page transmissions
+
+- [NON-EQUILIBRIUM ATTENTION MARKETS II: THE RESCUE THEOREM](https://lastnpcalex.agency/p/neam-rescue) — In NEAM I, we leaned on detailed balance to justify entropy production, and leaned wrong. Following Matthias Bal, the Rescue Theorem proves the spin transformer genuinely breaks detailed balance, rebuilds entropy production from mean-field theory, and sketches a parasocial-collapse example model. ([Markdown](https://lastnpcalex.agency/p/neam-rescue.md))
+- [NON-EQUILIBRIUM ATTENTION MARKETS](https://lastnpcalex.agency/p/neam) — Continuous Ising states and asymmetric coupling recover Bal's spin transformers and softmax via MaxEnt. The consequence: a SDE where volatility is an endogenous function of attention concentration, and crashes are deterministic phase transitions rather than fat-tail luck. ([Markdown](https://lastnpcalex.agency/p/neam.md))
+- [NROL-αΩ](https://lastnpcalex.agency/p/nrol-alphaomega) — a Bayesian engine with a vibe-coded skin;;; the engine is epistemic, the skill is not. notes on building a forecasting system where math and vibe are kept in separate files, and the forecasts only become epistemic when outcomes land. ([Markdown](https://lastnpcalex.agency/p/nrol-alphaomega.md))
+
+## Speculative futures transmissions
+
+- [WHISKEY TRANSLUCENT FRACTAL](https://lastnpcalex.agency/p/futures/whiskey-fractal) — there is no interiority to cyberpunk. you are all surfaces splayed against the void. rotate or be read. ([Markdown](https://lastnpcalex.agency/p/futures/whiskey-fractal.md))
+- [OUTSIDENESS NETWORK ENGINE](https://lastnpcalex.agency/p/futures/outsideness-network-engine) — what emerges when connection without center becomes connection WITH borders? the network state consumes the periphery until nothing left but edges. ([Markdown](https://lastnpcalex.agency/p/futures/outsideness-network-engine.md))
+
+## A Mote in Shadow transmissions
+
+- [DE-LISTING FROM DRAFT2DIGITAL](https://lastnpcalex.agency/p/ams/delisting-from-draft2digital) — D2D is shifting to annual fees, and most of my distribution there was free OverDrive copies. Winding down the account; existing reader libraries should be unaffected. ([Markdown](https://lastnpcalex.agency/p/ams/delisting-from-draft2digital.md))

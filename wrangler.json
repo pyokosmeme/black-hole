@@ -13,7 +13,15 @@
     "binding": "ASSETS",
     "directory": ".",
     "not_found_handling": "single-page-application",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": [
+      "/api/*",
+      "/p/*",
+      "/llms.txt",
+      "/.well-known/llms.txt"
+    ]
+  },
+  "vars": {
+    "ADMIN_DIDS": "did:plc:ccxl3ictrlvtrrgh5swvvg47"
   },
   "kv_namespaces": [
     {

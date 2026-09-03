@@ -1,7 +1,9 @@
 # Dev/tooling — not served to the browser
 .claude/
+.codex/
 .gemini/
 .git/
+.wrangler/
 .github/
 canvas/
 attached_files/
@@ -23,6 +25,10 @@ TRANSMISSIONS.md
 
 # Cloudflare API credentials
 cf.env
+cf-*.json
+cf-*.txt
+cf-*.zone
+*.log
 
 # Python scripts
 *.py
@@ -45,7 +51,9 @@ author/effects/
 # Worker source and Wrangler config — handled by Wrangler, not static assets
 _worker.bundle
 _worker.js
+worker-content.js
 wrangler.json
 wrangler.toml
 functions/
+tests/
 dist/

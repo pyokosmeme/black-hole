@@ -1,31 +1,669 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>NON-EQUILIBRIUM ATTENTION MARKETS // lastnpcalex.agency</title>
 <link rel="icon" href="/img/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/img/favicon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/img/favicon-16.png">
 <link rel="apple-touch-icon" sizes="180x180" href="/img/apple-touch-icon.png">
-<meta name="description" content="Continuous Ising states and asymmetric coupling recover Bal's spin transformers and softmax via MaxEnt. The consequence: a SDE where volatility is an endogenous function of attention concentration, and crashes are deterministic phase transitions rather than fat-tail luck.">
+<meta name="description" content="Continuous Ising states and asymmetric coupling recover Bal&#x27;s spin transformers and softmax via MaxEnt. The consequence: a SDE where volatility is an endogenous function of attention concentration, and crashes are deterministic phase transitions rather than fat-tail luck.">
+<meta name="robots" content="index,follow">
 <meta property="og:type" content="article">
 <meta property="og:site_name" content="lastnpcalex.agency">
 <meta property="og:title" content="NON-EQUILIBRIUM ATTENTION MARKETS">
-<meta property="og:description" content="Continuous Ising states and asymmetric coupling recover Bal's spin transformers and softmax via MaxEnt. The consequence: a SDE where volatility is an endogenous function of attention concentration, and crashes are deterministic phase transitions rather than fat-tail luck.">
+<meta property="og:description" content="Continuous Ising states and asymmetric coupling recover Bal&#x27;s spin transformers and softmax via MaxEnt. The consequence: a SDE where volatility is an endogenous function of attention concentration, and crashes are deterministic phase transitions rather than fat-tail luck.">
 <meta property="og:url" content="https://lastnpcalex.agency/p/neam">
 <meta property="og:image" content="https://lastnpcalex.agency/img/banner.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="NON-EQUILIBRIUM ATTENTION MARKETS">
-<meta name="twitter:description" content="Continuous Ising states and asymmetric coupling recover Bal's spin transformers and softmax via MaxEnt. The consequence: a SDE where volatility is an endogenous function of attention concentration, and crashes are deterministic phase transitions rather than fat-tail luck.">
+<meta name="twitter:description" content="Continuous Ising states and asymmetric coupling recover Bal&#x27;s spin transformers and softmax via MaxEnt. The consequence: a SDE where volatility is an endogenous function of attention concentration, and crashes are deterministic phase transitions rather than fat-tail luck.">
 <meta name="twitter:image" content="https://lastnpcalex.agency/img/banner.png">
-<link rel="canonical" href="https://lastnpcalex.agency/#post/neam">
-<meta http-equiv="refresh" content="0;url=/#post/neam">
-<script>window.location.replace('/#post/neam');</script>
-<style>body{background:#0a0a1a;color:#0ff;font-family:monospace;padding:2rem;}</style>
+<link rel="canonical" href="https://lastnpcalex.agency/p/neam">
+<link rel="alternate" type="text/markdown" href="https://lastnpcalex.agency/p/neam.md" title="Markdown source">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "NON-EQUILIBRIUM ATTENTION MARKETS", "datePublished": "2026-05-16", "keywords": ["econophysics", "spin-transformers", "neam"], "description": "Continuous Ising states and asymmetric coupling recover Bal's spin transformers and softmax via MaxEnt. The consequence: a SDE where volatility is an endogenous function of attention concentration, and crashes are deterministic phase transitions rather than fat-tail luck.", "url": "https://lastnpcalex.agency/p/neam", "author": {"@type": "Person", "name": "A.N. Alex", "url": "https://lastnpcalex.agency"}, "articleBody": "<div class=\"nrol-doc\">\n\n<style>\n/* ════════════════════════════════════════════════════════════════\n   NEAM transmission · scoped styles\n   Extends .nrol-doc base. Palette inherits from NROL-αΩ vars.\n   ════════════════════════════════════════════════════════════════ */\n/* Equation blocks — Unified global color rules override to fix whatever qwen did to the style sheet */\n.nrol-doc .eq-block,\n.nrol-doc .eq-block em,\n.nrol-doc .eq-block sub,\n.nrol-doc .eq-block sup {\n  color: var(--cyan) !important;\n}\n\n/* Light mode overrides — Forces all math sub-elements to shift together */\nbody.light-mode .nrol-doc .eq-block,\nbody.light-mode .nrol-doc .eq-block em,\nbody.light-mode .nrol-doc .eq-block sub,\nbody.light-mode .nrol-doc .eq-block sup,\nbody.light-reading .nrol-doc .eq-block,\nbody.light-reading .nrol-doc .eq-block em,\nbody.light-reading .nrol-doc .eq-block sub,\nbody.light-reading .nrol-doc .eq-block sup {\n  color: #bf00ff !important; /* High-contrast color for light backgrounds */\n}\n\n.nrol-doc .eq-block {\n  text-align: center;\n  margin: 18px 0;\n  padding: 12px 0;\n  font-size: 14px;\n  letter-spacing: 0.04em;\n}\n\n.nrol-doc .eq-block {\n  text-align: center;\n  margin: 18px 0;\n  padding: 12px 0;\n  font-size: 14px;\n  letter-spacing: 0.04em;\n}\n/* Equation blocks — var(--cyan) for dark mode, overridden for light */\n.nrol-doc .eq-block {\n  text-align: center;\n  margin: 18px 0;\n  padding: 12px 0;\n  font-size: 14px;\n  color: var(--cyan);\n  letter-spacing: 0.04em;\n}\nbody.light-mode .nrol-doc .eq-block,\nbody.light-reading .nrol-doc .eq-block {\n  color: #bf00ff;\n}\n.nrol-doc .eq-block .eq-label {\n  display: block;\n  font-size: 9px;\n  color: var(--doc-dim);\n  letter-spacing: 0.25em;\n  text-transform: uppercase;\n  margin-top: 6px;\n}\n\n/* Phase transition diagram area */\n.nrol-doc .pt-phases {\n  display: grid;\n  grid-template-columns: 1fr 1fr;\n  gap: 12px;\n  margin: 16px 0 24px;\n}\n.nrol-doc .pt-phase {\n  padding: 14px 16px;\n  border: 0.5px solid var(--doc-faint);\n  background: var(--doc-soft-bg);\n}\n.nrol-doc .pt-phase .phase-label {\n  font-size: 9px;\n  letter-spacing: 0.25em;\n  text-transform: uppercase;\n  margin-bottom: 8px;\n}\n.nrol-doc .pt-phase.high .phase-label { color: var(--GREEN); }\n.nrol-doc .pt-phase.critical .phase-label { color: var(--RED); }\n.nrol-doc .pt-phase p { font-size: 11.5px; margin: 0; }\n\n@media (max-width: 640px) {\n  .nrol-doc .pt-phases { grid-template-columns: 1fr; }\n}\n<\/style>\n\n<h1>Non-Equilibrium Attention Markets<\/h1>\n\n<h2 id=\"sec-intro\"><span class=\"num\">01<\/span> Introduction<\/h2>\n\n<p>\nIf you need evidence of the value of the Ising model, this is not the post for you — you're late to the stage and the world has already been swallowed by statistical mechanics — instead, this post seeks to expand your study from mere statistical mechanics, into the regime of attention transformers. We present this as an argument, not as a peer-reviewed paper. We are gesturing along, what seems to be, a promising vector of inquiry. With that in mind, we will sketch our proposal for the Non-Equilibrium Attention Market framework.\n\nTo those ends, we have two bridging questions to answer:\n<\/p>\n\n<ol>\n  <li><strong>What happens if we make the fundamental states of the Ising model continuous?<\/strong><\/li>\n  <li><strong>What happens if these interactions are not symmetric?<\/strong><\/li>\n<\/ol>\n\n<p>\nWe will see that we recover Bal's spin transformers (<a href=\"https://mcbal.github.io\">Bal, 2021<\/a>). Which raises a new question: <strong>If we use the tools of econophysics and apply it to Bal's spin transformers, what are the consequences?<\/strong>\n<\/p>\n\n<p>\nOur goal today is to slouch towards a stochastic differential equation governing attention markets, where the market created by agents is a large dimensional vector space, and the interactions are asymmetric, forcing the system into non-equilibrium.\n<\/p>\n\n<p>\nBefore we begin, it is worth noting this is not the Ising explainer, which I will never write, but the way forward is dangerous, so take this sampling of literature on the application of Ising models in economics:\n<\/p>\n\n<ul>\n  <li>Bornholdt, S. (2001). <a href=\"https://doi.org/10.1142/S0129183101001845\">\"Expectation bubbles in a spin model of markets: Intermittency from frustration across scales.\"<\/a> International Journal of Modern Physics C, 12(5), 667-674.<\/li>\n  <li>Brock, W. A., &amp; Durlauf, S. N. (2001). <a href=\"https://doi.org/10.1111/1467-937x.00168\">\"Discrete choice with social interactions.\"<\/a> The Review of Economic Studies, 68(2), 235-260.<\/li>\n  <li>Cont, R., &amp; Bouchaud, J.-P. (1998). <a href=\"https://doi.org/10.2139/ssrn.58468\">\"Herd behavior and aggregate fluctuations in financial markets.\"<\/a> Macroeconomic Dynamics, 4(2), 170-196.<\/li>\n  <li>Galam, S. (2008). <a href=\"https://doi.org/10.1142/s0129183108012297\">\"Sociophysics: A review of Galam models.\"<\/a> International Journal of Modern Physics C, 19(3), 409-440.<\/li>\n  <li>Sornette, D. (2014). <a href=\"https://doi.org/10.1088/0034-4885/77/6/062001\">\"Physics and financial economics (1776-2014): Puzzles, Ising and agent-based models.\"<\/a> Reports on Progress in Physics, 77(6), 062001.<\/li>\n  <li>Zaklan, G., Westerhoff, F., &amp; Stauffer, D. (2009). <a href=\"https://doi.org/10.1007/s11403-008-0043-5\">\"Analysing tax evasion dynamics via the Ising model.\"<\/a> Journal of Economic Interaction and Coordination, 4(1), 1-14.<\/li>\n<\/ul>\n\n<h2 id=\"sec-state\"><span class=\"num\">02<\/span> State Agent Attention<\/h2>\n\n<p>\nLet's drop the <em>cut<\/em> as they may say someday, and drop ourselves right to the heart of it: the Ising model is a discrete lattice of particles, each particle has two states (buy or sell), particles only interact with their nearest neighbors, the state space of that system yields surprising results if we have infinitely many particles on our lattice. Combined this model yields tractable insight into technosocial systems. Across scales and fussy physical details, it just works.\n<\/p>\n\n<p>\nInstead of limiting ourselves to the binary, let's instead assume that our trader, our agent, labeled with index <em>i<\/em> has an internal state represented by a vector <em>x<\/em> at time <em>t<\/em>. This vector lives in a <em>d<\/em>-dimensional vector space:\n<\/p>\n\n<div class=\"eq-block\">\n<em>x<\/em><sub>i<\/sub><sup>(t)<\/sup> ∈ ℝ<sup>d<\/sup>\n<\/div>\n\n<p>\nWhat is this vector space? It is defined as the embeddings of all states for all agents, such that the matrix <em>X<\/em> ∈ ℝ<sup>N × d<\/sup> and is identified as the \"hidden state\" of all <em>N<\/em> agents.\n<\/p>\n\n<p>\n<strong>TL;DR<\/strong> Agents have continuous internal states <em>d<\/em>, and if we have <em>N<\/em> agents, the totality of the market is represented by an <em>N × d<\/em> matrix <em>X<\/em>.\n<\/p>\n\n<h2 id=\"sec-path\"><span class=\"num\">03<\/span> Three-fold Path<\/h2>\n\n<p>\nIn standard spin glass physics — the Ising model — each nearest neighbor interacts with a symmetric coupling (think of it as a scalar weight describing how two neighborly agents <em>s<sub>i<\/sub><\/em> and <em>s<sub>j<\/sub><\/em> interact, but it doesn't matter the order of the interaction, hence symmetric). The energy of this interaction would be <em>−s<sub>i<\/sub> J<sub>ij<\/sub> s<sub>j<\/sub><\/em>. Our agents, our states of spin, are given by <em>d<\/em>-dimensional vectors, though the energy is directly analogous:\n<\/p>\n\n<div class=\"eq-block\">\n−<em>x<\/em><sub>i<\/sub><sup>T<\/sup> <em>J<\/em> <em>x<\/em><sub>j<\/sub>\n<\/div>\n\n<p>\nBut we have a problem! Transformers do not let vectors (spins/agents) interact directly. Rather, they project states through three distinct learned weights: <em>W<sub>Q<\/sub><\/em>, <em>W<sub>K<\/sub><\/em>, <em>W<sub>V<\/sub><\/em> ∈ ℝ<sup>d<sub>attn<\/sub> × d<\/sup>. These <em>d<sub>attn<\/sub> × d<\/em> matrices, the Query, Key, and Value, are projections that we will assign to economic terms (for interpretation's sake), alongside their mathematical values:\n<\/p>\n\n<ul>\n  <li><strong>The Query (<em>q<sub>i<\/sub> = W<sub>Q<\/sub> x<sub>i<\/sub><\/em>):<\/strong> Agent <em>i<\/em>'s active demand for information or signals (their market lens).<\/li>\n  <li><strong>The Key (<em>k<sub>j<\/sub> = W<sub>K<\/sub> x<sub>j<\/sub><\/em>):<\/strong> Agent <em>j<\/em>'s observable market signal (public supply/posture).<\/li>\n  <li><strong>The Value (<em>v<sub>j<\/sub> = W<sub>V<\/sub> x<sub>j<\/sub><\/em>):<\/strong> Agent <em>j<\/em>'s actual capital intent or underlying action (the payload).<\/li>\n<\/ul>\n\n<p>\nNow, when agent <em>i<\/em> interacts with agent <em>j<\/em>, we find their alignment via the dot product:\n<\/p>\n\n<div class=\"eq-block\">\n<em>q<\/em><sub>i<\/sub> · <em>k<\/em><sub>j<\/sub> = (<em>W<\/em><sub>Q<\/sub><em>x<\/em><sub>i<\/sub>)<sup>T<\/sup> (<em>W<\/em><sub>K<\/sub><em>x<\/em><sub>j<\/sub>) = <em>x<\/em><sub>i<\/sub><sup>T<\/sup> (<em>W<\/em><sub>Q<\/sub><sup>T<\/sup> <em>W<\/em><sub>K<\/sub>) <em>x<\/em><sub>j<\/sub>\n<\/div>\n\n<p>\nThis matrix multiplication yields our spin coupling matrix, <em>J = W<sub>Q<\/sub><sup>T<\/sup> W<sub>K<\/sub><\/em>, and we can label our energy as <em>E<sub>ij<\/sub> = −q<sub>i<\/sub> · k<sub>j<\/sub><\/em>.\n<\/p>\n\n<p>\nOk so what? We have some slightly more complex agentic model, we have an asymmetric coupling, we have an equation for an \"energy.\" At this point, nothing seems like transformers except via fiat, via assumption. <strong>And this is where Jaynes enters (<a href=\"https://doi.org/10.1103/physrev.106.620\">Jaynes, 1957<\/a>).<\/strong>\n<\/p>\n\n<h2 id=\"sec-jaynes\"><span class=\"num\">04<\/span> Enter Jaynes, Suddenly Boltzmann Appears<\/h2>\n\n<p>\nLet <em>p<sub>j<\/sub><\/em> be the probability that Agent <em>i<\/em> pays attention to Agent <em>j<\/em>. By \"paid attention\" we mean whatever is exchanged via the Q, K, V interactions; all we really care about is that the state of agent <em>i<\/em> changes via interactions with agent <em>j<\/em>, and <em>j<\/em> likewise changes but perhaps not in equal measure. If we find the optimal attention distribution <em>P<\/em> = {<em>p<\/em><sub>1<\/sub>, <em>p<\/em><sub>2<\/sub>, …, <em>p<\/em><sub>N<\/sub>} then we have the probability of how a market change of state occurs.\n<\/p>\n\n<p>\nHow do we calculate this? Well, let's just use Jaynes' Principle of Maximum Entropy (MaxEnt). There are many ways to think of MaxEnt. Jaynes might say a bounded agent should assume nothing beyond what is strictly known, and that the agent seeks a distribution that maximizes Shannon Entropy. Another way to think about it, is, I believe more intuitive, namely diffusion is a tendency of systems, unless otherwise constrained, and it is simply a better prior to assume diffusion under constraint, thus MaxEnt. Either way, we have the well-travelled path: <strong>we must maximize Shannon entropy<\/strong>.\n<\/p>\n\n<p>\nShannon entropy is given by:\n<\/p>\n\n<div class=\"eq-block\">\n<em>H<\/em> = −∑<sub>j=1<\/sub><sup>N<\/sup> <em>p<sub>j<\/sub><\/em> ln <em>p<sub>j<\/sub><\/em>\n<\/div>\n\n<p>\nwith two constraints:\n<\/p>\n\n<ol>\n  <li><strong>All probabilities sum to 1:<\/strong> ∑<sub>j=1<\/sub><sup>N<\/sup> <em>p<sub>j<\/sub><\/em> = 1<\/li>\n  <li><strong>We know the value for the average energy:<\/strong> ∑<sub>j=1<\/sub><sup>N<\/sup> <em>p<sub>j<\/sub><\/em><em>E<sub>j<\/sub><\/em> = ⟨<em>E<\/em>⟩<\/li>\n<\/ol>\n\n<p>\nTo maximize Shannon entropy for a probability <em>p<sub>j<\/sub><\/em> under the constraints of the system, we simply use Lagrange multipliers:\n<\/p>\n\n<div class=\"eq-block\">\nℒ = −∑<sub>j=1<\/sub><sup>N<\/sup> <em>p<sub>j<\/sub><\/em> ln <em>p<sub>j<\/sub><\/em> − <em>α<\/em>(∑<sub>j=1<\/sub><sup>N<\/sup> <em>p<sub>j<\/sub><\/em> − 1) − <em>β<\/em>(∑<sub>j=1<\/sub><sup>N<\/sup> <em>p<sub>j<\/sub><\/em><em>E<sub>j<\/sub><\/em> − ⟨<em>E<\/em>⟩)\n<\/div>\n\n<p>\nWe can do the motions here, but the result is the result:\n<\/p>\n\n<div class=\"eq-block\">\n<em>p<\/em><sub>ij<\/sub> = exp(<em>β<\/em>(<em>q<\/em><sub>i<\/sub> · <em>k<\/em><sub>j<\/sub>)) / ∑<sub>m=1<\/sub><sup>N<\/sup> exp(<em>β<\/em>(<em>q<\/em><sub>i<\/sub> · <em>k<\/em><sub>m<\/sub>))\n<\/div>\n\n<p>\nOk so this is familiar to physicists, some of which might not be in the audience, but this is just softmax!\n<\/p>\n\n<div class=\"eq-block\">\n<em>p<\/em><sub>ij<\/sub> = Softmax(<em>β x<sub>i<\/sub><\/em><sup>T<\/sup> (<em>W<\/em><sub>Q<\/sub><sup>T<\/sup> <em>W<\/em><sub>K<\/sub>) <em>x<sub>j<\/sub><\/em>)\n<\/div>\n\n<p>\n<em>β<\/em> is the Lagrange multiplier representing the agent's computational bound. In statistical mechanics, this is <em>1/k<sub>B<\/sub>T<\/em>, but as the dimension size of the vectors <em>d<sub>k<\/sub><\/em> grows, the dot products grow as well, pushing the Softmax function into flat regions with zero gradients. To prevent this, they added a scaling factor. So we identify this constraint with our Lagrange multiplier and identify <em>β = 1/√d<sub>k<\/sub><\/em>.\n<\/p>\n\n<p>\nOnce Agent <em>i<\/em> establishes their attention distribution across the market, they update their internal state by taking the expected value of the <em>actual intent<\/em> (<em>V<\/em>) of the agents they are watching:\n<\/p>\n\n<div class=\"eq-block\">\n<em>x<\/em><sub>i<\/sub><sup>(t+1)<\/sup> = ∑<sub>j=1<\/sub><sup>N<\/sup> <em>p<sub>ij<\/sub><\/em> <em>v<sub>j<\/sub><\/em> = <em>p<sub>i<\/sub><\/em><em>V<\/em> = Softmax(<em>q<sub>i<\/sub>K<\/sub><sup>T<\/sup> / √d<sub>k<\/sub><\/em>) <em>V<\/em>\n<\/div>\n\n<p>\nwhere <em>p<sub>i<\/sub><\/em> = Softmax(<em>β x<sub>i<\/sub><\/em><sup>T<\/sup>(<em>W<\/em><sub>Q<\/sub><sup>T<\/sup><em>W<\/em><sub>K<\/sub>)<em>X<\/em><sup>T<\/sup>).\n<\/p>\n\n<p>\nIf we update across <em>all<\/em> states (the market) then this is just attention:\n<\/p>\n\n<div class=\"eq-block\">\nAttention(<em>Q,K,V<\/em>) = Softmax(<em>QK<\/em><sup>T<\/sup> / √<em>d<sub>k<\/sub><\/em>) <em>V<\/em>\n<\/div>\n\n<h2 id=\"sec-baleq\"><span class=\"num\">05<\/span> No Equilibrium<\/h2>\n\n<p>\nIn a classical physical spin system (Ising model) and in classical Efficient Market Hypothesis (EMH), systems are assumed to eventually reach Thermodynamic Equilibrium.\n<\/p>\n\n<p>\nFor a system to be in true equilibrium, it must satisfy a strict mathematical condition called Detailed Balance. This means that at the microscopic level, the flow of probability from state <em>i<\/em> to state <em>j<\/em> is perfectly balanced by the flow from <em>j<\/em> back to <em>i<\/em>:\n<\/p>\n\n<div class=\"eq-block\">\nP(<em>i→j<\/em>)P(<em>i<\/em>) = P(<em>j→i<\/em>)P(<em>j<\/em>)\n<\/div>\n\n<p>\nWe can rotate all this nuance down to a pithy statement: an efficient market is a MaxEnt market. A MaxEnt dataset is one in which we can't tell what the next bit is; it is Brownian motion, it is a random coin flip. It is up or down, buy or sell, randomly, forever. This is precisely why Black-Scholes uses a random walk (Geometric Brownian Motion) to model the price (<a href=\"https://doi.org/10.1086/260062\">Black &amp; Scholes, 1973<\/a>).\n<\/p>\n\n<p>\nBut Bal's physical translation of the Spin Transformer, the one we illustrated to you in the prior sections, is explicitly asymmetric. <em>It cannot satisfy Detailed Balance, and thus cannot reach the standard equilibrium.<\/em>\n<\/p>\n\n<p>\nIn non-equilibrium statistical mechanics, when detailed balance is broken, the system experiences a continuous dissipation of heat as agents update their states against non-reciprocal gradients of their peers (as an aside, this is why cults formed around Dissipative Adaptation are, at least conceptually, incredibly interesting, though like many in this AI space the intellectual lineages they gestured toward were squandered for grift and graft and clout).\n<\/p>\n\n<p>\n<strong>As we are not mere alchemists, we need a way to calculate this dissipation.<\/strong> Let's start by defining a Markovian random walk on the <em>attention graph<\/em>. Imagine a marginal \"packet of influence\" traversing the network. If this influence is currently localized at Agent <em>i<\/em>, it transitions to Agent <em>j<\/em> with probability <em>p<sub>ij<\/sub><\/em>. The agents themselves form the discrete state space of the system.\n<\/p>\n\n<p>\nBecause the attention matrix <em>p<\/em> is row-stochastic (∑<sub>j<\/sub> <em>p<sub>ij<\/sub><\/em> = 1) but strictly non-symmetric and not doubly stochastic, this Markov chain will converge to a unique stationary distribution <em>π<\/em> over the agents, where:\n<\/p>\n\n<div class=\"eq-block\">\n<em>π<\/em><sup>T<\/sup> <em>p<\/em> = <em>π<\/em><sup>T<\/sup>\n<\/div>\n\n<p>\nAs an aside, softmax attention with finite <em>β<\/em> gives <em>p<sub>ij<\/sub> &gt; 0<\/em> everywhere, which guarantees ergodicity, and thus secures the unique stationary distribution. The vector <em>π<\/em> represents the steady-state systemic influence of each agent.\n<\/p>\n\n<p>\nTo calculate this, we look at the attention weights, <em>p<sub>ij<\/sub><\/em>, that is how Agent <em>i<\/em> shifts to match Agent <em>j<\/em> through their interaction. The probability flux from agent <em>i<\/em> to agent <em>j<\/em> (<em>J<sub>ij<\/sub> = π<sub>i<\/sub>p<sub>ij<\/sub><\/em>) is not equal to the reverse flux (<em>J<sub>ji<\/sub> = π<sub>j<\/sub>p<sub>ji<\/sub><\/em>).\n<\/p>\n\n<p>\nThis persistent imbalance means the market acts as a driven non-equilibrium system. We can quantify the resulting \"thermodynamic friction\" using the <strong>Schnakenberg formula for entropy production rate (<em>Π<\/em>)<\/strong> in a Markov jump process (<a href=\"https://doi.org/10.1103/RevModPhys.48.571\">Schnakenberg, 1976<\/a>):\n<\/p>\n\n<div class=\"eq-block\">\n<em>Π<\/em> = ½ ∑<sub>i,j<\/sub> (<em>J<sub>ij<\/sub><\/em> − <em>J<sub>ji<\/sub><\/em>) ln(<em>J<sub>ij<\/sub><\/em> / <em>J<sub>ji<\/sub><\/em>) = ½ ∑<sub>i,j<\/sub> (<em>π<sub>i<\/sub><\/em><em>p<sub>ij<\/sub><\/em> − <em>π<sub>j<\/sub><\/em><em>p<sub>ji<\/sub><\/em>) ln(<em>π<sub>i<\/sub><\/em><em>p<sub>ij<\/sub><\/em> / <em>π<sub>j<\/sub><\/em><em>p<sub>ji<\/sub><\/em>)\n<\/div>\n\n<p>\nBecause <em>π<sub>i<\/sub>p<sub>ij<\/sub> ≠ π<sub>j<\/sub>p<sub>ji<\/sub><\/em>, the logarithmic term is non-zero, yielding a strictly positive entropy production rate (<em>Π &gt; 0<\/em>).\n<\/p>\n\n<p>\nThus, an asymmetric attention market is constantly dissipating thermodynamic heat. It is precisely this persistent, microscopic entropy production—driven by the fact that agents have asymmetric attention—that prevents the market from ever settling into a thermal equilibrium. The system is continuously forced to search for stability, driving the violent reconfigurations of the attention distribution (<em>P<sub>t<\/sub><\/em>). Macroscopically, this should be observable as volatility spikes.\n<\/p>\n\n<h2 id=\"sec-network\"><span class=\"num\">06<\/span> Network Dynamics In Your Lightcone<\/h2>\n\n<p>\nTo understand what happens next, we must let the clock run (ergo add time, ergo we're in the lightcones now). The market does not just update its internal states (<em>x<sub>i<\/sub><\/em>); the agents are adaptive. They actively update their Query and Key projections (<em>W<sub>Q<\/sub><\/em>, <em>W<sub>K<\/sub><\/em>) to minimize their local free energy.\n<\/p>\n\n<p>\nThis adaptation creates a dangerous feedback loop fueled by the Entropy Production Rate (<em>Π<\/em>).\n<\/p>\n\n<h3><span class=\"num\">6.1<\/span> Gradient Descent<\/h3>\n\n<p>\nAgents adjust their projections based on historical success. If Alice loses money to Bob, Alice updates her Query vector to pay <em>closer<\/em> attention to Bob's Key vector in the next time step.\n<\/p>\n\n<p>\nMeanwhile, Bob updates his Key vector to become more deceptive, or updates his Query vector to exploit other inefficiencies, deliberately ignoring Alice.\n<\/p>\n\n<p>\nMathematically, the agents are performing stochastic gradient descent on their weight matrices. Because the agents have different objective functions and computational bounds, the asymmetry of the coupling matrix <em>J = W<sub>Q<\/sub><sup>T<\/sup> W<sub>K<\/sub><\/em> <strong>amplifies over time<\/strong>. For an understanding of how non-symmetric game dynamics amplify over time, see the mechanics of <em>n<\/em>-player differentiable games (<a href=\"https://doi.org/10.48550/arxiv.1802.05642\">Balduzzi et al., 2018<\/a>).\n<\/p>\n\n<h3><span class=\"num\">6.2<\/span> The Accumulation of Thermodynamic Friction<\/h3>\n\n<p>\nAs the non-reciprocity amplifies, the system is driven further and further away from detailed balance.\n<\/p>\n\n<p>\nWe formally invoke the <strong>adiabatic approximation<\/strong>, and assume a separation of timescales: the microscopic attention dynamics relax to their non-equilibrium steady state instantaneously relative to the much slower timescale of macro-weight updates via gradient learning. This allows us to compute a well-defined instantaneous entropy production rate <em>Π<sub>t<\/sub><\/em> at any given market cross-section via the Schnakenberg formula for the stationary distribution <em>π<\/em>:\n<\/p>\n\n<div class=\"eq-block\">\n<em>Π<\/em><sub>t<\/sub> = ½ ∑<sub>i,j<\/sub> (<em>π<sub>i<\/sub><\/em><em>p<sub>ij<\/sub><\/em> − <em>π<sub>j<\/sub><\/em><em>p<sub>ji<\/sub><\/em>) ln(<em>π<sub>i<\/sub><\/em><em>p<sub>ij<\/sub><\/em> / <em>π<sub>j<\/sub><\/em><em>p<sub>ji<\/sub><\/em>)\n<\/div>\n\n<p>\nAs the institutional agents (or predatory algorithms) successfully extract capital, they become systemic attractors. Because the stationary distribution <em>π<\/em> satisfies <em>π<sup>T<\/sup>p = π<sup>T<\/sup><\/em>, as the columns of <em>p<\/em> associated with dominant agents grow larger (representing more agents attending to them), the Perron-Frobenius eigenvector <em>π<\/em> naturally concentrates its mass on those dominant nodes. Simultaneously, the asymmetry between <em>p<sub>ij<\/sub><\/em> (Retail watching Institutions) and <em>p<sub>ji<\/sub><\/em> (Institutions ignoring Retail) grows extreme.\n<\/p>\n\n<p>\nTherefore, the Entropy Production Rate <em>Π<sub>t<\/sub><\/em> climbs steadily. This represents the \"thermodynamic friction\" of the market: the continuous, violent transfer of wealth and information required to sustain the non-equilibrium steady state.\n<\/p>\n\n<p>\nClaim: <em>the market cannot sustain infinite entropy production.<\/em> As <em>Π<sub>t<\/sub><\/em> increases, the system becomes structurally fragile:\n<\/p>\n\n<ol>\n  <li><strong>Self-organized criticality.<\/strong> If you continuously drive a system away from equilibrium by injecting a constant flux of either energy or material, the system eventually reaches a state of Self-Organized Criticality (<a href=\"https://doi.org/10.1103/PhysRevLett.59.381\">Bak, Tang, &amp; Wiesenfeld, 1987<\/a>). Imagine you are a sandpile. Dropping a single grain of sand at a time, you are never in equilibrium. The pile gets steeper and steeper. The continuous entropy production rate <em>Π<sub>t<\/sub><\/em> measures the constant injection of sand, steadily driving the market to a critical slope, where even a tiny perturbation causes the system to avalanche.<\/li>\n  <li><strong>Geometric explosion and Phase Transitions<\/strong> Suppose an asymmetry between Retail agents represented by Alice, and Institutional agents represented by Bob. Alice is bleeding capital to Bob, but Alice isn't an idiot and won't just bleed out. In the terms of an attention agent: gradient descent trains weight matrices to adjust, to change, until Alice's Query matrices better align to the attention of Bob's with winning Key vectors. But look at softmax again with the physics lens:\n    <div class=\"eq-block\">\n    <em>p<sub>ij<\/sub><\/em> = exp(<em>β E<sub>ij<\/sub><\/em>) / ∑<sub>k<\/sub> exp(<em>β E<sub>ik<\/sub><\/em>)\n    <\/div>\n    An arithmetic increase in alignment between Alice and Bob creates a geometric explosion in probability weight, because of that exponential. As the local field generated by the dominant agents (<em>q<sub>i<\/sub> · k<sub>j<\/sub><\/em>) grows larger relative to the noise, the exponential function in softmax abruptly dominates the denominator. The diverse, high-entropy attention distribution spontaneously collapses.<\/li>\n<\/ol>\n\n<p>\nIn either scenario, the attention of the entire network \"snaps\" onto a single signal or a small cluster of agents, or into a phase change that is tracked (not caused) by <em>Π<sub>t<\/sub><\/em>. In statistical mechanics, this is a <strong>Phase Transition<\/strong> via spontaneous symmetry breaking. In finance, this is a <strong>Herd<\/strong>.\n<\/p>\n\n<p>\nIn this case, the Brownian motion of an efficient market is replaced with strong correlation, making this a strongly justified, though not rigorously demonstrated, claim!\n<\/p>\n\n<p>\nSo, we argue: the market cannot sustain infinite entropy production. As <em>Π<sub>t<\/sub><\/em> increases, the system becomes structurally fragile, setting the stage for a mechanical crash.\n<\/p>\n\n<p>\nThe moment the attention distribution collapses, we can quantify this using a standard economic tool, the systemic Herfindahl-Hirschman Index (HHI), which we calculate for the distribution <em>π<\/em> and see it violently spikes from its diversified baseline (<em>≈ 1/N<\/em>) toward its maximum (<em>1.0<\/em>).\n<\/p>\n\n<div class=\"eq-block\">\nHHI<sub>t<\/sub> = ∑<sub>j=1<\/sub><sup>N<\/sup> <em>π<sub>j<\/sub><\/em><sup>2<\/sup> → 1.0\n<\/div>\n\n<p>\nThe agents are no longer acting as independent random variables; they are acting as a single monolithic block, perfectly correlated by their collapsed attention.\n<\/p>\n\n<div class=\"pt-phases\">\n  <div class=\"pt-phase high\">\n    <div class=\"phase-label\">High-entropy regime<\/div>\n    <p>Attention diversified. <em>HHI ≈ 1/N<\/em>. Agents act as independent variables. Shocks absorbed via Brownian diffusion. Near-efficient.<\/p>\n  <\/div>\n  <div class=\"pt-phase critical\">\n    <div class=\"phase-label\">Critical collapse<\/div>\n    <p>Attention concentrated. <em>HHI → 1.0<\/em>. Agents perfectly correlated. Every shock amplified by <em>O(N)<\/em> factor. Flash crash.<\/p>\n  <\/div>\n<\/div>\n\n<h2 id=\"sec-bbs\"><span class=\"num\">07<\/span> Non-Equilibrium Attention Markets<\/h2>\n\n<p>\nOk, so we have established our justifications for the overall dynamics regarding entropy and attention markets, but markets are about prices. Where are our prices? We will proceed by following the econophysics elephant path. If buy and sell (spin up or spin down) is our model, then the magnetization of the spin glass becomes aggregate excess demand. In physics, we call this the order parameter. Once we have demand, or an order parameter, we then identify the price clearing mechanism with the core assumption that the percentage change in price is strictly proportional to the excess demand:\n<\/p>\n\n\n<div class=\"eq-block\">\nΔ<em>S<sub>t<\/sub><\/em> / <em>S<sub>t<\/sub><\/em> = <em>λ<\/em> · <em>M<sub>t<\/sub><\/em>\n<\/div>\n\n\n<p>\nNow the order parameter and the price-clearing mechanism established, and our next step is to determine how the microscopic randomness of the agents scales up to macroscopic market volatility. In statistical mechanics, passing from discrete microscopic jump probabilities to a continuous Stochastic Differential Equation is achieved via the Kramers-Moyal expansion—calculating the first (drift) and second (diffusion) moments of the macroscopic system. Here, however, we will use the tools of econophysics to identify the first and second moments directly.\n<\/p>\n\n<h3><span class=\"num\">7.1<\/span> Magnetization<\/h3>\n\n<p>\nIn a standard Ising model, magnetization is the average of all the discrete spins, representing the net polarity of the system. In our Non-Equilibrium Attention Market framework, the agents possess continuous states. Therefore, the Magnetization (<em>M<sub>t<\/sub><\/em>) is the continuous mean field of all agent state vectors:\n<\/p>\n\n<div class=\"eq-block\">\n<em>M<sub>t<\/sub><\/em> = (1/N) ∑<sub>i=1<\/sub><sup>N<\/sup> <em>x<sub>i<\/sub><\/em><sup>(t)<\/sup>\n<\/div>\n\n<p>\nThis vector <em>M<sub>t<\/sub><\/em> ∈ ℝ<sup>d<\/sup> represents the aggregate momentum and risk-posture of the entire market. To apply the standard econophysics machinery, we must translate this high-dimensional latent state into a scalar expectation (the excess demand).\n<\/p>\n\n<p>\nIn a standard Large Language Model, this is the exact function of the <strong>Unembedding Matrix<\/strong>, which projects the final latent vector back into the vocabulary space to generate discrete logits. In our framework, we use an unembedding vector <em>w<\/em> to project the market's latent state into the continuous \"vocabulary\" of price drift. Thus, our scalar magnetization is <em>w<sup>T<\/sup> M<sub>t<\/sub><\/em>.\n<\/p>\n\n\n<h3 id=\"sec-drift\"><span class=\"num\">7.2<\/span> Attention Price Clearing<\/h3>\n\n<p>\nWe now have our order parameter (excess demand). The next step in the econophysics playbook is identifying the price clearing mechanism. Using the standard Kyle (1985) market impact model, the percentage change in price is strictly proportional to the excess demand crossed with a market depth parameter <em>λ<\/em>:\n<\/p>\n\n<div class=\"eq-block\">\nΔ<em>S<sub>t<\/sub><\/em> / <em>S<sub>t<\/sub><\/em> = <em>λ<\/em> · (<em>w<sup>T<\/sup> M<sub>t<\/sub><\/em>)\n<\/div>\n\n<p>\nThis provides the deterministic drift rate (<em>μ<sub>t<\/sub><\/em>) of our asset price. Unlike classical finance where drift is a static constant, here it is dynamically driven by the network's structural memory. If the network aligns into a bullish subspace, the drift organically updates to reflect that momentum.\n<\/p>\n\n\n\n<h3 id=\"sec-vol\"><span class=\"num\">7.3<\/span> Concentration<\/h3>\n\n<p>\nWith the drift established, we must determine how the microscopic randomness of the agents scales up to macroscopic market volatility. The aggregate order flow is a weighted sum of the agents' intents, where the weights are the stationary attention probabilities <em>π<sub>j<\/sub><\/em>.\n<\/p>\n\n<p>\nTo evaluate this rigorously, we expand the explicit variance of this weighted sum into individual variance components and cross-agent covariance terms:\n<\/p>\n\n<div class=\"eq-block\">\nVar(∑<sub>j=1<\/sub><sup>N<\/sup> <em>π<sub>j<\/sub> v<sub>j<\/sub><\/em>) = ∑<sub>j=1<\/sub><sup>N<\/sup> <em>π<sub>j<\/sub><\/em><sup>2<\/sup> Var(<em>v<sub>j<\/sub><\/em>) + ∑<sub>j≠k<\/sub> <em>π<sub>j<\/sub> π<sub>k<\/sub><\/em> Cov(<em>v<sub>j<\/sub>, v<sub>k<\/sub><\/em>)\n<\/div>\n\n<p>\nBecause market impact is driven by the total extensive order flow (<em>N<\/em> · ∑ <em>π<sub>j<\/sub> v<sub>j<\/sub><\/em>) rather than its sample average, the variance scales extensively with <em>N<\/em><sup>2<\/sup>, yielding the <em>O(N<sup>2<\/sup> HHI<sub>t<\/sub>)<\/em> structural floor and a diffusion coefficient of <em>σ<sub>v<\/sub> N √HHI<sub>t<\/sub><\/em>.\n<\/p>\n\n<p>\nBy evaluating this complete expansion, we can look directly at the exact asymptotic limits of the system to see precisely where the Herfindahl-Hirschman Index (HHI) governs the dynamics:\n<\/p>\n\n<ul>\n  <li><strong>The Independent Phase (High Entropy):<\/strong> When the market is fragmented, agents act on private, idiosyncratic information. Their strategies are completely uncorrelated, meaning Cov(<em>v<sub>j<\/sub>, v<sub>k<\/sub><\/em>) = 0 for all <em>j ≠ k<\/em>. The covariance block vanishes, leaving the aggregate extensive variance to simplify cleanly to <em>σ<\/em><sup>2<\/sup> <em>N<\/em><sup>2<\/sup> HHI<sub>t<\/sub>. If attention is uniform (<em>π<sub>j<\/sub> = 1/N<\/em>), the HHI is <em>1/N<\/em>, and the total variance becomes <em>σ<\/em><sup>2<\/sup> <em>N<\/em>—the correct physical limit for a cumulative random walk of independent buyers and sellers.<\/li>\n  <li><strong>The Monopolistic Phase (Localized Concentration):<\/strong> If a single dominant agent or systemic algorithm captures near-total attention, the distribution approaches <em>π<sub>1<\/sub> → 1<\/em> and <em>π<sub>j&gt;1<\/sub> → 0<\/em>. The weight products for the cross-terms drop to zero because the marginal agents carry no weight. Here, the HHI approaches 1.0, and the total variance cleanly matches the HHI baseline again, capping out at <em>σ<\/em><sup>2<\/sup> <em>N<\/em><sup>2<\/sup> due to geometric concentration alone.<\/li>\n  <li><strong>The Correlated Herd Phase (The Covariance Explosion):<\/strong> The bound breaks away from the pure HHI line when attention remains distributed across multiple nodes, but those nodes begin actively imitating one another, forcing Cov(<em>v<sub>j<\/sub>, v<sub>k<\/sub><\/em>) → <em>σ<\/em><sup>2<\/sup>. Because the remaining weight products sum to <em>1 - HHI<\/em>, the variance surges to its global extensive ceiling of <em>σ<\/em><sup>2<\/sup> <em>N<\/em><sup>2<\/sup>.\n  <\/li>\n<\/ul>\n\n<p>\nThis proves that the <em>O(N<sup>2<\/sup> HHI<sub>t<\/sub>)<\/em> scaling coefficient derived from the first term acts as the fundamental <strong>structural floor<\/strong> of market volatility. The HHI explicitly dictates the minimum level of macroeconomic diffusion guaranteed by the network geometry, while the latent covariance cross-terms dictate the explosive ceiling when herd coordination ignites.\n<\/p>\n\n\n\n<h3 id=\"sec-sde\"><span class=\"num\">7.4<\/span> The NEAM Stochastic Differential Equation<\/h3>\n\n<p>\nWith the drift and the variance floor of the localized attention probabilities established, we can synthesize the complete macroscopic picture. In statistical mechanics, passing from continuous microscopic updates to a macroscopic observable is rigorously formalized via the <strong>Langevin equation<\/strong>. For a macroscopic state variable <em>X<\/em>, the classical Langevin architecture takes the explicit form:\n<\/p>\n\n<div class=\"eq-block\">\nd<em>X<\/em> = <em>F<\/em><sub>sys<\/sub>(<em>X<\/em>) dt + <em>Γ<\/em><sub>fluc<\/sub> d<em>W<sub>t<\/sub><\/em>\n<\/div>\n\n<p>\nWhere <em>F<\/em><sub>sys<\/sub> represents the deterministic, systemic forces acting on the particle, and <em>Γ<\/em><sub>fluc<\/sub> represents the coupling to a stochastic thermal bath. To map this architecture to our asset price <em>S<sub>t<\/sub><\/em>, we must define how these physical forces translate to extensive market structures.\n<\/p>\n\n<p>\nFirst, we formalize the systemic force <em>F<\/em><sub>sys<\/sub> by transitioning from intensive network coordinates to extensive market volume. We define the extensive <strong>Aggregate Excess Demand Vector<\/strong> (D<sub>t<\/sub>) as the total sum of all individual agent action vectors, scaling directly with population size <em>N<\/em> and the mean-field magnetization:\n<\/p>\n\n<div class=\"eq-block\">\nD<sub>t<\/sub> = ∑<sub>i=1<\/sub><sup>N<\/sup> <em>x<sub>i<\/sub><\/em><sup>(t)<\/sup> = <em>N M<sub>t<\/sub><\/em>\n<\/div>\n\n<p>\nBecause market impact is driven by this total extensive order flow crossed with Kyle's depth parameter <em>λ<\/em>, the deterministic systemic force driving price drift is governed precisely by the scalar projection <em>λ (w<sup>T<\/sup> D<sub>t<\/sub>)<\/em>.\n<\/p>\n\n<p>\nSecond, we define the thermal bath coupling <em>Γ<\/em><sub>fluc<\/sub>. The background fluctuations—the residual variance of independent private shocks—are bounded by our extensive variance floor from Section 7.3. This forces the stochastic noise to couple directly to the network geometry, scaling as <em>σ<sub>v<\/sub> N √HHI<sub>t<\/sub><\/em>, where <em>σ<sub>v<\/sub><\/em> acts as the ambient market temperature.\n<\/p>\n\n<p>\nBy substituting these explicit physical forces directly into the Langevin template, the final Non-Equilibrium Attention Market (NEAM) Stochastic Differential Equation appears:\n<\/p>\n\n<div class=\"eq-block\">\nd<em>S<sub>t<\/sub><\/em> = [ <em>λ<\/em> (<em>w<sup>T<\/sup> D<sub>t<\/sub><\/em>) ] <em>S<sub>t<\/sub><\/em> dt + [ <em>σ<sub>v<\/sub> N √HHI<sub>t<\/sub><\/em> ] <em>S<sub>t<\/sub><\/em> d<em>W<sub>t<\/sub><\/em>\n<\/div>\n\n<p>\nBy expressing the entire system through this explicit Langevin decomposition, the SDE elegantly encapsulates two distinct thermodynamic states:\n<\/p>\n\n<ol>\n  <li><strong>The High-Entropy Baseline:<\/strong> When attention is highly diversified, <em>HHI<sub>t<\/sub> ≈ 1/N<\/em>. The covariance cross-terms within the aggregate demand vector are negligible, and the diffusion coefficient simplifies cleanly to <em>σ<sub>v<\/sub> √N<\/em>. The price undergoes standard, tranquil Brownian motion—the physical equivalent of a heavy particle buffeted by a stable, uncoordinated fluid.<\/li>\n  <li><strong>The Critical Phase Transition:<\/strong> As thermodynamic friction forces the attention network to collapse, the <em>HHI<sub>t<\/sub><\/em> spikes toward 1.0. Simultaneously, endogenous imitation causes agent correlations to ignite, meaning the true macroscopic variance breaks past the <em>O(N<sup>2<\/sup> HHI<sub>t<\/sub>)<\/em> floor and explodes toward its global extensive ceiling of <em>O(N<sup>2<\/sup>)<\/em>, causing the diffusion coefficient to scale linearly with <em>N<\/em>.<\/li>\n<\/ol>\n\n<p>\nAt this critical juncture, the market is structurally compromised. The next exogenous macroeconomic shock (d<em>W<sub>t<\/sub><\/em>)—even if minor—is multiplied by a massive, highly correlated <em>O(N)<\/em> network factor. The market maker's liquidity is instantly overwhelmed, and the scalar price <em>S<sub>t<\/sub><\/em> gaps violently downward to clear the one-sided demand.\n<\/p>\n\n<p>\nIt is worth noting an internal consistency choice regarding the explicit population parameter <em>N<\/em> in our diffusion coefficient. While we explicitly preserve <em>N<\/em> to ground the SDE in the extensive volume of the total aggregate demand vector <em>D<sub>t<\/sub><\/em>, this normalization remains a modeling specification; in a strictly intensive asset pricing framework, <em>N<\/em> can be entirely absorbed into the baseline noise parameter <em>σ<sub>v<\/sub><\/em>. Ultimately, the system's absolute population scale is secondary to the geometric scaling of the <em>HHI<sub>t<\/sub><\/em>, which serves as the true structural governor of the non-equilibrium volatility dynamics.\n<\/p>\n\n<h2 id=\"sec-tails\"><span class=\"num\">08<\/span> Endogenous Fat Tails for Sale, Never Used<\/h2>\n\n<p>\nIn traditional quantitative finance, fat tails (leptokurtosis) and volatility clustering are treated as exogenous mysteries that are patched manually. In the NEAM SDE framework, heavy tails observed in empirical asset returns are the direct macroscopic artifacts of bounded agents constantly shifting their attention structure.\n<\/p>\n\n<p>\nThe mathematical engine for this phenomenon lives directly within the phase boundaries derived in Section 7.3. Real market dynamics are defined by a meta-deliberation process: the system moves through intermittent periods of calm where agent updates are largely uncoordinated (The Independent Phase), anchoring the price to its minimum <em>O(N √HHI<sub>t<\/sub>)<\/em> volatility floor. However, because gradient updates on the query-key weights (<em>W<sub>Q<\/sub>, W<sub>K<\/sub><\/em>) operate on a slower, continuous timescale, the attention matrix slowly drifts toward alignment.\n<\/p>\n\n<p>\nWhen the network crosses the critical threshold into the Correlated Herd Phase, the variance breaks free from its structural floor and surges toward the <em>O(N)<\/em> global covariance ceiling. Because the system lingers in these non-equilibrium steady states before thermodynamic friction forces a clearing collapse, volatility naturally clusters in time.\n<\/p>\n\n<p>\nThe switching dynamics between these two geometric phases transform what would be a standard Gaussian random walk into a heavy-tailed distribution. Black Swan events, extreme pricing events that classical finance deems 1-in-a-billion-year anomalies, are direct consequences of network learning and non-equilibrium attention market dynamics.\n<\/p>\n\n<h2 id=\"sec-concl\"><span class=\"num\">09<\/span> Conclusion and Summary<\/h2>\n\n<p>\n<strong>Non-Reciprocity<\/strong> generates a strictly positive <strong>Entropy Production Rate (<em>Π<sub>t<\/sub><\/em>)<\/strong>. Agents adapting to this non-equilibrium environment causes the <strong>stationary distribution (<em>π<\/em>) to concentrate<\/strong>. The concentrated signals trigger a <strong>Phase Transition<\/strong> in the bounded MaxEnt Softmax algorithm, causing <strong>Attention Collapse<\/strong>. The HHI spike multiplies the covariance of the aggregate order flow, exploding the diffusion term in the <strong>NEAM SDE<\/strong>, resulting in a <strong>Flash Crash<\/strong>.\n<\/p>\n\n<p>\nAnd thus, to answer our questions that started this endeavor:\n<\/p>\n\n<ol>\n  <li>What happens if we make the fundamental states of the Ising model continuous?\n    <p><em>By applying Jaynes' Principle of Maximum Entropy to continuous spin states, the canonical Boltzmann distribution naturally emerges as the standard Softmax attention mechanism.<\/em><\/p>\n  <\/li>\n  <li>What happens if these interactions are not symmetric?\n    <p><em>The system breaks detailed balance and enters a non-equilibrium steady state. The resulting non-reciprocal updates generate a strictly positive entropy production rate (Π), driving the network toward structural fragility and spontaneous attention collapse.<\/em><\/p>\n  <\/li>\n  <li>What are the consequences if we use the tools of econophysics and apply it to Bal's spin transformers?\n    <p><strong>We directly find the drift (via continuous magnetization and an unembedding vector) and the diffusion (via the Herfindahl-Hirschman Index), deriving a testable Non-Equilibrium Attention Market (NEAM) SDE.<\/strong><\/p>\n  <\/li>\n<\/ol>\n\n<h2 id=\"sec-refs\"><span class=\"num\">10<\/span> References<\/h2>\n\n<h3> Foundational Texts<\/h3>\n<p><em>Note: The following foundational texts were published independently on Mathias Bal's academic blog and form the basis of the spin transformer explorations recreated in this work.<\/em><\/p>\n\n<ul>\n  <li>Bal, M. C. (2021). <em>Transformers Are Secretly Collectives of Spin Systems<\/em>. <a href=\"https://mcbal.github.io/post/transformers-are-secretly-collectives-of-spin-systems/\">mcbal.github.io<\/a><\/li>\n  <li>Bal, M. C. (2021). <em>Transformers from Spin Models: Approximate Free Energy Minimization<\/em>. <a href=\"https://mcbal.github.io/post/transformers-from-spin-models-approximate-free-energy-minimization/\">mcbal.github.io<\/a><\/li>\n  <li>Bal, M. C. (2023). <em>Spin-Model Transformers<\/em>. <a href=\"https://mcbal.github.io/post/spin-model-transformers/\">mcbal.github.io<\/a><\/li>\n  <li>Bal, M. C. (2026). <em>Entropy Production in Non-Equilibrium Neural Networks<\/em>. <a href=\"https://mcbal.github.io/post/entropy-production-in-non-equilibrium-neural-networks/\">mcbal.github.io<\/a><\/li>\n<\/ul>\n\n<h3> Academic References<\/h3>\n\n<ul>\n  <li>Bak, P., Tang, C., &amp; Wiesenfeld, K. (1987). Self-organized criticality: An explanation of the 1/f noise. <em>Physical Review Letters<\/em>, 59(4), 381–384. <a href=\"https://doi.org/10.1103/PhysRevLett.59.381\">doi<\/a><\/li>\n  <li>Balduzzi, D., Racaniere, S., Martens, J., Foerster, J., Tuyls, K., &amp; Graepel, T. (2018). The Mechanics of n-Player Differentiable Games. <em>PMLR<\/em>, 80. <a href=\"https://doi.org/10.48550/arxiv.1802.05642\">doi<\/a><\/li>\n  <li>Black, F., &amp; Scholes, M. (1973). The Pricing of Options and Corporate Liabilities. <em>Journal of Political Economy<\/em>, 81(3), 637–654. <a href=\"https://doi.org/10.1086/260062\">doi<\/a><\/li>\n  <li>Bornholdt, S. (2001). Expectation bubbles in a spin model of markets: Intermittency from frustration across scales. <em>Int. J. Mod. Phys. C<\/em>, 12(5), 667–674. <a href=\"https://doi.org/10.1142/S0129183101001845\">doi<\/a><\/li>\n  <li>Bouchaud, J.-P., Mezard, M., &amp; Potters, M. (2002). Statistical properties of stock order books: Empirical results and models. <em>Quantitative Finance<\/em>, 2(4), 251–256. <a href=\"https://doi.org/10.1088/1469-7688/2/4/302\">doi<\/a><\/li>\n  <li>Brock, W. A., &amp; Durlauf, S. N. (2001). Discrete Choice with Social Interactions. <em>The Review of Economic Studies<\/em>, 68(2), 235–260. <a href=\"https://doi.org/10.1111/1467-937x.00168\">doi<\/a><\/li>\n  <li>Cont, R., &amp; Bouchaud, J.-P. (1998). Herd Behavior and Aggregate Fluctuations in Financial Markets. <em>SSRN Electronic Journal<\/em>. <a href=\"https://doi.org/10.2139/ssrn.58468\">doi<\/a><\/li>\n  <li>Galam, S. (2008). Sociophysics: A Review of Galam Models. <em>International Journal of Modern Physics C<\/em>, 19(3), 409–440. <a href=\"https://doi.org/10.1142/s0129183108012297\">doi<\/a><\/li>\n  <li>Gardiner, C. W. (1985). <em>Handbook of Stochastic Methods for Physics, Chemistry and the Natural Sciences<\/em>. Springer-Verlag. <a href=\"https://doi.org/10.1007/978-3-662-02452-2\">doi<\/a><\/li>\n  <li>Jaynes, E. T. (1957). Information Theory and Statistical Mechanics. <em>Physical Review<\/em>, 106(4), 620–630. <a href=\"https://doi.org/10.1103/physrev.106.620\">doi<\/a><\/li>\n  <li>Kyle, A. S. (1985). Continuous Auctions and Insider Trading. <em>Econometrica<\/em>, 53(6), 1315. <a href=\"https://doi.org/10.2307/1913210\">doi<\/a><\/li>\n  <li>Risken, H. (1989). <em>The Fokker-Planck Equation: Methods of Solution and Applications<\/em>. Springer-Verlag. <a href=\"https://doi.org/10.1007/978-3-642-61544-3\">doi<\/a><\/li>\n  <li>Schnakenberg, J. (1976). Network theory of microscopic and macroscopic behavior of master equation systems. <em>Reviews of Modern Physics<\/em>, 48(4), 571–585. <a href=\"https://doi.org/10.1103/RevModPhys.48.571\">doi<\/a><\/li>\n  <li>Shannon, C. E. (1948). A Mathematical Theory of Communication. <em>Bell System Technical Journal<\/em>, 27(3), 379–423. <a href=\"https://doi.org/10.1002/j.1538-7305.1948.tb01338.x\">doi<\/a><\/li>\n  <li>Sornette, D. (2014). Physics and Financial Economics (1776-2014): Puzzles, Ising and Agent-Based models. <em>Rep. Prog. Phys.<\/em>, 77(6), 062001. <a href=\"https://doi.org/10.1088/0034-4885/77/6/062001\">doi<\/a><\/li>\n  <li>Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., Kaiser, Ł., &amp; Polosukhin, I. (2017). Attention is All You Need. <em>Advances in Neural Information Processing Systems<\/em>, 30. <a href=\"https://arxiv.org/abs/1706.03762\">arxiv<\/a><\/li>\n  <li>Zaklan, G., Westerhoff, F., &amp; Stauffer, D. (2009). Analysing tax evasion dynamics via the Ising model. <em>Journal of Economic Interaction and Coordination<\/em>, 4(1), 1–14. <a href=\"https://doi.org/10.1007/s11403-008-0043-5\">doi<\/a><\/li>\n<\/ul>\n\n<\/div>"}</script>
+<script>window.location.replace("/#post/neam");</script>
+<style>body{max-width:78ch;margin:3rem auto;padding:0 1.25rem;background:#0a0a1a;color:#d9faff;font:16px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace}h1,a{color:#66ffff}.meta{color:#c78aff}.excerpt{border-left:3px solid #bf00ff;padding-left:1rem}.markdown-source{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit}</style>
 </head>
 <body>
-<p>Redirecting to transmission… <a href="/#post/neam">continue manually</a>.</p>
+<article id="transmission-document">
+<header><h1>NON-EQUILIBRIUM ATTENTION MARKETS</h1><p class="meta">2026.05.16 ;; #econophysics #spin-transformers #neam</p></header>
+<p class="excerpt">Continuous Ising states and asymmetric coupling recover Bal&#x27;s spin transformers and softmax via MaxEnt. The consequence: a SDE where volatility is an endogenous function of attention concentration, and crashes are deterministic phase transitions rather than fat-tail luck.</p>
+<pre class="markdown-source">&lt;div class=&quot;nrol-doc&quot;&gt;
+
+&lt;style&gt;
+/* ════════════════════════════════════════════════════════════════
+   NEAM transmission · scoped styles
+   Extends .nrol-doc base. Palette inherits from NROL-αΩ vars.
+   ════════════════════════════════════════════════════════════════ */
+/* Equation blocks — Unified global color rules override to fix whatever qwen did to the style sheet */
+.nrol-doc .eq-block,
+.nrol-doc .eq-block em,
+.nrol-doc .eq-block sub,
+.nrol-doc .eq-block sup {
+  color: var(--cyan) !important;
+}
+
+/* Light mode overrides — Forces all math sub-elements to shift together */
+body.light-mode .nrol-doc .eq-block,
+body.light-mode .nrol-doc .eq-block em,
+body.light-mode .nrol-doc .eq-block sub,
+body.light-mode .nrol-doc .eq-block sup,
+body.light-reading .nrol-doc .eq-block,
+body.light-reading .nrol-doc .eq-block em,
+body.light-reading .nrol-doc .eq-block sub,
+body.light-reading .nrol-doc .eq-block sup {
+  color: #bf00ff !important; /* High-contrast color for light backgrounds */
+}
+
+.nrol-doc .eq-block {
+  text-align: center;
+  margin: 18px 0;
+  padding: 12px 0;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+}
+
+.nrol-doc .eq-block {
+  text-align: center;
+  margin: 18px 0;
+  padding: 12px 0;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+}
+/* Equation blocks — var(--cyan) for dark mode, overridden for light */
+.nrol-doc .eq-block {
+  text-align: center;
+  margin: 18px 0;
+  padding: 12px 0;
+  font-size: 14px;
+  color: var(--cyan);
+  letter-spacing: 0.04em;
+}
+body.light-mode .nrol-doc .eq-block,
+body.light-reading .nrol-doc .eq-block {
+  color: #bf00ff;
+}
+.nrol-doc .eq-block .eq-label {
+  display: block;
+  font-size: 9px;
+  color: var(--doc-dim);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  margin-top: 6px;
+}
+
+/* Phase transition diagram area */
+.nrol-doc .pt-phases {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 16px 0 24px;
+}
+.nrol-doc .pt-phase {
+  padding: 14px 16px;
+  border: 0.5px solid var(--doc-faint);
+  background: var(--doc-soft-bg);
+}
+.nrol-doc .pt-phase .phase-label {
+  font-size: 9px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.nrol-doc .pt-phase.high .phase-label { color: var(--GREEN); }
+.nrol-doc .pt-phase.critical .phase-label { color: var(--RED); }
+.nrol-doc .pt-phase p { font-size: 11.5px; margin: 0; }
+
+@media (max-width: 640px) {
+  .nrol-doc .pt-phases { grid-template-columns: 1fr; }
+}
+&lt;/style&gt;
+
+&lt;h1&gt;Non-Equilibrium Attention Markets&lt;/h1&gt;
+
+&lt;h2 id=&quot;sec-intro&quot;&gt;&lt;span class=&quot;num&quot;&gt;01&lt;/span&gt; Introduction&lt;/h2&gt;
+
+&lt;p&gt;
+If you need evidence of the value of the Ising model, this is not the post for you — you&#x27;re late to the stage and the world has already been swallowed by statistical mechanics — instead, this post seeks to expand your study from mere statistical mechanics, into the regime of attention transformers. We present this as an argument, not as a peer-reviewed paper. We are gesturing along, what seems to be, a promising vector of inquiry. With that in mind, we will sketch our proposal for the Non-Equilibrium Attention Market framework.
+
+To those ends, we have two bridging questions to answer:
+&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;&lt;strong&gt;What happens if we make the fundamental states of the Ising model continuous?&lt;/strong&gt;&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;What happens if these interactions are not symmetric?&lt;/strong&gt;&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;
+We will see that we recover Bal&#x27;s spin transformers (&lt;a href=&quot;https://mcbal.github.io&quot;&gt;Bal, 2021&lt;/a&gt;). Which raises a new question: &lt;strong&gt;If we use the tools of econophysics and apply it to Bal&#x27;s spin transformers, what are the consequences?&lt;/strong&gt;
+&lt;/p&gt;
+
+&lt;p&gt;
+Our goal today is to slouch towards a stochastic differential equation governing attention markets, where the market created by agents is a large dimensional vector space, and the interactions are asymmetric, forcing the system into non-equilibrium.
+&lt;/p&gt;
+
+&lt;p&gt;
+Before we begin, it is worth noting this is not the Ising explainer, which I will never write, but the way forward is dangerous, so take this sampling of literature on the application of Ising models in economics:
+&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Bornholdt, S. (2001). &lt;a href=&quot;https://doi.org/10.1142/S0129183101001845&quot;&gt;&quot;Expectation bubbles in a spin model of markets: Intermittency from frustration across scales.&quot;&lt;/a&gt; International Journal of Modern Physics C, 12(5), 667-674.&lt;/li&gt;
+  &lt;li&gt;Brock, W. A., &amp;amp; Durlauf, S. N. (2001). &lt;a href=&quot;https://doi.org/10.1111/1467-937x.00168&quot;&gt;&quot;Discrete choice with social interactions.&quot;&lt;/a&gt; The Review of Economic Studies, 68(2), 235-260.&lt;/li&gt;
+  &lt;li&gt;Cont, R., &amp;amp; Bouchaud, J.-P. (1998). &lt;a href=&quot;https://doi.org/10.2139/ssrn.58468&quot;&gt;&quot;Herd behavior and aggregate fluctuations in financial markets.&quot;&lt;/a&gt; Macroeconomic Dynamics, 4(2), 170-196.&lt;/li&gt;
+  &lt;li&gt;Galam, S. (2008). &lt;a href=&quot;https://doi.org/10.1142/s0129183108012297&quot;&gt;&quot;Sociophysics: A review of Galam models.&quot;&lt;/a&gt; International Journal of Modern Physics C, 19(3), 409-440.&lt;/li&gt;
+  &lt;li&gt;Sornette, D. (2014). &lt;a href=&quot;https://doi.org/10.1088/0034-4885/77/6/062001&quot;&gt;&quot;Physics and financial economics (1776-2014): Puzzles, Ising and agent-based models.&quot;&lt;/a&gt; Reports on Progress in Physics, 77(6), 062001.&lt;/li&gt;
+  &lt;li&gt;Zaklan, G., Westerhoff, F., &amp;amp; Stauffer, D. (2009). &lt;a href=&quot;https://doi.org/10.1007/s11403-008-0043-5&quot;&gt;&quot;Analysing tax evasion dynamics via the Ising model.&quot;&lt;/a&gt; Journal of Economic Interaction and Coordination, 4(1), 1-14.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h2 id=&quot;sec-state&quot;&gt;&lt;span class=&quot;num&quot;&gt;02&lt;/span&gt; State Agent Attention&lt;/h2&gt;
+
+&lt;p&gt;
+Let&#x27;s drop the &lt;em&gt;cut&lt;/em&gt; as they may say someday, and drop ourselves right to the heart of it: the Ising model is a discrete lattice of particles, each particle has two states (buy or sell), particles only interact with their nearest neighbors, the state space of that system yields surprising results if we have infinitely many particles on our lattice. Combined this model yields tractable insight into technosocial systems. Across scales and fussy physical details, it just works.
+&lt;/p&gt;
+
+&lt;p&gt;
+Instead of limiting ourselves to the binary, let&#x27;s instead assume that our trader, our agent, labeled with index &lt;em&gt;i&lt;/em&gt; has an internal state represented by a vector &lt;em&gt;x&lt;/em&gt; at time &lt;em&gt;t&lt;/em&gt;. This vector lives in a &lt;em&gt;d&lt;/em&gt;-dimensional vector space:
+&lt;/p&gt;
+
+&lt;div class=&quot;eq-block&quot;&gt;
+&lt;em&gt;x&lt;/em&gt;&lt;sub&gt;i&lt;/sub&gt;&lt;sup&gt;(t)&lt;/sup&gt; ∈ ℝ&lt;sup&gt;d&lt;/sup&gt;
+&lt;/div&gt;
+
+&lt;p&gt;
+What is this vector space? It is defined as the embeddings of all states for all agents, such that the matrix &lt;em&gt;X&lt;/em&gt; ∈ ℝ&lt;sup&gt;N × d&lt;/sup&gt; and is identified as the &quot;hidden state&quot; of all &lt;em&gt;N&lt;/em&gt; agents.
+&lt;/p&gt;
+
+&lt;p&gt;
+&lt;strong&gt;TL;DR&lt;/strong&gt; Agents have continuous internal states &lt;em&gt;d&lt;/em&gt;, and if we have &lt;em&gt;N&lt;/em&gt; agents, the totality of the market is represented by an &lt;em&gt;N × d&lt;/em&gt; matrix &lt;em&gt;X&lt;/em&gt;.
+&lt;/p&gt;
+
+&lt;h2 id=&quot;sec-path&quot;&gt;&lt;span class=&quot;num&quot;&gt;03&lt;/span&gt; Three-fold Path&lt;/h2&gt;
+
+&lt;p&gt;
+In standard spin glass physics — the Ising model — each nearest neighbor interacts with a symmetric coupling (think of it as a scalar weight describing how two neighborly agents &lt;em&gt;s&lt;sub&gt;i&lt;/sub&gt;&lt;/em&gt; and &lt;em&gt;s&lt;sub&gt;j&lt;/sub&gt;&lt;/em&gt; interact, but it doesn&#x27;t matter the order of the interaction, hence symmetric). The energy of this interaction would be &lt;em&gt;−s&lt;sub&gt;i&lt;/sub&gt; J&lt;sub&gt;ij&lt;/sub&gt; s&lt;sub&gt;j&lt;/sub&gt;&lt;/em&gt;. Our agents, our states of spin, are given by &lt;em&gt;d&lt;/em&gt;-dimensional vectors, though the energy is directly analogous:
+&lt;/p&gt;
+
+&lt;div class=&quot;eq-block&quot;&gt;
+−&lt;em&gt;x&lt;/em&gt;&lt;sub&gt;i&lt;/sub&gt;&lt;sup&gt;T&lt;/sup&gt; &lt;em&gt;J&lt;/em&gt; &lt;em&gt;x&lt;/em&gt;&lt;sub&gt;j&lt;/sub&gt;
+&lt;/div&gt;
+
+&lt;p&gt;
+But we have a problem! Transformers do not let vectors (spins/agents) interact directly. Rather, they project states through three distinct learned weights: &lt;em&gt;W&lt;sub&gt;Q&lt;/sub&gt;&lt;/em&gt;, &lt;em&gt;W&lt;sub&gt;K&lt;/sub&gt;&lt;/em&gt;, &lt;em&gt;W&lt;sub&gt;V&lt;/sub&gt;&lt;/em&gt; ∈ ℝ&lt;sup&gt;d&lt;sub&gt;attn&lt;/sub&gt; × d&lt;/sup&gt;. These &lt;em&gt;d&lt;sub&gt;attn&lt;/sub&gt; × d&lt;/em&gt; matrices, the Query, Key, and Value, are projections that we will assign to economic terms (for interpretation&#x27;s sake), alongside their mathematical values:
+&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;The Query (&lt;em&gt;q&lt;sub&gt;i&lt;/sub&gt; = W&lt;sub&gt;Q&lt;/sub&gt; x&lt;sub&gt;i&lt;/sub&gt;&lt;/em&gt;):&lt;/strong&gt; Agent &lt;em&gt;i&lt;/em&gt;&#x27;s active demand for information or signals (their market lens).&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;The Key (&lt;em&gt;k&lt;sub&gt;j&lt;/sub&gt; = W&lt;sub&gt;K&lt;/sub&gt; x&lt;sub&gt;j&lt;/sub&gt;&lt;/em&gt;):&lt;/strong&gt; Agent &lt;em&gt;j&lt;/em&gt;&#x27;s observable market signal (public supply/posture).&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;The Value (&lt;em&gt;v&lt;sub&gt;j&lt;/sub&gt; = W&lt;sub&gt;V&lt;/sub&gt; x&lt;sub&gt;j&lt;/sub&gt;&lt;/em&gt;):&lt;/strong&gt; Agent &lt;em&gt;j&lt;/em&gt;&#x27;s actual capital intent or underlying action (the payload).&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;
+Now, when agent &lt;em&gt;i&lt;/em&gt; interacts with agent &lt;em&gt;j&lt;/em&gt;, we find their alignment via the dot product:
+&lt;/p&gt;
+
+&lt;div class=&quot;eq-block&quot;&gt;
+&lt;em&gt;q&lt;/em&gt;&lt;sub&gt;i&lt;/sub&gt; · &lt;em&gt;k&lt;/em&gt;&lt;sub&gt;j&lt;/sub&gt; = (&lt;em&gt;W&lt;/em&gt;&lt;sub&gt;Q&lt;/sub&gt;&lt;em&gt;x&lt;/em&gt;&lt;sub&gt;i&lt;/sub&gt;)&lt;sup&gt;T&lt;/sup&gt; (&lt;em&gt;W&lt;/em&gt;&lt;sub&gt;K&lt;/sub&gt;&lt;em&gt;x&lt;/em&gt;&lt;sub&gt;j&lt;/sub&gt;) = &lt;em&gt;x&lt;/em&gt;&lt;sub&gt;i&lt;/sub&gt;&lt;sup&gt;T&lt;/sup&gt; (&lt;em&gt;W&lt;/em&gt;&lt;sub&gt;Q&lt;/sub&gt;&lt;sup&gt;T&lt;/sup&gt; &lt;em&gt;W&lt;/em&gt;&lt;sub&gt;K&lt;/sub&gt;) &lt;em&gt;x&lt;/em&gt;&lt;sub&gt;j&lt;/sub&gt;
+&lt;/div&gt;
+
+&lt;p&gt;
+This matrix multiplication yields our spin coupling matrix, &lt;em&gt;J = W&lt;sub&gt;Q&lt;/sub&gt;&lt;sup&gt;T&lt;/sup&gt; W&lt;sub&gt;K&lt;/sub&gt;&lt;/em&gt;, and we can label our energy as &lt;em&gt;E&lt;sub&gt;ij&lt;/sub&gt; = −q&lt;sub&gt;i&lt;/sub&gt; · k&lt;sub&gt;j&lt;/sub&gt;&lt;/em&gt;.
+&lt;/p&gt;
+
+&lt;p&gt;
+Ok so what? We have some slightly more complex agentic model, we have an asymmetric coupling, we have an equation for an &quot;energy.&quot; At this point, nothing seems like transformers except via fiat, via assumption. &lt;strong&gt;And this is where Jaynes enters (&lt;a href=&quot;https://doi.org/10.1103/physrev.106.620&quot;&gt;Jaynes, 1957&lt;/a&gt;).&lt;/strong&gt;
+&lt;/p&gt;
+
+&lt;h2 id=&quot;sec-jaynes&quot;&gt;&lt;span class=&quot;num&quot;&gt;04&lt;/span&gt; Enter Jaynes, Suddenly Boltzmann Appears&lt;/h2&gt;
+
+&lt;p&gt;
+Let &lt;em&gt;p&lt;sub&gt;j&lt;/sub&gt;&lt;/em&gt; be the probability that Agent &lt;em&gt;i&lt;/em&gt; pays attention to Agent &lt;em&gt;j&lt;/em&gt;. By &quot;paid attention&quot; we mean whatever is exchanged via the Q, K, V interactions; all we really care about is that the state of agent &lt;em&gt;i&lt;/em&gt; changes via interactions with agent &lt;em&gt;j&lt;/em&gt;, and &lt;em&gt;j&lt;/em&gt; likewise changes but perhaps not in equal measure. If we find the optimal attention distribution &lt;em&gt;P&lt;/em&gt; = {&lt;em&gt;p&lt;/em&gt;&lt;sub&gt;1&lt;/sub&gt;, &lt;em&gt;p&lt;/em&gt;&lt;sub&gt;2&lt;/sub&gt;, …, &lt;em&gt;p&lt;/em&gt;&lt;sub&gt;N&lt;/sub&gt;} then we have the probability of how a market change of state occurs.
+&lt;/p&gt;
+
+&lt;p&gt;
+How do we calculate this? Well, let&#x27;s just use Jaynes&#x27; Principle of Maximum Entropy (MaxEnt). There are many ways to think of MaxEnt. Jaynes might say a bounded agent should assume nothing beyond what is strictly known, and that the agent seeks a distribution that maximizes Shannon Entropy. Another way to think about it, is, I believe more intuitive, namely diffusion is a tendency of systems, unless otherwise constrained, and it is simply a better prior to assume diffusion under constraint, thus MaxEnt. Either way, we have the well-travelled path: &lt;strong&gt;we must maximize Shannon entropy&lt;/strong&gt;.
+&lt;/p&gt;
+
+&lt;p&gt;
+Shannon entropy is given by:
+&lt;/p&gt;
+
+&lt;div class=&quot;eq-block&quot;&gt;
+&lt;em&gt;H&lt;/em&gt; = −∑&lt;sub&gt;j=1&lt;/sub&gt;&lt;sup&gt;N&lt;/sup&gt; &lt;em&gt;p&lt;sub&gt;j&lt;/sub&gt;&lt;/em&gt; ln &lt;em&gt;p&lt;sub&gt;j&lt;/sub&gt;&lt;/em&gt;
+&lt;/div&gt;
+
+&lt;p&gt;
+with two constraints:
+&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;&lt;strong&gt;All probabilities sum to 1:&lt;/strong&gt; ∑&lt;sub&gt;j=1&lt;/sub&gt;&lt;sup&gt;N&lt;/sup&gt; &lt;em&gt;p&lt;sub&gt;j&lt;/sub&gt;&lt;/em&gt; = 1&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;We know the value for the average energy:&lt;/strong&gt; ∑&lt;sub&gt;j=1&lt;/sub&gt;&lt;sup&gt;N&lt;/sup&gt; &lt;em&gt;p&lt;sub&gt;j&lt;/sub&gt;&lt;/em&gt;&lt;em&gt;E&lt;sub&gt;j&lt;/sub&gt;&lt;/em&gt; = ⟨&lt;em&gt;E&lt;/em&gt;⟩&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;
+To maximize Shannon entropy for a probability &lt;em&gt;p&lt;sub&gt;j&lt;/sub&gt;&lt;/em&gt; under the constraints of the system, we simply use Lagrange multipliers:
+&lt;/p&gt;
+
+&lt;div class=&quot;eq-block&quot;&gt;
+ℒ = −∑&lt;sub&gt;j=1&lt;/sub&gt;&lt;sup&gt;N&lt;/sup&gt; &lt;em&gt;p&lt;sub&gt;j&lt;/sub&gt;&lt;/em&gt; ln &lt;em&gt;p&lt;sub&gt;j&lt;/sub&gt;&lt;/em&gt; − &lt;em&gt;α&lt;/em&gt;(∑&lt;sub&gt;j=1&lt;/sub&gt;&lt;sup&gt;N&lt;/sup&gt; &lt;em&gt;p&lt;sub&gt;j&lt;/sub&gt;&lt;/em&gt; − 1) − &lt;em&gt;β&lt;/em&gt;(∑&lt;sub&gt;j=1&lt;/sub&gt;&lt;sup&gt;N&lt;/sup&gt; &lt;em&gt;p&lt;sub&gt;j&lt;/sub&gt;&lt;/em&gt;&lt;em&gt;E&lt;sub&gt;j&lt;/sub&gt;&lt;/em&gt; − ⟨&lt;em&gt;E&lt;/em&gt;⟩)
+&lt;/div&gt;
+
+&lt;p&gt;
+We can do the motions here, but the result is the result:
+&lt;/p&gt;
+
+&lt;div class=&quot;eq-block&quot;&gt;
+&lt;em&gt;p&lt;/em&gt;&lt;sub&gt;ij&lt;/sub&gt; = exp(&lt;em&gt;β&lt;/em&gt;(&lt;em&gt;q&lt;/em&gt;&lt;sub&gt;i&lt;/sub&gt; · &lt;em&gt;k&lt;/em&gt;&lt;sub&gt;j&lt;/sub&gt;)) / ∑&lt;sub&gt;m=1&lt;/sub&gt;&lt;sup&gt;N&lt;/sup&gt; exp(&lt;em&gt;β&lt;/em&gt;(&lt;em&gt;q&lt;/em&gt;&lt;sub&gt;i&lt;/sub&gt; · &lt;em&gt;k&lt;/em&gt;&lt;sub&gt;m&lt;/sub&gt;))
+&lt;/div&gt;
+
+&lt;p&gt;
+Ok so this is familiar to physicists, some of which might not be in the audience, but this is just softmax!
+&lt;/p&gt;
+
+&lt;div class=&quot;eq-block&quot;&gt;
+&lt;em&gt;p&lt;/em&gt;&lt;sub&gt;ij&lt;/sub&gt; = Softmax(&lt;em&gt;β x&lt;sub&gt;i&lt;/sub&gt;&lt;/em&gt;&lt;sup&gt;T&lt;/sup&gt; (&lt;em&gt;W&lt;/em&gt;&lt;sub&gt;Q&lt;/sub&gt;&lt;sup&gt;T&lt;/sup&gt; &lt;em&gt;W&lt;/em&gt;&lt;sub&gt;K&lt;/sub&gt;) &lt;em&gt;x&lt;sub&gt;j&lt;/sub&gt;&lt;/em&gt;)
+&lt;/div&gt;
+
+&lt;p&gt;
+&lt;em&gt;β&lt;/em&gt; is the Lagrange multiplier representing the agent&#x27;s computational bound. In statistical mechanics, this is &lt;em&gt;1/k&lt;sub&gt;B&lt;/sub&gt;T&lt;/em&gt;, but as the dimension size of the vectors &lt;em&gt;d&lt;sub&gt;k&lt;/sub&gt;&lt;/em&gt; grows, the dot products grow as well, pushing the Softmax function into flat regions with zero gradients. To prevent this, they added a scaling factor. So we identify this constraint with our Lagrange multiplier and identify &lt;em&gt;β = 1/√d&lt;sub&gt;k&lt;/sub&gt;&lt;/em&gt;.
+&lt;/p&gt;
+
+&lt;p&gt;
+Once Agent &lt;em&gt;i&lt;/em&gt; establishes their attention distribution across the market, they update their internal state by taking the expected value of the &lt;em&gt;actual intent&lt;/em&gt; (&lt;em&gt;V&lt;/em&gt;) of the agents they are watching:
+&lt;/p&gt;
+
+&lt;div class=&quot;eq-block&quot;&gt;
+&lt;em&gt;x&lt;/em&gt;&lt;sub&gt;i&lt;/sub&gt;&lt;sup&gt;(t+1)&lt;/sup&gt; = ∑&lt;sub&gt;j=1&lt;/sub&gt;&lt;sup&gt;N&lt;/sup&gt; &lt;em&gt;p&lt;sub&gt;ij&lt;/sub&gt;&lt;/em&gt; &lt;em&gt;v&lt;sub&gt;j&lt;/sub&gt;&lt;/em&gt; = &lt;em&gt;p&lt;sub&gt;i&lt;/sub&gt;&lt;/em&gt;&lt;em&gt;V&lt;/em&gt; = Softmax(&lt;em&gt;q&lt;sub&gt;i&lt;/sub&gt;K&lt;/sub&gt;&lt;sup&gt;T&lt;/sup&gt; / √d&lt;sub&gt;k&lt;/sub&gt;&lt;/em&gt;) &lt;em&gt;V&lt;/em&gt;
+&lt;/div&gt;
+
+&lt;p&gt;
+where &lt;em&gt;p&lt;sub&gt;i&lt;/sub&gt;&lt;/em&gt; = Softmax(&lt;em&gt;β x&lt;sub&gt;i&lt;/sub&gt;&lt;/em&gt;&lt;sup&gt;T&lt;/sup&gt;(&lt;em&gt;W&lt;/em&gt;&lt;sub&gt;Q&lt;/sub&gt;&lt;sup&gt;T&lt;/sup&gt;&lt;em&gt;W&lt;/em&gt;&lt;sub&gt;K&lt;/sub&gt;)&lt;em&gt;X&lt;/em&gt;&lt;sup&gt;T&lt;/sup&gt;).
+&lt;/p&gt;
+
+&lt;p&gt;
+If we update across &lt;em&gt;all&lt;/em&gt; states (the market) then this is just attention:
+&lt;/p&gt;
+
+&lt;div class=&quot;eq-block&quot;&gt;
+Attention(&lt;em&gt;Q,K,V&lt;/em&gt;) = Softmax(&lt;em&gt;QK&lt;/em&gt;&lt;sup&gt;T&lt;/sup&gt; / √&lt;em&gt;d&lt;sub&gt;k&lt;/sub&gt;&lt;/em&gt;) &lt;em&gt;V&lt;/em&gt;
+&lt;/div&gt;
+
+&lt;h2 id=&quot;sec-baleq&quot;&gt;&lt;span class=&quot;num&quot;&gt;05&lt;/span&gt; No Equilibrium&lt;/h2&gt;
+
+&lt;p&gt;
+In a classical physical spin system (Ising model) and in classical Efficient Market Hypothesis (EMH), systems are assumed to eventually reach Thermodynamic Equilibrium.
+&lt;/p&gt;
+
+&lt;p&gt;
+For a system to be in true equilibrium, it must satisfy a strict mathematical condition called Detailed Balance. This means that at the microscopic level, the flow of probability from state &lt;em&gt;i&lt;/em&gt; to state &lt;em&gt;j&lt;/em&gt; is perfectly balanced by the flow from &lt;em&gt;j&lt;/em&gt; back to &lt;em&gt;i&lt;/em&gt;:
+&lt;/p&gt;
+
+&lt;div class=&quot;eq-block&quot;&gt;
+P(&lt;em&gt;i→j&lt;/em&gt;)P(&lt;em&gt;i&lt;/em&gt;) = P(&lt;em&gt;j→i&lt;/em&gt;)P(&lt;em&gt;j&lt;/em&gt;)
+&lt;/div&gt;
+
+&lt;p&gt;
+We can rotate all this nuance down to a pithy statement: an efficient market is a MaxEnt market. A MaxEnt dataset is one in which we can&#x27;t tell what the next bit is; it is Brownian motion, it is a random coin flip. It is up or down, buy or sell, randomly, forever. This is precisely why Black-Scholes uses a random walk (Geometric Brownian Motion) to model the price (&lt;a href=&quot;https://doi.org/10.1086/260062&quot;&gt;Black &amp;amp; Scholes, 1973&lt;/a&gt;).
+&lt;/p&gt;
+
+&lt;p&gt;
+But Bal&#x27;s physical translation of the Spin Transformer, the one we illustrated to you in the prior sections, is explicitly asymmetric. &lt;em&gt;It cannot satisfy Detailed Balance, and thus cannot reach the standard equilibrium.&lt;/em&gt;
+&lt;/p&gt;
+
+&lt;p&gt;
+In non-equilibrium statistical mechanics, when detailed balance is broken, the system experiences a continuous dissipation of heat as agents update their states against non-reciprocal gradients of their peers (as an aside, this is why cults formed around Dissipative Adaptation are, at least conceptually, incredibly interesting, though like many in this AI space the intellectual lineages they gestured toward were squandered for grift and graft and clout).
+&lt;/p&gt;
+
+&lt;p&gt;
+&lt;strong&gt;As we are not mere alchemists, we need a way to calculate this dissipation.&lt;/strong&gt; Let&#x27;s start by defining a Markovian random walk on the &lt;em&gt;attention graph&lt;/em&gt;. Imagine a marginal &quot;packet of influence&quot; traversing the network. If this influence is currently localized at Agent &lt;em&gt;i&lt;/em&gt;, it transitions to Agent &lt;em&gt;j&lt;/em&gt; with probability &lt;em&gt;p&lt;sub&gt;ij&lt;/sub&gt;&lt;/em&gt;. The agents themselves form the discrete state space of the system.
+&lt;/p&gt;
+
+&lt;p&gt;
+Because the attention matrix &lt;em&gt;p&lt;/em&gt; is row-stochastic (∑&lt;sub&gt;j&lt;/sub&gt; &lt;em&gt;p&lt;sub&gt;ij&lt;/sub&gt;&lt;/em&gt; = 1) but strictly non-symmetric and not doubly stochastic, this Markov chain will converge to a unique stationary distribution &lt;em&gt;π&lt;/em&gt; over the agents, where:
+&lt;/p&gt;
+
+&lt;div class=&quot;eq-block&quot;&gt;
+&lt;em&gt;π&lt;/em&gt;&lt;sup&gt;T&lt;/sup&gt; &lt;em&gt;p&lt;/em&gt; = &lt;em&gt;π&lt;/em&gt;&lt;sup&gt;T&lt;/sup&gt;
+&lt;/div&gt;
+
+&lt;p&gt;
+As an aside, softmax attention with finite &lt;em&gt;β&lt;/em&gt; gives &lt;em&gt;p&lt;sub&gt;ij&lt;/sub&gt; &amp;gt; 0&lt;/em&gt; everywhere, which guarantees ergodicity, and thus secures the unique stationary distribution. The vector &lt;em&gt;π&lt;/em&gt; represents the steady-state systemic influence of each agent.
+&lt;/p&gt;
+
+&lt;p&gt;
+To calculate this, we look at the attention weights, &lt;em&gt;p&lt;sub&gt;ij&lt;/sub&gt;&lt;/em&gt;, that is how Agent &lt;em&gt;i&lt;/em&gt; shifts to match Agent &lt;em&gt;j&lt;/em&gt; through their interaction. The probability flux from agent &lt;em&gt;i&lt;/em&gt; to agent &lt;em&gt;j&lt;/em&gt; (&lt;em&gt;J&lt;sub&gt;ij&lt;/sub&gt; = π&lt;sub&gt;i&lt;/sub&gt;p&lt;sub&gt;ij&lt;/sub&gt;&lt;/em&gt;) is not equal to the reverse flux (&lt;em&gt;J&lt;sub&gt;ji&lt;/sub&gt; = π&lt;sub&gt;j&lt;/sub&gt;p&lt;sub&gt;ji&lt;/sub&gt;&lt;/em&gt;).
+&lt;/p&gt;
+
+&lt;p&gt;
+This persistent imbalance means the market acts as a driven non-equilibrium system. We can quantify the resulting &quot;thermodynamic friction&quot; using the &lt;strong&gt;Schnakenberg formula for entropy production rate (&lt;em&gt;Π&lt;/em&gt;)&lt;/strong&gt; in a Markov jump process (&lt;a href=&quot;https://doi.org/10.1103/RevModPhys.48.571&quot;&gt;Schnakenberg, 1976&lt;/a&gt;):
+&lt;/p&gt;
+
+&lt;div class=&quot;eq-block&quot;&gt;
+&lt;em&gt;Π&lt;/em&gt; = ½ ∑&lt;sub&gt;i,j&lt;/sub&gt; (&lt;em&gt;J&lt;sub&gt;ij&lt;/sub&gt;&lt;/em&gt; − &lt;em&gt;J&lt;sub&gt;ji&lt;/sub&gt;&lt;/em&gt;) ln(&lt;em&gt;J&lt;sub&gt;ij&lt;/sub&gt;&lt;/em&gt; / &lt;em&gt;J&lt;sub&gt;ji&lt;/sub&gt;&lt;/em&gt;) = ½ ∑&lt;sub&gt;i,j&lt;/sub&gt; (&lt;em&gt;π&lt;sub&gt;i&lt;/sub&gt;&lt;/em&gt;&lt;em&gt;p&lt;sub&gt;ij&lt;/sub&gt;&lt;/em&gt; − &lt;em&gt;π&lt;sub&gt;j&lt;/sub&gt;&lt;/em&gt;&lt;em&gt;p&lt;sub&gt;ji&lt;/sub&gt;&lt;/em&gt;) ln(&lt;em&gt;π&lt;sub&gt;i&lt;/sub&gt;&lt;/em&gt;&lt;em&gt;p&lt;sub&gt;ij&lt;/sub&gt;&lt;/em&gt; / &lt;em&gt;π&lt;sub&gt;j&lt;/sub&gt;&lt;/em&gt;&lt;em&gt;p&lt;sub&gt;ji&lt;/sub&gt;&lt;/em&gt;)
+&lt;/div&gt;
+
+&lt;p&gt;
+Because &lt;em&gt;π&lt;sub&gt;i&lt;/sub&gt;p&lt;sub&gt;ij&lt;/sub&gt; ≠ π&lt;sub&gt;j&lt;/sub&gt;p&lt;sub&gt;ji&lt;/sub&gt;&lt;/em&gt;, the logarithmic term is non-zero, yielding a strictly positive entropy production rate (&lt;em&gt;Π &amp;gt; 0&lt;/em&gt;).
+&lt;/p&gt;
+
+&lt;p&gt;
+Thus, an asymmetric attention market is constantly dissipating thermodynamic heat. It is precisely this persistent, microscopic entropy production—driven by the fact that agents have asymmetric attention—that prevents the market from ever settling into a thermal equilibrium. The system is continuously forced to search for stability, driving the violent reconfigurations of the attention distribution (&lt;em&gt;P&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt;). Macroscopically, this should be observable as volatility spikes.
+&lt;/p&gt;
+
+&lt;h2 id=&quot;sec-network&quot;&gt;&lt;span class=&quot;num&quot;&gt;06&lt;/span&gt; Network Dynamics In Your Lightcone&lt;/h2&gt;
+
+&lt;p&gt;
+To understand what happens next, we must let the clock run (ergo add time, ergo we&#x27;re in the lightcones now). The market does not just update its internal states (&lt;em&gt;x&lt;sub&gt;i&lt;/sub&gt;&lt;/em&gt;); the agents are adaptive. They actively update their Query and Key projections (&lt;em&gt;W&lt;sub&gt;Q&lt;/sub&gt;&lt;/em&gt;, &lt;em&gt;W&lt;sub&gt;K&lt;/sub&gt;&lt;/em&gt;) to minimize their local free energy.
+&lt;/p&gt;
+
+&lt;p&gt;
+This adaptation creates a dangerous feedback loop fueled by the Entropy Production Rate (&lt;em&gt;Π&lt;/em&gt;).
+&lt;/p&gt;
+
+&lt;h3&gt;&lt;span class=&quot;num&quot;&gt;6.1&lt;/span&gt; Gradient Descent&lt;/h3&gt;
+
+&lt;p&gt;
+Agents adjust their projections based on historical success. If Alice loses money to Bob, Alice updates her Query vector to pay &lt;em&gt;closer&lt;/em&gt; attention to Bob&#x27;s Key vector in the next time step.
+&lt;/p&gt;
+
+&lt;p&gt;
+Meanwhile, Bob updates his Key vector to become more deceptive, or updates his Query vector to exploit other inefficiencies, deliberately ignoring Alice.
+&lt;/p&gt;
+
+&lt;p&gt;
+Mathematically, the agents are performing stochastic gradient descent on their weight matrices. Because the agents have different objective functions and computational bounds, the asymmetry of the coupling matrix &lt;em&gt;J = W&lt;sub&gt;Q&lt;/sub&gt;&lt;sup&gt;T&lt;/sup&gt; W&lt;sub&gt;K&lt;/sub&gt;&lt;/em&gt; &lt;strong&gt;amplifies over time&lt;/strong&gt;. For an understanding of how non-symmetric game dynamics amplify over time, see the mechanics of &lt;em&gt;n&lt;/em&gt;-player differentiable games (&lt;a href=&quot;https://doi.org/10.48550/arxiv.1802.05642&quot;&gt;Balduzzi et al., 2018&lt;/a&gt;).
+&lt;/p&gt;
+
+&lt;h3&gt;&lt;span class=&quot;num&quot;&gt;6.2&lt;/span&gt; The Accumulation of Thermodynamic Friction&lt;/h3&gt;
+
+&lt;p&gt;
+As the non-reciprocity amplifies, the system is driven further and further away from detailed balance.
+&lt;/p&gt;
+
+&lt;p&gt;
+We formally invoke the &lt;strong&gt;adiabatic approximation&lt;/strong&gt;, and assume a separation of timescales: the microscopic attention dynamics relax to their non-equilibrium steady state instantaneously relative to the much slower timescale of macro-weight updates via gradient learning. This allows us to compute a well-defined instantaneous entropy production rate &lt;em&gt;Π&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt; at any given market cross-section via the Schnakenberg formula for the stationary distribution &lt;em&gt;π&lt;/em&gt;:
+&lt;/p&gt;
+
+&lt;div class=&quot;eq-block&quot;&gt;
+&lt;em&gt;Π&lt;/em&gt;&lt;sub&gt;t&lt;/sub&gt; = ½ ∑&lt;sub&gt;i,j&lt;/sub&gt; (&lt;em&gt;π&lt;sub&gt;i&lt;/sub&gt;&lt;/em&gt;&lt;em&gt;p&lt;sub&gt;ij&lt;/sub&gt;&lt;/em&gt; − &lt;em&gt;π&lt;sub&gt;j&lt;/sub&gt;&lt;/em&gt;&lt;em&gt;p&lt;sub&gt;ji&lt;/sub&gt;&lt;/em&gt;) ln(&lt;em&gt;π&lt;sub&gt;i&lt;/sub&gt;&lt;/em&gt;&lt;em&gt;p&lt;sub&gt;ij&lt;/sub&gt;&lt;/em&gt; / &lt;em&gt;π&lt;sub&gt;j&lt;/sub&gt;&lt;/em&gt;&lt;em&gt;p&lt;sub&gt;ji&lt;/sub&gt;&lt;/em&gt;)
+&lt;/div&gt;
+
+&lt;p&gt;
+As the institutional agents (or predatory algorithms) successfully extract capital, they become systemic attractors. Because the stationary distribution &lt;em&gt;π&lt;/em&gt; satisfies &lt;em&gt;π&lt;sup&gt;T&lt;/sup&gt;p = π&lt;sup&gt;T&lt;/sup&gt;&lt;/em&gt;, as the columns of &lt;em&gt;p&lt;/em&gt; associated with dominant agents grow larger (representing more agents attending to them), the Perron-Frobenius eigenvector &lt;em&gt;π&lt;/em&gt; naturally concentrates its mass on those dominant nodes. Simultaneously, the asymmetry between &lt;em&gt;p&lt;sub&gt;ij&lt;/sub&gt;&lt;/em&gt; (Retail watching Institutions) and &lt;em&gt;p&lt;sub&gt;ji&lt;/sub&gt;&lt;/em&gt; (Institutions ignoring Retail) grows extreme.
+&lt;/p&gt;
+
+&lt;p&gt;
+Therefore, the Entropy Production Rate &lt;em&gt;Π&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt; climbs steadily. This represents the &quot;thermodynamic friction&quot; of the market: the continuous, violent transfer of wealth and information required to sustain the non-equilibrium steady state.
+&lt;/p&gt;
+
+&lt;p&gt;
+Claim: &lt;em&gt;the market cannot sustain infinite entropy production.&lt;/em&gt; As &lt;em&gt;Π&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt; increases, the system becomes structurally fragile:
+&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;&lt;strong&gt;Self-organized criticality.&lt;/strong&gt; If you continuously drive a system away from equilibrium by injecting a constant flux of either energy or material, the system eventually reaches a state of Self-Organized Criticality (&lt;a href=&quot;https://doi.org/10.1103/PhysRevLett.59.381&quot;&gt;Bak, Tang, &amp;amp; Wiesenfeld, 1987&lt;/a&gt;). Imagine you are a sandpile. Dropping a single grain of sand at a time, you are never in equilibrium. The pile gets steeper and steeper. The continuous entropy production rate &lt;em&gt;Π&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt; measures the constant injection of sand, steadily driving the market to a critical slope, where even a tiny perturbation causes the system to avalanche.&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Geometric explosion and Phase Transitions&lt;/strong&gt; Suppose an asymmetry between Retail agents represented by Alice, and Institutional agents represented by Bob. Alice is bleeding capital to Bob, but Alice isn&#x27;t an idiot and won&#x27;t just bleed out. In the terms of an attention agent: gradient descent trains weight matrices to adjust, to change, until Alice&#x27;s Query matrices better align to the attention of Bob&#x27;s with winning Key vectors. But look at softmax again with the physics lens:
+    &lt;div class=&quot;eq-block&quot;&gt;
+    &lt;em&gt;p&lt;sub&gt;ij&lt;/sub&gt;&lt;/em&gt; = exp(&lt;em&gt;β E&lt;sub&gt;ij&lt;/sub&gt;&lt;/em&gt;) / ∑&lt;sub&gt;k&lt;/sub&gt; exp(&lt;em&gt;β E&lt;sub&gt;ik&lt;/sub&gt;&lt;/em&gt;)
+    &lt;/div&gt;
+    An arithmetic increase in alignment between Alice and Bob creates a geometric explosion in probability weight, because of that exponential. As the local field generated by the dominant agents (&lt;em&gt;q&lt;sub&gt;i&lt;/sub&gt; · k&lt;sub&gt;j&lt;/sub&gt;&lt;/em&gt;) grows larger relative to the noise, the exponential function in softmax abruptly dominates the denominator. The diverse, high-entropy attention distribution spontaneously collapses.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;
+In either scenario, the attention of the entire network &quot;snaps&quot; onto a single signal or a small cluster of agents, or into a phase change that is tracked (not caused) by &lt;em&gt;Π&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt;. In statistical mechanics, this is a &lt;strong&gt;Phase Transition&lt;/strong&gt; via spontaneous symmetry breaking. In finance, this is a &lt;strong&gt;Herd&lt;/strong&gt;.
+&lt;/p&gt;
+
+&lt;p&gt;
+In this case, the Brownian motion of an efficient market is replaced with strong correlation, making this a strongly justified, though not rigorously demonstrated, claim!
+&lt;/p&gt;
+
+&lt;p&gt;
+So, we argue: the market cannot sustain infinite entropy production. As &lt;em&gt;Π&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt; increases, the system becomes structurally fragile, setting the stage for a mechanical crash.
+&lt;/p&gt;
+
+&lt;p&gt;
+The moment the attention distribution collapses, we can quantify this using a standard economic tool, the systemic Herfindahl-Hirschman Index (HHI), which we calculate for the distribution &lt;em&gt;π&lt;/em&gt; and see it violently spikes from its diversified baseline (&lt;em&gt;≈ 1/N&lt;/em&gt;) toward its maximum (&lt;em&gt;1.0&lt;/em&gt;).
+&lt;/p&gt;
+
+&lt;div class=&quot;eq-block&quot;&gt;
+HHI&lt;sub&gt;t&lt;/sub&gt; = ∑&lt;sub&gt;j=1&lt;/sub&gt;&lt;sup&gt;N&lt;/sup&gt; &lt;em&gt;π&lt;sub&gt;j&lt;/sub&gt;&lt;/em&gt;&lt;sup&gt;2&lt;/sup&gt; → 1.0
+&lt;/div&gt;
+
+&lt;p&gt;
+The agents are no longer acting as independent random variables; they are acting as a single monolithic block, perfectly correlated by their collapsed attention.
+&lt;/p&gt;
+
+&lt;div class=&quot;pt-phases&quot;&gt;
+  &lt;div class=&quot;pt-phase high&quot;&gt;
+    &lt;div class=&quot;phase-label&quot;&gt;High-entropy regime&lt;/div&gt;
+    &lt;p&gt;Attention diversified. &lt;em&gt;HHI ≈ 1/N&lt;/em&gt;. Agents act as independent variables. Shocks absorbed via Brownian diffusion. Near-efficient.&lt;/p&gt;
+  &lt;/div&gt;
+  &lt;div class=&quot;pt-phase critical&quot;&gt;
+    &lt;div class=&quot;phase-label&quot;&gt;Critical collapse&lt;/div&gt;
+    &lt;p&gt;Attention concentrated. &lt;em&gt;HHI → 1.0&lt;/em&gt;. Agents perfectly correlated. Every shock amplified by &lt;em&gt;O(N)&lt;/em&gt; factor. Flash crash.&lt;/p&gt;
+  &lt;/div&gt;
+&lt;/div&gt;
+
+&lt;h2 id=&quot;sec-bbs&quot;&gt;&lt;span class=&quot;num&quot;&gt;07&lt;/span&gt; Non-Equilibrium Attention Markets&lt;/h2&gt;
+
+&lt;p&gt;
+Ok, so we have established our justifications for the overall dynamics regarding entropy and attention markets, but markets are about prices. Where are our prices? We will proceed by following the econophysics elephant path. If buy and sell (spin up or spin down) is our model, then the magnetization of the spin glass becomes aggregate excess demand. In physics, we call this the order parameter. Once we have demand, or an order parameter, we then identify the price clearing mechanism with the core assumption that the percentage change in price is strictly proportional to the excess demand:
+&lt;/p&gt;
+
+
+&lt;div class=&quot;eq-block&quot;&gt;
+Δ&lt;em&gt;S&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt; / &lt;em&gt;S&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt; = &lt;em&gt;λ&lt;/em&gt; · &lt;em&gt;M&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt;
+&lt;/div&gt;
+
+
+&lt;p&gt;
+Now the order parameter and the price-clearing mechanism established, and our next step is to determine how the microscopic randomness of the agents scales up to macroscopic market volatility. In statistical mechanics, passing from discrete microscopic jump probabilities to a continuous Stochastic Differential Equation is achieved via the Kramers-Moyal expansion—calculating the first (drift) and second (diffusion) moments of the macroscopic system. Here, however, we will use the tools of econophysics to identify the first and second moments directly.
+&lt;/p&gt;
+
+&lt;h3&gt;&lt;span class=&quot;num&quot;&gt;7.1&lt;/span&gt; Magnetization&lt;/h3&gt;
+
+&lt;p&gt;
+In a standard Ising model, magnetization is the average of all the discrete spins, representing the net polarity of the system. In our Non-Equilibrium Attention Market framework, the agents possess continuous states. Therefore, the Magnetization (&lt;em&gt;M&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt;) is the continuous mean field of all agent state vectors:
+&lt;/p&gt;
+
+&lt;div class=&quot;eq-block&quot;&gt;
+&lt;em&gt;M&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt; = (1/N) ∑&lt;sub&gt;i=1&lt;/sub&gt;&lt;sup&gt;N&lt;/sup&gt; &lt;em&gt;x&lt;sub&gt;i&lt;/sub&gt;&lt;/em&gt;&lt;sup&gt;(t)&lt;/sup&gt;
+&lt;/div&gt;
+
+&lt;p&gt;
+This vector &lt;em&gt;M&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt; ∈ ℝ&lt;sup&gt;d&lt;/sup&gt; represents the aggregate momentum and risk-posture of the entire market. To apply the standard econophysics machinery, we must translate this high-dimensional latent state into a scalar expectation (the excess demand).
+&lt;/p&gt;
+
+&lt;p&gt;
+In a standard Large Language Model, this is the exact function of the &lt;strong&gt;Unembedding Matrix&lt;/strong&gt;, which projects the final latent vector back into the vocabulary space to generate discrete logits. In our framework, we use an unembedding vector &lt;em&gt;w&lt;/em&gt; to project the market&#x27;s latent state into the continuous &quot;vocabulary&quot; of price drift. Thus, our scalar magnetization is &lt;em&gt;w&lt;sup&gt;T&lt;/sup&gt; M&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt;.
+&lt;/p&gt;
+
+
+&lt;h3 id=&quot;sec-drift&quot;&gt;&lt;span class=&quot;num&quot;&gt;7.2&lt;/span&gt; Attention Price Clearing&lt;/h3&gt;
+
+&lt;p&gt;
+We now have our order parameter (excess demand). The next step in the econophysics playbook is identifying the price clearing mechanism. Using the standard Kyle (1985) market impact model, the percentage change in price is strictly proportional to the excess demand crossed with a market depth parameter &lt;em&gt;λ&lt;/em&gt;:
+&lt;/p&gt;
+
+&lt;div class=&quot;eq-block&quot;&gt;
+Δ&lt;em&gt;S&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt; / &lt;em&gt;S&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt; = &lt;em&gt;λ&lt;/em&gt; · (&lt;em&gt;w&lt;sup&gt;T&lt;/sup&gt; M&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt;)
+&lt;/div&gt;
+
+&lt;p&gt;
+This provides the deterministic drift rate (&lt;em&gt;μ&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt;) of our asset price. Unlike classical finance where drift is a static constant, here it is dynamically driven by the network&#x27;s structural memory. If the network aligns into a bullish subspace, the drift organically updates to reflect that momentum.
+&lt;/p&gt;
+
+
+
+&lt;h3 id=&quot;sec-vol&quot;&gt;&lt;span class=&quot;num&quot;&gt;7.3&lt;/span&gt; Concentration&lt;/h3&gt;
+
+&lt;p&gt;
+With the drift established, we must determine how the microscopic randomness of the agents scales up to macroscopic market volatility. The aggregate order flow is a weighted sum of the agents&#x27; intents, where the weights are the stationary attention probabilities &lt;em&gt;π&lt;sub&gt;j&lt;/sub&gt;&lt;/em&gt;.
+&lt;/p&gt;
+
+&lt;p&gt;
+To evaluate this rigorously, we expand the explicit variance of this weighted sum into individual variance components and cross-agent covariance terms:
+&lt;/p&gt;
+
+&lt;div class=&quot;eq-block&quot;&gt;
+Var(∑&lt;sub&gt;j=1&lt;/sub&gt;&lt;sup&gt;N&lt;/sup&gt; &lt;em&gt;π&lt;sub&gt;j&lt;/sub&gt; v&lt;sub&gt;j&lt;/sub&gt;&lt;/em&gt;) = ∑&lt;sub&gt;j=1&lt;/sub&gt;&lt;sup&gt;N&lt;/sup&gt; &lt;em&gt;π&lt;sub&gt;j&lt;/sub&gt;&lt;/em&gt;&lt;sup&gt;2&lt;/sup&gt; Var(&lt;em&gt;v&lt;sub&gt;j&lt;/sub&gt;&lt;/em&gt;) + ∑&lt;sub&gt;j≠k&lt;/sub&gt; &lt;em&gt;π&lt;sub&gt;j&lt;/sub&gt; π&lt;sub&gt;k&lt;/sub&gt;&lt;/em&gt; Cov(&lt;em&gt;v&lt;sub&gt;j&lt;/sub&gt;, v&lt;sub&gt;k&lt;/sub&gt;&lt;/em&gt;)
+&lt;/div&gt;
+
+&lt;p&gt;
+Because market impact is driven by the total extensive order flow (&lt;em&gt;N&lt;/em&gt; · ∑ &lt;em&gt;π&lt;sub&gt;j&lt;/sub&gt; v&lt;sub&gt;j&lt;/sub&gt;&lt;/em&gt;) rather than its sample average, the variance scales extensively with &lt;em&gt;N&lt;/em&gt;&lt;sup&gt;2&lt;/sup&gt;, yielding the &lt;em&gt;O(N&lt;sup&gt;2&lt;/sup&gt; HHI&lt;sub&gt;t&lt;/sub&gt;)&lt;/em&gt; structural floor and a diffusion coefficient of &lt;em&gt;σ&lt;sub&gt;v&lt;/sub&gt; N √HHI&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt;.
+&lt;/p&gt;
+
+&lt;p&gt;
+By evaluating this complete expansion, we can look directly at the exact asymptotic limits of the system to see precisely where the Herfindahl-Hirschman Index (HHI) governs the dynamics:
+&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;The Independent Phase (High Entropy):&lt;/strong&gt; When the market is fragmented, agents act on private, idiosyncratic information. Their strategies are completely uncorrelated, meaning Cov(&lt;em&gt;v&lt;sub&gt;j&lt;/sub&gt;, v&lt;sub&gt;k&lt;/sub&gt;&lt;/em&gt;) = 0 for all &lt;em&gt;j ≠ k&lt;/em&gt;. The covariance block vanishes, leaving the aggregate extensive variance to simplify cleanly to &lt;em&gt;σ&lt;/em&gt;&lt;sup&gt;2&lt;/sup&gt; &lt;em&gt;N&lt;/em&gt;&lt;sup&gt;2&lt;/sup&gt; HHI&lt;sub&gt;t&lt;/sub&gt;. If attention is uniform (&lt;em&gt;π&lt;sub&gt;j&lt;/sub&gt; = 1/N&lt;/em&gt;), the HHI is &lt;em&gt;1/N&lt;/em&gt;, and the total variance becomes &lt;em&gt;σ&lt;/em&gt;&lt;sup&gt;2&lt;/sup&gt; &lt;em&gt;N&lt;/em&gt;—the correct physical limit for a cumulative random walk of independent buyers and sellers.&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;The Monopolistic Phase (Localized Concentration):&lt;/strong&gt; If a single dominant agent or systemic algorithm captures near-total attention, the distribution approaches &lt;em&gt;π&lt;sub&gt;1&lt;/sub&gt; → 1&lt;/em&gt; and &lt;em&gt;π&lt;sub&gt;j&amp;gt;1&lt;/sub&gt; → 0&lt;/em&gt;. The weight products for the cross-terms drop to zero because the marginal agents carry no weight. Here, the HHI approaches 1.0, and the total variance cleanly matches the HHI baseline again, capping out at &lt;em&gt;σ&lt;/em&gt;&lt;sup&gt;2&lt;/sup&gt; &lt;em&gt;N&lt;/em&gt;&lt;sup&gt;2&lt;/sup&gt; due to geometric concentration alone.&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;The Correlated Herd Phase (The Covariance Explosion):&lt;/strong&gt; The bound breaks away from the pure HHI line when attention remains distributed across multiple nodes, but those nodes begin actively imitating one another, forcing Cov(&lt;em&gt;v&lt;sub&gt;j&lt;/sub&gt;, v&lt;sub&gt;k&lt;/sub&gt;&lt;/em&gt;) → &lt;em&gt;σ&lt;/em&gt;&lt;sup&gt;2&lt;/sup&gt;. Because the remaining weight products sum to &lt;em&gt;1 - HHI&lt;/em&gt;, the variance surges to its global extensive ceiling of &lt;em&gt;σ&lt;/em&gt;&lt;sup&gt;2&lt;/sup&gt; &lt;em&gt;N&lt;/em&gt;&lt;sup&gt;2&lt;/sup&gt;.
+  &lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;
+This proves that the &lt;em&gt;O(N&lt;sup&gt;2&lt;/sup&gt; HHI&lt;sub&gt;t&lt;/sub&gt;)&lt;/em&gt; scaling coefficient derived from the first term acts as the fundamental &lt;strong&gt;structural floor&lt;/strong&gt; of market volatility. The HHI explicitly dictates the minimum level of macroeconomic diffusion guaranteed by the network geometry, while the latent covariance cross-terms dictate the explosive ceiling when herd coordination ignites.
+&lt;/p&gt;
+
+
+
+&lt;h3 id=&quot;sec-sde&quot;&gt;&lt;span class=&quot;num&quot;&gt;7.4&lt;/span&gt; The NEAM Stochastic Differential Equation&lt;/h3&gt;
+
+&lt;p&gt;
+With the drift and the variance floor of the localized attention probabilities established, we can synthesize the complete macroscopic picture. In statistical mechanics, passing from continuous microscopic updates to a macroscopic observable is rigorously formalized via the &lt;strong&gt;Langevin equation&lt;/strong&gt;. For a macroscopic state variable &lt;em&gt;X&lt;/em&gt;, the classical Langevin architecture takes the explicit form:
+&lt;/p&gt;
+
+&lt;div class=&quot;eq-block&quot;&gt;
+d&lt;em&gt;X&lt;/em&gt; = &lt;em&gt;F&lt;/em&gt;&lt;sub&gt;sys&lt;/sub&gt;(&lt;em&gt;X&lt;/em&gt;) dt + &lt;em&gt;Γ&lt;/em&gt;&lt;sub&gt;fluc&lt;/sub&gt; d&lt;em&gt;W&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt;
+&lt;/div&gt;
+
+&lt;p&gt;
+Where &lt;em&gt;F&lt;/em&gt;&lt;sub&gt;sys&lt;/sub&gt; represents the deterministic, systemic forces acting on the particle, and &lt;em&gt;Γ&lt;/em&gt;&lt;sub&gt;fluc&lt;/sub&gt; represents the coupling to a stochastic thermal bath. To map this architecture to our asset price &lt;em&gt;S&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt;, we must define how these physical forces translate to extensive market structures.
+&lt;/p&gt;
+
+&lt;p&gt;
+First, we formalize the systemic force &lt;em&gt;F&lt;/em&gt;&lt;sub&gt;sys&lt;/sub&gt; by transitioning from intensive network coordinates to extensive market volume. We define the extensive &lt;strong&gt;Aggregate Excess Demand Vector&lt;/strong&gt; (D&lt;sub&gt;t&lt;/sub&gt;) as the total sum of all individual agent action vectors, scaling directly with population size &lt;em&gt;N&lt;/em&gt; and the mean-field magnetization:
+&lt;/p&gt;
+
+&lt;div class=&quot;eq-block&quot;&gt;
+D&lt;sub&gt;t&lt;/sub&gt; = ∑&lt;sub&gt;i=1&lt;/sub&gt;&lt;sup&gt;N&lt;/sup&gt; &lt;em&gt;x&lt;sub&gt;i&lt;/sub&gt;&lt;/em&gt;&lt;sup&gt;(t)&lt;/sup&gt; = &lt;em&gt;N M&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt;
+&lt;/div&gt;
+
+&lt;p&gt;
+Because market impact is driven by this total extensive order flow crossed with Kyle&#x27;s depth parameter &lt;em&gt;λ&lt;/em&gt;, the deterministic systemic force driving price drift is governed precisely by the scalar projection &lt;em&gt;λ (w&lt;sup&gt;T&lt;/sup&gt; D&lt;sub&gt;t&lt;/sub&gt;)&lt;/em&gt;.
+&lt;/p&gt;
+
+&lt;p&gt;
+Second, we define the thermal bath coupling &lt;em&gt;Γ&lt;/em&gt;&lt;sub&gt;fluc&lt;/sub&gt;. The background fluctuations—the residual variance of independent private shocks—are bounded by our extensive variance floor from Section 7.3. This forces the stochastic noise to couple directly to the network geometry, scaling as &lt;em&gt;σ&lt;sub&gt;v&lt;/sub&gt; N √HHI&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt;, where &lt;em&gt;σ&lt;sub&gt;v&lt;/sub&gt;&lt;/em&gt; acts as the ambient market temperature.
+&lt;/p&gt;
+
+&lt;p&gt;
+By substituting these explicit physical forces directly into the Langevin template, the final Non-Equilibrium Attention Market (NEAM) Stochastic Differential Equation appears:
+&lt;/p&gt;
+
+&lt;div class=&quot;eq-block&quot;&gt;
+d&lt;em&gt;S&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt; = [ &lt;em&gt;λ&lt;/em&gt; (&lt;em&gt;w&lt;sup&gt;T&lt;/sup&gt; D&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt;) ] &lt;em&gt;S&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt; dt + [ &lt;em&gt;σ&lt;sub&gt;v&lt;/sub&gt; N √HHI&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt; ] &lt;em&gt;S&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt; d&lt;em&gt;W&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt;
+&lt;/div&gt;
+
+&lt;p&gt;
+By expressing the entire system through this explicit Langevin decomposition, the SDE elegantly encapsulates two distinct thermodynamic states:
+&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;&lt;strong&gt;The High-Entropy Baseline:&lt;/strong&gt; When attention is highly diversified, &lt;em&gt;HHI&lt;sub&gt;t&lt;/sub&gt; ≈ 1/N&lt;/em&gt;. The covariance cross-terms within the aggregate demand vector are negligible, and the diffusion coefficient simplifies cleanly to &lt;em&gt;σ&lt;sub&gt;v&lt;/sub&gt; √N&lt;/em&gt;. The price undergoes standard, tranquil Brownian motion—the physical equivalent of a heavy particle buffeted by a stable, uncoordinated fluid.&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;The Critical Phase Transition:&lt;/strong&gt; As thermodynamic friction forces the attention network to collapse, the &lt;em&gt;HHI&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt; spikes toward 1.0. Simultaneously, endogenous imitation causes agent correlations to ignite, meaning the true macroscopic variance breaks past the &lt;em&gt;O(N&lt;sup&gt;2&lt;/sup&gt; HHI&lt;sub&gt;t&lt;/sub&gt;)&lt;/em&gt; floor and explodes toward its global extensive ceiling of &lt;em&gt;O(N&lt;sup&gt;2&lt;/sup&gt;)&lt;/em&gt;, causing the diffusion coefficient to scale linearly with &lt;em&gt;N&lt;/em&gt;.&lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;p&gt;
+At this critical juncture, the market is structurally compromised. The next exogenous macroeconomic shock (d&lt;em&gt;W&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt;)—even if minor—is multiplied by a massive, highly correlated &lt;em&gt;O(N)&lt;/em&gt; network factor. The market maker&#x27;s liquidity is instantly overwhelmed, and the scalar price &lt;em&gt;S&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt; gaps violently downward to clear the one-sided demand.
+&lt;/p&gt;
+
+&lt;p&gt;
+It is worth noting an internal consistency choice regarding the explicit population parameter &lt;em&gt;N&lt;/em&gt; in our diffusion coefficient. While we explicitly preserve &lt;em&gt;N&lt;/em&gt; to ground the SDE in the extensive volume of the total aggregate demand vector &lt;em&gt;D&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt;, this normalization remains a modeling specification; in a strictly intensive asset pricing framework, &lt;em&gt;N&lt;/em&gt; can be entirely absorbed into the baseline noise parameter &lt;em&gt;σ&lt;sub&gt;v&lt;/sub&gt;&lt;/em&gt;. Ultimately, the system&#x27;s absolute population scale is secondary to the geometric scaling of the &lt;em&gt;HHI&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt;, which serves as the true structural governor of the non-equilibrium volatility dynamics.
+&lt;/p&gt;
+
+&lt;h2 id=&quot;sec-tails&quot;&gt;&lt;span class=&quot;num&quot;&gt;08&lt;/span&gt; Endogenous Fat Tails for Sale, Never Used&lt;/h2&gt;
+
+&lt;p&gt;
+In traditional quantitative finance, fat tails (leptokurtosis) and volatility clustering are treated as exogenous mysteries that are patched manually. In the NEAM SDE framework, heavy tails observed in empirical asset returns are the direct macroscopic artifacts of bounded agents constantly shifting their attention structure.
+&lt;/p&gt;
+
+&lt;p&gt;
+The mathematical engine for this phenomenon lives directly within the phase boundaries derived in Section 7.3. Real market dynamics are defined by a meta-deliberation process: the system moves through intermittent periods of calm where agent updates are largely uncoordinated (The Independent Phase), anchoring the price to its minimum &lt;em&gt;O(N √HHI&lt;sub&gt;t&lt;/sub&gt;)&lt;/em&gt; volatility floor. However, because gradient updates on the query-key weights (&lt;em&gt;W&lt;sub&gt;Q&lt;/sub&gt;, W&lt;sub&gt;K&lt;/sub&gt;&lt;/em&gt;) operate on a slower, continuous timescale, the attention matrix slowly drifts toward alignment.
+&lt;/p&gt;
+
+&lt;p&gt;
+When the network crosses the critical threshold into the Correlated Herd Phase, the variance breaks free from its structural floor and surges toward the &lt;em&gt;O(N)&lt;/em&gt; global covariance ceiling. Because the system lingers in these non-equilibrium steady states before thermodynamic friction forces a clearing collapse, volatility naturally clusters in time.
+&lt;/p&gt;
+
+&lt;p&gt;
+The switching dynamics between these two geometric phases transform what would be a standard Gaussian random walk into a heavy-tailed distribution. Black Swan events, extreme pricing events that classical finance deems 1-in-a-billion-year anomalies, are direct consequences of network learning and non-equilibrium attention market dynamics.
+&lt;/p&gt;
+
+&lt;h2 id=&quot;sec-concl&quot;&gt;&lt;span class=&quot;num&quot;&gt;09&lt;/span&gt; Conclusion and Summary&lt;/h2&gt;
+
+&lt;p&gt;
+&lt;strong&gt;Non-Reciprocity&lt;/strong&gt; generates a strictly positive &lt;strong&gt;Entropy Production Rate (&lt;em&gt;Π&lt;sub&gt;t&lt;/sub&gt;&lt;/em&gt;)&lt;/strong&gt;. Agents adapting to this non-equilibrium environment causes the &lt;strong&gt;stationary distribution (&lt;em&gt;π&lt;/em&gt;) to concentrate&lt;/strong&gt;. The concentrated signals trigger a &lt;strong&gt;Phase Transition&lt;/strong&gt; in the bounded MaxEnt Softmax algorithm, causing &lt;strong&gt;Attention Collapse&lt;/strong&gt;. The HHI spike multiplies the covariance of the aggregate order flow, exploding the diffusion term in the &lt;strong&gt;NEAM SDE&lt;/strong&gt;, resulting in a &lt;strong&gt;Flash Crash&lt;/strong&gt;.
+&lt;/p&gt;
+
+&lt;p&gt;
+And thus, to answer our questions that started this endeavor:
+&lt;/p&gt;
+
+&lt;ol&gt;
+  &lt;li&gt;What happens if we make the fundamental states of the Ising model continuous?
+    &lt;p&gt;&lt;em&gt;By applying Jaynes&#x27; Principle of Maximum Entropy to continuous spin states, the canonical Boltzmann distribution naturally emerges as the standard Softmax attention mechanism.&lt;/em&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;What happens if these interactions are not symmetric?
+    &lt;p&gt;&lt;em&gt;The system breaks detailed balance and enters a non-equilibrium steady state. The resulting non-reciprocal updates generate a strictly positive entropy production rate (Π), driving the network toward structural fragility and spontaneous attention collapse.&lt;/em&gt;&lt;/p&gt;
+  &lt;/li&gt;
+  &lt;li&gt;What are the consequences if we use the tools of econophysics and apply it to Bal&#x27;s spin transformers?
+    &lt;p&gt;&lt;strong&gt;We directly find the drift (via continuous magnetization and an unembedding vector) and the diffusion (via the Herfindahl-Hirschman Index), deriving a testable Non-Equilibrium Attention Market (NEAM) SDE.&lt;/strong&gt;&lt;/p&gt;
+  &lt;/li&gt;
+&lt;/ol&gt;
+
+&lt;h2 id=&quot;sec-refs&quot;&gt;&lt;span class=&quot;num&quot;&gt;10&lt;/span&gt; References&lt;/h2&gt;
+
+&lt;h3&gt; Foundational Texts&lt;/h3&gt;
+&lt;p&gt;&lt;em&gt;Note: The following foundational texts were published independently on Mathias Bal&#x27;s academic blog and form the basis of the spin transformer explorations recreated in this work.&lt;/em&gt;&lt;/p&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Bal, M. C. (2021). &lt;em&gt;Transformers Are Secretly Collectives of Spin Systems&lt;/em&gt;. &lt;a href=&quot;https://mcbal.github.io/post/transformers-are-secretly-collectives-of-spin-systems/&quot;&gt;mcbal.github.io&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;Bal, M. C. (2021). &lt;em&gt;Transformers from Spin Models: Approximate Free Energy Minimization&lt;/em&gt;. &lt;a href=&quot;https://mcbal.github.io/post/transformers-from-spin-models-approximate-free-energy-minimization/&quot;&gt;mcbal.github.io&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;Bal, M. C. (2023). &lt;em&gt;Spin-Model Transformers&lt;/em&gt;. &lt;a href=&quot;https://mcbal.github.io/post/spin-model-transformers/&quot;&gt;mcbal.github.io&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;Bal, M. C. (2026). &lt;em&gt;Entropy Production in Non-Equilibrium Neural Networks&lt;/em&gt;. &lt;a href=&quot;https://mcbal.github.io/post/entropy-production-in-non-equilibrium-neural-networks/&quot;&gt;mcbal.github.io&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;h3&gt; Academic References&lt;/h3&gt;
+
+&lt;ul&gt;
+  &lt;li&gt;Bak, P., Tang, C., &amp;amp; Wiesenfeld, K. (1987). Self-organized criticality: An explanation of the 1/f noise. &lt;em&gt;Physical Review Letters&lt;/em&gt;, 59(4), 381–384. &lt;a href=&quot;https://doi.org/10.1103/PhysRevLett.59.381&quot;&gt;doi&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;Balduzzi, D., Racaniere, S., Martens, J., Foerster, J., Tuyls, K., &amp;amp; Graepel, T. (2018). The Mechanics of n-Player Differentiable Games. &lt;em&gt;PMLR&lt;/em&gt;, 80. &lt;a href=&quot;https://doi.org/10.48550/arxiv.1802.05642&quot;&gt;doi&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;Black, F., &amp;amp; Scholes, M. (1973). The Pricing of Options and Corporate Liabilities. &lt;em&gt;Journal of Political Economy&lt;/em&gt;, 81(3), 637–654. &lt;a href=&quot;https://doi.org/10.1086/260062&quot;&gt;doi&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;Bornholdt, S. (2001). Expectation bubbles in a spin model of markets: Intermittency from frustration across scales. &lt;em&gt;Int. J. Mod. Phys. C&lt;/em&gt;, 12(5), 667–674. &lt;a href=&quot;https://doi.org/10.1142/S0129183101001845&quot;&gt;doi&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;Bouchaud, J.-P., Mezard, M., &amp;amp; Potters, M. (2002). Statistical properties of stock order books: Empirical results and models. &lt;em&gt;Quantitative Finance&lt;/em&gt;, 2(4), 251–256. &lt;a href=&quot;https://doi.org/10.1088/1469-7688/2/4/302&quot;&gt;doi&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;Brock, W. A., &amp;amp; Durlauf, S. N. (2001). Discrete Choice with Social Interactions. &lt;em&gt;The Review of Economic Studies&lt;/em&gt;, 68(2), 235–260. &lt;a href=&quot;https://doi.org/10.1111/1467-937x.00168&quot;&gt;doi&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;Cont, R., &amp;amp; Bouchaud, J.-P. (1998). Herd Behavior and Aggregate Fluctuations in Financial Markets. &lt;em&gt;SSRN Electronic Journal&lt;/em&gt;. &lt;a href=&quot;https://doi.org/10.2139/ssrn.58468&quot;&gt;doi&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;Galam, S. (2008). Sociophysics: A Review of Galam Models. &lt;em&gt;International Journal of Modern Physics C&lt;/em&gt;, 19(3), 409–440. &lt;a href=&quot;https://doi.org/10.1142/s0129183108012297&quot;&gt;doi&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;Gardiner, C. W. (1985). &lt;em&gt;Handbook of Stochastic Methods for Physics, Chemistry and the Natural Sciences&lt;/em&gt;. Springer-Verlag. &lt;a href=&quot;https://doi.org/10.1007/978-3-662-02452-2&quot;&gt;doi&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;Jaynes, E. T. (1957). Information Theory and Statistical Mechanics. &lt;em&gt;Physical Review&lt;/em&gt;, 106(4), 620–630. &lt;a href=&quot;https://doi.org/10.1103/physrev.106.620&quot;&gt;doi&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;Kyle, A. S. (1985). Continuous Auctions and Insider Trading. &lt;em&gt;Econometrica&lt;/em&gt;, 53(6), 1315. &lt;a href=&quot;https://doi.org/10.2307/1913210&quot;&gt;doi&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;Risken, H. (1989). &lt;em&gt;The Fokker-Planck Equation: Methods of Solution and Applications&lt;/em&gt;. Springer-Verlag. &lt;a href=&quot;https://doi.org/10.1007/978-3-642-61544-3&quot;&gt;doi&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;Schnakenberg, J. (1976). Network theory of microscopic and macroscopic behavior of master equation systems. &lt;em&gt;Reviews of Modern Physics&lt;/em&gt;, 48(4), 571–585. &lt;a href=&quot;https://doi.org/10.1103/RevModPhys.48.571&quot;&gt;doi&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;Shannon, C. E. (1948). A Mathematical Theory of Communication. &lt;em&gt;Bell System Technical Journal&lt;/em&gt;, 27(3), 379–423. &lt;a href=&quot;https://doi.org/10.1002/j.1538-7305.1948.tb01338.x&quot;&gt;doi&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;Sornette, D. (2014). Physics and Financial Economics (1776-2014): Puzzles, Ising and Agent-Based models. &lt;em&gt;Rep. Prog. Phys.&lt;/em&gt;, 77(6), 062001. &lt;a href=&quot;https://doi.org/10.1088/0034-4885/77/6/062001&quot;&gt;doi&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;Vaswani, A., Shazeer, N., Parmar, N., Uszkoreit, J., Jones, L., Gomez, A. N., Kaiser, Ł., &amp;amp; Polosukhin, I. (2017). Attention is All You Need. &lt;em&gt;Advances in Neural Information Processing Systems&lt;/em&gt;, 30. &lt;a href=&quot;https://arxiv.org/abs/1706.03762&quot;&gt;arxiv&lt;/a&gt;&lt;/li&gt;
+  &lt;li&gt;Zaklan, G., Westerhoff, F., &amp;amp; Stauffer, D. (2009). Analysing tax evasion dynamics via the Ising model. &lt;em&gt;Journal of Economic Interaction and Coordination&lt;/em&gt;, 4(1), 1–14. &lt;a href=&quot;https://doi.org/10.1007/s11403-008-0043-5&quot;&gt;doi&lt;/a&gt;&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;/div&gt;</pre>
+<p><a href="/#post/neam">Open the interactive transmission</a> · <a href="https://lastnpcalex.agency/p/neam.md">Markdown source</a></p>
+</article>
 </body>
 </html>

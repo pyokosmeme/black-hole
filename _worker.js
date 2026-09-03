@@ -1,3 +1,5 @@
+import { handleContentRequest } from './worker-content.js';
+
 // ── Shared helpers ──
 
 const CLIENT_ID = 'https://black-hole.ex-astris-umbra.workers.dev/client-metadata.json';
@@ -10,14 +12,31 @@ const STATE_TTL = 15 * 60 * 1000;
 const DEFAULT_ORIGIN = 'https://lastnpcalex.agency';
 
 function corsHeaders(request) {
-  const origin = (request.headers.get('Origin') || DEFAULT_ORIGIN);
+  const requestedOrigin = request.headers.get('Origin');
+  const requestOrigin = request.url ? new URL(request.url).origin : DEFAULT_ORIGIN;
+  const origin = !requestedOrigin || requestedOrigin === DEFAULT_ORIGIN || requestedOrigin === requestOrigin
+    ? (requestedOrigin || requestOrigin)
+    : DEFAULT_ORIGIN;
   return {
     'Access-Control-Allow-Origin': origin,
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     'Access-Control-Allow-Headers': 'Content-Type, Cookie',
     'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Expose-Headers': 'Location',
+    'Vary': 'Origin',
   };
+}
+
+function safeReturnTo(value, request) {
+  if (!value) return undefined;
+  try {
+    const target = new URL(value, request.url);
+    const requestOrigin = new URL(request.url).origin;
+    if (target.origin !== requestOrigin && target.origin !== DEFAULT_ORIGIN) return undefined;
+    return target.toString();
+  } catch {
+    return undefined;
+  }
 }
 
 function base64url(bytes) {
@@ -153,7 +172,7 @@ async function handleLogin(request, env) {
       codeVerifier: verifier, privateKeyJwk, publicKeyJwk, authServer,
       redirectUri: `${new URL(request.url).origin}/api/oauth/callback`,
       handle, did, pds, createdAt: Date.now(),
-      returnTo: body?.returnTo,
+      returnTo: safeReturnTo(body?.returnTo, request),
     };
     await env.SESSIONS.put(`state:${state}`, JSON.stringify(stateData), { expirationTtl: 900 });
 
@@ -400,6 +419,9 @@ export default {
     if (path === '/api/oauth/setCookie') return handleSetCookie(request, env);
     if (path === '/api/bsky/createRecord') return handleCreateRecord(request, env);
     if (path === '/api/bsky/deleteRecord') return handleDeleteRecord(request, env);
+
+    const contentResponse = await handleContentRequest(request, env);
+    if (contentResponse) return contentResponse;
 
     const response = await env.ASSETS.fetch(request);
     // Prevent Cloudflare edge caching for CSS/JS

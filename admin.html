@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="theme-color" content="#090914">
+  <title>Transmission control // lastnpcalex.agency</title>
+  <link rel="icon" href="/img/favicon.ico" sizes="any">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/admin.css">
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+  <header class="admin-header">
+    <div>
+      <p class="kicker">LASTNPCALEx.AGENCY</p>
+      <h1>TRANSMISSION CONTROL</h1>
+    </div>
+    <nav>
+      <a href="/">VIEW SITE</a>
+      <button id="logout-button" type="button" hidden>LOG OUT</button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="auth-panel" class="auth-panel">
+      <p class="eyebrow">// OWNER ACCESS</p>
+      <h2>Authenticate with ATProto</h2>
+      <p>Publishing access is restricted to the owner identity for <code>lastnpcalex.agency</code>.</p>
+      <button id="login-button" type="button">SIGN IN AS LASTNPCALEx.AGENCY</button>
+      <p id="auth-status" class="status" role="status"></p>
+    </section>
+
+    <div id="workspace" hidden>
+      <div class="workspace-meta">
+        <p id="admin-identity"></p>
+        <p id="email-state">Subscription list and CSV export are active.</p>
+      </div>
+
+      <section class="editor-layout" aria-labelledby="editor-title">
+        <aside class="transmission-index">
+          <div class="panel-heading">
+            <div>
+              <p class="eyebrow">// ARCHIVE</p>
+              <h2 id="editor-title">Transmissions</h2>
+            </div>
+            <button id="new-button" type="button">NEW</button>
+          </div>
+          <label>
+            <span>FILTER SECTION</span>
+            <select id="section-filter">
+              <option value="">All sections</option>
+              <option value="author">Main page</option>
+              <option value="ams">A Mote in Shadow</option>
+              <option value="futures">Speculative futures</option>
+              <option value="maps">Possible territories</option>
+            </select>
+          </label>
+          <div id="transmission-list" class="transmission-list"></div>
+        </aside>
+
+        <form id="transmission-form" class="transmission-editor">
+          <div class="editor-fields">
+            <div class="field-row">
+              <label>SECTION
+                <select name="section" required>
+                  <option value="author">Main page transmissions</option>
+                  <option value="ams">A Mote in Shadow</option>
+                  <option value="futures">Speculative futures</option>
+                  <option value="maps">Possible territories</option>
+                </select>
+              </label>
+              <label>DATE
+                <input name="date" inputmode="numeric" placeholder="YYYY.MM.DD" required>
+              </label>
+            </div>
+            <label>TITLE
+              <input name="title" maxlength="240" required>
+            </label>
+            <label>SLUG
+              <input name="slug" pattern="[a-z0-9]+(?:-[a-z0-9]+)*" required>
+            </label>
+            <label>TAGS <small>comma separated</small>
+              <input name="tags" placeholder="signal, infrastructure, fiction">
+            </label>
+            <label>EXCERPT
+              <textarea name="excerpt" rows="3" maxlength="1000"></textarea>
+            </label>
+            <label>MARKDOWN
+              <textarea name="markdown" id="markdown-editor" rows="24" spellcheck="true" required></textarea>
+            </label>
+          </div>
+
+          <section class="preview-panel" aria-labelledby="preview-title">
+            <div class="preview-heading">
+              <p class="eyebrow">// LIVE PREVIEW</p>
+              <h2 id="preview-title">Rendered signal</h2>
+            </div>
+            <article id="markdown-preview" class="markdown-preview"></article>
+          </section>
+
+          <div class="editor-footer">
+            <div>
+              <p id="source-note" class="source-note"></p>
+              <p id="editor-status" class="status" role="status"></p>
+              <a id="share-link" class="share-link" href="#" target="_blank" rel="noopener" hidden></a>
+            </div>
+            <div class="editor-actions">
+              <button id="delete-button" class="danger" type="button" hidden>DELETE MANAGED COPY</button>
+              <button id="draft-button" type="button">SAVE DRAFT</button>
+              <button id="publish-button" class="primary" type="button">PUBLISH</button>
+            </div>
+          </div>
+        </form>
+      </section>
+
+      <section class="subscriber-panel" aria-labelledby="subscriber-title">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">// AUDIENCE</p>
+            <h2 id="subscriber-title">Subscribers <span id="subscriber-count">0</span></h2>
+          </div>
+          <a class="button-link" href="/api/admin/subscribers.csv">EXPORT CSV</a>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Email</th><th>Signals</th><th>Status</th><th>Joined</th></tr></thead>
+            <tbody id="subscriber-list"></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script type="module" src="/js/admin.js"></script>
+</body>
+</html>

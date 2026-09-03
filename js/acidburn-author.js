@@ -29,6 +29,7 @@
     const CONTENT_DIR = PAGE.contentDir || 'author/';
     const TITLE_SUFFIX = PAGE.titleSuffix || 'transmissions';
     const STUB_BASE = PAGE.stubBasePath || '/p';
+    const CONTENT_SECTION = PAGE.section || CONTENT_DIR.replace(/^\/+|\/+$/g, '') || 'author';
     const COMMENTS_AUTHOR_DID = PAGE.commentsAuthorDid || 'did:plc:ccxl3ictrlvtrrgh5swvvg47';
     const COMMENTS_ENABLED = PAGE.comments !== false;
     const SCRIPT_BASE = document.currentScript
@@ -145,7 +146,6 @@
                         <h3>${link.label}</h3>
                         <p>${link.desc}</p>
                     </div>
-                    <span class="link-arrow">→</span>
                 </div>
             </a>
         `).join('');
@@ -157,21 +157,40 @@
 
     async function loadPostsIndex() {
         if (!CONFIG) return;
-        if (!CONFIG.posts_index) {
-            POSTS = [];
-            renderPostsList();
-            return;
-        }
-        
+
+        let repositoryPosts = [];
         try {
-            const response = await fetch(CONTENT_DIR + CONFIG.posts_index, { cache: 'no-store' });
-            if (!response.ok) throw new Error('Failed to load posts index');
-            const markdown = await response.text();
-            POSTS = parsePostsMarkdown(markdown);
-            renderPostsList();
+            if (CONFIG.posts_index) {
+                const response = await fetch(CONTENT_DIR + CONFIG.posts_index, { cache: 'no-store' });
+                if (!response.ok) throw new Error('Failed to load posts index');
+                repositoryPosts = parsePostsMarkdown(await response.text());
+            }
         } catch (error) {
             console.error('[ACIDBURN Author] Error loading posts index:', error);
         }
+
+        let managedPosts = [];
+        try {
+            const response = await fetch(`/api/transmissions?section=${encodeURIComponent(CONTENT_SECTION)}`, {
+                cache: 'no-store',
+                headers: { 'Accept': 'application/json' }
+            });
+            if (response.ok && (response.headers.get('Content-Type') || '').includes('application/json')) {
+                const payload = await response.json();
+                managedPosts = Array.isArray(payload.posts) ? payload.posts : [];
+            }
+        } catch (error) {
+            // Static hosting remains a supported fallback; managed posts simply
+            // do not appear when the Worker API is unavailable.
+            console.info('[ACIDBURN Author] Managed transmissions unavailable:', error.message);
+        }
+
+        const merged = new Map(repositoryPosts.map(post => [post.slug, post]));
+        managedPosts.forEach(post => merged.set(post.slug, post));
+        POSTS = [...merged.values()].sort((a, b) =>
+            String(b.date || '').localeCompare(String(a.date || ''))
+        );
+        renderPostsList();
     }
 
     function parsePostsMarkdown(markdown) {
@@ -285,8 +304,12 @@
 
             try {
                 // Ensure CONTENT_DIR doesn't cause double slashes or weird relative pathing
-                const fetchPath = (CONTENT_DIR + post.file).replace(/^\/+/, '');
-                const response = await fetch(window.location.origin + '/' + fetchPath);
+                const fetchPath = post.file && post.file.startsWith('/')
+                    ? post.file
+                    : '/' + (CONTENT_DIR + post.file).replace(/^\/+/, '');
+                const response = await fetch(window.location.origin + fetchPath, {
+                    headers: { 'Accept': 'text/markdown, text/plain;q=0.9, */*;q=0.1' }
+                });
                 if (!response.ok) throw new Error('Failed to load post');
                 const markdown = await response.text();
                 if (typeof marked !== 'undefined') {

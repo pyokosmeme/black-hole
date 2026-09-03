@@ -257,6 +257,51 @@ Set which folder each page uses via `PAGE_CONFIG` in the HTML:
 
 ---
 
+## Agent-readable share URLs
+
+Run the share-page generator after changing either a post index or an article:
+
+```powershell
+python scripts/gen-post-stubs.py
+```
+
+For each transmission it creates three discovery surfaces:
+
+- `/p/<slug>` (or `/p/<section>/<slug>`) is the normal share URL. A browser redirects to the interactive page, while the response itself contains the complete article, Article JSON-LD, and social metadata.
+- Append `.md` to a share URL for a direct Markdown representation. Agents may also request the normal URL with `Accept: text/markdown` when it is served by the Cloudflare Worker.
+- `/llms.txt` lists every transmission and its Markdown alternate. The Worker also serves the same index at `/.well-known/llms.txt` and includes admin-published transmissions dynamically.
+
+Do not add a meta-refresh redirect to the generated share page. JavaScript provides the human redirect; omitting meta refresh lets non-browser readers retain the document context.
+
+---
+
+## Browser publishing workspace
+
+The owner workspace is at `/admin.html`. It uses the existing ATProto OAuth flow and only authorizes DIDs in the Worker's `ADMIN_DIDS` setting.
+
+Posts created there are stored as `transmission:<section>:<slug>` records in the existing `SESSIONS` KV namespace. Published records overlay file-backed posts with the same section and slug; deleting the managed record reveals the repository version again. Drafts are visible only in the workspace.
+
+The supported section keys are:
+
+| key | page | subscription topic |
+|-----|------|--------------------|
+| `author` | `/` | blog / main transmissions |
+| `ams` | `/ams.html` | A Mote in Shadow / book updates |
+| `futures` | `/futures.html` | speculative fiction |
+| `maps` | `/maps.html` | none |
+
+The form at the bottom of the three subscribed sections writes preference records to KV. The admin workspace can inspect the list and export CSV. Each subscriber has an unsubscribe token; a confirmation screen prevents automated link scanners from unsubscribing readers.
+
+### Email delivery
+
+Collection, preference management, unsubscribe handling, and CSV export work with the existing bindings. Outbound newsletter delivery is deliberately not wired to Cloudflare Email Service: Cloudflare currently documents that service as transactional-only, while these subscription updates are marketing/bulk mail.
+
+Use the CSV export with a newsletter provider for now. A direct integration will require choosing that provider, configuring its sender-domain DNS and API secret, then adding an adapter that synchronizes topic preferences and includes the existing unsubscribe URL. The Cloudflare deployment token does not supply those newsletter credentials.
+
+Publishing a transmission does not currently send email automatically.
+
+---
+
 ## Troubleshooting
 
 ### Post not appearing
