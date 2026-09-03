@@ -105,7 +105,7 @@
 
 .subscribe-topic:has(input:checked) {
     border-color: var(--cyan);
-    box-shadow: inset 4px 0 0 var(--purple), 0 0 calc(20px * var(--glow-intensity)) rgba(0, 255, 255, 0.18);
+    box-shadow: 0 0 calc(20px * var(--glow-intensity)) rgba(0, 255, 255, 0.18);
 }
 
 .subscribe-topic input {

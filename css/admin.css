@@ -128,7 +128,9 @@
 .transmission-index { padding: var(--space-lg); border-right: 1px solid var(--admin-line); }
 .panel-heading { margin-bottom: var(--space-md); }
 .panel-heading.section-header { flex-wrap: nowrap; }
-.panel-heading .section-line { min-width: 18px; }
+.panel-heading .section-line { min-width: 0; }
+.panel-heading > button,
+.panel-heading > .button-link { flex: 0 0 auto; }
 
 .admin-page label {
   display: block;

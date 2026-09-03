@@ -21,12 +21,12 @@
         <h2 id="subscribe-title">// RECEIVE TRANSMISSIONS</h2>
         <div class="section-line"></div>
       </div>
-      <p class="subscribe-intro">One address. Choose which signals reach you.</p>
+      <p class="subscribe-intro">Choose which signals reach you.</p>
       <form class="subscribe-form" novalidate>
         <div class="subscribe-email-row">
           <label class="sr-only" for="subscribe-email">Email address</label>
           <input id="subscribe-email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@somewhere.net" required>
-          <button class="subscribe-submit link-card" type="submit">JOIN THE SIGNAL</button>
+          <button class="subscribe-submit link-card" type="submit">SUBSCRIBE TO UPDATES</button>
         </div>
         <div class="subscribe-topics" role="group" aria-label="Choose update types">
           ${TOPICS.map(topic => `
@@ -90,7 +90,7 @@
         status.classList.add('error');
       } finally {
         button.disabled = false;
-        button.textContent = 'JOIN THE SIGNAL';
+        button.textContent = 'SUBSCRIBE TO UPDATES';
       }
     });
   }
