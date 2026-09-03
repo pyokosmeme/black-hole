@@ -80,6 +80,7 @@
 }
 
 .subscribe-email-row button {
+    color: var(--cyan);
     font-family: 'Orbitron', sans-serif;
     font-size: var(--text-xs);
     letter-spacing: 0.08em;
@@ -132,7 +133,13 @@
 
 body.light-mode .subscribe-intro,
 body.light-mode .subscribe-note { color: rgba(0, 0, 0, 0.65); }
-body.light-mode .subscribe-email-row input { background: #fff; color: #111; }
+body.light-mode .subscribe-email-row input {
+    background: #fdfaf5;
+    border-color: var(--purple);
+    color: #2e2a26;
+}
+body.light-mode .subscribe-email-row input::placeholder { color: rgba(46, 42, 38, 0.55); }
+body.light-mode .subscribe-submit { color: var(--purple); }
 
 @media (max-width: 700px) {
     .subscribe-email-row,
