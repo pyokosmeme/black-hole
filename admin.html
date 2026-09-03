@@ -29,8 +29,14 @@
     <section id="auth-panel" class="auth-panel">
       <p class="eyebrow">// OWNER ACCESS</p>
       <h2>Authenticate with ATProto</h2>
-      <p>Publishing access is restricted to the owner identity for <code>lastnpcalex.agency</code>.</p>
-      <button id="login-button" type="button">SIGN IN AS LASTNPCALEx.AGENCY</button>
+      <p>Publishing access is restricted to approved ATProto owner identities.</p>
+      <label class="auth-owner" for="owner-handle">OWNER IDENTITY
+        <select id="owner-handle">
+          <option value="lastnpcalex.agency">lastnpcalex.agency</option>
+          <option value="spin.pyokosmeme.group">spin.pyokosmeme.group</option>
+        </select>
+      </label>
+      <button id="login-button" type="button">SIGN IN WITH ATProto</button>
       <p id="auth-status" class="status" role="status"></p>
     </section>
 

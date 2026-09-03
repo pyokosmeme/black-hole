@@ -21,7 +21,7 @@
     ]
   },
   "vars": {
-    "ADMIN_DIDS": "did:plc:ccxl3ictrlvtrrgh5swvvg47"
+    "ADMIN_DIDS": "did:plc:ccxl3ictrlvtrrgh5swvvg47,did:plc:drrstoxu4to57dhv453ziznq"
   },
   "kv_namespaces": [
     {

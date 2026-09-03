@@ -4,6 +4,7 @@ const state = { transmissions: [], active: null, isNew: true };
 const authPanel = document.getElementById('auth-panel');
 const workspace = document.getElementById('workspace');
 const loginButton = document.getElementById('login-button');
+const ownerHandle = document.getElementById('owner-handle');
 const logoutButton = document.getElementById('logout-button');
 const authStatus = document.getElementById('auth-status');
 const form = document.getElementById('transmission-form');
@@ -225,7 +226,7 @@ loginButton.addEventListener('click', async () => {
   loginButton.disabled = true;
   setStatus(authStatus, 'Opening ATProto authentication…');
   try {
-    await Auth.login('lastnpcalex.agency', `${location.origin}/admin.html`);
+    await Auth.login(ownerHandle.value, `${location.origin}/admin.html`);
   } catch (error) {
     setStatus(authStatus, error.message, 'error');
     loginButton.disabled = false;

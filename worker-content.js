@@ -1,4 +1,4 @@
-const DEFAULT_ADMIN_DID = 'did:plc:ccxl3ictrlvtrrgh5swvvg47';
+const DEFAULT_ADMIN_DIDS = 'did:plc:ccxl3ictrlvtrrgh5swvvg47,did:plc:drrstoxu4to57dhv453ziznq';
 const SITE_ORIGIN = 'https://lastnpcalex.agency';
 const ALLOWED_TOPICS = new Set(['blog', 'books', 'fiction']);
 const ALLOWED_STATUSES = new Set(['draft', 'published']);
@@ -125,7 +125,7 @@ async function getSession(request, env) {
 
 function configuredAdminDids(env) {
   return new Set(
-    String(env.ADMIN_DIDS || DEFAULT_ADMIN_DID)
+    String(env.ADMIN_DIDS || DEFAULT_ADMIN_DIDS)
       .split(',')
       .map(value => value.trim())
       .filter(Boolean)

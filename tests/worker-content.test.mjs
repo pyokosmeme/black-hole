@@ -30,9 +30,10 @@ The complete test excerpt.
     ['/author/content/posts/test-signal.md', '# TEST SIGNAL\n\nFull article context lives here.'],
   ]);
   return {
-    ADMIN_DIDS: 'did:plc:owner',
+    ADMIN_DIDS: 'did:plc:owner, did:plc:co-owner',
     SESSIONS: new MemoryKv({
       'session:owner-session': JSON.stringify({ did: 'did:plc:owner', handle: 'lastnpcalex.agency' }),
+      'session:co-owner-session': JSON.stringify({ did: 'did:plc:co-owner', handle: 'spin.pyokosmeme.group' }),
       'session:reader-session': JSON.stringify({ did: 'did:plc:reader', handle: 'reader.test' }),
     }),
     ASSETS: {
@@ -136,6 +137,14 @@ test('non-owner session cannot access admin data', async () => {
     headers: { Cookie: 'session=reader-session' },
   }), env);
   assert.equal(response.status, 403);
+});
+
+test('a second configured DID can access admin data', async () => {
+  const env = makeEnv();
+  const response = await handleContentRequest(new Request('https://lastnpcalex.agency/api/admin/transmissions', {
+    headers: { Cookie: 'session=co-owner-session' },
+  }), env);
+  assert.equal(response.status, 200);
 });
 
 test('llms.txt indexes repository transmissions and Markdown URLs', async () => {
