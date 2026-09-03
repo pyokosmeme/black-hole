@@ -14,7 +14,7 @@
     const currentTopic = window.PAGE_CONFIG && window.PAGE_CONFIG.subscriptionTopic;
     const section = document.createElement('section');
     section.id = 'transmission-subscribe';
-    section.className = 'subscribe-panel';
+    section.className = 'subscribe-panel author-card';
     section.setAttribute('aria-labelledby', 'subscribe-title');
     section.innerHTML = `
       <div class="section-header subscribe-heading">
@@ -26,13 +26,15 @@
         <div class="subscribe-email-row">
           <label class="sr-only" for="subscribe-email">Email address</label>
           <input id="subscribe-email" name="email" type="email" inputmode="email" autocomplete="email" placeholder="you@somewhere.net" required>
-          <button type="submit">JOIN THE SIGNAL</button>
+          <button class="subscribe-submit link-card" type="submit">JOIN THE SIGNAL</button>
         </div>
         <div class="subscribe-topics" role="group" aria-label="Choose update types">
           ${TOPICS.map(topic => `
-            <label class="subscribe-topic">
-              <input type="checkbox" name="topics" value="${topic.value}" ${topic.value === currentTopic ? 'checked' : ''}>
-              <span><strong>${topic.label}</strong><small>${topic.detail}</small></span>
+            <label class="subscribe-topic link-card">
+              <span class="link-card-inner">
+                <input type="checkbox" name="topics" value="${topic.value}" ${topic.value === currentTopic ? 'checked' : ''}>
+                <span class="link-text"><h3>${topic.label}</h3><p>${topic.detail}</p></span>
+              </span>
             </label>
           `).join('')}
         </div>
