@@ -714,6 +714,7 @@
         dom.addEventListener('contextmenu', function(e) { e.preventDefault(); });
 
         dom.addEventListener('pointerdown', function(e) {
+            e.preventDefault(); // keep drags from selecting overlay text
             self.pointers[e.pointerId] = {x: e.clientX, y: e.clientY, button: e.button};
             if (dom.setPointerCapture) {
                 try { dom.setPointerCapture(e.pointerId); } catch (err) {}

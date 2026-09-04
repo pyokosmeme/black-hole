@@ -716,3 +716,9 @@
         font-size: 18px;
     }
 }
+/* 3D layer: never select label text while orbiting */
+.t3d-wrap, .t3d-wrap * {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+}
