@@ -783,7 +783,7 @@
         'Tartarus':   [6.82, 7.68, -3.94]
     };
 
-    // Display scale: r_scene = 14 * sqrt(r_ly). Keeps relative ordering and
+    // Display scale: r_scene = 22 * sqrt(r_ly). Keeps relative ordering and
     // direction from Sol, but expands the crowded solar neighbourhood so
     // labels don't overlap (Sol/α Cen trio are within ~4.4 ly in reality).
     // Hand-spread exceptions below break pure scaling for the tightest cluster.
@@ -944,8 +944,41 @@
             color: 0x88aaff, size: 2.2, transparent: true, opacity: 0.6
         })));
 
-        // Nav grid (scene units after sqrt scaling — stars reach ~185)
-        scene.add(new THREE.GridHelper(420, 42, 0x2a1045, 0x150820));
+        // A compact compass rose marks Sol as the origin and hints at the
+        // galactic plane without covering the whole scene in a grid.
+        const solRays = new THREE.Group();
+        solRays.position.copy(mapTo3d('Sol'));
+        const innerRayGeo = new THREE.Geometry();
+        const outerRayGeo = new THREE.Geometry();
+        for (let ray = 0; ray < 16; ray++) {
+            const angle = ray * Math.PI / 8;
+            const dx = Math.cos(angle);
+            const dz = Math.sin(angle);
+            const length = ray % 4 === 0 ? 38 : (ray % 2 === 0 ? 28 : 20);
+            innerRayGeo.vertices.push(
+                new THREE.Vector3(dx * 4.5, 0, dz * 4.5),
+                new THREE.Vector3(dx * 14, 0, dz * 14)
+            );
+            outerRayGeo.vertices.push(
+                new THREE.Vector3(dx * 14, 0, dz * 14),
+                new THREE.Vector3(dx * length, 0, dz * length)
+            );
+        }
+        solRays.add(new THREE.LineSegments(innerRayGeo, new THREE.LineBasicMaterial({
+            color: 0xffdf66,
+            transparent: true,
+            opacity: 0.28,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+        })));
+        solRays.add(new THREE.LineSegments(outerRayGeo, new THREE.LineBasicMaterial({
+            color: 0xffdf66,
+            transparent: true,
+            opacity: 0.09,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false
+        })));
+        scene.add(solRays);
 
         // Route lines: faction-coloured network lines plus a soft cyan tube
         // that is only shown around selected legs. WebGL lineWidth is ignored
