@@ -199,9 +199,7 @@ async function removeManagedCopy() {
 
 async function boot() {
   const url = new URL(location.href);
-  const sid = url.searchParams.get('sid');
-  if (sid) {
-    try { await fetch(`/api/oauth/setCookie?sid=${encodeURIComponent(sid)}`, { headers: { Accept: 'application/json' } }); } catch { /* session check below reports failure */ }
+  if (url.searchParams.has('sid') || url.searchParams.has('logged_in')) {
     url.searchParams.delete('sid');
     url.searchParams.delete('logged_in');
     history.replaceState(null, '', url.pathname + url.search + url.hash);

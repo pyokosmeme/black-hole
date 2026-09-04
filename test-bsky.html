@@ -197,14 +197,14 @@
     // ── Init ──
     (async () => {
       const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('sid') || urlParams.has('logged_in')) {
+        urlParams.delete('sid');
+        urlParams.delete('logged_in');
+        const cleanQuery = urlParams.toString();
+        history.replaceState(null, '', location.pathname + (cleanQuery ? `?${cleanQuery}` : '') + location.hash);
+      }
       if (urlParams.get('auth_error')) {
         status($('#auth-status'), 'Auth error: ' + urlParams.get('auth_error'), 'error');
-        history.replaceState(null, '', location.pathname);
-      } else if (urlParams.get('logged_in')) {
-        const sid = urlParams.get('sid');
-        if (sid) {
-          await fetch(`/api/oauth/setCookie?sid=${encodeURIComponent(sid)}`);
-        }
         history.replaceState(null, '', location.pathname);
       }
       checkAuth();

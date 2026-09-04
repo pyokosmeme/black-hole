@@ -23,6 +23,7 @@ function corsHeaders(request) {
     'Access-Control-Allow-Headers': 'Content-Type, Cookie',
     'Access-Control-Allow-Credentials': 'true',
     'Access-Control-Expose-Headers': 'Location',
+    'Cache-Control': 'no-store',
     'Vary': 'Origin',
   };
 }
@@ -32,7 +33,7 @@ function safeReturnTo(value, request) {
   try {
     const target = new URL(value, request.url);
     const requestOrigin = new URL(request.url).origin;
-    if (target.origin !== requestOrigin && target.origin !== DEFAULT_ORIGIN) return undefined;
+    if (target.origin !== requestOrigin) return undefined;
     return target.toString();
   } catch {
     return undefined;
@@ -217,33 +218,34 @@ async function handleCallback(request, env) {
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
   const error = url.searchParams.get('error');
-  const errorDescription = url.searchParams.get('error_description');
 
   if (!state) return jsonResponse({ error: 'Missing state' }, 400, request);
 
   const stateRaw = await env.SESSIONS.get(`state:${state}`);
-  if (!stateRaw) {
-    console.log('[callback] state not found in KV');
-    return jsonResponse({ error: 'Invalid state' }, 400, request);
-  }
+  if (!stateRaw) return jsonResponse({ error: 'Invalid state' }, 400, request);
   const stateData = JSON.parse(stateRaw);
 
+  // OAuth state is single-use, regardless of whether authorization succeeds.
+  await env.SESSIONS.delete(`state:${state}`);
+
+  if (Date.now() - stateData.createdAt > STATE_TTL) {
+    return jsonResponse({ error: 'State expired' }, 400, request);
+  }
+
   if (error) {
-    console.log('[callback] auth error:', error, errorDescription);
     const redirectUrl = new URL(stateData.returnTo || `${url.origin}/`);
-    redirectUrl.searchParams.set('auth_error', errorDescription || error);
+    redirectUrl.searchParams.set('auth_error', error);
     return new Response(null, {
       status: 302,
-      headers: { Location: redirectUrl.toString() },
+      headers: {
+        'Location': redirectUrl.toString(),
+        'Cache-Control': 'no-store',
+        'Referrer-Policy': 'no-referrer',
+      },
     });
   }
   if (!code) return jsonResponse({ error: 'Missing code' }, 400, request);
   try {
-    console.log('[callback] state:', state, 'code:', code?.slice(0, 20) + '...');
-    if (Date.now() - stateData.createdAt > STATE_TTL) {
-      await env.SESSIONS.delete(`state:${state}`);
-      return jsonResponse({ error: 'State expired' }, 400, request);
-    }
     const { privateKey, publicKey } = await importKeyPair(stateData.privateKeyJwk, stateData.publicKeyJwk);
     const tokenUrl = `${stateData.authServer}/oauth/token`;
     const dpopProof = await createDpopProof(privateKey, publicKey, 'POST', tokenUrl, null);
@@ -259,9 +261,7 @@ async function handleCallback(request, env) {
     });
     let tokenText = await tokenRes.text();
     const nonce = tokenRes.headers.get('dpop-nonce');
-    console.log('[token] status:', tokenRes.status, 'dpop-nonce:', nonce, 'body:', tokenText.slice(0, 200));
     if (!tokenRes.ok && tokenText.includes('use_dpop_nonce') && nonce) {
-      console.log('[token] retrying with nonce:', nonce);
       const dpopProofWithNonce = await createDpopProof(privateKey, publicKey, 'POST', tokenUrl, null, nonce);
       tokenRes = await fetch(tokenUrl, {
         method: 'POST',
@@ -269,13 +269,11 @@ async function handleCallback(request, env) {
         body: tokenBody.toString(),
       });
       tokenText = await tokenRes.text();
-      console.log('[token] retry status:', tokenRes.status, 'body:', tokenText.slice(0, 200));
     }
     if (!tokenRes.ok) {
-      return jsonResponse({ error: `Token exchange failed: ${tokenText}` }, 500, request);
+      return jsonResponse({ error: 'Token exchange failed' }, 502, request);
     }
     const tokenData = JSON.parse(tokenText);
-    await env.SESSIONS.delete(`state:${state}`);
     const sessionId = crypto.randomUUID();
     const sessionData = {
       accessToken: tokenData.access_token, refreshToken: tokenData.refresh_token,
@@ -285,27 +283,34 @@ async function handleCallback(request, env) {
       createdAt: Date.now(),
     };
     await env.SESSIONS.put(`session:${sessionId}`, JSON.stringify(sessionData), { expirationTtl: SESSION_MAX_AGE });
-    const cookie = `session=${sessionId}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${SESSION_MAX_AGE}`;
+    const cookie = `session=${sessionId}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${SESSION_MAX_AGE}`;
     const redirectUrl = new URL(stateData.returnTo || `${url.origin}/`);
-    redirectUrl.searchParams.set('logged_in', '1');
-    redirectUrl.searchParams.set('sid', sessionId);
     return new Response(null, {
       status: 302,
       headers: {
         'Location': redirectUrl.toString(),
         'Set-Cookie': cookie,
+        'Cache-Control': 'no-store',
+        'Referrer-Policy': 'no-referrer',
       },
     });
-  } catch (e) {
-    return jsonResponse({ error: e.message }, 500, request);
+  } catch {
+    return jsonResponse({ error: 'OAuth callback failed' }, 500, request);
   }
 }
 
 async function handleLogout(request, env) {
+  if (request.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405, request);
   const cookie = request.headers.get('Cookie') || '';
   const match = cookie.match(/session=([^;]+)/);
   if (match) await env.SESSIONS.delete(`session:${match[1]}`);
-  return jsonResponse({ logged_out: true }, 200, request);
+  return new Response(JSON.stringify({ logged_out: true }), {
+    status: 200,
+    headers: Object.assign({}, corsHeaders(request), {
+      'Content-Type': 'application/json',
+      'Set-Cookie': 'session=; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=0',
+    }),
+  });
 }
 
 async function handleSession(request, env) {
@@ -315,22 +320,6 @@ async function handleSession(request, env) {
     did: session.did, handle: session.handle,
     pds: session.pds, loggedInAt: session.createdAt,
   }, 200, request);
-}
-
-async function handleSetCookie(request, env) {
-  const url = new URL(request.url);
-  const sid = url.searchParams.get('sid');
-  if (!sid) return jsonResponse({ error: 'Missing sid' }, 400, request);
-  const raw = await env.SESSIONS.get(`session:${sid}`);
-  if (!raw) return jsonResponse({ error: 'Invalid session' }, 404, request);
-  const cookie = `session=${sid}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${SESSION_MAX_AGE}`;
-  return new Response(JSON.stringify({ ok: true }), {
-    status: 200,
-    headers: Object.assign({}, corsHeaders(request), {
-      'Content-Type': 'application/json',
-      'Set-Cookie': cookie,
-    }),
-  });
 }
 
 async function dpopFetch(privateKey, publicKey, accessToken, method, url, bodyJson) {
@@ -416,7 +405,6 @@ export default {
     if (path === '/api/oauth/callback') return handleCallback(request, env);
     if (path === '/api/oauth/logout') return handleLogout(request, env);
     if (path === '/api/oauth/session') return handleSession(request, env);
-    if (path === '/api/oauth/setCookie') return handleSetCookie(request, env);
     if (path === '/api/bsky/createRecord') return handleCreateRecord(request, env);
     if (path === '/api/bsky/deleteRecord') return handleDeleteRecord(request, env);
 
