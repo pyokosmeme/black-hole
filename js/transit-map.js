@@ -38,10 +38,10 @@
         'Proxima':    {dist: 4.24, ang: 85,   real: 'Proxima Centauri', spec: 'Red Dwarf', pop: 397, faction: 'HW', label: 'Proxima Astraeus', labelOffset: {x: 0, y: 28}},
         'Toliman':    {dist: 4.37, ang: 160, rn: 30, real: 'Alpha Centauri B', spec: 'K-Type', pop: 7, faction: 'HW', labelOffset: {x: -60, y: 0}},
         'Tartarus':   {dist: 11.0, ang: 95,   real: 'Ross 128', spec: 'Red Dwarf', pop: 231, faction: 'HW', labelOffset: {x: -60, y: 0}},
-        'Tau Ceti':   {dist: 11.9, ang: 145,  real: 'Tian Cang (Tau Ceti)', spec: 'G-Type', pop: 228.3, faction: 'HW', labelOffset: {x: 0, y: 28}},
+        'Tau Ceti':   {dist: 11.9, ang: 155,  real: 'Tian Cang (Tau Ceti)', spec: 'G-Type', pop: 228.3, faction: 'HW', labelOffset: {x: -60, y: 0}},
         'Barnard':    {dist: 5.96, ang: 182, rn: 8,  real: "Barnard's Star", spec: 'Red Dwarf', pop: 454.7, faction: 'HW', labelOffset: {x: -60, y: 10}},
         // Rigil last so its marker draws on top of the Homeworlds knot
-        'Rigil':      {dist: 4.37, ang: 120, rn: 36, real: 'Alpha Centauri A', spec: 'G-Type', pop: 649, faction: 'HW', labelOffset: {x: -55, y: 12}}
+        'Rigil':      {dist: 4.37, ang: 115, rn: 36, real: 'Alpha Centauri A', spec: 'G-Type', pop: 649, faction: 'HW', labelOffset: {x: -55, y: 12}}
     };
 
     // Schematic 2D layout: Sol at the center, stations on nested distance
@@ -150,6 +150,7 @@
     const SVG_NS = 'http://www.w3.org/2000/svg';
     const FACTION_COLORS = {UPLB: '#4a9eff', SWI: '#51cf66', HW: '#a78bfa'};
     const ROUTE_COLORS = {uplb: 0x4a9eff, swi: 0x51cf66, hw: 0xa78bfa, inter: 0xfbbf24};
+    const BRIGHT_ROUTE_COLORS = {uplb: 0x9fd0ff, swi: 0x8dffb0, hw: 0xd0b8ff, inter: 0xffde85};
     const SPEC_COLORS = {
         'G-Type': 0xffd27d,
         'Red Dwarf': 0xff6b4a,
@@ -944,20 +945,31 @@
         })));
 
         // Nav grid (scene units after sqrt scaling — stars reach ~185)
-        scene.add(new THREE.GridHelper(420, 42, 0x4a1868, 0x2a0a3a));
+        scene.add(new THREE.GridHelper(420, 42, 0x2a1045, 0x150820));
 
-        // Route lines
+        // Route lines: a bright core + additive glow pass so the 1px WebGL
+        // lines read as thick glowing "subway" paths.
         const lineObjs = {};
+        const glowObjs = {};
         routes.forEach(function(route) {
             const geo = new THREE.Geometry();
             geo.vertices.push(mapTo3d(route.from), mapTo3d(route.to));
-            const mat = new THREE.LineBasicMaterial({
-                color: ROUTE_COLORS[route.type], transparent: true, opacity: 0.3
-            });
-            const line = new THREE.Line(geo, mat);
+            const line = new THREE.Line(geo, new THREE.LineBasicMaterial({
+                color: ROUTE_COLORS[route.type], transparent: true, opacity: 0.5
+            }));
+            line.userData = {type: route.type};
             scene.add(line);
             lineObjs[route.from + '|' + route.to] = line;
             lineObjs[route.to + '|' + route.from] = line;
+
+            const glow = new THREE.Line(geo, new THREE.LineBasicMaterial({
+                color: ROUTE_COLORS[route.type], transparent: true, opacity: 0.22,
+                blending: THREE.AdditiveBlending, depthWrite: false
+            }));
+            glow.userData = {type: route.type};
+            scene.add(glow);
+            glowObjs[route.from + '|' + route.to] = glow;
+            glowObjs[route.to + '|' + route.from] = glow;
         });
 
         // Station spheres (core colored by spectral class, halo by faction)
@@ -1040,7 +1052,7 @@
             active: false,
             wrap: wrap, canvas: canvas,
             renderer: renderer, scene: scene, camera: camera, controls: controls,
-            meshObjs: meshObjs, haloObjs: haloObjs, lineObjs: lineObjs,
+            meshObjs: meshObjs, haloObjs: haloObjs, lineObjs: lineObjs, glowObjs: glowObjs,
             labelEls: labelEls, pos: pos,
             width: 1, height: 1, rafId: null, tmp: new THREE.Vector3()
         };
@@ -1097,12 +1109,20 @@
         });
         Object.keys(t3.lineObjs).forEach(function(key) {
             const line = t3.lineObjs[key];
+            const glow = t3.glowObjs ? t3.glowObjs[key] : null;
             const parts = key.split('|');
             let active = false;
             for (let i = 0; i < plannedRoute.length - 1; i++) {
                 if (plannedRoute[i] === parts[0] && plannedRoute[i + 1] === parts[1]) active = true;
             }
-            line.material.opacity = active ? 1 : 0.3;
+            const base = ROUTE_COLORS[line.userData.type] || 0xffffff;
+            const bright = BRIGHT_ROUTE_COLORS[line.userData.type] || 0xffffff;
+            line.material.opacity = active ? 1 : 0.5;
+            line.material.color.setHex(active ? bright : base);
+            if (glow) {
+                glow.material.opacity = active ? 0.6 : 0.22;
+                glow.material.color.setHex(active ? bright : base);
+            }
         });
     }
 
