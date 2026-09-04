@@ -35,12 +35,13 @@
         'Zi Wei Yuan':{dist: 68.2, ang: -135, real: 'HD 33564', spec: 'Yellow-White Dwarf', pop: 258.6, faction: 'SWI', labelOffset: {x: 0, y: -25}},
         'Sipapu':     {dist: 41.0, ang: -20,  real: 'HD 69830 (285 G. Puppis)', spec: 'Yellow Dwarf', pop: 254, faction: 'SWI', labelOffset: {x: 60, y: 0}},
         // Homeworlds Systems
-        'Proxima':    {dist: 4.24, ang: 95,   real: 'Proxima Centauri', spec: 'Red Dwarf', pop: 397, faction: 'HW', label: 'Proxima Astraeus', labelOffset: {x: 0, y: 28}},
-        'Rigil':      {dist: 4.37, ang: 125, rn: 18, real: 'Alpha Centauri A', spec: 'G-Type', pop: 649, faction: 'HW', labelOffset: {x: -55, y: 12}},
-        'Toliman':    {dist: 4.37, ang: 155, rn: 18, real: 'Alpha Centauri B', spec: 'K-Type', pop: 7, faction: 'HW', labelOffset: {x: -60, y: 0}},
+        'Proxima':    {dist: 4.24, ang: 85,   real: 'Proxima Centauri', spec: 'Red Dwarf', pop: 397, faction: 'HW', label: 'Proxima Astraeus', labelOffset: {x: 0, y: 28}},
+        'Toliman':    {dist: 4.37, ang: 160, rn: 30, real: 'Alpha Centauri B', spec: 'K-Type', pop: 7, faction: 'HW', labelOffset: {x: -60, y: 0}},
         'Tartarus':   {dist: 11.0, ang: 95,   real: 'Ross 128', spec: 'Red Dwarf', pop: 231, faction: 'HW', labelOffset: {x: -60, y: 0}},
         'Tau Ceti':   {dist: 11.9, ang: 145,  real: 'Tian Cang (Tau Ceti)', spec: 'G-Type', pop: 228.3, faction: 'HW', labelOffset: {x: 0, y: 28}},
-        'Barnard':    {dist: 5.96, ang: 178,  real: "Barnard's Star", spec: 'Red Dwarf', pop: 454.7, faction: 'HW', labelOffset: {x: -60, y: 10}}
+        'Barnard':    {dist: 5.96, ang: 182, rn: 8,  real: "Barnard's Star", spec: 'Red Dwarf', pop: 454.7, faction: 'HW', labelOffset: {x: -60, y: 10}},
+        // Rigil last so its marker draws on top of the Homeworlds knot
+        'Rigil':      {dist: 4.37, ang: 120, rn: 36, real: 'Alpha Centauri A', spec: 'G-Type', pop: 649, faction: 'HW', labelOffset: {x: -55, y: 12}}
     };
 
     // Schematic 2D layout: Sol at the center, stations on nested distance
@@ -309,6 +310,7 @@
         updateRouteDisplay();
         view = {x: 0, y: 0, k: 1};
         applyView();
+        svg.style.touchAction = (layout === 'subway') ? 'none' : 'auto';
     }
 
     function applyView() {
@@ -340,12 +342,14 @@
         svg.style.touchAction = 'none';
 
         svg.addEventListener('wheel', function(e) {
+            if (layout === 'classic') return; // classic map is static
             e.preventDefault();
             const p = clientToSvg(e.clientX, e.clientY);
             zoomBy(e.deltaY < 0 ? 1.15 : 1 / 1.15, p.x, p.y);
         }, {passive: false});
 
         svg.addEventListener('pointerdown', function(e) {
+            if (layout === 'classic') return; // classic map is static
             dragState.pointers.set(e.pointerId, {x: e.clientX, y: e.clientY});
             dragState.moved = 0;
             dragState.captured = false;
@@ -359,6 +363,7 @@
         });
 
         svg.addEventListener('pointermove', function(e) {
+            if (layout === 'classic') return;
             if (!dragState.pointers.has(e.pointerId)) return;
             const prev = dragState.pointers.get(e.pointerId);
             dragState.moved += Math.hypot(e.clientX - prev.x, e.clientY - prev.y);
@@ -782,9 +787,9 @@
     // labels don't overlap (Sol/α Cen trio are within ~4.4 ly in reality).
     // Hand-spread exceptions below break pure scaling for the tightest cluster.
     const LABEL_SPREAD = {
-        'Rigil':      [38, -2, -35],
-        'Toliman':    [29, 2, -38],
-        'Proxima':    [32, 10, -29],
+        'Rigil':      [52, -3, -46],
+        'Toliman':    [32, 3, -58],
+        'Proxima':    [36, 12, -33],
     };
 
     function mapTo3d(name) {
@@ -958,6 +963,7 @@
         // Station spheres (core colored by spectral class, halo by faction)
         const meshObjs = {};
         const haloObjs = {};
+        const pickObjs = {};
         const pos = {};
         Object.keys(stations).forEach(function(name) {
             const d = stations[name];
@@ -967,7 +973,7 @@
 
             const specColor = SPEC_COLORS[d.spec] != null ? SPEC_COLORS[d.spec] : ROUTE_COLORS.uplb;
             const core = new THREE.Mesh(
-                new THREE.SphereGeometry(isHome ? 1.2 : 0.7, 20, 14),
+                new THREE.SphereGeometry(isHome ? 1.8 : 1.1, 20, 14),
                 new THREE.MeshBasicMaterial({color: specColor})
             );
             core.position.copy(p);
@@ -976,7 +982,7 @@
             meshObjs[name] = core;
 
             const halo = new THREE.Mesh(
-                new THREE.SphereGeometry(isHome ? 2.6 : 1.6, 16, 12),
+                new THREE.SphereGeometry(isHome ? 3.6 : 2.4, 16, 12),
                 new THREE.MeshBasicMaterial({
                     color: ROUTE_COLORS[d.faction.toLowerCase()] || 0xffffff,
                     transparent: true, opacity: 0.14,
@@ -986,6 +992,16 @@
             halo.position.copy(p);
             scene.add(halo);
             haloObjs[name] = halo;
+
+            // Invisible oversized sphere so taps/clicks reliably land
+            const pick = new THREE.Mesh(
+                new THREE.SphereGeometry(6, 8, 6),
+                new THREE.MeshBasicMaterial({transparent: true, opacity: 0, depthWrite: false})
+            );
+            pick.position.copy(p);
+            pick.userData = {name: name};
+            scene.add(pick);
+            pickObjs[name] = pick;
         });
 
         // HTML overlay labels projected each frame
@@ -1016,7 +1032,7 @@
                 -((e.clientY - rect.top) / rect.height) * 2 + 1
             );
             raycaster.setFromCamera(ndc, camera);
-            const hits = raycaster.intersectObjects(Object.keys(meshObjs).map(function(k) { return meshObjs[k]; }));
+            const hits = raycaster.intersectObjects(Object.keys(pickObjs).map(function(k) { return pickObjs[k]; }));
             if (hits.length) addStationToRoute(hits[0].object.userData.name);
         });
 
