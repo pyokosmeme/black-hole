@@ -648,8 +648,9 @@
 
     // Approximate real galactic coordinates in light years, derived from the
     // catalog stars (galactic longitude/latitude/distance). Scene axes:
-    // x/z = galactic plane, y = galactic north. Alpha Centauri A/B/Proxima
-    // are ~0.1 ly apart here — intentionally cramped.
+    // x/z = galactic plane, y = galactic north. These are TRUE distances —
+    // mapTo3d() applies a sqrt compression for display so nearby systems
+    // stay readable.
     const COORD3 = {
         'Sol':        [0, 0, 0],
         'Rigil':      [3.03, -0.05, -3.15],
@@ -672,9 +673,27 @@
         'Tartarus':   [6.82, 7.68, -3.94]
     };
 
+    // Display scale: r_scene = 14 * sqrt(r_ly). Keeps relative ordering and
+    // direction from Sol, but expands the crowded solar neighbourhood so
+    // labels don't overlap (Sol/α Cen trio are within ~4.4 ly in reality).
+    // Hand-spread exceptions below break pure scaling for the tightest cluster.
+    const LABEL_SPREAD = {
+        'Rigil':      [24, -1, -22],
+        'Toliman':    [18, 1, -24],
+        'Proxima':    [20, 6, -18],
+        'Cancri 55 B':[-44, 68, -27]
+    };
+
     function mapTo3d(name) {
+        if (LABEL_SPREAD[name]) {
+            const s = LABEL_SPREAD[name];
+            return new THREE.Vector3(s[0], s[1], s[2]);
+        }
         const c = COORD3[name] || [0, 0, 0];
-        return new THREE.Vector3(c[0], c[1], c[2]);
+        const v = new THREE.Vector3(c[0], c[1], c[2]);
+        const r = v.length();
+        if (r > 0.0001) v.multiplyScalar(14 * Math.sqrt(r) / r);
+        return v;
     }
 
     // Minimal orbit control rig (custom). Left-drag: rotate. Wheel or pinch:
@@ -684,7 +703,7 @@
         this.camera = camera;
         this.dom = dom;
         this.target = new THREE.Vector3(-5, -6, -5);
-        this.radius = 150;
+        this.radius = 190;
         this.theta = Math.PI * 0.25;
         this.phi = Math.PI * 0.38;
         this.pointers = {};
@@ -815,8 +834,8 @@
             color: 0x88aaff, size: 1.6, transparent: true, opacity: 0.6
         })));
 
-        // Nav grid in the galactic plane (10 ly cells)
-        scene.add(new THREE.GridHelper(160, 16, 0x4a1868, 0x2a0a3a));
+        // Nav grid (scene units after sqrt scaling — stars reach ~120)
+        scene.add(new THREE.GridHelper(260, 26, 0x4a1868, 0x2a0a3a));
 
         // Route lines
         const lineObjs = {};

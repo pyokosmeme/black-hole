@@ -23,8 +23,8 @@
 .transit-container {
     position: relative;
     z-index: 10;
-    padding: 80px 20px 40px;
-    max-width: 940px;
+    padding: calc(50px + var(--space-lg)) var(--space-md) var(--space-lg);
+    max-width: 900px;
     margin: 0 auto;
 }
 
