@@ -947,13 +947,17 @@
         // Nav grid (scene units after sqrt scaling — stars reach ~185)
         scene.add(new THREE.GridHelper(420, 42, 0x2a1045, 0x150820));
 
-        // Route lines: a bright core + additive glow pass so the 1px WebGL
-        // lines read as thick glowing "subway" paths.
+        // Route lines: faction-coloured network lines plus a soft cyan tube
+        // that is only shown around selected legs. WebGL lineWidth is ignored
+        // by most browsers, so geometry is needed for a visible halo.
         const lineObjs = {};
         const glowObjs = {};
+        const selectionGlowObjs = {};
         routes.forEach(function(route) {
+            const start = mapTo3d(route.from);
+            const end = mapTo3d(route.to);
             const geo = new THREE.Geometry();
-            geo.vertices.push(mapTo3d(route.from), mapTo3d(route.to));
+            geo.vertices.push(start, end);
             const line = new THREE.Line(geo, new THREE.LineBasicMaterial({
                 color: ROUTE_COLORS[route.type], transparent: true, opacity: 0.5
             }));
@@ -970,6 +974,38 @@
             scene.add(glow);
             glowObjs[route.from + '|' + route.to] = glow;
             glowObjs[route.to + '|' + route.from] = glow;
+
+            const delta = new THREE.Vector3().subVectors(end, start);
+            const length = delta.length();
+            const midpoint = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
+            const rotation = new THREE.Quaternion().setFromUnitVectors(
+                new THREE.Vector3(0, 1, 0), delta.clone().normalize()
+            );
+            const selectionGlow = new THREE.Group();
+            [
+                {radius: 0.65, opacity: 0.16},
+                {radius: 1.35, opacity: 0.06}
+            ].forEach(function(layer) {
+                const shell = new THREE.Mesh(
+                    new THREE.CylinderGeometry(layer.radius, layer.radius, length, 12, 1, true),
+                    new THREE.MeshBasicMaterial({
+                        color: 0x00ffff,
+                        transparent: true,
+                        opacity: layer.opacity,
+                        blending: THREE.AdditiveBlending,
+                        depthTest: false,
+                        depthWrite: false
+                    })
+                );
+                shell.position.copy(midpoint);
+                shell.quaternion.copy(rotation);
+                shell.renderOrder = 997;
+                selectionGlow.add(shell);
+            });
+            selectionGlow.visible = false;
+            scene.add(selectionGlow);
+            selectionGlowObjs[route.from + '|' + route.to] = selectionGlow;
+            selectionGlowObjs[route.to + '|' + route.from] = selectionGlow;
         });
 
         // Station spheres (core colored by spectral class, halo by faction)
@@ -1053,6 +1089,7 @@
             wrap: wrap, canvas: canvas,
             renderer: renderer, scene: scene, camera: camera, controls: controls,
             meshObjs: meshObjs, haloObjs: haloObjs, lineObjs: lineObjs, glowObjs: glowObjs,
+            selectionGlowObjs: selectionGlowObjs,
             labelEls: labelEls, pos: pos,
             width: 1, height: 1, rafId: null, tmp: new THREE.Vector3()
         };
@@ -1077,17 +1114,6 @@
         if (!t3 || !t3.active) return;
         t3.rafId = requestAnimationFrame(render3d);
         t3.controls.positionCamera();
-
-        // Animate active route lines (gentle pulse)
-        const now = performance.now() * 0.001;
-        Object.keys(t3.lineObjs).forEach(function(key) {
-            const line = t3.lineObjs[key];
-            const glow = t3.glowObjs[key];
-            if (line.userData.active) {
-                line.material.opacity = 0.85 + 0.15 * Math.sin(now * 5);
-                glow.material.opacity = 0.5 + 0.15 * Math.sin(now * 5);
-            }
-        });
 
         t3.renderer.render(t3.scene, t3.camera);
 
@@ -1129,6 +1155,7 @@
         Object.keys(t3.lineObjs).forEach(function(key) {
             const line = t3.lineObjs[key];
             const glow = t3.glowObjs ? t3.glowObjs[key] : null;
+            const selectionGlow = t3.selectionGlowObjs ? t3.selectionGlowObjs[key] : null;
             const active = !!activeHops[key];
             const base = ROUTE_COLORS[line.userData.type] || 0xffffff;
             line.userData.active = active;
@@ -1145,6 +1172,7 @@
                 glow.material.depthTest = !active;
                 glow.renderOrder = active ? 998 : 0;
             }
+            if (selectionGlow) selectionGlow.visible = active;
         });
 
         // Traveling pulse beacons removed — static highlight only.
