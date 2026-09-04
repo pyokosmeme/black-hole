@@ -18,28 +18,55 @@
     // ═══════════════════════════════════════════════════════════════
 
     const stations = {
+        // dist = true distance from Sol in light years; ang = schematic angle
+        // (deg) on the nested-ring subway layout. x/y are computed below.
         // UPLB Systems
-        'Sol':        {x: 800,  y: 500, real: 'Sol', spec: 'G-Type', pop: 10440, faction: 'UPLB', labelOffset: {x: 0, y: -25}},
-        'Gamov':      {x: 950,  y: 300, real: 'Copernicus (55 Cancri A)', spec: 'G-Type', pop: 630.6, faction: 'UPLB', labelOffset: {x: 0, y: -25}},
-            'Wolf':       {x: 650,  y: 250, real: 'Wolf 1061', spec: 'Red Dwarf', pop: 432, faction: 'UPLB', labelOffset: {x: 0, y: -25}},
-        'Luyten':     {x: 500,  y: 400, real: "Luyten's Star", spec: 'Red Dwarf', pop: 322, faction: 'UPLB', labelOffset: {x: -60, y: 0}},
-        'Gowjin':     {x: 500,  y: 600, real: 'Gliese 876', spec: 'Red Dwarf', pop: 317, faction: 'UPLB', labelOffset: {x: -60, y: 0}},
-        'Issetock':   {x: 650,  y: 700, real: 'Gliese 581', spec: 'Red Dwarf', pop: 28.3, faction: 'UPLB', labelOffset: {x: 0, y: 25}},
-        'Nursia':     {x: 950,  y: 700, real: 'TRAPPIST-1', spec: 'Red Dwarf', pop: 411, faction: 'UPLB', labelOffset: {x: 0, y: 25}},
-        'Bakunawa':   {x: 800,  y: 150, real: 'LHS 1140', spec: 'Red Dwarf', pop: 215, faction: 'UPLB', labelOffset: {x: 0, y: -25}},
+        'Sol':        {dist: 0,    ang: 0,     real: 'Sol', spec: 'G-Type', pop: 10440, faction: 'UPLB', labelOffset: {x: 0, y: -28}},
+        'Gamov':      {dist: 41.0, ang: -155, real: 'Copernicus (55 Cancri A)', spec: 'G-Type', pop: 630.6, faction: 'UPLB', labelOffset: {x: 0, y: -25}},
+        'Wolf':       {dist: 14.05, ang: -30, real: 'Wolf 1061', spec: 'Red Dwarf', pop: 432, faction: 'UPLB', labelOffset: {x: 0, y: -25}},
+        'Luyten':     {dist: 12.2, ang: 5,    real: "Luyten's Star", spec: 'Red Dwarf', pop: 322, faction: 'UPLB', labelOffset: {x: 60, y: 0}},
+        'Gowjin':     {dist: 15.2, ang: 55,   real: 'Gliese 876', spec: 'Red Dwarf', pop: 317, faction: 'UPLB', labelOffset: {x: 0, y: 28}},
+        'Issetock':   {dist: 20.4, ang: 30,   real: 'Gliese 581', spec: 'Red Dwarf', pop: 28.3, faction: 'UPLB', labelOffset: {x: 0, y: 28}},
+        'Nursia':     {dist: 40.7, ang: 80,   real: 'TRAPPIST-1', spec: 'Red Dwarf', pop: 411, faction: 'UPLB', labelOffset: {x: 0, y: 28}},
+        'Bakunawa':   {dist: 48.8, ang: 120,  real: 'LHS 1140', spec: 'Red Dwarf', pop: 215, faction: 'UPLB', labelOffset: {x: 0, y: 28}},
         // SWI Systems
-        'Vega':       {x: 1150, y: 450, real: 'Vega', spec: 'A-Type (Blue Dwarf)', pop: 262, faction: 'SWI', labelOffset: {x: 60, y: 0}},
-        'Ya Ke':      {x: 1400, y: 350, real: 'Nu2 Canis Majoris', spec: 'K-Type Giant', pop: 579.4, faction: 'SWI', labelOffset: {x: 60, y: 0}},
-        'Zi Wei Yuan':{x: 1400, y: 600, real: 'HD 33564', spec: 'Yellow-White Dwarf', pop: 258.6, faction: 'SWI', labelOffset: {x: 60, y: 0}},
-        'Sipapu':     {x: 1150, y: 700, real: 'HD 69830 (285 G. Puppis)', spec: 'Yellow Dwarf', pop: 254, faction: 'SWI', labelOffset: {x: 60, y: 0}},
+        'Vega':       {dist: 25.0, ang: -75,  real: 'Vega', spec: 'A-Type (Blue Dwarf)', pop: 262, faction: 'SWI', labelOffset: {x: 60, y: 0}},
+        'Ya Ke':      {dist: 64.3, ang: 175,  real: 'Nu2 Canis Majoris', spec: 'K-Type Giant', pop: 579.4, faction: 'SWI', labelOffset: {x: -60, y: 0}},
+        'Zi Wei Yuan':{dist: 68.2, ang: -135, real: 'HD 33564', spec: 'Yellow-White Dwarf', pop: 258.6, faction: 'SWI', labelOffset: {x: 0, y: -25}},
+        'Sipapu':     {dist: 41.0, ang: -20,  real: 'HD 69830 (285 G. Puppis)', spec: 'Yellow Dwarf', pop: 254, faction: 'SWI', labelOffset: {x: 60, y: 0}},
         // Homeworlds Systems
-        'Proxima':    {x: 300,  y: 700, real: 'Proxima Centauri', spec: 'Red Dwarf', pop: 397, faction: 'HW', label: 'Proxima Astraeus', labelOffset: {x: -60, y: 10}},
-        'Rigil':      {x: 400,  y: 850, real: 'Alpha Centauri A', spec: 'G-Type', pop: 649, faction: 'HW', labelOffset: {x: -50, y: 25}},
-        'Toliman':    {x: 480,  y: 820, real: 'Alpha Centauri B', spec: 'K-Type', pop: 7, faction: 'HW', labelOffset: {x: 0, y: -25}},
-        'Tartarus':   {x: 250,  y: 550, real: 'Ross 128', spec: 'Red Dwarf', pop: 231, faction: 'HW', labelOffset: {x: -60, y: 0}},
-        'Tau Ceti':   {x: 550,  y: 900, real: 'Tian Cang (Tau Ceti)', spec: 'G-Type', pop: 228.3, faction: 'HW', labelOffset: {x: 0, y: 25}},
-        'Barnard':    {x: 200,  y: 850, real: "Barnard's Star", spec: 'Red Dwarf', pop: 454.7, faction: 'HW', labelOffset: {x: -60, y: 10}}
+        'Proxima':    {dist: 4.24, ang: 95,   real: 'Proxima Centauri', spec: 'Red Dwarf', pop: 397, faction: 'HW', label: 'Proxima Astraeus', labelOffset: {x: 0, y: 28}},
+        'Rigil':      {dist: 4.37, ang: 125, rn: 18, real: 'Alpha Centauri A', spec: 'G-Type', pop: 649, faction: 'HW', labelOffset: {x: -55, y: 12}},
+        'Toliman':    {dist: 4.37, ang: 155, rn: 18, real: 'Alpha Centauri B', spec: 'K-Type', pop: 7, faction: 'HW', labelOffset: {x: -60, y: 0}},
+        'Tartarus':   {dist: 11.0, ang: 95,   real: 'Ross 128', spec: 'Red Dwarf', pop: 231, faction: 'HW', labelOffset: {x: -60, y: 0}},
+        'Tau Ceti':   {dist: 11.9, ang: 145,  real: 'Tian Cang (Tau Ceti)', spec: 'G-Type', pop: 228.3, faction: 'HW', labelOffset: {x: 0, y: 28}},
+        'Barnard':    {dist: 5.96, ang: 178,  real: "Barnard's Star", spec: 'Red Dwarf', pop: 454.7, faction: 'HW', labelOffset: {x: -60, y: 10}}
     };
+
+    // Schematic 2D layout: Sol at the center, stations on nested distance
+    // rings (true ly, piecewise-compressed) at hand-picked angles.
+    const MAP_CX = 800, MAP_CY = 500;
+    const RING_LY = [5, 10, 15, 20, 40, 60];
+    const RING_PX = [75, 120, 165, 210, 300, 380];
+
+    function ringR(ly) {
+        if (ly <= RING_LY[0]) return RING_PX[0] * ly / RING_LY[0];
+        for (let i = 0; i < RING_LY.length - 1; i++) {
+            if (ly <= RING_LY[i + 1]) {
+                const t = (ly - RING_LY[i]) / (RING_LY[i + 1] - RING_LY[i]);
+                return RING_PX[i] + t * (RING_PX[i + 1] - RING_PX[i]);
+            }
+        }
+        return RING_PX[RING_PX.length - 1] + (ly - RING_LY[RING_LY.length - 1]) * 1.9;
+    }
+
+    Object.keys(stations).forEach(function(name) {
+        const s = stations[name];
+        if (!s.dist) { s.x = MAP_CX; s.y = MAP_CY; s.r = 0; return; }
+        s.r = ringR(s.dist) + (s.rn || 0);
+        s.x = MAP_CX + s.r * Math.cos(s.ang * Math.PI / 180);
+        s.y = MAP_CY + s.r * Math.sin(s.ang * Math.PI / 180);
+    });
 
     // ═══════════════════════════════════════════════════════════════
     // ROUTE DATA
@@ -158,6 +185,7 @@
 
         buildToolbar();
         initPanZoom();
+        drawRings();
         drawRoutes();
         drawStations();
 
@@ -190,14 +218,6 @@
             '<button id="btn-3d" class="map-btn" type="button" aria-pressed="false">◈ 3D MAP</button>';
         container.appendChild(bar);
 
-        const zoom = document.createElement('div');
-        zoom.className = 'zoom-controls';
-        zoom.innerHTML =
-            '<button class="zoom-btn" id="zoom-in" type="button" aria-label="Zoom in">+</button>' +
-            '<button class="zoom-btn" id="zoom-out" type="button" aria-label="Zoom out">−</button>' +
-            '<button class="zoom-btn" id="zoom-reset" type="button" aria-label="Reset view">⌂</button>';
-        container.appendChild(zoom);
-
         const hint = document.createElement('div');
         hint.className = 'map-hint';
         hint.textContent = 'PINCH OR SCROLL TO ZOOM · DRAG TO PAN · CLICK STATIONS TO PLAN ROUTE · 3D: DRAG ROTATES / PINCH ZOOMS / RIGHT-DRAG PANS';
@@ -205,9 +225,6 @@
 
         document.getElementById('btn-2d').addEventListener('click', function() { setMode('2d'); });
         document.getElementById('btn-3d').addEventListener('click', function() { setMode('3d'); });
-        document.getElementById('zoom-in').addEventListener('click', function() { zoomBy(1.35, svg.clientWidth / 2, svg.clientHeight / 2); });
-        document.getElementById('zoom-out').addEventListener('click', function() { zoomBy(1 / 1.35, svg.clientWidth / 2, svg.clientHeight / 2); });
-        document.getElementById('zoom-reset').addEventListener('click', resetView);
 
         updateModeButtons();
     }
@@ -354,24 +371,57 @@
     // 2D DRAWING
     // ═══════════════════════════════════════════════════════════════
 
+    function drawRings() {
+        RING_LY.forEach(function(ly, i) {
+            const ring = document.createElementNS(SVG_NS, 'circle');
+            ring.setAttribute('cx', MAP_CX);
+            ring.setAttribute('cy', MAP_CY);
+            ring.setAttribute('r', RING_PX[i]);
+            ring.classList.add('map-ring');
+            world.appendChild(ring);
+
+            const lbl = document.createElementNS(SVG_NS, 'text');
+            lbl.classList.add('ring-label');
+            lbl.setAttribute('x', MAP_CX + (i % 2 ? 6 : -46));
+            lbl.setAttribute('y', MAP_CY - RING_PX[i] - 8);
+            lbl.textContent = ly + ' ly';
+            world.appendChild(lbl);
+        });
+    }
+
     function drawRoutes() {
         routes.forEach(function(route) {
             const from = stations[route.from];
             const to = stations[route.to];
+            let el;
 
-            const line = document.createElementNS(SVG_NS, 'line');
-            line.setAttribute('x1', from.x);
-            line.setAttribute('y1', from.y);
-            line.setAttribute('x2', to.x);
-            line.setAttribute('y2', to.y);
-            line.classList.add('route-line', route.type + '-route');
-            line.dataset.from = route.from;
-            line.dataset.to = route.to;
+            if (route.from === 'Sol' || route.to === 'Sol') {
+                // Spoke routes from Sol are straight
+                el = document.createElementNS(SVG_NS, 'line');
+                el.setAttribute('x1', from.x);
+                el.setAttribute('y1', from.y);
+                el.setAttribute('x2', to.x);
+                el.setAttribute('y2', to.y);
+            } else {
+                // Subway-style arc bowing along the rings
+                const da = ((to.ang - from.ang + 540) % 360) - 180;
+                const am = (from.ang + da / 2) * Math.PI / 180;
+                const rc = (from.r + to.r) / 2 + 10;
+                const qx = MAP_CX + rc * Math.cos(am);
+                const qy = MAP_CY + rc * Math.sin(am);
+                el = document.createElementNS(SVG_NS, 'path');
+                el.setAttribute('d', 'M ' + from.x + ' ' + from.y +
+                    ' Q ' + qx + ' ' + qy + ' ' + to.x + ' ' + to.y);
+                el.setAttribute('fill', 'none');
+            }
+            el.classList.add('route-line', route.type + '-route');
+            el.dataset.from = route.from;
+            el.dataset.to = route.to;
 
-            routeLines[route.from + '-' + route.to] = line;
-            routeLines[route.to + '-' + route.from] = line;
+            routeLines[route.from + '-' + route.to] = el;
+            routeLines[route.to + '-' + route.from] = el;
 
-            world.appendChild(line);
+            world.appendChild(el);
         });
     }
 

@@ -78,6 +78,7 @@
    ═══════════════════════════════════════════════════════════════ */
 
 .route-line {
+    fill: none;
     stroke-width: 3;
     opacity: 0.55; /* Increased from 0.4 for better visibility */
     transition: all 0.3s ease;
@@ -721,4 +722,21 @@
     user-select: none;
     -webkit-user-select: none;
     -webkit-touch-callout: none;
+}
+
+/* Nested-ring subway layout */
+.map-ring {
+    fill: none;
+    stroke: #24384c;
+    stroke-width: 1.5;
+    opacity: 0.9;
+}
+
+.ring-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 20px;
+    fill: #ffd166;
+    opacity: 0.9;
+    text-anchor: middle;
+    letter-spacing: 1px;
 }
