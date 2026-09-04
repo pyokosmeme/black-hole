@@ -202,7 +202,7 @@
 
         const hint = document.createElement('div');
         hint.className = 'map-hint';
-        hint.textContent = 'WORLD NAME / CATALOG STAR · PINCH OR SCROLL TO ZOOM · DRAG TO PAN';
+        hint.textContent = 'PINCH OR SCROLL TO ZOOM · DRAG TO PAN · CLICK STATIONS TO PLAN ROUTE · 3D: DRAG ROTATES / PINCH ZOOMS / RIGHT-DRAG PANS';
         container.appendChild(hint);
 
         document.getElementById('btn-2d').addEventListener('click', function() { setMode('2d'); });
@@ -403,29 +403,9 @@
             label.setAttribute('text-anchor', anchor);
             label.textContent = displayName(name);
 
-            // Catalog star + spectral class sublabel
-            const real = document.createElementNS(SVG_NS, 'text');
-            real.classList.add('station-reallabel');
-            const realY = data.labelOffset.y < 0 ? labelY - 16 : (data.labelOffset.y > 0 ? labelY + 16 : labelY + 15);
-            real.setAttribute('x', labelX);
-            real.setAttribute('y', realY);
-            real.setAttribute('text-anchor', anchor);
-            real.textContent = '★ ' + data.real + ' · ' + data.spec;
-
-            // Population sublabel
-            const pop = document.createElementNS(SVG_NS, 'text');
-            pop.classList.add('station-sublabel');
-            const popY = data.labelOffset.y < 0 ? realY - 15 : realY + 15;
-            pop.setAttribute('x', labelX);
-            pop.setAttribute('y', popY);
-            pop.setAttribute('text-anchor', anchor);
-            pop.textContent = 'POP ' + fmtPop(data.pop);
-
             g.appendChild(hitArea);
             g.appendChild(circle);
             g.appendChild(label);
-            g.appendChild(real);
-            g.appendChild(pop);
             world.appendChild(g);
 
             g.addEventListener('click', function(e) {
@@ -648,7 +628,7 @@
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // 3D MAP MODE (three.js r73 + OrbitControls from js-libs)
+    // 3D MAP MODE (three.js r73, real galactic coordinates, custom orbit rig)
     // ═══════════════════════════════════════════════════════════════
 
     let t3 = null; // 3D state (built lazily)
@@ -662,20 +642,131 @@
     }
 
     function ensureThree(cb) {
-        if (window.THREE && window.THREE.OrbitControls) { cb(null); return; }
-        if (!window.THREE) {
-            loadScript('js-libs/three.min.js', function(err) {
-                if (err) { cb(err); return; }
-                ensureThree(cb);
-            });
-            return;
-        }
-        loadScript('js-libs/OrbitControls.js', cb);
+        if (window.THREE) { cb(null); return; }
+        loadScript('js-libs/three.min.js', cb);
     }
 
-    function mapTo3d(x, y) {
-        return new THREE.Vector3((x - 800) / 30, 0, (y - 500) / 30);
+    // Approximate real galactic coordinates in light years, derived from the
+    // catalog stars (galactic longitude/latitude/distance). Scene axes:
+    // x/z = galactic plane, y = galactic north. Alpha Centauri A/B/Proxima
+    // are ~0.1 ly apart here — intentionally cramped.
+    const COORD3 = {
+        'Sol':        [0, 0, 0],
+        'Rigil':      [3.03, -0.05, -3.15],
+        'Toliman':    [3.20, -0.06, -3.05],
+        'Proxima':    [2.93, 0.14, -3.06],
+        'Barnard':    [-5.55, -1.30, 1.76],
+        'Tau Ceti':   [-3.36, -11.41, 0.47],
+        'Vega':       [4.63, 21.94, 11.15],
+        'Gamov':      [-22.48, 32.49, -10.95],
+        'Cancri 55 B':[-21.90, 32.20, -11.30],
+        'Luyten':     [-8.03, 7.71, -4.97],
+        'Wolf':       [-4.56, -0.48, -13.28],
+        'Gowjin':     [5.06, -11.40, -8.69],
+        'Issetock':   [-4.69, -17.16, 9.98],
+        'Nursia':     [-9.50, -39.55, -1.45],
+        'Bakunawa':   [-33.11, -34.07, -11.11],
+        'Zi Wei Yuan':[-44.38, 28.68, 42.81],
+        'Sipapu':     [-19.42, -14.37, -33.11],
+        'Ya Ke':      [-30.04, -11.55, -55.33],
+        'Tartarus':   [6.82, 7.68, -3.94]
+    };
+
+    function mapTo3d(name) {
+        const c = COORD3[name] || [0, 0, 0];
+        return new THREE.Vector3(c[0], c[1], c[2]);
     }
+
+    // Minimal orbit control rig (custom). Left-drag: rotate. Wheel or pinch:
+    // zoom. Right-drag / two-finger drag: pan. Pointer Events cover mouse
+    // + touch uniformly.
+    function SimpleOrbit(camera, dom) {
+        this.camera = camera;
+        this.dom = dom;
+        this.target = new THREE.Vector3(-5, -6, -5);
+        this.radius = 150;
+        this.theta = Math.PI * 0.25;
+        this.phi = Math.PI * 0.38;
+        this.pointers = {};
+        this.pinchDist = 0;
+
+        const self = this;
+
+        dom.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+
+        dom.addEventListener('pointerdown', function(e) {
+            self.pointers[e.pointerId] = {x: e.clientX, y: e.clientY, button: e.button};
+            if (dom.setPointerCapture) {
+                try { dom.setPointerCapture(e.pointerId); } catch (err) {}
+            }
+            const ids = Object.keys(self.pointers);
+            if (ids.length === 2) {
+                const p1 = self.pointers[ids[0]], p2 = self.pointers[ids[1]];
+                self.pinchDist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+            }
+        });
+
+        dom.addEventListener('pointermove', function(e) {
+            const p = self.pointers[e.pointerId];
+            if (!p) return;
+            const dx = e.clientX - p.x, dy = e.clientY - p.y;
+            p.x = e.clientX;
+            p.y = e.clientY;
+            const ids = Object.keys(self.pointers);
+
+            if (ids.length >= 2) {
+                const p1 = self.pointers[ids[0]], p2 = self.pointers[ids[1]];
+                const dist = Math.hypot(p1.x - p2.x, p1.y - p2.y);
+                if (self.pinchDist > 0 && dist > 0) {
+                    self.radius *= self.pinchDist / dist;
+                    self.clampRadius();
+                }
+                self.pinchDist = dist;
+            } else if (p.button === 2) {
+                self.pan(dx, dy);
+            } else {
+                self.theta -= dx * 0.005;
+                self.phi = Math.max(0.05, Math.min(Math.PI - 0.05, self.phi - dy * 0.005));
+            }
+        });
+
+        function release(e) {
+            delete self.pointers[e.pointerId];
+            self.pinchDist = 0;
+        }
+        dom.addEventListener('pointerup', release);
+        dom.addEventListener('pointercancel', release);
+
+        dom.addEventListener('wheel', function(e) {
+            e.preventDefault();
+            self.radius *= Math.exp(e.deltaY * 0.001);
+            self.clampRadius();
+        }, {passive: false});
+    }
+
+    SimpleOrbit.prototype.clampRadius = function() {
+        this.radius = Math.max(4, Math.min(600, this.radius));
+    };
+
+    SimpleOrbit.prototype.pan = function(dx, dy) {
+        const scale = this.radius * 0.0016;
+        this.camera.updateMatrixWorld();
+        const m = this.camera.matrixWorld.elements;
+        const right = new THREE.Vector3(m[0], m[1], m[2]);
+        const up = new THREE.Vector3(m[4], m[5], m[6]);
+        this.target.addScaledVector(right, -dx * scale);
+        this.target.addScaledVector(up, dy * scale);
+    };
+
+    SimpleOrbit.prototype.positionCamera = function() {
+        const sinPhi = Math.sin(this.phi);
+        this.camera.position.set(
+            this.target.x + this.radius * sinPhi * Math.sin(this.theta),
+            this.target.y + this.radius * Math.cos(this.phi),
+            this.target.z + this.radius * sinPhi * Math.cos(this.theta)
+        );
+        this.camera.lookAt(this.target);
+    };
 
     function init3d(ready) {
         if (t3) { ready(null); return; }
@@ -706,36 +797,32 @@
 
         const scene = new THREE.Scene();
         const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 5000);
-        camera.position.set(0, 190, 300);
 
-        const controls = new THREE.OrbitControls(camera, canvas);
-        controls.minDistance = 30;
-        controls.maxDistance = 1000;
+        const controls = new SimpleOrbit(camera, canvas);
+        controls.positionCamera();
 
         // Starfield backdrop
         const starGeo = new THREE.Geometry();
         for (let i = 0; i < 700; i++) {
             const v = new THREE.Vector3(
-                Math.random() * 2400 - 1200,
-                Math.random() * 1200 - 400,
-                Math.random() * 2400 - 1200
+                Math.random() * 800 - 400,
+                Math.random() * 300 - 120,
+                Math.random() * 800 - 400
             );
-            if (v.length() > 150) starGeo.vertices.push(v);
+            if (v.length() > 100) starGeo.vertices.push(v);
         }
         scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({
             color: 0x88aaff, size: 1.6, transparent: true, opacity: 0.6
         })));
 
-        // Nav grid plane
-        scene.add(new THREE.GridHelper(180, 36, 0x4a1868, 0x2a0a3a));
+        // Nav grid in the galactic plane (10 ly cells)
+        scene.add(new THREE.GridHelper(160, 16, 0x4a1868, 0x2a0a3a));
 
         // Route lines
         const lineObjs = {};
         routes.forEach(function(route) {
-            const from = stations[route.from];
-            const to = stations[route.to];
             const geo = new THREE.Geometry();
-            geo.vertices.push(mapTo3d(from.x, from.y), mapTo3d(to.x, to.y));
+            geo.vertices.push(mapTo3d(route.from), mapTo3d(route.to));
             const mat = new THREE.LineBasicMaterial({
                 color: ROUTE_COLORS[route.type], transparent: true, opacity: 0.3
             });
@@ -751,12 +838,13 @@
         const pos = {};
         Object.keys(stations).forEach(function(name) {
             const d = stations[name];
-            const p = mapTo3d(d.x, d.y);
+            const p = mapTo3d(name);
             pos[name] = p;
+            const isHome = (name === 'Sol');
 
             const specColor = SPEC_COLORS[d.spec] != null ? SPEC_COLORS[d.spec] : ROUTE_COLORS.uplb;
             const core = new THREE.Mesh(
-                new THREE.SphereGeometry(name === 'Sol' ? 2.6 : 1.8, 20, 14),
+                new THREE.SphereGeometry(isHome ? 1.2 : 0.7, 20, 14),
                 new THREE.MeshBasicMaterial({color: specColor})
             );
             core.position.copy(p);
@@ -765,7 +853,7 @@
             meshObjs[name] = core;
 
             const halo = new THREE.Mesh(
-                new THREE.SphereGeometry(name === 'Sol' ? 5.2 : 3.6, 16, 12),
+                new THREE.SphereGeometry(isHome ? 2.6 : 1.6, 16, 12),
                 new THREE.MeshBasicMaterial({
                     color: ROUTE_COLORS[d.faction.toLowerCase()] || 0xffffff,
                     transparent: true, opacity: 0.14,
@@ -784,8 +872,7 @@
             const el = document.createElement('div');
             el.className = 't3d-label';
             el.innerHTML =
-                '<span class="t3d-name">' + esc(displayName(name)) + '</span>' +
-                '<span class="t3d-real">★ ' + esc(d.real) + ' · ' + esc(fmtPop(d.pop)) + '</span>';
+                '<span class="t3d-name">' + esc(displayName(name)) + '</span>';
             el.addEventListener('click', function() { addStationToRoute(name); });
             labelsWrap.appendChild(el);
             labelEls[name] = el;
@@ -838,7 +925,7 @@
     function render3d() {
         if (!t3 || !t3.active) return;
         t3.rafId = requestAnimationFrame(render3d);
-        t3.controls.update();
+        t3.controls.positionCamera();
         t3.renderer.render(t3.scene, t3.camera);
 
         // Project labels

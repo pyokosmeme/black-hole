@@ -24,21 +24,14 @@
     position: relative;
     z-index: 10;
     padding: 80px 20px 40px;
-    max-width: 1800px;
+    max-width: 940px;
     margin: 0 auto;
 }
 
 .transit-grid {
     display: grid;
-    grid-template-columns: 1fr 380px;
+    grid-template-columns: 1fr;
     gap: 20px;
-    min-height: calc(100vh - 140px);
-}
-
-@media (max-width: 1200px) {
-    .transit-grid {
-        grid-template-columns: 1fr;
-    }
 }
 
 /* ═══════════════════════════════════════════════════════════════
