@@ -535,27 +535,23 @@
             return;
         }
 
-        if (plannedRoute.length === 0) {
-            plannedRoute.push(stationName);
-        } else {
-            const lastStation = plannedRoute[plannedRoute.length - 1];
-            const directRoute = findRoute(lastStation, stationName);
+        plannedRoute.push(stationName);
+        updateRouteDisplay();
+    }
 
-            if (directRoute) {
-                plannedRoute.push(stationName);
-            } else {
-                const path = findPath(lastStation, stationName);
-                if (path && path.length > 0) {
-                    path.forEach(function(station) {
-                        if (station !== lastStation) plannedRoute.push(station);
-                    });
-                } else {
-                    plannedRoute.push(stationName);
-                }
+    // Expand the planned picks into actual network hops (transfers through
+    // Sol or other hubs are implicit, not extra stops).
+    function plannedHops() {
+        const hops = [];
+        for (let i = 0; i < plannedRoute.length - 1; i++) {
+            if (plannedRoute[i] === plannedRoute[i + 1]) continue;
+            const path = findPath(plannedRoute[i], plannedRoute[i + 1]);
+            if (!path) { hops.push(null); continue; }
+            for (let j = 0; j < path.length - 1; j++) {
+                hops.push({from: path[j], to: path[j + 1]});
             }
         }
-
-        updateRouteDisplay();
+        return hops;
     }
 
     function findPath(start, end) {
@@ -621,10 +617,11 @@
             routeLines[key].classList.remove('active');
         });
 
-        for (let i = 0; i < plannedRoute.length - 1; i++) {
-            const key = plannedRoute[i] + '-' + plannedRoute[i + 1];
+        plannedHops().forEach(function(hop) {
+            if (!hop) return;
+            const key = hop.from + '-' + hop.to;
             if (routeLines[key]) routeLines[key].classList.add('active');
-        }
+        });
 
         // Sync 3D view if active
         if (t3 && t3.active) apply3dSelection();
@@ -663,17 +660,21 @@
         let totalFdr = 0;
         const legs = [];
 
-        for (let i = 0; i < plannedRoute.length - 1; i++) {
-            const route = findRoute(plannedRoute[i], plannedRoute[i + 1]);
+        plannedHops().forEach(function(hop) {
+            if (!hop) {
+                legs.push({noRoute: true});
+                return;
+            }
+            const route = findRoute(hop.from, hop.to);
             if (route) {
                 totalProper += route.proper;
                 totalTau += route.tau || 0;
                 totalFdr += route.fdr || 0;
-                legs.push(Object.assign({from: plannedRoute[i], to: plannedRoute[i + 1]}, route));
+                legs.push(Object.assign({}, route, {from: hop.from, to: hop.to}));
             } else {
-                legs.push({from: plannedRoute[i], to: plannedRoute[i + 1], noRoute: true});
+                legs.push({from: hop.from, to: hop.to, noRoute: true});
             }
-        }
+        });
 
         if (plannedRoute.length > 1) {
             html += '<div class="totals-section">';
@@ -1118,14 +1119,17 @@
             }
             t3.meshObjs[name].material.color.setHex(color);
         });
+        // Active legs come from the hop expansion, not raw picks
+        const activeHops = {};
+        plannedHops().forEach(function(hop) {
+            if (!hop) return;
+            activeHops[hop.from + '|' + hop.to] = true;
+            activeHops[hop.to + '|' + hop.from] = true;
+        });
         Object.keys(t3.lineObjs).forEach(function(key) {
             const line = t3.lineObjs[key];
             const glow = t3.glowObjs ? t3.glowObjs[key] : null;
-            const parts = key.split('|');
-            let active = false;
-            for (let i = 0; i < plannedRoute.length - 1; i++) {
-                if (plannedRoute[i] === parts[0] && plannedRoute[i + 1] === parts[1]) active = true;
-            }
+            const active = !!activeHops[key];
             const base = ROUTE_COLORS[line.userData.type] || 0xffffff;
             line.userData.active = active;
             // Selected legs: bright cyan and drawn on top of everything so
