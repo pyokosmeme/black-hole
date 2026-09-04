@@ -44,23 +44,6 @@
         'Rigil':      {dist: 4.37, ang: 115, rn: 36, real: 'Alpha Centauri A', spec: 'G-Type', pop: 649, faction: 'HW', labelOffset: {x: -55, y: 12}}
     };
 
-    // Schematic 2D layout: Sol at the center, stations on nested distance
-    // rings (true ly, piecewise-compressed) at hand-picked angles.
-    const MAP_CX = 800, MAP_CY = 500;
-    const RING_LY = [5, 10, 15, 20, 40, 60];
-    const RING_PX = [75, 120, 165, 210, 300, 380];
-
-    function ringR(ly) {
-        if (ly <= RING_LY[0]) return RING_PX[0] * ly / RING_LY[0];
-        for (let i = 0; i < RING_LY.length - 1; i++) {
-            if (ly <= RING_LY[i + 1]) {
-                const t = (ly - RING_LY[i]) / (RING_LY[i + 1] - RING_LY[i]);
-                return RING_PX[i] + t * (RING_PX[i + 1] - RING_PX[i]);
-            }
-        }
-        return RING_PX[RING_PX.length - 1] + (ly - RING_LY[RING_LY.length - 1]) * 1.9;
-    }
-
     // Classic (original freeform) 2D layout coordinates
     const CLASSIC_XY = {
         'Sol': [800, 500],   'Gamov': [950, 300],  'Wolf': [650, 250],
@@ -73,14 +56,6 @@
     Object.keys(CLASSIC_XY).forEach(function(name) {
         stations[name].x = CLASSIC_XY[name][0];
         stations[name].y = CLASSIC_XY[name][1];
-    });
-
-    Object.keys(stations).forEach(function(name) {
-        const s = stations[name];
-        if (!s.dist) { s.sx = MAP_CX; s.sy = MAP_CY; s.r = 0; return; }
-        s.r = ringR(s.dist) + (s.rn || 0);
-        s.sx = MAP_CX + s.r * Math.cos(s.ang * Math.PI / 180);
-        s.sy = MAP_CY + s.r * Math.sin(s.ang * Math.PI / 180);
     });
 
     // ═══════════════════════════════════════════════════════════════
@@ -143,6 +118,53 @@
         {from: 'Sol', to: 'Sipapu', proper: 56.97, tau: 5.697, fdr: 24, type: 'inter'}
     ];
 
+    // Subway mode is deliberately operational rather than geographic. Its
+    // time axis uses the fastest known proper-time journey from Sol, while
+    // the perpendicular axis separates faction/service lanes for clarity.
+    const SUBWAY_MAX_DAYS = 100;
+    const SUBWAY_TRACKS = {
+        'Sol':         {desktop: 500, mobile: 300, desktopLabel: [18, -12], mobileLabel: [18, -12]},
+        'Proxima':     {desktop: 170, mobile: 100, desktopLabel: [-16, -8], mobileLabel: [0, -25]},
+        'Rigil':       {desktop: 245, mobile: 170, desktopLabel: [16, -8],  mobileLabel: [-12, 28]},
+        'Toliman':     {desktop: 320, mobile: 240, desktopLabel: [-16, 20], mobileLabel: [12, -14]},
+        'Barnard':     {desktop: 395, mobile: 145, desktopLabel: [16, 20],  mobileLabel: [-12, 22]},
+        'Tartarus':    {desktop: 170, mobile: 90,  desktopLabel: [16, -8],  mobileLabel: [-12, -14]},
+        'Tau Ceti':    {desktop: 320, mobile: 205, desktopLabel: [16, 20],  mobileLabel: [12, 24]},
+        'Luyten':      {desktop: 430, mobile: 275, desktopLabel: [16, -10], mobileLabel: [12, -10]},
+        'Wolf':        {desktop: 500, mobile: 345, desktopLabel: [16, -10], mobileLabel: [12, -10]},
+        'Gowjin':      {desktop: 570, mobile: 275, desktopLabel: [16, -10], mobileLabel: [-12, 20]},
+        'Issetock':    {desktop: 640, mobile: 345, desktopLabel: [16, 22],  mobileLabel: [12, -10]},
+        'Gamov':       {desktop: 430, mobile: 275, desktopLabel: [16, -10], mobileLabel: [-12, -10]},
+        'Nursia':      {desktop: 570, mobile: 275, desktopLabel: [16, -10], mobileLabel: [-12, -10]},
+        'Bakunawa':    {desktop: 640, mobile: 345, desktopLabel: [-16, 22], mobileLabel: [12, 20]},
+        'Vega':        {desktop: 745, mobile: 440, desktopLabel: [16, -10], mobileLabel: [-12, -10]},
+        'Sipapu':      {desktop: 820, mobile: 515, desktopLabel: [16, 22],  mobileLabel: [-12, -14]},
+        'Ya Ke':       {desktop: 745, mobile: 440, desktopLabel: [16, -10], mobileLabel: [-12, -10]},
+        'Zi Wei Yuan': {desktop: 840, mobile: 485, desktopLabel: [-16, 22], mobileLabel: [-12, 20]}
+    };
+
+    function calculateProperTimesFromSol() {
+        const times = Object.create(null);
+        const pending = Object.keys(stations);
+        pending.forEach(function(name) { times[name] = Infinity; });
+        times.Sol = 0;
+
+        while (pending.length > 0) {
+            pending.sort(function(a, b) { return times[a] - times[b]; });
+            const current = pending.shift();
+            if (!Number.isFinite(times[current])) break;
+            routes.forEach(function(route) {
+                if (route.from !== current && route.to !== current) return;
+                const neighbor = route.from === current ? route.to : route.from;
+                const candidate = times[current] + route.proper;
+                if (candidate < times[neighbor]) times[neighbor] = candidate;
+            });
+        }
+        return times;
+    }
+
+    const SUBWAY_PROPER_TIMES = calculateProperTimesFromSol();
+
     // ═══════════════════════════════════════════════════════════════
     // STATE
     // ═══════════════════════════════════════════════════════════════
@@ -170,6 +192,7 @@
     let view = {x: 0, y: 0, k: 1};
     let mapMode = localStorage.getItem('transit-map-mode') || '2d';
     let layout = localStorage.getItem('transit-map-layout') || 'classic';
+    let subwayMobile = window.innerWidth <= 768;
     let routingMode = localStorage.getItem('transit-routing-mode') || 'fastest';
     if (['fastest', 'transfers', 'burn'].indexOf(routingMode) === -1) routingMode = 'fastest';
 
@@ -218,6 +241,11 @@
 
     function onResize() {
         if (t3 && t3.active) resize3d();
+        const nextSubwayMobile = window.innerWidth <= 768;
+        if (mapMode === '2d' && layout === 'subway' && nextSubwayMobile !== subwayMobile) {
+            subwayMobile = nextSubwayMobile;
+            applyLayout();
+        }
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -326,6 +354,7 @@
         }
         if (mode === mapMode && !silent) {
             if (layoutChanged && mode === '2d') applyLayout();
+            updateModeButtons();
             return;
         }
         if (mode === '3d') {
@@ -360,10 +389,16 @@
     // ═══════════════════════════════════════════════════════════════
 
     function applyLayout() {
+        const container = document.getElementById('map-container');
+        subwayMobile = window.innerWidth <= 768;
+        svg.setAttribute('viewBox', layout === 'subway'
+            ? (subwayMobile ? '0 0 600 1450' : '0 0 1600 1000')
+            : '0 0 1600 1000');
+        if (container) container.classList.toggle('mode-subway', layout === 'subway');
         world.innerHTML = '';
         routeCircles = {};
         routeLines = {};
-        drawRings();
+        drawSubwayGuide();
         drawRoutes();
         drawStations();
         updateRouteDisplay();
@@ -476,54 +511,176 @@
     // 2D DRAWING
     // ═══════════════════════════════════════════════════════════════
 
-    function P(s) {
-        return layout === 'subway' ? {x: s.sx, y: s.sy} : {x: s.x, y: s.y};
+    function subwayTimeX(days) {
+        return 170 + Math.min(days, SUBWAY_MAX_DAYS) / SUBWAY_MAX_DAYS * 1280;
     }
 
-    function drawRings() {
-        if (layout !== 'subway') return;
-        RING_LY.forEach(function(ly, i) {
-            const ring = document.createElementNS(SVG_NS, 'circle');
-            ring.setAttribute('cx', MAP_CX);
-            ring.setAttribute('cy', MAP_CY);
-            ring.setAttribute('r', RING_PX[i]);
-            ring.classList.add('map-ring');
-            world.appendChild(ring);
+    function subwayTimeY(days) {
+        return 180 + Math.min(days, SUBWAY_MAX_DAYS) / SUBWAY_MAX_DAYS * 1130;
+    }
 
-            const lbl = document.createElementNS(SVG_NS, 'text');
-            lbl.classList.add('ring-label');
-            lbl.setAttribute('x', MAP_CX + (i % 2 ? 6 : -46));
-            lbl.setAttribute('y', MAP_CY - RING_PX[i] - 8);
-            lbl.textContent = ly + ' ly';
-            world.appendChild(lbl);
-        });
+    function P(name, station) {
+        if (layout !== 'subway') return {x: station.x, y: station.y};
+        const track = SUBWAY_TRACKS[name];
+        const time = SUBWAY_PROPER_TIMES[name];
+        return subwayMobile
+            ? {x: track.mobile, y: subwayTimeY(time)}
+            : {x: subwayTimeX(time), y: track.desktop};
+    }
+
+    function stationLabelOffset(name, station) {
+        if (layout !== 'subway') return station.labelOffset;
+        const offset = subwayMobile
+            ? SUBWAY_TRACKS[name].mobileLabel
+            : SUBWAY_TRACKS[name].desktopLabel;
+        return {x: offset[0], y: offset[1]};
+    }
+
+    function svgGuideElement(tag, className) {
+        const el = document.createElementNS(SVG_NS, tag);
+        el.setAttribute('class', className);
+        el.setAttribute('aria-hidden', 'true');
+        return el;
+    }
+
+    function drawSubwayGuide() {
+        if (layout !== 'subway') return;
+
+        const guide = svgGuideElement('g', 'subway-guide');
+        const title = svgGuideElement('text', 'subway-guide-title');
+        const subtitle = svgGuideElement('text', 'subway-guide-subtitle');
+        title.textContent = 'PROPER-TIME NETWORK';
+        subtitle.textContent = subwayMobile
+            ? 'FASTEST KNOWN JOURNEY FROM SOL · DAYS ↓'
+            : 'SHORTEST PROPER TIME FROM SOL · DAYS';
+
+        if (subwayMobile) {
+            title.setAttribute('x', 300);
+            title.setAttribute('y', 82);
+            title.setAttribute('text-anchor', 'middle');
+            subtitle.setAttribute('x', 300);
+            subtitle.setAttribute('y', 111);
+            subtitle.setAttribute('text-anchor', 'middle');
+
+            [
+                {x: 70, width: 165, label: 'HOMEWORLDS', color: 'hw'},
+                {x: 240, width: 150, label: 'UPLB', color: 'uplb'},
+                {x: 395, width: 175, label: 'SWI', color: 'swi'}
+            ].forEach(function(lane) {
+                const band = svgGuideElement('rect', 'subway-lane subway-lane-' + lane.color);
+                band.setAttribute('x', lane.x);
+                band.setAttribute('y', 150);
+                band.setAttribute('width', lane.width);
+                band.setAttribute('height', 1185);
+                guide.appendChild(band);
+
+                const label = svgGuideElement('text', 'subway-lane-label subway-lane-label-' + lane.color);
+                label.setAttribute('x', lane.x + lane.width / 2);
+                label.setAttribute('y', 145);
+                label.setAttribute('text-anchor', 'middle');
+                label.textContent = lane.label;
+                guide.appendChild(label);
+            });
+
+            for (let day = 0; day <= SUBWAY_MAX_DAYS; day += 10) {
+                const y = subwayTimeY(day);
+                const tick = svgGuideElement('line', 'subway-time-grid' + (day % 20 === 0 ? ' major' : ''));
+                tick.setAttribute('x1', 56);
+                tick.setAttribute('x2', 570);
+                tick.setAttribute('y1', y);
+                tick.setAttribute('y2', y);
+                guide.appendChild(tick);
+
+                const label = svgGuideElement('text', 'subway-time-label');
+                label.setAttribute('x', 48);
+                label.setAttribute('y', y + 5);
+                label.setAttribute('text-anchor', 'end');
+                label.textContent = day;
+                guide.appendChild(label);
+            }
+        } else {
+            title.setAttribute('x', 1450);
+            title.setAttribute('y', 92);
+            title.setAttribute('text-anchor', 'end');
+            subtitle.setAttribute('x', 1450);
+            subtitle.setAttribute('y', 121);
+            subtitle.setAttribute('text-anchor', 'end');
+
+            [
+                {y: 140, height: 275, label: 'HOMEWORLDS', color: 'hw'},
+                {y: 420, height: 250, label: 'UPLB', color: 'uplb'},
+                {y: 690, height: 185, label: 'SWI', color: 'swi'}
+            ].forEach(function(lane) {
+                const band = svgGuideElement('rect', 'subway-lane subway-lane-' + lane.color);
+                band.setAttribute('x', 145);
+                band.setAttribute('y', lane.y);
+                band.setAttribute('width', 1330);
+                band.setAttribute('height', lane.height);
+                guide.appendChild(band);
+
+                const label = svgGuideElement('text', 'subway-lane-label subway-lane-label-' + lane.color);
+                label.setAttribute('x', 1460);
+                label.setAttribute('y', lane.y + 23);
+                label.setAttribute('text-anchor', 'end');
+                label.textContent = lane.label;
+                guide.appendChild(label);
+            });
+
+            for (let day = 0; day <= SUBWAY_MAX_DAYS; day += 10) {
+                const x = subwayTimeX(day);
+                const tick = svgGuideElement('line', 'subway-time-grid' + (day % 20 === 0 ? ' major' : ''));
+                tick.setAttribute('x1', x);
+                tick.setAttribute('x2', x);
+                tick.setAttribute('y1', 135);
+                tick.setAttribute('y2', 900);
+                guide.appendChild(tick);
+
+                const label = svgGuideElement('text', 'subway-time-label');
+                label.setAttribute('x', x);
+                label.setAttribute('y', 930);
+                label.setAttribute('text-anchor', 'middle');
+                label.textContent = day;
+                guide.appendChild(label);
+            }
+
+            const axis = svgGuideElement('text', 'subway-axis-title');
+            axis.setAttribute('x', 810);
+            axis.setAttribute('y', 970);
+            axis.setAttribute('text-anchor', 'middle');
+            axis.textContent = 'SHORTEST PROPER TIME FROM SOL (DAYS)';
+            guide.appendChild(axis);
+        }
+
+        guide.appendChild(title);
+        guide.appendChild(subtitle);
+        world.appendChild(guide);
     }
 
     function drawRoutes() {
         routes.forEach(function(route) {
             const fromS = stations[route.from];
             const toS = stations[route.to];
-            const a = P(fromS);
-            const b = P(toS);
+            const a = P(route.from, fromS);
+            const b = P(route.to, toS);
             let el;
 
-            if (layout !== 'subway' || route.from === 'Sol' || route.to === 'Sol') {
-                // Spoke routes from Sol are straight (classic layout: all straight)
+            if (layout !== 'subway') {
                 el = document.createElementNS(SVG_NS, 'line');
                 el.setAttribute('x1', a.x);
                 el.setAttribute('y1', a.y);
                 el.setAttribute('x2', b.x);
                 el.setAttribute('y2', b.y);
             } else {
-                // Subway-style arc bowing along the rings
-                const da = ((toS.ang - fromS.ang + 540) % 360) - 180;
-                const am = (fromS.ang + da / 2) * Math.PI / 180;
-                const rc = (fromS.r + toS.r) / 2 + 10;
-                const qx = MAP_CX + rc * Math.cos(am);
-                const qy = MAP_CY + rc * Math.sin(am);
                 el = document.createElementNS(SVG_NS, 'path');
-                el.setAttribute('d', 'M ' + a.x + ' ' + a.y +
-                    ' Q ' + qx + ' ' + qy + ' ' + b.x + ' ' + b.y);
+                if (subwayMobile) {
+                    const midY = (a.y + b.y) / 2;
+                    el.setAttribute('d', 'M ' + a.x + ' ' + a.y +
+                        ' C ' + a.x + ' ' + midY + ', ' + b.x + ' ' + midY + ', ' + b.x + ' ' + b.y);
+                } else {
+                    const midX = (a.x + b.x) / 2;
+                    el.setAttribute('d', 'M ' + a.x + ' ' + a.y +
+                        ' C ' + midX + ' ' + a.y + ', ' + midX + ' ' + b.y + ', ' + b.x + ' ' + b.y);
+                }
                 el.setAttribute('fill', 'none');
             }
             el.classList.add('route-line', route.type + '-route');
@@ -540,30 +697,48 @@
     function drawStations() {
         Object.keys(stations).forEach(function(name) {
             const data = stations[name];
-            const pos = P(data);
+            const pos = P(name, data);
+            const labelOffset = stationLabelOffset(name, data);
             const g = document.createElementNS(SVG_NS, 'g');
             g.classList.add('station-group');
+            g.dataset.station = name;
+            g.setAttribute('role', 'button');
+            g.setAttribute('tabindex', '0');
+            g.setAttribute('aria-label', layout === 'subway'
+                ? displayName(name) + ', ' + SUBWAY_PROPER_TIMES[name].toFixed(1) + ' days from Sol'
+                : displayName(name));
+
+            const tooltip = document.createElementNS(SVG_NS, 'title');
+            tooltip.textContent = layout === 'subway'
+                ? displayName(name) + ' — ' + SUBWAY_PROPER_TIMES[name].toFixed(1) + ' days from Sol'
+                : displayName(name);
 
             const hitArea = document.createElementNS(SVG_NS, 'rect');
             hitArea.classList.add('station-hit-area');
-            const hitX = pos.x - 30 + Math.min(0, data.labelOffset.x);
-            const hitY = pos.y - 30 + Math.min(0, data.labelOffset.y);
+            const hitX = pos.x - 30 + Math.min(0, labelOffset.x);
+            const hitY = pos.y - 30 + Math.min(0, labelOffset.y);
             hitArea.setAttribute('x', hitX);
             hitArea.setAttribute('y', hitY);
-            hitArea.setAttribute('width', 60 + Math.abs(data.labelOffset.x));
-            hitArea.setAttribute('height', 60 + Math.abs(data.labelOffset.y));
+            hitArea.setAttribute('width', 60 + Math.abs(labelOffset.x));
+            hitArea.setAttribute('height', 60 + Math.abs(labelOffset.y));
 
             const circle = document.createElementNS(SVG_NS, 'circle');
             circle.classList.add('station-circle', 'faction-' + data.faction.toLowerCase());
+            const connectionCount = routes.filter(function(route) {
+                return route.from === name || route.to === name;
+            }).length;
+            if (layout === 'subway' && connectionCount > 2) circle.classList.add('transfer-station');
+            if (layout === 'subway' && name === 'Sol') circle.classList.add('sol-station');
             circle.setAttribute('cx', pos.x);
             circle.setAttribute('cy', pos.y);
-            circle.setAttribute('r', 9);
+            circle.setAttribute('r', layout === 'subway' && name === 'Sol' ? 14 :
+                (layout === 'subway' && connectionCount > 2 ? 11 : 9));
 
             routeCircles[name] = circle;
 
-            const labelX = pos.x + data.labelOffset.x;
-            const labelY = pos.y + data.labelOffset.y;
-            const anchor = data.labelOffset.x > 0 ? 'start' : (data.labelOffset.x < 0 ? 'end' : 'middle');
+            const labelX = pos.x + labelOffset.x;
+            const labelY = pos.y + labelOffset.y;
+            const anchor = labelOffset.x > 0 ? 'start' : (labelOffset.x < 0 ? 'end' : 'middle');
 
             const label = document.createElementNS(SVG_NS, 'text');
             label.classList.add('station-label');
@@ -572,6 +747,7 @@
             label.setAttribute('text-anchor', anchor);
             label.textContent = displayName(name);
 
+            g.appendChild(tooltip);
             g.appendChild(hitArea);
             g.appendChild(circle);
             g.appendChild(label);
@@ -580,6 +756,11 @@
             g.addEventListener('click', function(e) {
                 e.stopPropagation();
                 if (dragState.moved > 8) return; // ignore click at end of a drag
+                addStationToRoute(name);
+            });
+            g.addEventListener('keydown', function(e) {
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+                e.preventDefault();
                 addStationToRoute(name);
             });
         });

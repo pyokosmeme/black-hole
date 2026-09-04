@@ -861,19 +861,157 @@
     -webkit-touch-callout: none;
 }
 
-/* Nested-ring subway layout */
-.map-ring {
-    fill: none;
-    stroke: #24384c;
-    stroke-width: 1.5;
-    opacity: 0.9;
+/* Linear proper-time subway layout */
+#map-container.mode-subway:not(.mode-3d) {
+    min-height: 0;
 }
 
-.ring-label {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 20px;
+#map-container.mode-subway:not(.mode-3d) #transit-map {
+    aspect-ratio: 8 / 5;
+    height: auto;
+    min-height: 0;
+    touch-action: auto;
+}
+
+#map-container.mode-subway:not(.mode-3d) .legend {
+    display: none;
+}
+
+#map-container.mode-subway:not(.mode-3d) .map-hint {
+    display: none;
+}
+
+#map-container.mode-subway:not(.mode-3d) .route-line {
+    stroke-width: 4;
+    opacity: 0.48;
+}
+
+#map-container.mode-subway:not(.mode-3d) .route-line.active {
+    stroke-width: 8;
+    opacity: 1;
+}
+
+#map-container.mode-subway:not(.mode-3d) .station-label {
+    font-size: 18px;
+    paint-order: stroke;
+    stroke: rgba(0, 0, 0, 0.94);
+    stroke-width: 4px;
+}
+
+#map-container.mode-subway:not(.mode-3d) .station-circle.transfer-station {
+    fill: #080812;
+    stroke-width: 5;
+}
+
+#map-container.mode-subway:not(.mode-3d) .station-circle.sol-station {
     fill: #ffd166;
-    opacity: 0.9;
-    text-anchor: middle;
+    stroke: #fff4b5;
+    filter: drop-shadow(0 0 10px #ffd166);
+}
+
+.subway-guide {
+    pointer-events: none;
+}
+
+.subway-lane {
+    stroke-width: 1;
+    opacity: 0.07;
+}
+
+.subway-lane-hw {
+    fill: var(--hw);
+    stroke: var(--hw);
+}
+
+.subway-lane-uplb {
+    fill: var(--uplb);
+    stroke: var(--uplb);
+}
+
+.subway-lane-swi {
+    fill: var(--swi);
+    stroke: var(--swi);
+}
+
+.subway-time-grid {
+    stroke: rgba(255, 255, 255, 0.12);
+    stroke-width: 1;
+    stroke-dasharray: 4 8;
+}
+
+.subway-time-grid.major {
+    stroke: rgba(0, 255, 255, 0.25);
+    stroke-width: 1.5;
+}
+
+.subway-time-label {
+    font-family: 'Share Tech Mono', monospace;
+    fill: rgba(255, 255, 255, 0.62);
+    pointer-events: none;
+}
+
+.subway-time-label {
+    font-size: 15px;
+}
+
+.subway-guide-title,
+.subway-axis-title {
+    font-family: 'Orbitron', sans-serif;
+    fill: var(--cyan);
+    letter-spacing: 3px;
+}
+
+.subway-guide-title {
+    font-size: 22px;
+    font-weight: 700;
+}
+
+.subway-guide-subtitle {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 15px;
+    fill: rgba(255, 255, 255, 0.58);
     letter-spacing: 1px;
+}
+
+.subway-axis-title {
+    font-size: 14px;
+}
+
+.subway-lane-label {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 2px;
+}
+
+.subway-lane-label-hw { fill: var(--hw); }
+.subway-lane-label-uplb { fill: var(--uplb); }
+.subway-lane-label-swi { fill: var(--swi); }
+
+@media (max-width: 768px) {
+    #map-container.mode-subway:not(.mode-3d) #transit-map {
+        aspect-ratio: 12 / 29;
+        min-height: 0;
+    }
+
+    #map-container.mode-subway:not(.mode-3d) .station-label {
+        font-size: 16px;
+    }
+
+    .subway-guide-title {
+        font-size: 19px;
+    }
+
+    .subway-guide-subtitle {
+        font-size: 12px;
+    }
+
+    .subway-lane-label {
+        font-size: 12px;
+        letter-spacing: 1px;
+    }
+
+    .subway-time-label {
+        font-size: 14px;
+    }
 }
