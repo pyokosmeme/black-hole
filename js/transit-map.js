@@ -21,8 +21,7 @@
         // UPLB Systems
         'Sol':        {x: 800,  y: 500, real: 'Sol', spec: 'G-Type', pop: 10440, faction: 'UPLB', labelOffset: {x: 0, y: -25}},
         'Gamov':      {x: 950,  y: 300, real: 'Copernicus (55 Cancri A)', spec: 'G-Type', pop: 630.6, faction: 'UPLB', labelOffset: {x: 0, y: -25}},
-        'Cancri 55 B':{x: 1040, y: 340, real: '55 Cancri B', spec: 'Red Dwarf', pop: 3.8, faction: 'UPLB', labelOffset: {x: 0, y: 25}},
-        'Wolf':       {x: 650,  y: 250, real: 'Wolf 1061', spec: 'Red Dwarf', pop: 432, faction: 'UPLB', labelOffset: {x: 0, y: -25}},
+            'Wolf':       {x: 650,  y: 250, real: 'Wolf 1061', spec: 'Red Dwarf', pop: 432, faction: 'UPLB', labelOffset: {x: 0, y: -25}},
         'Luyten':     {x: 500,  y: 400, real: "Luyten's Star", spec: 'Red Dwarf', pop: 322, faction: 'UPLB', labelOffset: {x: -60, y: 0}},
         'Gowjin':     {x: 500,  y: 600, real: 'Gliese 876', spec: 'Red Dwarf', pop: 317, faction: 'UPLB', labelOffset: {x: -60, y: 0}},
         'Issetock':   {x: 650,  y: 700, real: 'Gliese 581', spec: 'Red Dwarf', pop: 28.3, faction: 'UPLB', labelOffset: {x: 0, y: 25}},
@@ -56,8 +55,7 @@
         {from: 'Sol', to: 'Nursia', proper: 54.86, tau: null, fdr: null, type: 'uplb'},
         {from: 'Sol', to: 'Bakunawa', proper: 56.8, tau: null, fdr: null, type: 'uplb'},
         {from: 'Wolf', to: 'Gamov', proper: 31.55, tau: 3.128, fdr: 48, type: 'uplb'},
-        {from: 'Gamov', to: 'Cancri 55 B', proper: 0.2, tau: null, fdr: null, type: 'uplb'},
-
+    
         // SWI internal routes (note: "All None Listed SWI To SWI routes are Prohibitively Long/Expensive")
         {from: 'Ya Ke', to: 'Sipapu', proper: 45.45, tau: 4.51, fdr: 24, type: 'swi'},
         {from: 'Zi Wei Yuan', to: 'Vega', proper: 82.87, tau: 8.22, fdr: 10, type: 'swi'},
@@ -292,9 +290,9 @@
         svg.addEventListener('pointerdown', function(e) {
             dragState.pointers.set(e.pointerId, {x: e.clientX, y: e.clientY});
             dragState.moved = 0;
+            dragState.captured = false;
             if (dragState.pointers.size === 1) {
                 dragState.active = true;
-                try { svg.setPointerCapture(e.pointerId); } catch (err) {}
             } else if (dragState.pointers.size === 2) {
                 const pts = Array.from(dragState.pointers.values());
                 dragState.lastDist = Math.hypot(pts[0].x - pts[1].x, pts[0].y - pts[1].y);
@@ -307,6 +305,14 @@
             const prev = dragState.pointers.get(e.pointerId);
             dragState.moved += Math.hypot(e.clientX - prev.x, e.clientY - prev.y);
             dragState.pointers.set(e.pointerId, {x: e.clientX, y: e.clientY});
+
+            // Capture lazily: only once it is a real drag. Capturing on
+            // pointerdown retargets the subsequent click to the svg root,
+            // which breaks station click handlers.
+            if (dragState.active && !dragState.captured && dragState.moved > 4 && dragState.pointers.size === 1) {
+                dragState.captured = true;
+                try { svg.setPointerCapture(e.pointerId); } catch (err) {}
+            }
 
             if (dragState.pointers.size === 1 && dragState.active) {
                 const inv = svg.getScreenCTM().inverse();
@@ -660,7 +666,6 @@
         'Tau Ceti':   [-3.36, -11.41, 0.47],
         'Vega':       [4.63, 21.94, 11.15],
         'Gamov':      [-22.48, 32.49, -10.95],
-        'Cancri 55 B':[-21.90, 32.20, -11.30],
         'Luyten':     [-8.03, 7.71, -4.97],
         'Wolf':       [-4.56, -0.48, -13.28],
         'Gowjin':     [5.06, -11.40, -8.69],
@@ -681,7 +686,6 @@
         'Rigil':      [24, -1, -22],
         'Toliman':    [18, 1, -24],
         'Proxima':    [20, 6, -18],
-        'Cancri 55 B':[-44, 68, -27]
     };
 
     function mapTo3d(name) {
