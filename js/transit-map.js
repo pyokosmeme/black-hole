@@ -170,6 +170,8 @@
     let view = {x: 0, y: 0, k: 1};
     let mapMode = localStorage.getItem('transit-map-mode') || '2d';
     let layout = localStorage.getItem('transit-map-layout') || 'classic';
+    let routingMode = localStorage.getItem('transit-routing-mode') || 'fastest';
+    if (['fastest', 'transfers', 'burn'].indexOf(routingMode) === -1) routingMode = 'fastest';
 
     function esc(s) {
         return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -201,6 +203,7 @@
         svg.appendChild(world);
 
         buildToolbar();
+        buildRoutingControls();
         applyLayout();
 
         if (mapMode === '3d') {
@@ -256,6 +259,62 @@
         b2.setAttribute('aria-pressed', mapMode === '2d' && layout === 'classic');
         bs.setAttribute('aria-pressed', mapMode === '2d' && layout === 'subway');
         b3.setAttribute('aria-pressed', mapMode === '3d');
+    }
+
+    function buildRoutingControls() {
+        const planner = document.querySelector('.route-planner');
+        const routeContent = document.getElementById('route-content');
+        if (!planner || !routeContent || document.getElementById('route-priority')) return;
+
+        const controls = document.createElement('div');
+        controls.id = 'route-priority';
+        controls.className = 'route-priority';
+        controls.innerHTML =
+            '<div class="route-priority-heading">OPTIMIZE ROUTE</div>' +
+            '<div class="route-priority-options" role="group" aria-label="Route optimization priority">' +
+            '<button class="route-priority-btn" type="button" data-routing-mode="fastest" aria-pressed="false">' +
+            '<span class="route-priority-name">FASTEST</span><span class="route-priority-detail">proper time</span></button>' +
+            '<button class="route-priority-btn" type="button" data-routing-mode="transfers" aria-pressed="false">' +
+            '<span class="route-priority-name">FEWEST TRANSFERS</span><span class="route-priority-detail">number of jumps</span></button>' +
+            '<button class="route-priority-btn" type="button" data-routing-mode="burn" aria-pressed="false">' +
+            '<span class="route-priority-name">LOWEST BURN</span><span class="route-priority-detail">known FDR hours</span></button>' +
+            '</div>' +
+            '<div id="route-priority-note" class="route-priority-note" aria-live="polite"></div>';
+        planner.insertBefore(controls, routeContent);
+
+        Array.from(controls.querySelectorAll('.route-priority-btn')).forEach(function(button) {
+            button.addEventListener('click', function() {
+                setRoutingMode(button.dataset.routingMode);
+            });
+        });
+        updateRoutingControls();
+    }
+
+    function setRoutingMode(mode) {
+        if (['fastest', 'transfers', 'burn'].indexOf(mode) === -1) return;
+        routingMode = mode;
+        localStorage.setItem('transit-routing-mode', routingMode);
+        updateRoutingControls();
+        updateRouteDisplay();
+    }
+
+    function updateRoutingControls() {
+        const buttons = document.querySelectorAll('.route-priority-btn');
+        Array.from(buttons).forEach(function(button) {
+            const active = button.dataset.routingMode === routingMode;
+            button.classList.toggle('active', active);
+            button.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+
+        const note = document.getElementById('route-priority-note');
+        if (!note) return;
+        if (routingMode === 'fastest') {
+            note.textContent = 'MINIMIZES TOTAL PROPER TIME';
+        } else if (routingMode === 'transfers') {
+            note.textContent = 'MINIMIZES JUMPS · FASTEST ROUTE WINS TIES';
+        } else {
+            note.textContent = 'MINIMIZES KNOWN FDR BURN · UNRATED LEGS EXCLUDED';
+        }
     }
 
     function setMode(mode, silent, layoutChoice) {
@@ -546,7 +605,15 @@
         for (let i = 0; i < plannedRoute.length - 1; i++) {
             if (plannedRoute[i] === plannedRoute[i + 1]) continue;
             const path = findPath(plannedRoute[i], plannedRoute[i + 1]);
-            if (!path) { hops.push(null); continue; }
+            if (!path) {
+                hops.push({
+                    from: plannedRoute[i],
+                    to: plannedRoute[i + 1],
+                    noRoute: true,
+                    reason: routingMode === 'burn' ? 'missing-burn-data' : 'unreachable'
+                });
+                continue;
+            }
             for (let j = 0; j < path.length - 1; j++) {
                 hops.push({from: path[j], to: path[j + 1]});
             }
@@ -554,23 +621,56 @@
         return hops;
     }
 
+    function routeScore(route) {
+        if (routingMode === 'burn') {
+            // A missing burn figure is unknown, not a free zero-cost leg.
+            if (route.fdr == null || !Number.isFinite(route.fdr)) return null;
+            return [route.fdr, route.proper];
+        }
+        if (routingMode === 'transfers') return [1, route.proper];
+        return [route.proper, 1];
+    }
+
+    function compareScores(a, b) {
+        if (Math.abs(a[0] - b[0]) > 0.000001) return a[0] - b[0];
+        return a[1] - b[1];
+    }
+
+    // Dijkstra with a two-part score. Fastest and lowest-burn routes use
+    // their respective totals first; fewest-transfers uses hop count first.
     function findPath(start, end) {
-        const queue = [[start]];
-        const visited = new Set([start]);
+        if (start === end) return [start];
+
+        const queue = [{station: start, path: [start], score: [0, 0]}];
+        const best = Object.create(null);
+        best[start] = [0, 0];
 
         while (queue.length > 0) {
-            const path = queue.shift();
-            const current = path[path.length - 1];
-
-            if (current === end) return path;
+            queue.sort(function(a, b) { return compareScores(a.score, b.score); });
+            const current = queue.shift();
+            if (compareScores(current.score, best[current.station]) > 0) continue;
+            if (current.station === end) return current.path;
 
             routes
-                .filter(function(r) { return r.from === current || r.to === current; })
-                .map(function(r) { return r.from === current ? r.to : r.from; })
-                .filter(function(n) { return !visited.has(n); })
-                .forEach(function(neighbor) {
-                    visited.add(neighbor);
-                    queue.push(path.concat([neighbor]));
+                .filter(function(route) {
+                    return route.from === current.station || route.to === current.station;
+                })
+                .forEach(function(route) {
+                    const edgeScore = routeScore(route);
+                    if (!edgeScore) return;
+                    const neighbor = route.from === current.station ? route.to : route.from;
+                    const nextScore = [
+                        current.score[0] + edgeScore[0],
+                        current.score[1] + edgeScore[1]
+                    ];
+                    if (!best[neighbor] || compareScores(nextScore, best[neighbor]) < 0) {
+                        best[neighbor] = nextScore;
+                        queue.push({
+                            station: neighbor,
+                            path: current.path.concat([neighbor]),
+                            score: nextScore
+                        });
+                    }
                 });
         }
 
@@ -618,7 +718,7 @@
         });
 
         plannedHops().forEach(function(hop) {
-            if (!hop) return;
+            if (!hop || hop.noRoute) return;
             const key = hop.from + '-' + hop.to;
             if (routeLines[key]) routeLines[key].classList.add('active');
         });
@@ -658,18 +758,23 @@
         let totalProper = 0;
         let totalTau = 0;
         let totalFdr = 0;
+        let allFdrKnown = true;
         const legs = [];
 
         plannedHops().forEach(function(hop) {
-            if (!hop) {
-                legs.push({noRoute: true});
+            if (!hop || hop.noRoute) {
+                legs.push(hop || {noRoute: true});
                 return;
             }
             const route = findRoute(hop.from, hop.to);
             if (route) {
                 totalProper += route.proper;
                 totalTau += route.tau || 0;
-                totalFdr += route.fdr || 0;
+                if (route.fdr == null) {
+                    allFdrKnown = false;
+                } else {
+                    totalFdr += route.fdr;
+                }
                 legs.push(Object.assign({}, route, {from: hop.from, to: hop.to}));
             } else {
                 legs.push({from: hop.from, to: hop.to, noRoute: true});
@@ -677,29 +782,39 @@
         });
 
         if (plannedRoute.length > 1) {
-            html += '<div class="totals-section">';
-            html +=
-                '<div class="total-box">' +
-                '<div class="total-label">Total Proper Time</div>' +
-                '<div class="total-value">' + totalProper.toFixed(1) + '<span class="total-unit">days</span></div>' +
-                '</div>';
-
-            if (totalTau > 0) {
+            const hasGap = legs.some(function(leg) { return leg.noRoute; });
+            if (hasGap) {
+                html +=
+                    '<div class="route-warning">' +
+                    (routingMode === 'burn'
+                        ? 'NO FULLY COSTED ROUTE · ONE OR MORE REQUIRED LEGS HAVE NO FDR BURN DATA'
+                        : 'NO COMPLETE ROUTE AVAILABLE') +
+                    '</div>';
+            } else {
+                html += '<div class="totals-section">';
                 html +=
                     '<div class="total-box">' +
-                    '<div class="total-label">Total Tau Time</div>' +
-                    '<div class="total-value">' + totalTau.toFixed(1) + '<span class="total-unit">hours</span></div>' +
+                    '<div class="total-label">Total Proper Time</div>' +
+                    '<div class="total-value">' + totalProper.toFixed(1) + '<span class="total-unit">days</span></div>' +
                     '</div>';
-            }
 
-            if (totalFdr > 0) {
+                if (totalTau > 0) {
+                    html +=
+                        '<div class="total-box">' +
+                        '<div class="total-label">Total Tau Time</div>' +
+                        '<div class="total-value">' + totalTau.toFixed(1) + '<span class="total-unit">hours</span></div>' +
+                        '</div>';
+                }
+
                 html +=
                     '<div class="total-box">' +
                     '<div class="total-label">Total FDR Burn</div>' +
-                    '<div class="total-value">' + totalFdr.toFixed(1) + '<span class="total-unit">hours</span></div>' +
+                    (allFdrKnown
+                        ? '<div class="total-value">' + totalFdr.toFixed(1) + '<span class="total-unit">hours</span></div>'
+                        : '<div class="total-value total-unknown">UNKNOWN</div>') +
                     '</div>';
+                html += '</div>';
             }
-            html += '</div>';
 
             html += '<div class="leg-details">';
             html += '<h3>ROUTE SEGMENTS</h3>';
@@ -710,7 +825,11 @@
                     html +=
                         '<div class="leg-item" style="border-left-color: var(--pink);">' +
                         '<div class="leg-route">' + (idx + 1) + '. ' + fromName + ' → ' + toName + '</div>' +
-                        '<div class="leg-times" style="color: var(--pink);">No direct route available</div>' +
+                        '<div class="leg-times" style="color: var(--pink);">' +
+                        (leg.reason === 'missing-burn-data'
+                            ? 'No route with complete FDR burn data'
+                            : 'No route available') +
+                        '</div>' +
                         '</div>';
                 } else {
                     html +=
@@ -1181,7 +1300,7 @@
         // Active legs come from the hop expansion, not raw picks
         const activeHops = {};
         plannedHops().forEach(function(hop) {
-            if (!hop) return;
+            if (!hop || hop.noRoute) return;
             activeHops[hop.from + '|' + hop.to] = true;
             activeHops[hop.to + '|' + hop.from] = true;
         });
@@ -1247,7 +1366,10 @@
         getPlannedRoute: function() { return plannedRoute.slice(); },
         getStations: function() { return Object.assign({}, stations); },
         getRoutes: function() { return routes.slice(); },
+        getRoutingMode: function() { return routingMode; },
+        getResolvedHops: function() { return plannedHops().map(function(hop) { return Object.assign({}, hop); }); },
         addStation: addStationToRoute,
+        setRoutingMode: setRoutingMode,
         setViewMode: setMode
     };
 
