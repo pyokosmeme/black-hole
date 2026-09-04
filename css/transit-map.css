@@ -480,7 +480,8 @@
     z-index: 20;
     display: flex;
     gap: 8px;
-}
+
+    flex-wrap: wrap;}
 
 .map-btn {
     font-family: 'Orbitron', sans-serif;

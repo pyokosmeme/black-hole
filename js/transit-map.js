@@ -60,12 +60,26 @@
         return RING_PX[RING_PX.length - 1] + (ly - RING_LY[RING_LY.length - 1]) * 1.9;
     }
 
+    // Classic (original freeform) 2D layout coordinates
+    const CLASSIC_XY = {
+        'Sol': [800, 500],   'Gamov': [950, 300],  'Wolf': [650, 250],
+        'Luyten': [500, 400],'Gowjin': [500, 600], 'Issetock': [650, 700],
+        'Nursia': [950, 700],'Bakunawa': [800,150],'Vega': [1150, 450],
+        'Ya Ke': [1400, 350],'Zi Wei Yuan': [1400, 600], 'Sipapu': [1150, 700],
+        'Proxima': [300, 700], 'Rigil': [400, 850], 'Toliman': [480, 820],
+        'Tartarus': [250, 550], 'Tau Ceti': [550, 900], 'Barnard': [200, 850]
+    };
+    Object.keys(CLASSIC_XY).forEach(function(name) {
+        stations[name].x = CLASSIC_XY[name][0];
+        stations[name].y = CLASSIC_XY[name][1];
+    });
+
     Object.keys(stations).forEach(function(name) {
         const s = stations[name];
-        if (!s.dist) { s.x = MAP_CX; s.y = MAP_CY; s.r = 0; return; }
+        if (!s.dist) { s.sx = MAP_CX; s.sy = MAP_CY; s.r = 0; return; }
         s.r = ringR(s.dist) + (s.rn || 0);
-        s.x = MAP_CX + s.r * Math.cos(s.ang * Math.PI / 180);
-        s.y = MAP_CY + s.r * Math.sin(s.ang * Math.PI / 180);
+        s.sx = MAP_CX + s.r * Math.cos(s.ang * Math.PI / 180);
+        s.sy = MAP_CY + s.r * Math.sin(s.ang * Math.PI / 180);
     });
 
     // ═══════════════════════════════════════════════════════════════
@@ -153,6 +167,7 @@
     let dragState = {pointers: new Map(), moved: 0, lastDist: 0, lastMid: null, active: false};
     let view = {x: 0, y: 0, k: 1};
     let mapMode = localStorage.getItem('transit-map-mode') || '2d';
+    let layout = localStorage.getItem('transit-map-layout') || 'classic';
 
     function esc(s) {
         return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -185,9 +200,7 @@
 
         buildToolbar();
         initPanZoom();
-        drawRings();
-        drawRoutes();
-        drawStations();
+        applyLayout();
 
         if (mapMode === '3d') {
             setMode('3d', true);
@@ -215,6 +228,7 @@
         bar.className = 'map-toolbar';
         bar.innerHTML =
             '<button id="btn-2d" class="map-btn" type="button" aria-pressed="false">▦ 2D MAP</button>' +
+            '<button id="btn-sub" class="map-btn" type="button" aria-pressed="false">◌ SUBWAY</button>' +
             '<button id="btn-3d" class="map-btn" type="button" aria-pressed="false">◈ 3D MAP</button>';
         container.appendChild(bar);
 
@@ -223,7 +237,8 @@
         hint.textContent = 'PINCH OR SCROLL TO ZOOM · DRAG TO PAN · CLICK STATIONS TO PLAN ROUTE · 3D: DRAG ROTATES / PINCH ZOOMS / RIGHT-DRAG PANS';
         container.appendChild(hint);
 
-        document.getElementById('btn-2d').addEventListener('click', function() { setMode('2d'); });
+        document.getElementById('btn-2d').addEventListener('click', function() { setMode('2d', false, 'classic'); });
+        document.getElementById('btn-sub').addEventListener('click', function() { setMode('2d', false, 'subway'); });
         document.getElementById('btn-3d').addEventListener('click', function() { setMode('3d'); });
 
         updateModeButtons();
@@ -232,15 +247,27 @@
     function updateModeButtons() {
         const b2 = document.getElementById('btn-2d');
         const b3 = document.getElementById('btn-3d');
+        const bs = document.getElementById('btn-sub');
         if (!b2 || !b3) return;
-        b2.classList.toggle('active', mapMode === '2d');
+        b2.classList.toggle('active', mapMode === '2d' && layout === 'classic');
+        bs.classList.toggle('active', mapMode === '2d' && layout === 'subway');
         b3.classList.toggle('active', mapMode === '3d');
-        b2.setAttribute('aria-pressed', mapMode === '2d');
+        b2.setAttribute('aria-pressed', mapMode === '2d' && layout === 'classic');
+        bs.setAttribute('aria-pressed', mapMode === '2d' && layout === 'subway');
         b3.setAttribute('aria-pressed', mapMode === '3d');
     }
 
-    function setMode(mode, silent) {
-        if (mode === mapMode && !silent) return;
+    function setMode(mode, silent, layoutChoice) {
+        let layoutChanged = false;
+        if (layoutChoice && layout !== layoutChoice) {
+            layout = layoutChoice;
+            localStorage.setItem('transit-map-layout', layout);
+            layoutChanged = true;
+        }
+        if (mode === mapMode && !silent) {
+            if (layoutChanged && mode === '2d') applyLayout();
+            return;
+        }
         if (mode === '3d') {
             const b3 = document.getElementById('btn-3d');
             if (b3) { b3.textContent = '◈ LOADING…'; b3.disabled = true; }
@@ -250,6 +277,7 @@
                     console.error('[TransitMap] 3D mode unavailable:', err);
                     mapMode = '2d';
                     localStorage.setItem('transit-map-mode', '2d');
+                    applyLayout();
                     updateModeButtons();
                     return;
                 }
@@ -263,12 +291,25 @@
         mapMode = '2d';
         localStorage.setItem('transit-map-mode', '2d');
         deactivate3d();
+        applyLayout();
         updateModeButtons();
     }
 
     // ═══════════════════════════════════════════════════════════════
     // 2D PAN / ZOOM
     // ═══════════════════════════════════════════════════════════════
+
+    function applyLayout() {
+        world.innerHTML = '';
+        routeCircles = {};
+        routeLines = {};
+        drawRings();
+        drawRoutes();
+        drawStations();
+        updateRouteDisplay();
+        view = {x: 0, y: 0, k: 1};
+        applyView();
+    }
 
     function applyView() {
         world.setAttribute('transform', 'translate(' + view.x + ' ' + view.y + ') scale(' + view.k + ')');
@@ -371,7 +412,12 @@
     // 2D DRAWING
     // ═══════════════════════════════════════════════════════════════
 
+    function P(s) {
+        return layout === 'subway' ? {x: s.sx, y: s.sy} : {x: s.x, y: s.y};
+    }
+
     function drawRings() {
+        if (layout !== 'subway') return;
         RING_LY.forEach(function(ly, i) {
             const ring = document.createElementNS(SVG_NS, 'circle');
             ring.setAttribute('cx', MAP_CX);
@@ -391,27 +437,29 @@
 
     function drawRoutes() {
         routes.forEach(function(route) {
-            const from = stations[route.from];
-            const to = stations[route.to];
+            const fromS = stations[route.from];
+            const toS = stations[route.to];
+            const a = P(fromS);
+            const b = P(toS);
             let el;
 
-            if (route.from === 'Sol' || route.to === 'Sol') {
-                // Spoke routes from Sol are straight
+            if (layout !== 'subway' || route.from === 'Sol' || route.to === 'Sol') {
+                // Spoke routes from Sol are straight (classic layout: all straight)
                 el = document.createElementNS(SVG_NS, 'line');
-                el.setAttribute('x1', from.x);
-                el.setAttribute('y1', from.y);
-                el.setAttribute('x2', to.x);
-                el.setAttribute('y2', to.y);
+                el.setAttribute('x1', a.x);
+                el.setAttribute('y1', a.y);
+                el.setAttribute('x2', b.x);
+                el.setAttribute('y2', b.y);
             } else {
                 // Subway-style arc bowing along the rings
-                const da = ((to.ang - from.ang + 540) % 360) - 180;
-                const am = (from.ang + da / 2) * Math.PI / 180;
-                const rc = (from.r + to.r) / 2 + 10;
+                const da = ((toS.ang - fromS.ang + 540) % 360) - 180;
+                const am = (fromS.ang + da / 2) * Math.PI / 180;
+                const rc = (fromS.r + toS.r) / 2 + 10;
                 const qx = MAP_CX + rc * Math.cos(am);
                 const qy = MAP_CY + rc * Math.sin(am);
                 el = document.createElementNS(SVG_NS, 'path');
-                el.setAttribute('d', 'M ' + from.x + ' ' + from.y +
-                    ' Q ' + qx + ' ' + qy + ' ' + to.x + ' ' + to.y);
+                el.setAttribute('d', 'M ' + a.x + ' ' + a.y +
+                    ' Q ' + qx + ' ' + qy + ' ' + b.x + ' ' + b.y);
                 el.setAttribute('fill', 'none');
             }
             el.classList.add('route-line', route.type + '-route');
@@ -428,13 +476,14 @@
     function drawStations() {
         Object.keys(stations).forEach(function(name) {
             const data = stations[name];
+            const pos = P(data);
             const g = document.createElementNS(SVG_NS, 'g');
             g.classList.add('station-group');
 
             const hitArea = document.createElementNS(SVG_NS, 'rect');
             hitArea.classList.add('station-hit-area');
-            const hitX = data.x - 30 + Math.min(0, data.labelOffset.x);
-            const hitY = data.y - 30 + Math.min(0, data.labelOffset.y);
+            const hitX = pos.x - 30 + Math.min(0, data.labelOffset.x);
+            const hitY = pos.y - 30 + Math.min(0, data.labelOffset.y);
             hitArea.setAttribute('x', hitX);
             hitArea.setAttribute('y', hitY);
             hitArea.setAttribute('width', 60 + Math.abs(data.labelOffset.x));
@@ -442,14 +491,14 @@
 
             const circle = document.createElementNS(SVG_NS, 'circle');
             circle.classList.add('station-circle', 'faction-' + data.faction.toLowerCase());
-            circle.setAttribute('cx', data.x);
-            circle.setAttribute('cy', data.y);
+            circle.setAttribute('cx', pos.x);
+            circle.setAttribute('cy', pos.y);
             circle.setAttribute('r', 9);
 
             routeCircles[name] = circle;
 
-            const labelX = data.x + data.labelOffset.x;
-            const labelY = data.y + data.labelOffset.y;
+            const labelX = pos.x + data.labelOffset.x;
+            const labelY = pos.y + data.labelOffset.y;
             const anchor = data.labelOffset.x > 0 ? 'start' : (data.labelOffset.x < 0 ? 'end' : 'middle');
 
             const label = document.createElementNS(SVG_NS, 'text');
@@ -733,9 +782,9 @@
     // labels don't overlap (Sol/α Cen trio are within ~4.4 ly in reality).
     // Hand-spread exceptions below break pure scaling for the tightest cluster.
     const LABEL_SPREAD = {
-        'Rigil':      [24, -1, -22],
-        'Toliman':    [18, 1, -24],
-        'Proxima':    [20, 6, -18],
+        'Rigil':      [38, -2, -35],
+        'Toliman':    [29, 2, -38],
+        'Proxima':    [32, 10, -29],
     };
 
     function mapTo3d(name) {
@@ -746,7 +795,7 @@
         const c = COORD3[name] || [0, 0, 0];
         const v = new THREE.Vector3(c[0], c[1], c[2]);
         const r = v.length();
-        if (r > 0.0001) v.multiplyScalar(14 * Math.sqrt(r) / r);
+        if (r > 0.0001) v.multiplyScalar(22 * Math.sqrt(r) / r);
         return v;
     }
 
@@ -756,8 +805,8 @@
     function SimpleOrbit(camera, dom) {
         this.camera = camera;
         this.dom = dom;
-        this.target = new THREE.Vector3(-5, -6, -5);
-        this.radius = 190;
+        this.target = new THREE.Vector3(-9, -11, -9);
+        this.radius = 290;
         this.theta = Math.PI * 0.25;
         this.phi = Math.PI * 0.38;
         this.pointers = {};
@@ -819,7 +868,7 @@
     }
 
     SimpleOrbit.prototype.clampRadius = function() {
-        this.radius = Math.max(4, Math.min(600, this.radius));
+        this.radius = Math.max(8, Math.min(900, this.radius));
     };
 
     SimpleOrbit.prototype.pan = function(dx, dy) {
@@ -879,18 +928,18 @@
         const starGeo = new THREE.Geometry();
         for (let i = 0; i < 700; i++) {
             const v = new THREE.Vector3(
-                Math.random() * 800 - 400,
-                Math.random() * 300 - 120,
-                Math.random() * 800 - 400
+                Math.random() * 1800 - 900,
+                Math.random() * 700 - 280,
+                Math.random() * 1800 - 900
             );
-            if (v.length() > 100) starGeo.vertices.push(v);
+            if (v.length() > 220) starGeo.vertices.push(v);
         }
         scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({
-            color: 0x88aaff, size: 1.6, transparent: true, opacity: 0.6
+            color: 0x88aaff, size: 2.2, transparent: true, opacity: 0.6
         })));
 
-        // Nav grid (scene units after sqrt scaling — stars reach ~120)
-        scene.add(new THREE.GridHelper(260, 26, 0x4a1868, 0x2a0a3a));
+        // Nav grid (scene units after sqrt scaling — stars reach ~185)
+        scene.add(new THREE.GridHelper(420, 42, 0x4a1868, 0x2a0a3a));
 
         // Route lines
         const lineObjs = {};
