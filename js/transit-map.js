@@ -35,7 +35,7 @@
         'Zi Wei Yuan':{dist: 68.2, ang: -135, real: 'HD 33564', spec: 'Yellow-White Dwarf', pop: 258.6, faction: 'SWI', labelOffset: {x: 0, y: -25}},
         'Sipapu':     {dist: 41.0, ang: -20,  real: 'HD 69830 (285 G. Puppis)', spec: 'Yellow Dwarf', pop: 254, faction: 'SWI', labelOffset: {x: 60, y: 0}},
         // Homeworlds Systems
-        'Proxima':    {dist: 4.24, ang: 85,   real: 'Proxima Centauri', spec: 'Red Dwarf', pop: 397, faction: 'HW', label: 'Proxima Astraeus', labelOffset: {x: 0, y: 28}},
+        'Proxima':    {dist: 4.24, ang: 85, rn: 30, real: 'Proxima Centauri', spec: 'Red Dwarf', pop: 397, faction: 'HW', label: 'Proxima Astraeus', labelOffset: {x: 0, y: 28}},
         'Toliman':    {dist: 4.37, ang: 160, rn: 30, real: 'Alpha Centauri B', spec: 'K-Type', pop: 7, faction: 'HW', labelOffset: {x: -60, y: 0}},
         'Tartarus':   {dist: 11.0, ang: 95,   real: 'Ross 128', spec: 'Red Dwarf', pop: 231, faction: 'HW', labelOffset: {x: -60, y: 0}},
         'Tau Ceti':   {dist: 11.9, ang: 155,  real: 'Tian Cang (Tau Ceti)', spec: 'G-Type', pop: 228.3, faction: 'HW', labelOffset: {x: -60, y: 0}},
@@ -201,7 +201,6 @@
         svg.appendChild(world);
 
         buildToolbar();
-        initPanZoom();
         applyLayout();
 
         if (mapMode === '3d') {
@@ -236,7 +235,7 @@
 
         const hint = document.createElement('div');
         hint.className = 'map-hint';
-        hint.textContent = 'PINCH OR SCROLL TO ZOOM · DRAG TO PAN · CLICK STATIONS TO PLAN ROUTE · 3D: DRAG ROTATES / PINCH ZOOMS / RIGHT-DRAG PANS';
+        hint.textContent = 'CLICK STATIONS TO PLAN ROUTE · 3D: DRAG ROTATES · PINCH OR SCROLL ZOOMS · RIGHT-DRAG PANS';
         container.appendChild(hint);
 
         document.getElementById('btn-2d').addEventListener('click', function() { setMode('2d', false, 'classic'); });
@@ -311,7 +310,7 @@
         updateRouteDisplay();
         view = {x: 0, y: 0, k: 1};
         applyView();
-        svg.style.touchAction = (layout === 'subway') ? 'none' : 'auto';
+        svg.style.touchAction = 'auto'; // 2D maps are static
     }
 
     function applyView() {
@@ -1016,6 +1015,19 @@
             pickObjs[name] = pick;
         });
 
+        // Route pulse beacons: bright dots that travel along active legs
+        const pulses = [];
+        for (let pi = 0; pi < 10; pi++) {
+            const m = new THREE.Mesh(
+                new THREE.SphereGeometry(2.2, 10, 8),
+                new THREE.MeshBasicMaterial({color: 0x66ffff, transparent: true,
+                    opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false})
+            );
+            m.visible = false;
+            scene.add(m);
+            pulses.push(m);
+        }
+
         // HTML overlay labels projected each frame
         const labelEls = {};
         Object.keys(stations).forEach(function(name) {
@@ -1053,6 +1065,7 @@
             wrap: wrap, canvas: canvas,
             renderer: renderer, scene: scene, camera: camera, controls: controls,
             meshObjs: meshObjs, haloObjs: haloObjs, lineObjs: lineObjs, glowObjs: glowObjs,
+            pulses: pulses, activeLegs: [],
             labelEls: labelEls, pos: pos,
             width: 1, height: 1, rafId: null, tmp: new THREE.Vector3()
         };
@@ -1077,6 +1090,23 @@
         if (!t3 || !t3.active) return;
         t3.rafId = requestAnimationFrame(render3d);
         t3.controls.positionCamera();
+
+        // Animate active route lines (pulse) + traveling beacons
+        const now = performance.now() * 0.001;
+        Object.keys(t3.lineObjs).forEach(function(key) {
+            const line = t3.lineObjs[key];
+            const glow = t3.glowObjs[key];
+            if (line.userData.active) {
+                line.material.opacity = 0.78 + 0.22 * Math.sin(now * 5);
+                glow.material.opacity = 0.5 + 0.2 * Math.sin(now * 5);
+            }
+        });
+        (t3.pulses || []).forEach(function(m) {
+            if (!m.visible || !m.userData) return;
+            const t = (now % 2.4) / 2.4;
+            m.position.copy(t3.pos[m.userData.a]).lerp(t3.pos[m.userData.b], t);
+        });
+
         t3.renderer.render(t3.scene, t3.camera);
 
         // Project labels
@@ -1117,11 +1147,27 @@
             }
             const base = ROUTE_COLORS[line.userData.type] || 0xffffff;
             const bright = BRIGHT_ROUTE_COLORS[line.userData.type] || 0xffffff;
-            line.material.opacity = active ? 1 : 0.5;
+            line.userData.active = active;
+            line.material.opacity = active ? 0.85 : 0.5;
             line.material.color.setHex(active ? bright : base);
             if (glow) {
-                glow.material.opacity = active ? 0.6 : 0.22;
+                glow.userData.active = active;
+                glow.material.opacity = active ? 0.55 : 0.22;
                 glow.material.color.setHex(active ? bright : base);
+            }
+        });
+
+        // Traveling pulse beacons, one per active leg
+        const legs = [];
+        for (let i = 0; i < plannedRoute.length - 1; i++) legs.push([plannedRoute[i], plannedRoute[i + 1]]);
+        t3.activeLegs = legs;
+        (t3.pulses || []).forEach(function(m, i) {
+            if (i < legs.length) {
+                m.visible = true;
+                m.userData = {a: legs[i][0], b: legs[i][1]};
+            } else {
+                m.visible = false;
+                m.userData = null;
             }
         });
     }
