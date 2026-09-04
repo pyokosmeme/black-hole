@@ -81,14 +81,16 @@
     fill: none;
     stroke-width: 3;
     opacity: 0.55; /* Increased from 0.4 for better visibility */
-    transition: all 0.3s ease;
+    transition: opacity 0.18s ease, stroke-width 0.18s ease;
     pointer-events: none;
 }
 
 .route-line.active {
     opacity: 1;
     stroke-width: 5;
-    filter: drop-shadow(0 0 8px currentColor);
+    stroke: var(--pink) !important;
+    stroke-dasharray: none;
+    filter: drop-shadow(0 0 5px var(--pink)) drop-shadow(0 0 11px rgba(255, 0, 128, 0.72));
 }
 
 .uplb-route { stroke: var(--uplb); }
@@ -102,6 +104,18 @@
 
 .station-group {
     cursor: pointer;
+    outline: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.station-group:focus {
+    outline: none;
+}
+
+.station-group:focus-visible .station-circle {
+    stroke: #fff !important;
+    stroke-width: 5;
+    filter: drop-shadow(0 0 5px #fff) drop-shadow(0 0 12px var(--cyan));
 }
 
 .station-group:hover .station-circle {
