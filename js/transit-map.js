@@ -1083,8 +1083,8 @@
             const line = t3.lineObjs[key];
             const glow = t3.glowObjs[key];
             if (line.userData.active) {
-                line.material.opacity = 0.78 + 0.22 * Math.sin(now * 5);
-                glow.material.opacity = 0.5 + 0.2 * Math.sin(now * 5);
+                line.material.opacity = 0.85 + 0.15 * Math.sin(now * 5);
+                glow.material.opacity = 0.5 + 0.15 * Math.sin(now * 5);
             }
         });
 
@@ -1127,14 +1127,19 @@
                 if (plannedRoute[i] === parts[0] && plannedRoute[i + 1] === parts[1]) active = true;
             }
             const base = ROUTE_COLORS[line.userData.type] || 0xffffff;
-            const bright = BRIGHT_ROUTE_COLORS[line.userData.type] || 0xffffff;
             line.userData.active = active;
-            line.material.opacity = active ? 0.85 : 0.5;
-            line.material.color.setHex(active ? bright : base);
+            // Selected legs: bright cyan and drawn on top of everything so
+            // they can't hide behind halos, grid, or other geometry.
+            line.material.opacity = active ? 1 : 0.5;
+            line.material.color.setHex(active ? 0x00ffff : base);
+            line.material.depthTest = !active;
+            line.renderOrder = active ? 999 : 0;
             if (glow) {
                 glow.userData.active = active;
-                glow.material.opacity = active ? 0.55 : 0.22;
-                glow.material.color.setHex(active ? bright : base);
+                glow.material.opacity = active ? 0.6 : 0.22;
+                glow.material.color.setHex(active ? 0x66ffff : base);
+                glow.material.depthTest = !active;
+                glow.renderOrder = active ? 998 : 0;
             }
         });
 
