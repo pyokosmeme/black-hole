@@ -1015,19 +1015,6 @@
             pickObjs[name] = pick;
         });
 
-        // Route pulse beacons: bright dots that travel along active legs
-        const pulses = [];
-        for (let pi = 0; pi < 10; pi++) {
-            const m = new THREE.Mesh(
-                new THREE.SphereGeometry(2.2, 10, 8),
-                new THREE.MeshBasicMaterial({color: 0x66ffff, transparent: true,
-                    opacity: 0.95, blending: THREE.AdditiveBlending, depthWrite: false})
-            );
-            m.visible = false;
-            scene.add(m);
-            pulses.push(m);
-        }
-
         // HTML overlay labels projected each frame
         const labelEls = {};
         Object.keys(stations).forEach(function(name) {
@@ -1065,7 +1052,6 @@
             wrap: wrap, canvas: canvas,
             renderer: renderer, scene: scene, camera: camera, controls: controls,
             meshObjs: meshObjs, haloObjs: haloObjs, lineObjs: lineObjs, glowObjs: glowObjs,
-            pulses: pulses, activeLegs: [],
             labelEls: labelEls, pos: pos,
             width: 1, height: 1, rafId: null, tmp: new THREE.Vector3()
         };
@@ -1091,7 +1077,7 @@
         t3.rafId = requestAnimationFrame(render3d);
         t3.controls.positionCamera();
 
-        // Animate active route lines (pulse) + traveling beacons
+        // Animate active route lines (gentle pulse)
         const now = performance.now() * 0.001;
         Object.keys(t3.lineObjs).forEach(function(key) {
             const line = t3.lineObjs[key];
@@ -1100,11 +1086,6 @@
                 line.material.opacity = 0.78 + 0.22 * Math.sin(now * 5);
                 glow.material.opacity = 0.5 + 0.2 * Math.sin(now * 5);
             }
-        });
-        (t3.pulses || []).forEach(function(m) {
-            if (!m.visible || !m.userData) return;
-            const t = (now % 2.4) / 2.4;
-            m.position.copy(t3.pos[m.userData.a]).lerp(t3.pos[m.userData.b], t);
         });
 
         t3.renderer.render(t3.scene, t3.camera);
@@ -1157,19 +1138,8 @@
             }
         });
 
-        // Traveling pulse beacons, one per active leg
-        const legs = [];
-        for (let i = 0; i < plannedRoute.length - 1; i++) legs.push([plannedRoute[i], plannedRoute[i + 1]]);
-        t3.activeLegs = legs;
-        (t3.pulses || []).forEach(function(m, i) {
-            if (i < legs.length) {
-                m.visible = true;
-                m.userData = {a: legs[i][0], b: legs[i][1]};
-            } else {
-                m.visible = false;
-                m.userData = null;
-            }
-        });
+        // Traveling pulse beacons removed — static highlight only.
+        t3.activeLegs = [];
     }
 
     function activate3d() {
