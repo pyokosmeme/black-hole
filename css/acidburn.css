@@ -428,6 +428,28 @@ body.light-mode .static-bg {
     align-items: center;
 }
 
+/* Anchor the dropdown to the header frame, rather than centering on its button. */
+.header-bar #nav-menu {
+    position: static;
+}
+
+.header-bar .nav-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    transform: translateY(-10px);
+}
+
+.header-bar .nav-menu.open .nav-dropdown {
+    transform: translateY(0);
+}
+
+@media (max-width: 768px) {
+    .header-bar .nav-dropdown {
+        right: 0;
+    }
+}
+
 .header-bookend {
     display: none;
 }
