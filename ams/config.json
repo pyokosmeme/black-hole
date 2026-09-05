@@ -13,6 +13,14 @@
   "links": [
 
     {
+      "id": "read-free",
+      "label": "Read the full book free",
+      "url": "https://amoteinshadow.lastnpcalex.agency/",
+      "icon": "◬",
+      "desc": "A Mote in Shadow: complete free online edition"
+    },
+
+    {
       "id": "amzn",
       "label": "Amazon",
       "url": "https://a.co/d/d4eV40z",
