@@ -64,6 +64,8 @@ test('share URL contains the complete source and a Markdown alternate', async ()
   assert.match(response.headers.get('content-type'), /text\/html/);
   const html = await response.text();
   assert.match(html, /Full article context lives here/);
+  assert.match(html, /<p>Full article context lives here\.<\/p>/);
+  assert.doesNotMatch(html, /<pre class="markdown-source">/);
   assert.match(html, /rel="alternate" type="text\/markdown"/);
   assert.doesNotMatch(html, /http-equiv="refresh"/i);
 });
@@ -129,6 +131,40 @@ test('owner can publish a managed transmission and readers can fetch it', async 
 
   const bodyResponse = await handleContentRequest(new Request('https://lastnpcalex.agency/api/transmissions/futures/new-vector'), env);
   assert.equal(await bodyResponse.text(), payload.markdown);
+
+  const share = await handleContentRequest(new Request('https://lastnpcalex.agency/p/futures/new-vector'), env);
+  assert.match(await share.text(), /<p>The edge speaks\.<\/p>/);
+  const alternate = await handleContentRequest(new Request('https://lastnpcalex.agency/p/futures/new-vector.md'), env);
+  assert.match(await alternate.text(), /# NEW VECTOR\n\nThe edge speaks\./);
+});
+
+test('published overlays update both share formats while drafts stay private and API source stays original', async () => {
+  const env = makeEnv();
+  const path = 'https://lastnpcalex.agency/p/test-signal';
+  const record = { section: 'author', slug: 'test-signal', title: 'Updated', date: '2026.09.05',
+    status: 'draft', markdown: '<style>.private{color:red}</style><h2>Private revision</h2>' };
+  await env.SESSIONS.put('transmission:author:test-signal', JSON.stringify(record));
+  for (const suffix of ['', '.md']) {
+    const response = await handleContentRequest(new Request(path + suffix), env);
+    const body = await response.text();
+    assert.match(body, /Full article context lives here/);
+    assert.doesNotMatch(body, /Private revision/);
+  }
+  record.status = 'published';
+  await env.SESSIONS.put('transmission:author:test-signal', JSON.stringify(record));
+  for (const suffix of ['', '.md']) {
+    const response = await handleContentRequest(new Request(path + suffix), env);
+    const body = await response.text();
+    assert.match(body, /Private revision/);
+    assert.doesNotMatch(body, /Full article context lives here|\.private/);
+  }
+  const original = await handleContentRequest(new Request('https://lastnpcalex.agency/api/transmissions/author/test-signal'), env);
+  assert.equal(await original.text(), record.markdown);
+  const head = await handleContentRequest(new Request(path, { method: 'HEAD' }), env);
+  assert.equal(head.status, 200);
+  assert.equal(await head.text(), '');
+  const missing = await handleContentRequest(new Request('https://lastnpcalex.agency/p/missing'), env);
+  assert.equal(missing.status, 404);
 });
 
 test('non-owner session cannot access admin data', async () => {

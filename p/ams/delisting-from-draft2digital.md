@@ -4,6 +4,7 @@ date: 2026.06.20
 tags: publishing, draft2digital, announcements
 canonical: https://lastnpcalex.agency/p/ams/delisting-from-draft2digital
 ---
+
 ## i. the situation
 
 As Draft2Digital is moving to annual fees for managing books sold through their platform, and my sales have primarily been free copies via OverDrive, I have begun the process to de-list from Draft2Digital and winding down my account there.

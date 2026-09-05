@@ -259,6 +259,7 @@ Set which folder each page uses via `PAGE_CONFIG` in the HTML:
 
 ## Agent-readable share URLs
 
+Install the renderer dependencies once with `npm ci` (Node.js 22 or newer).
 Run the share-page generator after changing either a post index or an article:
 
 ```powershell
@@ -272,6 +273,20 @@ For each transmission it creates three discovery surfaces:
 - `/llms.txt` lists every transmission and its Markdown alternate. The Worker also serves the same index at `/.well-known/llms.txt` and includes admin-published transmissions dynamically.
 
 Do not add a meta-refresh redirect to the generated share page. JavaScript provides the human redirect; omitting meta refresh lets non-browser readers retain the document context.
+
+The Worker and static generator share `transmission-document.js`. It renders
+Markdown and embedded HTML into sanitized article HTML, removes presentation
+CSS and scripts, and derives clean Markdown and plain-text Article metadata.
+TeX equations remain readable without a math runtime. Reference and equation
+anchors use an `article-` prefix consistently in both representations; Markdown
+retains small HTML anchors and subscript/superscript tags where needed. SVG
+diagrams expose their authored labels as text. Relative links and images resolve from
+the interactive page's location.
+
+These are read-only representations of the published source. The SPA and public
+body API still receive the original article; admin storage, drafts, editing,
+publishing, and subscriptions use the same workflow. Run `npm test` to check
+the renderer and Worker behavior. The static generator also requires Node.js.
 
 ---
 

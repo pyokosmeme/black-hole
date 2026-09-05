@@ -4,6 +4,7 @@ date: 2025.08.04
 tags: speculative presents, vector-punk, legibility, vectoralism
 canonical: https://lastnpcalex.agency/p/futures/whiskey-fractal
 ---
+
 ## where is my eigen-john wayne?
 
 **you are a fractal. in space.** against a clear background.

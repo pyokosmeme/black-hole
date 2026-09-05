@@ -1,7 +1,7 @@
 """Generate agent-readable transmission pages and Markdown alternates.
 
 Each p/<section>/<slug>.html file carries social metadata and the complete
-article source. Browsers execute a JavaScript redirect to the interactive SPA;
+article as semantic HTML. Browsers execute a JavaScript redirect to the interactive SPA;
 non-JavaScript clients (including agents and crawlers) can read the document in
 place. A sibling .md URL and a site-wide llms.txt index are generated as well.
 
@@ -12,6 +12,7 @@ Run after editing any posts.md or post Markdown file:
 import html
 import json
 import re
+import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -97,13 +98,13 @@ STUB = """<!doctype html>
 <link rel="alternate" type="text/markdown" href="{stub_url}.md" title="Markdown source">
 <script type="application/ld+json">{json_ld}</script>
 <script>window.location.replace({interactive_json});</script>
-<style>body{{max-width:78ch;margin:3rem auto;padding:0 1.25rem;background:#0a0a1a;color:#d9faff;font:16px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace}}h1,a{{color:#66ffff}}.meta{{color:#c78aff}}.excerpt{{border-left:3px solid #bf00ff;padding-left:1rem}}.markdown-source{{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit}}</style>
+<style>body{{max-width:78ch;margin:3rem auto;padding:0 1.25rem;background:#0a0a1a;color:#d9faff;font:16px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace}}h1,a{{color:#66ffff}}.meta{{color:#c78aff}}.excerpt{{border-left:3px solid #bf00ff;padding-left:1rem}}.article-body pre,.math-inline{{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit}}.article-body img{{max-width:100%}}</style>
 </head>
 <body>
 <article id="transmission-document">
 <header><h1>{title}</h1><p class="meta">{date} ;; {tags}</p></header>
 {excerpt_html}
-<pre class="markdown-source">{markdown}</pre>
+<div class="article-body">{article_html}</div>
 <p><a href="{interactive}">Open the interactive transmission</a> · <a href="{stub_url}.md">Markdown source</a></p>
 </article>
 </body>
@@ -111,7 +112,7 @@ STUB = """<!doctype html>
 """
 
 
-def build_stub(post: dict, stub_url: str, page: str, markdown: str) -> str:
+def build_stub(post: dict, stub_url: str, page: str, document: dict) -> str:
     title = post.get("title", post["slug"])
     excerpt = post.get("excerpt", "")
     if len(excerpt) > 300:
@@ -127,7 +128,7 @@ def build_stub(post: dict, stub_url: str, page: str, markdown: str) -> str:
             "description": excerpt,
             "url": stub_url,
             "author": {"@type": "Person", "name": "A.N. Alex", "url": SITE},
-            "articleBody": markdown,
+            "articleBody": document["text"],
         },
         ensure_ascii=False,
     ).replace("</", "<\\/")
@@ -144,7 +145,7 @@ def build_stub(post: dict, stub_url: str, page: str, markdown: str) -> str:
         excerpt_html=(
             f'<p class="excerpt">{html.escape(excerpt)}</p>' if excerpt else ""
         ),
-        markdown=html.escape(markdown),
+        article_html=document["html"],
     )
 
 
@@ -158,7 +159,27 @@ def build_markdown(post: dict, stub_url: str, markdown: str) -> str:
         "---",
         "",
     ]
-    return "\n".join(metadata) + markdown.strip() + "\n"
+    return "\n".join(metadata) + "\n" + markdown.strip() + "\n"
+
+
+def render_documents(posts: list, section_root: Path, page: str) -> list:
+    sources = []
+    for post in posts:
+        source_path = section_root / post.get("file", "")
+        if not source_path.is_file():
+            raise FileNotFoundError(f"Missing article source: {source_path}")
+        sources.append({
+            "source": source_path.read_text(encoding="utf-8"),
+            "baseUrl": f"{SITE}{page}",
+        })
+    result = subprocess.run(
+        ["node", str(ROOT / "scripts/render-transmissions.mjs")],
+        input=json.dumps(sources), capture_output=True, text=True,
+        encoding="utf-8", cwd=ROOT,
+    )
+    if result.returncode:
+        raise RuntimeError(f"Article renderer failed (run npm ci first):\n{result.stderr}")
+    return json.loads(result.stdout)
 
 
 def main():
@@ -184,26 +205,18 @@ def main():
         llms_posts = []
         section_root = posts_md.parent.parent
 
-        for post in posts:
+        documents = render_documents(posts, section_root, page) if posts else []
+        for post, document in zip(posts, documents, strict=True):
             slug = post["slug"]
             html_name = f"{slug}.html"
             markdown_name = f"{slug}.md"
             current.update((html_name, markdown_name))
             stub_url = f"{stub_prefix}/{slug}"
-            source_path = section_root / post.get("file", "")
-            markdown = (
-                source_path.read_text(encoding="utf-8")
-                if source_path.is_file()
-                else ""
-            )
-            # Generated artifacts should not inherit incidental trailing spaces
-            # from hand-authored HTML/Markdown lines.
-            markdown = "\n".join(line.rstrip() for line in markdown.splitlines())
             (out_dir / html_name).write_text(
-                build_stub(post, stub_url, page, markdown), encoding="utf-8"
+                build_stub(post, stub_url, page, document), encoding="utf-8"
             )
             (out_dir / markdown_name).write_text(
-                build_markdown(post, stub_url, markdown), encoding="utf-8"
+                build_markdown(post, stub_url, document["markdown"]), encoding="utf-8"
             )
             label = f"p/{subdir}/{html_name}" if subdir else f"p/{html_name}"
             print(f"  wrote {label} + Markdown")

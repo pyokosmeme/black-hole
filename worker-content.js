@@ -1,3 +1,5 @@
+import { renderDocument } from './transmission-document.js';
+
 const DEFAULT_ADMIN_DIDS = 'did:plc:ccxl3ictrlvtrrgh5swvvg47,did:plc:drrstoxu4to57dhv453ziznq';
 const SITE_ORIGIN = 'https://lastnpcalex.agency';
 const ALLOWED_TOPICS = new Set(['blog', 'books', 'fiction']);
@@ -309,7 +311,7 @@ function markdownDocument(post) {
     '---',
     '',
   ].join('\n');
-  return metadata + String(post.markdown || '').trim() + '\n';
+  return metadata + '\n' + renderDocument(post.markdown, `${SITE_ORIGIN}${config.landingPage}`).markdown;
 }
 
 function shareHtml(post) {
@@ -319,6 +321,7 @@ function shareHtml(post) {
   const interactive = `${config.landingPage}#post/${post.slug}`;
   const title = post.title || post.slug;
   const description = post.excerpt || '';
+  const document = renderDocument(post.markdown, `${SITE_ORIGIN}${config.landingPage}`);
   const jsonLd = JSON.stringify({
     '@context': 'https://schema.org',
     '@type': 'Article',
@@ -328,7 +331,7 @@ function shareHtml(post) {
     description,
     url: canonical,
     author: { '@type': 'Person', name: 'A.N. Alex', url: SITE_ORIGIN },
-    articleBody: post.markdown || '',
+    articleBody: document.text,
   }).replace(/<\//g, '<\\/');
 
   return `<!doctype html>
@@ -350,13 +353,13 @@ function shareHtml(post) {
 <link rel="alternate" type="text/markdown" href="${markdownUrl}" title="Markdown source">
 <script type="application/ld+json">${jsonLd}</script>
 <script>window.location.replace(${JSON.stringify(interactive)});</script>
-<style>body{max-width:78ch;margin:3rem auto;padding:0 1.25rem;background:#0a0a1a;color:#d9faff;font:16px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace}h1,a{color:#66ffff}.meta{color:#c78aff}.excerpt{border-left:3px solid #bf00ff;padding-left:1rem}.markdown-source{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit}</style>
+<style>body{max-width:78ch;margin:3rem auto;padding:0 1.25rem;background:#0a0a1a;color:#d9faff;font:16px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace}h1,a{color:#66ffff}.meta{color:#c78aff}.excerpt{border-left:3px solid #bf00ff;padding-left:1rem}.article-body pre,.math-inline{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit}.article-body img{max-width:100%}</style>
 </head>
 <body>
 <article id="transmission-document">
 <header><h1>${escapeHtml(title)}</h1><p class="meta">${escapeHtml(post.date || '')} ;; ${(post.tags || []).map(tag => `#${escapeHtml(tag)}`).join(' ')}</p></header>
 ${description ? `<p class="excerpt">${escapeHtml(description)}</p>` : ''}
-<pre class="markdown-source">${escapeHtml(post.markdown || '')}</pre>
+<div class="article-body">${document.html}</div>
 <p><a href="${interactive}">Open the interactive transmission</a> · <a href="${markdownUrl}">Markdown source</a></p>
 </article>
 </body>

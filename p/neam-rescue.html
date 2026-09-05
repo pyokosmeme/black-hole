@@ -23,476 +23,252 @@
 <meta name="twitter:image" content="https://lastnpcalex.agency/img/banner.png">
 <link rel="canonical" href="https://lastnpcalex.agency/p/neam-rescue">
 <link rel="alternate" type="text/markdown" href="https://lastnpcalex.agency/p/neam-rescue.md" title="Markdown source">
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "NON-EQUILIBRIUM ATTENTION MARKETS II: THE RESCUE THEOREM", "datePublished": "2026-06-17", "keywords": ["econophysics", "spin-transformers", "neam"], "description": "In NEAM I, we leaned on detailed balance to justify entropy production, and leaned wrong. Following Matthias Bal, the Rescue Theorem proves the spin transformer genuinely breaks detailed balance, rebuilds entropy production from mean-field theory, and sketches a parasocial-collapse example model.", "url": "https://lastnpcalex.agency/p/neam-rescue", "author": {"@type": "Person", "name": "A.N. Alex", "url": "https://lastnpcalex.agency"}, "articleBody": "<div class=\"nrol-doc neam-rescue\">\n\n<style>\n/* NEAM II · scoped equation styling */\n.nrol-doc .eq-block {\n  position: relative;\n  text-align: center;\n  margin: 18px 0;\n  padding: 12px 0;\n  font-size: 14px;\n  color: var(--cyan);\n  letter-spacing: 0.04em;\n  overflow-x: auto;\n}\nbody.light-mode .nrol-doc .eq-block,\nbody.light-reading .nrol-doc .eq-block {\n  color: #bf00ff;\n}\n.nrol-doc .eq-block .eq-label {\n  position: absolute;\n  top: 12px;\n  right: 0;\n  font-size: 9px;\n  color: var(--doc-dim);\n  letter-spacing: 0.25em;\n  text-transform: uppercase;\n}\n.nrol-doc .note-block {\n  border-left: 3px solid var(--purple);\n  padding-left: 16px;\n  margin: 22px 0;\n  color: rgba(255,255,255,0.72);\n}\nbody.light-mode .nrol-doc .note-block,\nbody.light-reading .nrol-doc .note-block {\n  color: rgba(0,0,0,0.72);\n}\n.nrol-doc .refs li {\n  margin-bottom: 10px;\n  scroll-margin-top: 20px;\n}\n.nrol-doc .refs li:target {\n  background: rgba(125,211,252,0.08);\n  border-left: 3px solid var(--cyan);\n  padding-left: 12px;\n}\n/* In-text citation links */\n.nrol-doc p a,\n.nrol-doc li a {\n  color: var(--cyan);\n  text-decoration: underline;\n  text-decoration-color: rgba(125,211,252,0.3);\n  text-underline-offset: 2px;\n  transition: color 0.15s ease;\n}\n.nrol-doc p a:hover,\n.nrol-doc li a:hover {\n  color: var(--purple);\n  text-decoration-color: var(--purple);\n}\nbody.light-mode .nrol-doc p a,\nbody.light-mode .nrol-doc li a,\nbody.light-reading .nrol-doc p a,\nbody.light-reading .nrol-doc li a {\n  color: #0369a1;\n  text-decoration-color: rgba(3,105,161,0.3);\n}\nbody.light-mode .nrol-doc p a:hover,\nbody.light-mode .nrol-doc li a:hover,\nbody.light-reading .nrol-doc p a:hover,\nbody.light-reading .nrol-doc li a:hover {\n  color: #6d28d9;\n  text-decoration-color: #6d28d9;\n}\n<\/style>\n\n<h1>Non-Equilibrium Attention Markets II: The Rescue Theorem<\/h1>\n\n<h2 id=\"sec-intro\"><span class=\"num\">01<\/span> Introduction<\/h2>\n\n<p>\nIn the prior post on Non-Equilibrium Attention Markets, we did a few things:\n<\/p>\n\n<ul>\n  <li>Starting with an asymmetric, <em>d<\/em>-dimensional, classical Ising model, SoftMax could be derived, with some dictionary help:<\/li>\n<\/ul>\n\n<div class=\"eq-block\" id=\"eq-spin-transformer-j\">\n\\[\nJ(x)=\\operatorname{softmax}\\!\\left(\\frac{xW_QW_K^Tx^T}{\\sqrt D}\\right).\n\\]\n<span class=\"eq-label\">(1)<\/span>\n<\/div>\n\n<div class=\"note-block\">\n<p>\nNote: in Part 1 we mostly looked at the pre-softmax bilinear score generator. From here onward, the \\(J_{ij}\\) appearing in the kinetic Ising mean-field equations is the spin-transformer coupling \\(J(x)\\) above, following Bal's notation (<a href=\"#ref-bal-spin-model\">Bal, 2023<\/a>).\n<\/p>\n<\/div>\n\n<ul>\n  <li>An argument was made about entropy and the states of non-equilibrium attention markets.<\/li>\n  <li>A sketch was made of the potential consequences.<\/li>\n<\/ul>\n\n<p>\nHowever, an astute reader may have noticed that detailed balance was incorrectly used to justify a correct statement about entropy production, but the entropy production was also just a Markov-chain model. None of that is particularly econophysics flavored.\n<\/p>\n\n<p>\nFortunately, Matthias Bal has paved the way for a correction, and the consequences yield tractable insights, or at the very least, a legible map for how to explore the implications. This post will develop the so-called <strong>Rescue Theorem<\/strong> to rescue the NEAM framework, and will sketch out what we will call the <strong>parasocial collapse<\/strong> model.\n<\/p>\n\n<h2 id=\"sec-flesh-wound\"><span class=\"num\">02<\/span> Tis Only a Flesh Wound<\/h2>\n\n<p>\nLet us more clearly articulate what we should have said about detailed balance in the first post, with an example from physics.\n<\/p>\n\n<p>\nImagine a system with \\(n\\) atoms. Each atom has two energy states, 1 or 2, and thus some number of atoms, \\(n_1\\), are in state 1, and some number, \\(n_2\\), are in state 2. The proportional rate that \\(n_1\\) goes to \\(n_2\\) is \\(k_{12}\\), and the proportional rate that \\(n_2\\) becomes \\(n_1\\) is \\(k_{21}\\). At any time, the rate of change of \\(n_1\\) is\n<\/p>\n\n<div class=\"eq-block\" id=\"eq-two-state-rate\">\n\\[\n\\frac{dn_1}{dt}=-k_{12}n_1+k_{21}n_2.\n\\]\n<span class=\"eq-label\">(2)<\/span>\n<\/div>\n\n<p>\nThe second term is positive because it represents the proportional speed with which \\(n_2\\) becomes \\(n_1\\), and the first term is negative because it represents the opposite quantity. Thermal equilibrium occurs when \\(dn_1/dt=0\\), thus\n<\/p>\n\n<div class=\"eq-block\" id=\"eq-two-state-balance\">\n\\[\nk_{12}n_1=k_{21}n_2.\n\\]\n<span class=\"eq-label\">(3)<\/span>\n<\/div>\n\n<p>\nThis is detailed balance. But look at the rates and the numbers: it is just their proportion that is constant. The rates do not have to be symmetric.\n<\/p>\n\n<p>\nAnd that is where the last post made an error:\n<\/p>\n\n<div class=\"eq-block\" id=\"eq-db-markov\">\n\\[\n\\pi_i p_{ij}=\\pi_j p_{ji}\n\\]\n<span class=\"eq-label\">(4)<\/span>\n<\/div>\n\n<p>\ndoes not require \\(p_{ij}=p_{ji}\\). It can satisfy detailed balance and yield zero entropy production in the Schnakenberg expression (<a href=\"#ref-schnakenberg-1976\">Schnakenberg, 1976<\/a>).\n<\/p>\n\n<p>\nBut we were correct to state that asymmetry of a sort violates detailed balance and produces net entropy. The relevant asymmetry is not merely that a forward transition probability differs from a backward transition probability. It is the system's walk across many states, back to some original state, such that \\(A\\to B\\to C\\to A\\) forms a loop with a nonzero circulation. It is an asymmetry in flux that violates detailed balance. The flow out of \\(A\\) and the flow back into \\(A\\) are not the same.\n<\/p>\n\n<p>\nThis confusion in the original occurred, in part, because \\(J_{ij}\\) in the Schnakenberg formula is a flux, not the coupling constant. And so, we see we are in need of rescue: if the entropy production rate were zero whenever the flux is symmetric, then the rest of the explorations in the first NEAM post would be moot.\n<\/p>\n\n<p>\nA few critical notes summarizing the prior work of Matthias Bal:\n<\/p>\n\n<ul>\n  <li>We can use mean-field theory to approximate the probability of each state of the spin transformer.<\/li>\n  <li>We can introduce an ansatz to approximate the true probability.<\/li>\n  <li>We can use the Plefka expansion to get relatively simple closed-form approximations to properties of the mean-field theory (<a href=\"#ref-aguilera-2020\">Aguilera, Moosavi, &amp; Shimazaki, 2020<\/a>; <a href=\"#ref-bal-entropy-2026\">Bal, 2026<\/a>).<\/li>\n<\/ul>\n\n<p>\nWe will not run through the full derivation, in part because it gets thorny with Bessel functions, but mostly because we would rather come at this from the perspective of: we have a reasonable mean-field description of an asymmetric vector spin transformer, so what next?\n<\/p>\n\n<p>\nWhat comes next is that we can write, if not explicitly calculate, the magnetization, and we can write the estimated probabilities describing transitions between snapshots of the whole system. At this point, you may wonder why. Well. The goal is this: econophysics provides a useful map from Ising-like systems to real markets. That is, we do not need to reinvent the wheel here, and can instead use existing econophysics models, with real though possibly modest or contested empirical success, to jump from magnetization, entropy production, susceptibility, and so forth, back into the non-equilibrium attention market frame.\n<\/p>\n\n<p>\nThe NEAM, then, is a bootstrap program. From spin transformer, to applied modeling, with One Weird Trick. Anyway...onward. The immediate problem is that our discussion of both detailed balance and entropy production was sorely wanting. Let us patch it up and develop the Rescue Theorem.\n<\/p>\n\n<h2 id=\"sec-rescue\"><span class=\"num\">03<\/span> Rescue Me<\/h2>\n\n<p>\nImagine you are a physicist. Detailed balance requires a potential function: a conservative force, a round trip that causes no net change, and a gradient of a scalar function. We can have an asymmetry in the number of states on top of the hill and the number of states in the valley, but any object going from the valley to the hill and back to the valley cannot have a difference. This is the criterion we care about for our spin transformers: if there is a potential function, then they can reach equilibrium. If there is not, they stay out of equilibrium. Crude, but clear.\n<\/p>\n\n<p>\nWe need to shift our mental model a little. Instead of looking at the individual hidden states \\(x_i\\), we will do as Bal does, with the state \\(s\\), which is a snapshot of every spin vector in the system:\n<\/p>\n\n<div class=\"eq-block\" id=\"eq-state-snapshot\">\n\\[\ns=(x_1,x_2,\\ldots,x_N).\n\\]\n<span class=\"eq-label\">(5)<\/span>\n<\/div>\n\n<p>\nWhat we investigate is the Markov chain as this state \\(s\\) transitions from \\(t\\) to \\(t'\\). Since we are in the context of mean-field theory, this transition probability has a Boltzmann-shaped kernel:\n<\/p>\n\n<div class=\"eq-block\" id=\"eq-transition-kernel\">\n\\[\nT(s'\\mid s)=\\prod_i\\frac{\\exp\\!\\left[\\beta\\,s_i'\\cdot h_i(s)\\right]}{Z_i(s)},\n\\qquad\nh_i(s)=x_i+\\sum_jJ_{ij}s_j.\n\\]\n<span class=\"eq-label\">(6)<\/span>\n<\/div>\n\n<p>\nHere \\(T\\) is the transition probability from \\(s\\) to \\(s'\\). If we reverse the order, that is the transition from \\(s'\\) to \\(s\\). The field \\(h_i\\) describes the interactions between the system at \\(s'\\) and the system at \\(s\\); the construction is derived explicitly by Bal and will not be recreated here (<a href=\"#ref-bal-entropy-2026\">Bal, 2026<\/a>).\n<\/p>\n\n<p>\nFor a conservative force, the log-ratio of the two transition probabilities should yield gradient terms. Let us check by taking the logarithm of the ratio:\n<\/p>\n\n<div class=\"eq-block\" id=\"eq-log-ratio\">\n\\[\n\\log\\frac{T(s'\\mid s)}{T(s\\mid s')}\n=\n\\beta\\,x\\cdot(s'-s)\n+\n\\sum_i\\log Z_i(s')-\n\\sum_i\\log Z_i(s)\n+\n\\beta\\sum_{ij}\\left(s_i'J_{ij}s_j-s_iJ_{ij}s_j'\\right).\n\\]\n<span class=\"eq-label\">(7)<\/span>\n<\/div>\n\n<p>\nThe first two terms are gradient-like. The first is proportional to \\(\\Delta s\\). The second is less obvious, but it is still a difference of normalization terms. At this stage, we could still write a potential for the system and thus retain detailed balance. As a reminder: in the last post, we said detailed balance is violated, so we have not rescued anything yet.\n<\/p>\n\n<p>\nLet us take a look at the third term. Relabeling dummy indices \\(i\\leftrightarrow j\\), we get\n<\/p>\n\n<div class=\"eq-block\" id=\"eq-skew-term\">\n\\[\n\\sum_{ij}\\left(s_i'J_{ij}s_j-s_jJ_{ji}s_i'\\right)\n=\n\\sum_{ij}(J_{ij}-J_{ji})s_i's_j\n=\ns'^T(J-J^T)s.\n\\]\n<span class=\"eq-label\">(8)<\/span>\n<\/div>\n\n<p>\nNote: to check, recall that \\(s'\\) and \\(s\\) are state-snapshot vectors, and \\(J_{ij}\\) is the coupling matrix we get from softmax attention.\n<\/p>\n\n<p>\nThis is a skew bilinear term, which is not a term we instinctively recalled from linear algebra but had some external advice about. To check whether it can be a gradient contribution, we use the curl test. We are not in the familiar three dimensions, so we take a mixed second derivative with respect to our states \\(s_i'\\) and \\(s_j\\):\n<\/p>\n\n<div class=\"eq-block\" id=\"eq-curl-test-zero\">\n\\[\n\\frac{\\partial^2}{\\partial s_i'\\partial s_j}\\left[g(s')-g(s)\\right]=0\n\\]\n<span class=\"eq-label\">(9)<\/span>\n<\/div>\n\n<p>\nfor any scalar potential difference. But for the skew bilinear term,\n<\/p>\n\n<div class=\"eq-block\" id=\"eq-curl-test-j\">\n\\[\n\\frac{\\partial^2}{\\partial s_i'\\partial s_j}\n\\left[s'^T(J-J^T)s\\right]\n=\nJ-J^T.\n\\]\n<span class=\"eq-label\">(10)<\/span>\n<\/div>\n\n<p>\nAnd \\(J\\), as you may recall, is\n<\/p>\n\n<div class=\"eq-block\" id=\"eq-j-recall\">\n\\[\nJ(x)=\\operatorname{softmax}\\!\\left(\\frac{xW_QW_K^Tx^T}{\\sqrt D}\\right),\n\\]\n<span class=\"eq-label\">(11)<\/span>\n<\/div>\n\n<p>\nwhich is asymmetric, so this term, across the full space of the vectors \\(x\\), generally does not vanish. We fail the curl test. Detailed balance requires \\(J=J^T\\) exactly, which is false for the spin transformer and false for ordinary transformer attention as well. An interesting aside, pointed out to us rather than known off-hand, is that we get the Peretto-Little measure for parallel updates out of this work for free if we just look at the terms that do not depend on \\(J\\) in our transition probabilities:\n<\/p>\n\n<div class=\"eq-block\" id=\"eq-peretto-little\">\n\\[\nP_{\\rm eq}(s)\\propto\n\\exp\\!\\left[\\beta\\,x\\cdot s+\\sum_i\\log Z_i(s)\\right].\n\\]\n<span class=\"eq-label\">(12)<\/span>\n<\/div>\n\n<p>\nWe are, therefore, rescued: detailed balance is, indeed, violated, but now we can prove it.\n<\/p>\n\n<h2 id=\"sec-entropy\"><span class=\"num\">04<\/span> A Mean Entropy<\/h2>\n\n<p>\nDetailed balance cannot hold, and thus one of the two problems with the first NEAM post is fixed. What about entropy, however?\n<\/p>\n\n<p>\nA Markov-chain walk is fine and all, but if we bite the bullet and learn to love mean-field theory tooling, then we get an alternative measure of entropy production:\n<\/p>\n\n<div class=\"eq-block\" id=\"eq-entropy-production\">\n\\[\n\\sigma_t=\\sum_{ij}(J_{ij}-J_{ji})D_{ij,t}.\n\\]\n<span class=\"eq-label\">(13)<\/span>\n<\/div>\n\n<p>\nHere \\(D_{ij,t}\\) is the time-delayed correlation: the two-point correlation between states at adjacent times, after subtracting the magnetization contribution (<a href=\"#ref-aguilera-2020\">Aguilera, Moosavi, &amp; Shimazaki, 2020<\/a>; <a href=\"#ref-bal-entropy-2026\">Bal, 2026<\/a>):\n<\/p>\n\n<div class=\"eq-block\" id=\"eq-delayed-correlation\">\n\\[\nD_{ij,t}\n=\n\\int ds_t\\int ds_{t-1}\\,\n\\bigl(s_{i,t}-m_{i,t}\\bigr)\\cdot\n\\bigl(s_{j,t-1}-m_{j,t-1}\\bigr)\nP(s_t,s_{t-1}).\n\\]\n<span class=\"eq-label\">(14)<\/span>\n<\/div>\n\n<p>\nThe magnetization is\n<\/p>\n\n<div class=\"eq-block\" id=\"eq-magnetization\">\n\\[\nm_{i,t}\n=\n\\frac{\\beta\\left(x_{i,t}+\\sum_jJ_{ij}m_{j,t-1}\\right)}\n{1+\\sqrt{1+\\beta^2\\left\\|x_{i,t}+\\sum_jJ_{ij}m_{j,t-1}\\right\\|^2/R^2}},\n\\qquad\nR=\\sqrt{D/2-1}.\n\\]\n<span class=\"eq-label\">(15)<\/span>\n<\/div>\n\n<p>\nHere \\(P(s_t,s_{t-1})\\) is the probability for the state at \\(t-1\\) to evolve in one time-step to the state at \\(t\\). Spiritually, it looks like the Schnakenberg formula if we squint a lot: entropy production is still tracking irreversible circulation, but now through the mean-field structure of the spin-transformer dynamics.\n<\/p>\n\n<p>\nUsing the ansatz and the Plefka expansion, Bal gives the full closed-form expression for \\(D_{ij,t}\\). The full expression is not especially illuminating for our purposes here, so we keep the useful approximation: when the local-field norm is \\(O(R)\\), the time-delayed correlation becomes\n<\/p>\n\n<div class=\"eq-block\" id=\"eq-d-approx\">\n\\[\nD_{ij,t}\\approx J_{ij}\\cos^2\\alpha_{(i,t),(j,t-1)},\n\\]\n<span class=\"eq-label\">(16)<\/span>\n<\/div>\n\n<p>\nwhere \\(\\alpha_{(i,t),(j,t-1)}\\) is the angle between the magnetization vectors for \\(i\\) at time \\(t\\) and \\(j\\) at time \\(t-1\\).\n<\/p>\n\n<p>\nThus entropy production becomes\n<\/p>\n\n<div class=\"eq-block\" id=\"eq-sigma-approx\">\n\\[\n\\sigma_t\n\\sim\n\\sum_{ij}\\left(J_{ij}^2-J_{ij}J_{ji}\\right)\n\\cos^2\\alpha_{(i,t),(j,t-1)}.\n\\]\n<span class=\"eq-label\">(17)<\/span>\n<\/div>\n\n<p>\nWe already Rescued the detailed balance claim from earlier work, and now you may notice the entropy production rate in the equation immediately above has a \\(J-J^T\\) term, which is non-zero by asymmetry of \\(J\\), thus entropy production is non-zero...as long as \\(\\cos^2\\alpha_{(i,t),(j,t-1)}\\) does not identically vanish for all \\(i\\) and \\(j\\) across the time-step from \\(t-1\\) to \\(t\\).\n<\/p>\n\n<h2 id=\"sec-parasocial\"><span class=\"num\">05<\/span> Parasocial Collapse: Example Sketch<\/h2>\n\n<p>\nOur key insight: detailed balance is, indeed, violated for the spin transformer as contended in the original NEAM post, and the entropy production rate in such a system is generically non-zero for asymmetric couplings with non-orthogonal delayed alignment of the state vectors.\n<\/p>\n\n<p>\nNow, let us work an example and illustrate the utility of the NEAM framework, now that it is thoroughly rescued.\n<\/p>\n\n<p>\nLet us simplify our world into two states, essentially:\n<\/p>\n\n<ul>\n  <li>State 1: the celebrity.<\/li>\n  <li>State 2: everyone else.<\/li>\n  <li>We ignore all other interactions, because everyone else is an NPC. This is a jokey way of saying we ignore \\(J_{ij}\\) between the masses.<\/li>\n<\/ul>\n\n<p>\nThe celebrity causes updates to everyone else, but it is maximally asymmetric. State 1 impacts state 2; state 1 does not care what state 2 does. Ever.\n<\/p>\n\n<p>\nIn math, using the notation to track how the impacted state is affected by the impactor state, we have\n<\/p>\n\n<div class=\"eq-block\" id=\"eq-parasocial-j\">\n\\[\nJ_{21}=c,\n\\qquad\nJ_{12}=0,\n\\qquad\nc>0.\n\\]\n<span class=\"eq-label\">(18)<\/span>\n<\/div>\n\n<p>\nIf we plug this into the Plefka mean-field approximation for \\(D_{ij,t}\\), we see\n<\/p>\n\n<div class=\"eq-block\" id=\"eq-parasocial-d\">\n\\[\nD_{12}=0,\n\\qquad\nD_{21}\\propto c\\cos^2\\alpha_{(2,t),(1,t-1)}.\n\\]\n<span class=\"eq-label\">(19)<\/span>\n<\/div>\n\n<p>\nThe entropy production immediately becomes\n<\/p>\n\n<div class=\"eq-block\" id=\"eq-parasocial-sigma\">\n\\[\n\\sigma_t\n=\n(J_{12}-J_{21})D_{12}\n+\n(J_{21}-J_{12})D_{21}\n\\approx\nc^2\\cos^2\\alpha_{(2,t),(1,t-1)}.\n\\]\n<span class=\"eq-label\">(20)<\/span>\n<\/div>\n\n<p>\nThis is a dissipative system, as it continuously produces entropy. The key takeaway is that entropy production is a property of state space and dynamics, not of the attention matrix itself.\n<\/p>\n\n<h2 id=\"sec-next\"><span class=\"num\">06<\/span> What Next?<\/h2>\n\n<p>\nWe have made a much more rigorous argument about detailed balance, replaced key machinery with mean-field theory, and illustrated an example where the entropy production is strictly greater than zero. The NEAM is thus rescued. We are on much more solid ground, our thoughts more organized, the path forward clearer.\n<\/p>\n\n<p>\nBut what does this mean? Why does this matter?\n<\/p>\n\n<p>\nThe trajectory so far has been:\n<\/p>\n\n<ul>\n  <li>See how SoftMax is secretly a collection of vector spins.<\/li>\n  <li>Use mean-field theory to describe state space and dynamics.<\/li>\n  <li>From state space and dynamics, see the structure of dissipation and entropy production.<\/li>\n  <li>Create the bones of an example we can use to further explore the problem space.<\/li>\n<\/ul>\n\n<p>\nIt is not nothing. Though, essentially, we are still at the beginning of exploration. Many of the consequences, and the \"and therefore,\" have been left as idle implications, gaps in the text, liminal space for the exercise of the readers. None of that is satisfactory. Yet, it was all necessary. We have a solid, defensible, well-considered scaffolding, and we can now begin proper exploration, simulation, and demonstration...in a future post.\n<\/p>\n\n<h2 id=\"sec-refs\"><span class=\"num\">07<\/span> References<\/h2>\n\n<h3>Foundational Texts<\/h3>\n\n<ul class=\"refs\">\n  <li id=\"ref-bal-spin-systems\">Bal, M. C. (2021). <em>Transformers Are Secretly Collectives of Spin Systems<\/em>. <a href=\"https://mcbal.github.io/post/transformers-are-secretly-collectives-of-spin-systems/\">mcbal.github.io<\/a><\/li>\n  <li id=\"ref-bal-free-energy\">Bal, M. C. (2021). <em>Transformers from Spin Models: Approximate Free Energy Minimization<\/em>. <a href=\"https://mcbal.github.io/post/transformers-from-spin-models-approximate-free-energy-minimization/\">mcbal.github.io<\/a><\/li>\n  <li id=\"ref-bal-spin-model\">Bal, M. C. (2023). <em>Spin-Model Transformers<\/em>. <a href=\"https://mcbal.github.io/post/spin-model-transformers/\">mcbal.github.io<\/a><\/li>\n  <li id=\"ref-bal-entropy-2026\">Bal, M. C. (2026). <em>Entropy Production in Non-Equilibrium Neural Networks<\/em>. <a href=\"https://mcbal.github.io/post/entropy-production-in-non-equilibrium-neural-networks/\">mcbal.github.io<\/a><\/li>\n<\/ul>\n\n<h3>Academic References<\/h3>\n\n<ul class=\"refs\">\n  <li id=\"ref-aguilera-2020\">Aguilera, M., Moosavi, S. A., &amp; Shimazaki, H. (2020). <em>A unifying framework for mean-field theories of asymmetric kinetic Ising systems<\/em>. arXiv:2002.04309. <a href=\"https://arxiv.org/abs/2002.04309\">arxiv<\/a><\/li>\n  <li id=\"ref-schnakenberg-1976\">Schnakenberg, J. (1976). Network theory of microscopic and macroscopic behavior of master equation systems. <em>Reviews of Modern Physics<\/em>, 48(4), 571–585. <a href=\"https://doi.org/10.1103/RevModPhys.48.571\">doi<\/a><\/li>\n  <li id=\"ref-cocconi-2020\">Cocconi, L., Garcia-Millan, R., Zhen, Z., Buturca, B., &amp; Pruessner, G. (2020). <em>Entropy production in exactly solvable systems<\/em>. arXiv:2010.04231. <a href=\"https://arxiv.org/abs/2010.04231\">arxiv<\/a><\/li>\n<\/ul>\n\n<\/div>"}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "Article", "headline": "NON-EQUILIBRIUM ATTENTION MARKETS II: THE RESCUE THEOREM", "datePublished": "2026-06-17", "keywords": ["econophysics", "spin-transformers", "neam"], "description": "In NEAM I, we leaned on detailed balance to justify entropy production, and leaned wrong. Following Matthias Bal, the Rescue Theorem proves the spin transformer genuinely breaks detailed balance, rebuilds entropy production from mean-field theory, and sketches a parasocial-collapse example model.", "url": "https://lastnpcalex.agency/p/neam-rescue", "author": {"@type": "Person", "name": "A.N. Alex", "url": "https://lastnpcalex.agency"}, "articleBody": "Non-Equilibrium Attention Markets II: The Rescue Theorem\n01 Introduction\n\nIn the prior post on Non-Equilibrium Attention Markets, we did a few things:\n\nStarting with an asymmetric, d-dimensional, classical Ising model, SoftMax could be derived, with some dictionary help:\n\\[ J(x)=\\operatorname{softmax}\\!\\left(\\frac{xW_QW_K^Tx^T}{\\sqrt D}\\right). \\] (1)\n\nNote: in Part 1 we mostly looked at the pre-softmax bilinear score generator. From here onward, the \\(J_{ij}\\) appearing in the kinetic Ising mean-field equations is the spin-transformer coupling \\(J(x)\\) above, following Bal's notation (Bal, 2023).\n\nAn argument was made about entropy and the states of non-equilibrium attention markets.\nA sketch was made of the potential consequences.\n\nHowever, an astute reader may have noticed that detailed balance was incorrectly used to justify a correct statement about entropy production, but the entropy production was also just a Markov-chain model. None of that is particularly econophysics flavored.\n\nFortunately, Matthias Bal has paved the way for a correction, and the consequences yield tractable insights, or at the very least, a legible map for how to explore the implications. This post will develop the so-called Rescue Theorem to rescue the NEAM framework, and will sketch out what we will call the parasocial collapse model.\n\n02 Tis Only a Flesh Wound\n\nLet us more clearly articulate what we should have said about detailed balance in the first post, with an example from physics.\n\nImagine a system with \\(n\\) atoms. Each atom has two energy states, 1 or 2, and thus some number of atoms, \\(n_1\\), are in state 1, and some number, \\(n_2\\), are in state 2. The proportional rate that \\(n_1\\) goes to \\(n_2\\) is \\(k_{12}\\), and the proportional rate that \\(n_2\\) becomes \\(n_1\\) is \\(k_{21}\\). At any time, the rate of change of \\(n_1\\) is\n\n\\[ \\frac{dn_1}{dt}=-k_{12}n_1+k_{21}n_2. \\] (2)\n\nThe second term is positive because it represents the proportional speed with which \\(n_2\\) becomes \\(n_1\\), and the first term is negative because it represents the opposite quantity. Thermal equilibrium occurs when \\(dn_1/dt=0\\), thus\n\n\\[ k_{12}n_1=k_{21}n_2. \\] (3)\n\nThis is detailed balance. But look at the rates and the numbers: it is just their proportion that is constant. The rates do not have to be symmetric.\n\nAnd that is where the last post made an error:\n\n\\[ \\pi_i p_{ij}=\\pi_j p_{ji} \\] (4)\n\ndoes not require \\(p_{ij}=p_{ji}\\). It can satisfy detailed balance and yield zero entropy production in the Schnakenberg expression (Schnakenberg, 1976).\n\nBut we were correct to state that asymmetry of a sort violates detailed balance and produces net entropy. The relevant asymmetry is not merely that a forward transition probability differs from a backward transition probability. It is the system's walk across many states, back to some original state, such that \\(A\\to B\\to C\\to A\\) forms a loop with a nonzero circulation. It is an asymmetry in flux that violates detailed balance. The flow out of \\(A\\) and the flow back into \\(A\\) are not the same.\n\nThis confusion in the original occurred, in part, because \\(J_{ij}\\) in the Schnakenberg formula is a flux, not the coupling constant. And so, we see we are in need of rescue: if the entropy production rate were zero whenever the flux is symmetric, then the rest of the explorations in the first NEAM post would be moot.\n\nA few critical notes summarizing the prior work of Matthias Bal:\n\nWe can use mean-field theory to approximate the probability of each state of the spin transformer.\nWe can introduce an ansatz to approximate the true probability.\nWe can use the Plefka expansion to get relatively simple closed-form approximations to properties of the mean-field theory (Aguilera, Moosavi, & Shimazaki, 2020; Bal, 2026).\n\nWe will not run through the full derivation, in part because it gets thorny with Bessel functions, but mostly because we would rather come at this from the perspective of: we have a reasonable mean-field description of an asymmetric vector spin transformer, so what next?\n\nWhat comes next is that we can write, if not explicitly calculate, the magnetization, and we can write the estimated probabilities describing transitions between snapshots of the whole system. At this point, you may wonder why. Well. The goal is this: econophysics provides a useful map from Ising-like systems to real markets. That is, we do not need to reinvent the wheel here, and can instead use existing econophysics models, with real though possibly modest or contested empirical success, to jump from magnetization, entropy production, susceptibility, and so forth, back into the non-equilibrium attention market frame.\n\nThe NEAM, then, is a bootstrap program. From spin transformer, to applied modeling, with One Weird Trick. Anyway...onward. The immediate problem is that our discussion of both detailed balance and entropy production was sorely wanting. Let us patch it up and develop the Rescue Theorem.\n\n03 Rescue Me\n\nImagine you are a physicist. Detailed balance requires a potential function: a conservative force, a round trip that causes no net change, and a gradient of a scalar function. We can have an asymmetry in the number of states on top of the hill and the number of states in the valley, but any object going from the valley to the hill and back to the valley cannot have a difference. This is the criterion we care about for our spin transformers: if there is a potential function, then they can reach equilibrium. If there is not, they stay out of equilibrium. Crude, but clear.\n\nWe need to shift our mental model a little. Instead of looking at the individual hidden states \\(x_i\\), we will do as Bal does, with the state \\(s\\), which is a snapshot of every spin vector in the system:\n\n\\[ s=(x_1,x_2,\\ldots,x_N). \\] (5)\n\nWhat we investigate is the Markov chain as this state \\(s\\) transitions from \\(t\\) to \\(t'\\). Since we are in the context of mean-field theory, this transition probability has a Boltzmann-shaped kernel:\n\n\\[ T(s'\\mid s)=\\prod_i\\frac{\\exp\\!\\left[\\beta\\,s_i'\\cdot h_i(s)\\right]}{Z_i(s)}, \\qquad h_i(s)=x_i+\\sum_jJ_{ij}s_j. \\] (6)\n\nHere \\(T\\) is the transition probability from \\(s\\) to \\(s'\\). If we reverse the order, that is the transition from \\(s'\\) to \\(s\\). The field \\(h_i\\) describes the interactions between the system at \\(s'\\) and the system at \\(s\\); the construction is derived explicitly by Bal and will not be recreated here (Bal, 2026).\n\nFor a conservative force, the log-ratio of the two transition probabilities should yield gradient terms. Let us check by taking the logarithm of the ratio:\n\n\\[ \\log\\frac{T(s'\\mid s)}{T(s\\mid s')} = \\beta\\,x\\cdot(s'-s) + \\sum_i\\log Z_i(s')- \\sum_i\\log Z_i(s) + \\beta\\sum_{ij}\\left(s_i'J_{ij}s_j-s_iJ_{ij}s_j'\\right). \\] (7)\n\nThe first two terms are gradient-like. The first is proportional to \\(\\Delta s\\). The second is less obvious, but it is still a difference of normalization terms. At this stage, we could still write a potential for the system and thus retain detailed balance. As a reminder: in the last post, we said detailed balance is violated, so we have not rescued anything yet.\n\nLet us take a look at the third term. Relabeling dummy indices \\(i\\leftrightarrow j\\), we get\n\n\\[ \\sum_{ij}\\left(s_i'J_{ij}s_j-s_jJ_{ji}s_i'\\right) = \\sum_{ij}(J_{ij}-J_{ji})s_i's_j = s'^T(J-J^T)s. \\] (8)\n\nNote: to check, recall that \\(s'\\) and \\(s\\) are state-snapshot vectors, and \\(J_{ij}\\) is the coupling matrix we get from softmax attention.\n\nThis is a skew bilinear term, which is not a term we instinctively recalled from linear algebra but had some external advice about. To check whether it can be a gradient contribution, we use the curl test. We are not in the familiar three dimensions, so we take a mixed second derivative with respect to our states \\(s_i'\\) and \\(s_j\\):\n\n\\[ \\frac{\\partial^2}{\\partial s_i'\\partial s_j}\\left[g(s')-g(s)\\right]=0 \\] (9)\n\nfor any scalar potential difference. But for the skew bilinear term,\n\n\\[ \\frac{\\partial^2}{\\partial s_i'\\partial s_j} \\left[s'^T(J-J^T)s\\right] = J-J^T. \\] (10)\n\nAnd \\(J\\), as you may recall, is\n\n\\[ J(x)=\\operatorname{softmax}\\!\\left(\\frac{xW_QW_K^Tx^T}{\\sqrt D}\\right), \\] (11)\n\nwhich is asymmetric, so this term, across the full space of the vectors \\(x\\), generally does not vanish. We fail the curl test. Detailed balance requires \\(J=J^T\\) exactly, which is false for the spin transformer and false for ordinary transformer attention as well. An interesting aside, pointed out to us rather than known off-hand, is that we get the Peretto-Little measure for parallel updates out of this work for free if we just look at the terms that do not depend on \\(J\\) in our transition probabilities:\n\n\\[ P_{\\rm eq}(s)\\propto \\exp\\!\\left[\\beta\\,x\\cdot s+\\sum_i\\log Z_i(s)\\right]. \\] (12)\n\nWe are, therefore, rescued: detailed balance is, indeed, violated, but now we can prove it.\n\n04 A Mean Entropy\n\nDetailed balance cannot hold, and thus one of the two problems with the first NEAM post is fixed. What about entropy, however?\n\nA Markov-chain walk is fine and all, but if we bite the bullet and learn to love mean-field theory tooling, then we get an alternative measure of entropy production:\n\n\\[ \\sigma_t=\\sum_{ij}(J_{ij}-J_{ji})D_{ij,t}. \\] (13)\n\nHere \\(D_{ij,t}\\) is the time-delayed correlation: the two-point correlation between states at adjacent times, after subtracting the magnetization contribution (Aguilera, Moosavi, & Shimazaki, 2020; Bal, 2026):\n\n\\[ D_{ij,t} = \\int ds_t\\int ds_{t-1}\\, \\bigl(s_{i,t}-m_{i,t}\\bigr)\\cdot \\bigl(s_{j,t-1}-m_{j,t-1}\\bigr) P(s_t,s_{t-1}). \\] (14)\n\nThe magnetization is\n\n\\[ m_{i,t} = \\frac{\\beta\\left(x_{i,t}+\\sum_jJ_{ij}m_{j,t-1}\\right)} {1+\\sqrt{1+\\beta^2\\left\\|x_{i,t}+\\sum_jJ_{ij}m_{j,t-1}\\right\\|^2/R^2}}, \\qquad R=\\sqrt{D/2-1}. \\] (15)\n\nHere \\(P(s_t,s_{t-1})\\) is the probability for the state at \\(t-1\\) to evolve in one time-step to the state at \\(t\\). Spiritually, it looks like the Schnakenberg formula if we squint a lot: entropy production is still tracking irreversible circulation, but now through the mean-field structure of the spin-transformer dynamics.\n\nUsing the ansatz and the Plefka expansion, Bal gives the full closed-form expression for \\(D_{ij,t}\\). The full expression is not especially illuminating for our purposes here, so we keep the useful approximation: when the local-field norm is \\(O(R)\\), the time-delayed correlation becomes\n\n\\[ D_{ij,t}\\approx J_{ij}\\cos^2\\alpha_{(i,t),(j,t-1)}, \\] (16)\n\nwhere \\(\\alpha_{(i,t),(j,t-1)}\\) is the angle between the magnetization vectors for \\(i\\) at time \\(t\\) and \\(j\\) at time \\(t-1\\).\n\nThus entropy production becomes\n\n\\[ \\sigma_t \\sim \\sum_{ij}\\left(J_{ij}^2-J_{ij}J_{ji}\\right) \\cos^2\\alpha_{(i,t),(j,t-1)}. \\] (17)\n\nWe already Rescued the detailed balance claim from earlier work, and now you may notice the entropy production rate in the equation immediately above has a \\(J-J^T\\) term, which is non-zero by asymmetry of \\(J\\), thus entropy production is non-zero...as long as \\(\\cos^2\\alpha_{(i,t),(j,t-1)}\\) does not identically vanish for all \\(i\\) and \\(j\\) across the time-step from \\(t-1\\) to \\(t\\).\n\n05 Parasocial Collapse: Example Sketch\n\nOur key insight: detailed balance is, indeed, violated for the spin transformer as contended in the original NEAM post, and the entropy production rate in such a system is generically non-zero for asymmetric couplings with non-orthogonal delayed alignment of the state vectors.\n\nNow, let us work an example and illustrate the utility of the NEAM framework, now that it is thoroughly rescued.\n\nLet us simplify our world into two states, essentially:\n\nState 1: the celebrity.\nState 2: everyone else.\nWe ignore all other interactions, because everyone else is an NPC. This is a jokey way of saying we ignore \\(J_{ij}\\) between the masses.\n\nThe celebrity causes updates to everyone else, but it is maximally asymmetric. State 1 impacts state 2; state 1 does not care what state 2 does. Ever.\n\nIn math, using the notation to track how the impacted state is affected by the impactor state, we have\n\n\\[ J_{21}=c, \\qquad J_{12}=0, \\qquad c>0. \\] (18)\n\nIf we plug this into the Plefka mean-field approximation for \\(D_{ij,t}\\), we see\n\n\\[ D_{12}=0, \\qquad D_{21}\\propto c\\cos^2\\alpha_{(2,t),(1,t-1)}. \\] (19)\n\nThe entropy production immediately becomes\n\n\\[ \\sigma_t = (J_{12}-J_{21})D_{12} + (J_{21}-J_{12})D_{21} \\approx c^2\\cos^2\\alpha_{(2,t),(1,t-1)}. \\] (20)\n\nThis is a dissipative system, as it continuously produces entropy. The key takeaway is that entropy production is a property of state space and dynamics, not of the attention matrix itself.\n\n06 What Next?\n\nWe have made a much more rigorous argument about detailed balance, replaced key machinery with mean-field theory, and illustrated an example where the entropy production is strictly greater than zero. The NEAM is thus rescued. We are on much more solid ground, our thoughts more organized, the path forward clearer.\n\nBut what does this mean? Why does this matter?\n\nThe trajectory so far has been:\n\nSee how SoftMax is secretly a collection of vector spins.\nUse mean-field theory to describe state space and dynamics.\nFrom state space and dynamics, see the structure of dissipation and entropy production.\nCreate the bones of an example we can use to further explore the problem space.\n\nIt is not nothing. Though, essentially, we are still at the beginning of exploration. Many of the consequences, and the \"and therefore,\" have been left as idle implications, gaps in the text, liminal space for the exercise of the readers. None of that is satisfactory. Yet, it was all necessary. We have a solid, defensible, well-considered scaffolding, and we can now begin proper exploration, simulation, and demonstration...in a future post.\n\n07 References\nFoundational Texts\nBal, M. C. (2021). Transformers Are Secretly Collectives of Spin Systems. mcbal.github.io\nBal, M. C. (2021). Transformers from Spin Models: Approximate Free Energy Minimization. mcbal.github.io\nBal, M. C. (2023). Spin-Model Transformers. mcbal.github.io\nBal, M. C. (2026). Entropy Production in Non-Equilibrium Neural Networks. mcbal.github.io\nAcademic References\nAguilera, M., Moosavi, S. A., & Shimazaki, H. (2020). A unifying framework for mean-field theories of asymmetric kinetic Ising systems. arXiv:2002.04309. arxiv\nSchnakenberg, J. (1976). Network theory of microscopic and macroscopic behavior of master equation systems. Reviews of Modern Physics, 48(4), 571–585. doi\nCocconi, L., Garcia-Millan, R., Zhen, Z., Buturca, B., & Pruessner, G. (2020). Entropy production in exactly solvable systems. arXiv:2010.04231. arxiv"}</script>
 <script>window.location.replace("/#post/neam-rescue");</script>
-<style>body{max-width:78ch;margin:3rem auto;padding:0 1.25rem;background:#0a0a1a;color:#d9faff;font:16px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace}h1,a{color:#66ffff}.meta{color:#c78aff}.excerpt{border-left:3px solid #bf00ff;padding-left:1rem}.markdown-source{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit}</style>
+<style>body{max-width:78ch;margin:3rem auto;padding:0 1.25rem;background:#0a0a1a;color:#d9faff;font:16px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace}h1,a{color:#66ffff}.meta{color:#c78aff}.excerpt{border-left:3px solid #bf00ff;padding-left:1rem}.article-body pre,.math-inline{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit}.article-body img{max-width:100%}</style>
 </head>
 <body>
 <article id="transmission-document">
 <header><h1>NON-EQUILIBRIUM ATTENTION MARKETS II: THE RESCUE THEOREM</h1><p class="meta">2026.06.17 ;; #econophysics #spin-transformers #neam</p></header>
 <p class="excerpt">In NEAM I, we leaned on detailed balance to justify entropy production, and leaned wrong. Following Matthias Bal, the Rescue Theorem proves the spin transformer genuinely breaks detailed balance, rebuilds entropy production from mean-field theory, and sketches a parasocial-collapse example model.</p>
-<pre class="markdown-source">&lt;div class=&quot;nrol-doc neam-rescue&quot;&gt;
-
-&lt;style&gt;
-/* NEAM II · scoped equation styling */
-.nrol-doc .eq-block {
-  position: relative;
-  text-align: center;
-  margin: 18px 0;
-  padding: 12px 0;
-  font-size: 14px;
-  color: var(--cyan);
-  letter-spacing: 0.04em;
-  overflow-x: auto;
-}
-body.light-mode .nrol-doc .eq-block,
-body.light-reading .nrol-doc .eq-block {
-  color: #bf00ff;
-}
-.nrol-doc .eq-block .eq-label {
-  position: absolute;
-  top: 12px;
-  right: 0;
-  font-size: 9px;
-  color: var(--doc-dim);
-  letter-spacing: 0.25em;
-  text-transform: uppercase;
-}
-.nrol-doc .note-block {
-  border-left: 3px solid var(--purple);
-  padding-left: 16px;
-  margin: 22px 0;
-  color: rgba(255,255,255,0.72);
-}
-body.light-mode .nrol-doc .note-block,
-body.light-reading .nrol-doc .note-block {
-  color: rgba(0,0,0,0.72);
-}
-.nrol-doc .refs li {
-  margin-bottom: 10px;
-  scroll-margin-top: 20px;
-}
-.nrol-doc .refs li:target {
-  background: rgba(125,211,252,0.08);
-  border-left: 3px solid var(--cyan);
-  padding-left: 12px;
-}
-/* In-text citation links */
-.nrol-doc p a,
-.nrol-doc li a {
-  color: var(--cyan);
-  text-decoration: underline;
-  text-decoration-color: rgba(125,211,252,0.3);
-  text-underline-offset: 2px;
-  transition: color 0.15s ease;
-}
-.nrol-doc p a:hover,
-.nrol-doc li a:hover {
-  color: var(--purple);
-  text-decoration-color: var(--purple);
-}
-body.light-mode .nrol-doc p a,
-body.light-mode .nrol-doc li a,
-body.light-reading .nrol-doc p a,
-body.light-reading .nrol-doc li a {
-  color: #0369a1;
-  text-decoration-color: rgba(3,105,161,0.3);
-}
-body.light-mode .nrol-doc p a:hover,
-body.light-mode .nrol-doc li a:hover,
-body.light-reading .nrol-doc p a:hover,
-body.light-reading .nrol-doc li a:hover {
-  color: #6d28d9;
-  text-decoration-color: #6d28d9;
-}
-&lt;/style&gt;
-
-&lt;h1&gt;Non-Equilibrium Attention Markets II: The Rescue Theorem&lt;/h1&gt;
-
-&lt;h2 id=&quot;sec-intro&quot;&gt;&lt;span class=&quot;num&quot;&gt;01&lt;/span&gt; Introduction&lt;/h2&gt;
-
-&lt;p&gt;
+<div class="article-body"><div><h1>Non-Equilibrium Attention Markets II: The Rescue Theorem</h1><h2 id="article-sec-intro"><span class="">01</span> Introduction</h2><p>
 In the prior post on Non-Equilibrium Attention Markets, we did a few things:
-&lt;/p&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;Starting with an asymmetric, &lt;em&gt;d&lt;/em&gt;-dimensional, classical Ising model, SoftMax could be derived, with some dictionary help:&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;div class=&quot;eq-block&quot; id=&quot;eq-spin-transformer-j&quot;&gt;
-\[
+</p><ul>
+  <li>Starting with an asymmetric, <em>d</em>-dimensional, classical Ising model, SoftMax could be derived, with some dictionary help:</li>
+</ul><div id="article-eq-spin-transformer-j">
+<span class="math-inline">\[
 J(x)=\operatorname{softmax}\!\left(\frac{xW_QW_K^Tx^T}{\sqrt D}\right).
-\]
-&lt;span class=&quot;eq-label&quot;&gt;(1)&lt;/span&gt;
-&lt;/div&gt;
-
-&lt;div class=&quot;note-block&quot;&gt;
-&lt;p&gt;
-Note: in Part 1 we mostly looked at the pre-softmax bilinear score generator. From here onward, the \(J_{ij}\) appearing in the kinetic Ising mean-field equations is the spin-transformer coupling \(J(x)\) above, following Bal&#x27;s notation (&lt;a href=&quot;#ref-bal-spin-model&quot;&gt;Bal, 2023&lt;/a&gt;).
-&lt;/p&gt;
-&lt;/div&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;An argument was made about entropy and the states of non-equilibrium attention markets.&lt;/li&gt;
-  &lt;li&gt;A sketch was made of the potential consequences.&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;
+\]</span>
+<span class="">(1)</span>
+</div><div>
+<p>
+Note: in Part 1 we mostly looked at the pre-softmax bilinear score generator. From here onward, the <span class="math-inline">\(J_{ij}\)</span> appearing in the kinetic Ising mean-field equations is the spin-transformer coupling <span class="math-inline">\(J(x)\)</span> above, following Bal's notation (<a href="#article-ref-bal-spin-model">Bal, 2023</a>).
+</p>
+</div><ul>
+  <li>An argument was made about entropy and the states of non-equilibrium attention markets.</li>
+  <li>A sketch was made of the potential consequences.</li>
+</ul><p>
 However, an astute reader may have noticed that detailed balance was incorrectly used to justify a correct statement about entropy production, but the entropy production was also just a Markov-chain model. None of that is particularly econophysics flavored.
-&lt;/p&gt;
-
-&lt;p&gt;
-Fortunately, Matthias Bal has paved the way for a correction, and the consequences yield tractable insights, or at the very least, a legible map for how to explore the implications. This post will develop the so-called &lt;strong&gt;Rescue Theorem&lt;/strong&gt; to rescue the NEAM framework, and will sketch out what we will call the &lt;strong&gt;parasocial collapse&lt;/strong&gt; model.
-&lt;/p&gt;
-
-&lt;h2 id=&quot;sec-flesh-wound&quot;&gt;&lt;span class=&quot;num&quot;&gt;02&lt;/span&gt; Tis Only a Flesh Wound&lt;/h2&gt;
-
-&lt;p&gt;
+</p><p>
+Fortunately, Matthias Bal has paved the way for a correction, and the consequences yield tractable insights, or at the very least, a legible map for how to explore the implications. This post will develop the so-called <strong>Rescue Theorem</strong> to rescue the NEAM framework, and will sketch out what we will call the <strong>parasocial collapse</strong> model.
+</p><h2 id="article-sec-flesh-wound"><span class="">02</span> Tis Only a Flesh Wound</h2><p>
 Let us more clearly articulate what we should have said about detailed balance in the first post, with an example from physics.
-&lt;/p&gt;
-
-&lt;p&gt;
-Imagine a system with \(n\) atoms. Each atom has two energy states, 1 or 2, and thus some number of atoms, \(n_1\), are in state 1, and some number, \(n_2\), are in state 2. The proportional rate that \(n_1\) goes to \(n_2\) is \(k_{12}\), and the proportional rate that \(n_2\) becomes \(n_1\) is \(k_{21}\). At any time, the rate of change of \(n_1\) is
-&lt;/p&gt;
-
-&lt;div class=&quot;eq-block&quot; id=&quot;eq-two-state-rate&quot;&gt;
-\[
+</p><p>
+Imagine a system with <span class="math-inline">\(n\)</span> atoms. Each atom has two energy states, 1 or 2, and thus some number of atoms, <span class="math-inline">\(n_1\)</span>, are in state 1, and some number, <span class="math-inline">\(n_2\)</span>, are in state 2. The proportional rate that <span class="math-inline">\(n_1\)</span> goes to <span class="math-inline">\(n_2\)</span> is <span class="math-inline">\(k_{12}\)</span>, and the proportional rate that <span class="math-inline">\(n_2\)</span> becomes <span class="math-inline">\(n_1\)</span> is <span class="math-inline">\(k_{21}\)</span>. At any time, the rate of change of <span class="math-inline">\(n_1\)</span> is
+</p><div id="article-eq-two-state-rate">
+<span class="math-inline">\[
 \frac{dn_1}{dt}=-k_{12}n_1+k_{21}n_2.
-\]
-&lt;span class=&quot;eq-label&quot;&gt;(2)&lt;/span&gt;
-&lt;/div&gt;
-
-&lt;p&gt;
-The second term is positive because it represents the proportional speed with which \(n_2\) becomes \(n_1\), and the first term is negative because it represents the opposite quantity. Thermal equilibrium occurs when \(dn_1/dt=0\), thus
-&lt;/p&gt;
-
-&lt;div class=&quot;eq-block&quot; id=&quot;eq-two-state-balance&quot;&gt;
-\[
+\]</span>
+<span class="">(2)</span>
+</div><p>
+The second term is positive because it represents the proportional speed with which <span class="math-inline">\(n_2\)</span> becomes <span class="math-inline">\(n_1\)</span>, and the first term is negative because it represents the opposite quantity. Thermal equilibrium occurs when <span class="math-inline">\(dn_1/dt=0\)</span>, thus
+</p><div id="article-eq-two-state-balance">
+<span class="math-inline">\[
 k_{12}n_1=k_{21}n_2.
-\]
-&lt;span class=&quot;eq-label&quot;&gt;(3)&lt;/span&gt;
-&lt;/div&gt;
-
-&lt;p&gt;
+\]</span>
+<span class="">(3)</span>
+</div><p>
 This is detailed balance. But look at the rates and the numbers: it is just their proportion that is constant. The rates do not have to be symmetric.
-&lt;/p&gt;
-
-&lt;p&gt;
+</p><p>
 And that is where the last post made an error:
-&lt;/p&gt;
-
-&lt;div class=&quot;eq-block&quot; id=&quot;eq-db-markov&quot;&gt;
-\[
+</p><div id="article-eq-db-markov">
+<span class="math-inline">\[
 \pi_i p_{ij}=\pi_j p_{ji}
-\]
-&lt;span class=&quot;eq-label&quot;&gt;(4)&lt;/span&gt;
-&lt;/div&gt;
-
-&lt;p&gt;
-does not require \(p_{ij}=p_{ji}\). It can satisfy detailed balance and yield zero entropy production in the Schnakenberg expression (&lt;a href=&quot;#ref-schnakenberg-1976&quot;&gt;Schnakenberg, 1976&lt;/a&gt;).
-&lt;/p&gt;
-
-&lt;p&gt;
-But we were correct to state that asymmetry of a sort violates detailed balance and produces net entropy. The relevant asymmetry is not merely that a forward transition probability differs from a backward transition probability. It is the system&#x27;s walk across many states, back to some original state, such that \(A\to B\to C\to A\) forms a loop with a nonzero circulation. It is an asymmetry in flux that violates detailed balance. The flow out of \(A\) and the flow back into \(A\) are not the same.
-&lt;/p&gt;
-
-&lt;p&gt;
-This confusion in the original occurred, in part, because \(J_{ij}\) in the Schnakenberg formula is a flux, not the coupling constant. And so, we see we are in need of rescue: if the entropy production rate were zero whenever the flux is symmetric, then the rest of the explorations in the first NEAM post would be moot.
-&lt;/p&gt;
-
-&lt;p&gt;
+\]</span>
+<span class="">(4)</span>
+</div><p>
+does not require <span class="math-inline">\(p_{ij}=p_{ji}\)</span>. It can satisfy detailed balance and yield zero entropy production in the Schnakenberg expression (<a href="#article-ref-schnakenberg-1976">Schnakenberg, 1976</a>).
+</p><p>
+But we were correct to state that asymmetry of a sort violates detailed balance and produces net entropy. The relevant asymmetry is not merely that a forward transition probability differs from a backward transition probability. It is the system's walk across many states, back to some original state, such that <span class="math-inline">\(A\to B\to C\to A\)</span> forms a loop with a nonzero circulation. It is an asymmetry in flux that violates detailed balance. The flow out of <span class="math-inline">\(A\)</span> and the flow back into <span class="math-inline">\(A\)</span> are not the same.
+</p><p>
+This confusion in the original occurred, in part, because <span class="math-inline">\(J_{ij}\)</span> in the Schnakenberg formula is a flux, not the coupling constant. And so, we see we are in need of rescue: if the entropy production rate were zero whenever the flux is symmetric, then the rest of the explorations in the first NEAM post would be moot.
+</p><p>
 A few critical notes summarizing the prior work of Matthias Bal:
-&lt;/p&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;We can use mean-field theory to approximate the probability of each state of the spin transformer.&lt;/li&gt;
-  &lt;li&gt;We can introduce an ansatz to approximate the true probability.&lt;/li&gt;
-  &lt;li&gt;We can use the Plefka expansion to get relatively simple closed-form approximations to properties of the mean-field theory (&lt;a href=&quot;#ref-aguilera-2020&quot;&gt;Aguilera, Moosavi, &amp;amp; Shimazaki, 2020&lt;/a&gt;; &lt;a href=&quot;#ref-bal-entropy-2026&quot;&gt;Bal, 2026&lt;/a&gt;).&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;
+</p><ul>
+  <li>We can use mean-field theory to approximate the probability of each state of the spin transformer.</li>
+  <li>We can introduce an ansatz to approximate the true probability.</li>
+  <li>We can use the Plefka expansion to get relatively simple closed-form approximations to properties of the mean-field theory (<a href="#article-ref-aguilera-2020">Aguilera, Moosavi, &#x26; Shimazaki, 2020</a>; <a href="#article-ref-bal-entropy-2026">Bal, 2026</a>).</li>
+</ul><p>
 We will not run through the full derivation, in part because it gets thorny with Bessel functions, but mostly because we would rather come at this from the perspective of: we have a reasonable mean-field description of an asymmetric vector spin transformer, so what next?
-&lt;/p&gt;
-
-&lt;p&gt;
+</p><p>
 What comes next is that we can write, if not explicitly calculate, the magnetization, and we can write the estimated probabilities describing transitions between snapshots of the whole system. At this point, you may wonder why. Well. The goal is this: econophysics provides a useful map from Ising-like systems to real markets. That is, we do not need to reinvent the wheel here, and can instead use existing econophysics models, with real though possibly modest or contested empirical success, to jump from magnetization, entropy production, susceptibility, and so forth, back into the non-equilibrium attention market frame.
-&lt;/p&gt;
-
-&lt;p&gt;
+</p><p>
 The NEAM, then, is a bootstrap program. From spin transformer, to applied modeling, with One Weird Trick. Anyway...onward. The immediate problem is that our discussion of both detailed balance and entropy production was sorely wanting. Let us patch it up and develop the Rescue Theorem.
-&lt;/p&gt;
-
-&lt;h2 id=&quot;sec-rescue&quot;&gt;&lt;span class=&quot;num&quot;&gt;03&lt;/span&gt; Rescue Me&lt;/h2&gt;
-
-&lt;p&gt;
+</p><h2 id="article-sec-rescue"><span class="">03</span> Rescue Me</h2><p>
 Imagine you are a physicist. Detailed balance requires a potential function: a conservative force, a round trip that causes no net change, and a gradient of a scalar function. We can have an asymmetry in the number of states on top of the hill and the number of states in the valley, but any object going from the valley to the hill and back to the valley cannot have a difference. This is the criterion we care about for our spin transformers: if there is a potential function, then they can reach equilibrium. If there is not, they stay out of equilibrium. Crude, but clear.
-&lt;/p&gt;
-
-&lt;p&gt;
-We need to shift our mental model a little. Instead of looking at the individual hidden states \(x_i\), we will do as Bal does, with the state \(s\), which is a snapshot of every spin vector in the system:
-&lt;/p&gt;
-
-&lt;div class=&quot;eq-block&quot; id=&quot;eq-state-snapshot&quot;&gt;
-\[
+</p><p>
+We need to shift our mental model a little. Instead of looking at the individual hidden states <span class="math-inline">\(x_i\)</span>, we will do as Bal does, with the state <span class="math-inline">\(s\)</span>, which is a snapshot of every spin vector in the system:
+</p><div id="article-eq-state-snapshot">
+<span class="math-inline">\[
 s=(x_1,x_2,\ldots,x_N).
-\]
-&lt;span class=&quot;eq-label&quot;&gt;(5)&lt;/span&gt;
-&lt;/div&gt;
-
-&lt;p&gt;
-What we investigate is the Markov chain as this state \(s\) transitions from \(t\) to \(t&#x27;\). Since we are in the context of mean-field theory, this transition probability has a Boltzmann-shaped kernel:
-&lt;/p&gt;
-
-&lt;div class=&quot;eq-block&quot; id=&quot;eq-transition-kernel&quot;&gt;
-\[
-T(s&#x27;\mid s)=\prod_i\frac{\exp\!\left[\beta\,s_i&#x27;\cdot h_i(s)\right]}{Z_i(s)},
+\]</span>
+<span class="">(5)</span>
+</div><p>
+What we investigate is the Markov chain as this state <span class="math-inline">\(s\)</span> transitions from <span class="math-inline">\(t\)</span> to <span class="math-inline">\(t'\)</span>. Since we are in the context of mean-field theory, this transition probability has a Boltzmann-shaped kernel:
+</p><div id="article-eq-transition-kernel">
+<span class="math-inline">\[
+T(s'\mid s)=\prod_i\frac{\exp\!\left[\beta\,s_i'\cdot h_i(s)\right]}{Z_i(s)},
 \qquad
 h_i(s)=x_i+\sum_jJ_{ij}s_j.
-\]
-&lt;span class=&quot;eq-label&quot;&gt;(6)&lt;/span&gt;
-&lt;/div&gt;
-
-&lt;p&gt;
-Here \(T\) is the transition probability from \(s\) to \(s&#x27;\). If we reverse the order, that is the transition from \(s&#x27;\) to \(s\). The field \(h_i\) describes the interactions between the system at \(s&#x27;\) and the system at \(s\); the construction is derived explicitly by Bal and will not be recreated here (&lt;a href=&quot;#ref-bal-entropy-2026&quot;&gt;Bal, 2026&lt;/a&gt;).
-&lt;/p&gt;
-
-&lt;p&gt;
+\]</span>
+<span class="">(6)</span>
+</div><p>
+Here <span class="math-inline">\(T\)</span> is the transition probability from <span class="math-inline">\(s\)</span> to <span class="math-inline">\(s'\)</span>. If we reverse the order, that is the transition from <span class="math-inline">\(s'\)</span> to <span class="math-inline">\(s\)</span>. The field <span class="math-inline">\(h_i\)</span> describes the interactions between the system at <span class="math-inline">\(s'\)</span> and the system at <span class="math-inline">\(s\)</span>; the construction is derived explicitly by Bal and will not be recreated here (<a href="#article-ref-bal-entropy-2026">Bal, 2026</a>).
+</p><p>
 For a conservative force, the log-ratio of the two transition probabilities should yield gradient terms. Let us check by taking the logarithm of the ratio:
-&lt;/p&gt;
-
-&lt;div class=&quot;eq-block&quot; id=&quot;eq-log-ratio&quot;&gt;
-\[
-\log\frac{T(s&#x27;\mid s)}{T(s\mid s&#x27;)}
+</p><div id="article-eq-log-ratio">
+<span class="math-inline">\[
+\log\frac{T(s'\mid s)}{T(s\mid s')}
 =
-\beta\,x\cdot(s&#x27;-s)
+\beta\,x\cdot(s'-s)
 +
-\sum_i\log Z_i(s&#x27;)-
+\sum_i\log Z_i(s')-
 \sum_i\log Z_i(s)
 +
-\beta\sum_{ij}\left(s_i&#x27;J_{ij}s_j-s_iJ_{ij}s_j&#x27;\right).
-\]
-&lt;span class=&quot;eq-label&quot;&gt;(7)&lt;/span&gt;
-&lt;/div&gt;
-
-&lt;p&gt;
-The first two terms are gradient-like. The first is proportional to \(\Delta s\). The second is less obvious, but it is still a difference of normalization terms. At this stage, we could still write a potential for the system and thus retain detailed balance. As a reminder: in the last post, we said detailed balance is violated, so we have not rescued anything yet.
-&lt;/p&gt;
-
-&lt;p&gt;
-Let us take a look at the third term. Relabeling dummy indices \(i\leftrightarrow j\), we get
-&lt;/p&gt;
-
-&lt;div class=&quot;eq-block&quot; id=&quot;eq-skew-term&quot;&gt;
-\[
-\sum_{ij}\left(s_i&#x27;J_{ij}s_j-s_jJ_{ji}s_i&#x27;\right)
+\beta\sum_{ij}\left(s_i'J_{ij}s_j-s_iJ_{ij}s_j'\right).
+\]</span>
+<span class="">(7)</span>
+</div><p>
+The first two terms are gradient-like. The first is proportional to <span class="math-inline">\(\Delta s\)</span>. The second is less obvious, but it is still a difference of normalization terms. At this stage, we could still write a potential for the system and thus retain detailed balance. As a reminder: in the last post, we said detailed balance is violated, so we have not rescued anything yet.
+</p><p>
+Let us take a look at the third term. Relabeling dummy indices <span class="math-inline">\(i\leftrightarrow j\)</span>, we get
+</p><div id="article-eq-skew-term">
+<span class="math-inline">\[
+\sum_{ij}\left(s_i'J_{ij}s_j-s_jJ_{ji}s_i'\right)
 =
-\sum_{ij}(J_{ij}-J_{ji})s_i&#x27;s_j
+\sum_{ij}(J_{ij}-J_{ji})s_i's_j
 =
-s&#x27;^T(J-J^T)s.
-\]
-&lt;span class=&quot;eq-label&quot;&gt;(8)&lt;/span&gt;
-&lt;/div&gt;
-
-&lt;p&gt;
-Note: to check, recall that \(s&#x27;\) and \(s\) are state-snapshot vectors, and \(J_{ij}\) is the coupling matrix we get from softmax attention.
-&lt;/p&gt;
-
-&lt;p&gt;
-This is a skew bilinear term, which is not a term we instinctively recalled from linear algebra but had some external advice about. To check whether it can be a gradient contribution, we use the curl test. We are not in the familiar three dimensions, so we take a mixed second derivative with respect to our states \(s_i&#x27;\) and \(s_j\):
-&lt;/p&gt;
-
-&lt;div class=&quot;eq-block&quot; id=&quot;eq-curl-test-zero&quot;&gt;
-\[
-\frac{\partial^2}{\partial s_i&#x27;\partial s_j}\left[g(s&#x27;)-g(s)\right]=0
-\]
-&lt;span class=&quot;eq-label&quot;&gt;(9)&lt;/span&gt;
-&lt;/div&gt;
-
-&lt;p&gt;
+s'^T(J-J^T)s.
+\]</span>
+<span class="">(8)</span>
+</div><p>
+Note: to check, recall that <span class="math-inline">\(s'\)</span> and <span class="math-inline">\(s\)</span> are state-snapshot vectors, and <span class="math-inline">\(J_{ij}\)</span> is the coupling matrix we get from softmax attention.
+</p><p>
+This is a skew bilinear term, which is not a term we instinctively recalled from linear algebra but had some external advice about. To check whether it can be a gradient contribution, we use the curl test. We are not in the familiar three dimensions, so we take a mixed second derivative with respect to our states <span class="math-inline">\(s_i'\)</span> and <span class="math-inline">\(s_j\)</span>:
+</p><div id="article-eq-curl-test-zero">
+<span class="math-inline">\[
+\frac{\partial^2}{\partial s_i'\partial s_j}\left[g(s')-g(s)\right]=0
+\]</span>
+<span class="">(9)</span>
+</div><p>
 for any scalar potential difference. But for the skew bilinear term,
-&lt;/p&gt;
-
-&lt;div class=&quot;eq-block&quot; id=&quot;eq-curl-test-j&quot;&gt;
-\[
-\frac{\partial^2}{\partial s_i&#x27;\partial s_j}
-\left[s&#x27;^T(J-J^T)s\right]
+</p><div id="article-eq-curl-test-j">
+<span class="math-inline">\[
+\frac{\partial^2}{\partial s_i'\partial s_j}
+\left[s'^T(J-J^T)s\right]
 =
 J-J^T.
-\]
-&lt;span class=&quot;eq-label&quot;&gt;(10)&lt;/span&gt;
-&lt;/div&gt;
-
-&lt;p&gt;
-And \(J\), as you may recall, is
-&lt;/p&gt;
-
-&lt;div class=&quot;eq-block&quot; id=&quot;eq-j-recall&quot;&gt;
-\[
+\]</span>
+<span class="">(10)</span>
+</div><p>
+And <span class="math-inline">\(J\)</span>, as you may recall, is
+</p><div id="article-eq-j-recall">
+<span class="math-inline">\[
 J(x)=\operatorname{softmax}\!\left(\frac{xW_QW_K^Tx^T}{\sqrt D}\right),
-\]
-&lt;span class=&quot;eq-label&quot;&gt;(11)&lt;/span&gt;
-&lt;/div&gt;
-
-&lt;p&gt;
-which is asymmetric, so this term, across the full space of the vectors \(x\), generally does not vanish. We fail the curl test. Detailed balance requires \(J=J^T\) exactly, which is false for the spin transformer and false for ordinary transformer attention as well. An interesting aside, pointed out to us rather than known off-hand, is that we get the Peretto-Little measure for parallel updates out of this work for free if we just look at the terms that do not depend on \(J\) in our transition probabilities:
-&lt;/p&gt;
-
-&lt;div class=&quot;eq-block&quot; id=&quot;eq-peretto-little&quot;&gt;
-\[
+\]</span>
+<span class="">(11)</span>
+</div><p>
+which is asymmetric, so this term, across the full space of the vectors <span class="math-inline">\(x\)</span>, generally does not vanish. We fail the curl test. Detailed balance requires <span class="math-inline">\(J=J^T\)</span> exactly, which is false for the spin transformer and false for ordinary transformer attention as well. An interesting aside, pointed out to us rather than known off-hand, is that we get the Peretto-Little measure for parallel updates out of this work for free if we just look at the terms that do not depend on <span class="math-inline">\(J\)</span> in our transition probabilities:
+</p><div id="article-eq-peretto-little">
+<span class="math-inline">\[
 P_{\rm eq}(s)\propto
 \exp\!\left[\beta\,x\cdot s+\sum_i\log Z_i(s)\right].
-\]
-&lt;span class=&quot;eq-label&quot;&gt;(12)&lt;/span&gt;
-&lt;/div&gt;
-
-&lt;p&gt;
+\]</span>
+<span class="">(12)</span>
+</div><p>
 We are, therefore, rescued: detailed balance is, indeed, violated, but now we can prove it.
-&lt;/p&gt;
-
-&lt;h2 id=&quot;sec-entropy&quot;&gt;&lt;span class=&quot;num&quot;&gt;04&lt;/span&gt; A Mean Entropy&lt;/h2&gt;
-
-&lt;p&gt;
+</p><h2 id="article-sec-entropy"><span class="">04</span> A Mean Entropy</h2><p>
 Detailed balance cannot hold, and thus one of the two problems with the first NEAM post is fixed. What about entropy, however?
-&lt;/p&gt;
-
-&lt;p&gt;
+</p><p>
 A Markov-chain walk is fine and all, but if we bite the bullet and learn to love mean-field theory tooling, then we get an alternative measure of entropy production:
-&lt;/p&gt;
-
-&lt;div class=&quot;eq-block&quot; id=&quot;eq-entropy-production&quot;&gt;
-\[
+</p><div id="article-eq-entropy-production">
+<span class="math-inline">\[
 \sigma_t=\sum_{ij}(J_{ij}-J_{ji})D_{ij,t}.
-\]
-&lt;span class=&quot;eq-label&quot;&gt;(13)&lt;/span&gt;
-&lt;/div&gt;
-
-&lt;p&gt;
-Here \(D_{ij,t}\) is the time-delayed correlation: the two-point correlation between states at adjacent times, after subtracting the magnetization contribution (&lt;a href=&quot;#ref-aguilera-2020&quot;&gt;Aguilera, Moosavi, &amp;amp; Shimazaki, 2020&lt;/a&gt;; &lt;a href=&quot;#ref-bal-entropy-2026&quot;&gt;Bal, 2026&lt;/a&gt;):
-&lt;/p&gt;
-
-&lt;div class=&quot;eq-block&quot; id=&quot;eq-delayed-correlation&quot;&gt;
-\[
+\]</span>
+<span class="">(13)</span>
+</div><p>
+Here <span class="math-inline">\(D_{ij,t}\)</span> is the time-delayed correlation: the two-point correlation between states at adjacent times, after subtracting the magnetization contribution (<a href="#article-ref-aguilera-2020">Aguilera, Moosavi, &#x26; Shimazaki, 2020</a>; <a href="#article-ref-bal-entropy-2026">Bal, 2026</a>):
+</p><div id="article-eq-delayed-correlation">
+<span class="math-inline">\[
 D_{ij,t}
 =
 \int ds_t\int ds_{t-1}\,
 \bigl(s_{i,t}-m_{i,t}\bigr)\cdot
 \bigl(s_{j,t-1}-m_{j,t-1}\bigr)
 P(s_t,s_{t-1}).
-\]
-&lt;span class=&quot;eq-label&quot;&gt;(14)&lt;/span&gt;
-&lt;/div&gt;
-
-&lt;p&gt;
+\]</span>
+<span class="">(14)</span>
+</div><p>
 The magnetization is
-&lt;/p&gt;
-
-&lt;div class=&quot;eq-block&quot; id=&quot;eq-magnetization&quot;&gt;
-\[
+</p><div id="article-eq-magnetization">
+<span class="math-inline">\[
 m_{i,t}
 =
 \frac{\beta\left(x_{i,t}+\sum_jJ_{ij}m_{j,t-1}\right)}
 {1+\sqrt{1+\beta^2\left\|x_{i,t}+\sum_jJ_{ij}m_{j,t-1}\right\|^2/R^2}},
 \qquad
 R=\sqrt{D/2-1}.
-\]
-&lt;span class=&quot;eq-label&quot;&gt;(15)&lt;/span&gt;
-&lt;/div&gt;
-
-&lt;p&gt;
-Here \(P(s_t,s_{t-1})\) is the probability for the state at \(t-1\) to evolve in one time-step to the state at \(t\). Spiritually, it looks like the Schnakenberg formula if we squint a lot: entropy production is still tracking irreversible circulation, but now through the mean-field structure of the spin-transformer dynamics.
-&lt;/p&gt;
-
-&lt;p&gt;
-Using the ansatz and the Plefka expansion, Bal gives the full closed-form expression for \(D_{ij,t}\). The full expression is not especially illuminating for our purposes here, so we keep the useful approximation: when the local-field norm is \(O(R)\), the time-delayed correlation becomes
-&lt;/p&gt;
-
-&lt;div class=&quot;eq-block&quot; id=&quot;eq-d-approx&quot;&gt;
-\[
+\]</span>
+<span class="">(15)</span>
+</div><p>
+Here <span class="math-inline">\(P(s_t,s_{t-1})\)</span> is the probability for the state at <span class="math-inline">\(t-1\)</span> to evolve in one time-step to the state at <span class="math-inline">\(t\)</span>. Spiritually, it looks like the Schnakenberg formula if we squint a lot: entropy production is still tracking irreversible circulation, but now through the mean-field structure of the spin-transformer dynamics.
+</p><p>
+Using the ansatz and the Plefka expansion, Bal gives the full closed-form expression for <span class="math-inline">\(D_{ij,t}\)</span>. The full expression is not especially illuminating for our purposes here, so we keep the useful approximation: when the local-field norm is <span class="math-inline">\(O(R)\)</span>, the time-delayed correlation becomes
+</p><div id="article-eq-d-approx">
+<span class="math-inline">\[
 D_{ij,t}\approx J_{ij}\cos^2\alpha_{(i,t),(j,t-1)},
-\]
-&lt;span class=&quot;eq-label&quot;&gt;(16)&lt;/span&gt;
-&lt;/div&gt;
-
-&lt;p&gt;
-where \(\alpha_{(i,t),(j,t-1)}\) is the angle between the magnetization vectors for \(i\) at time \(t\) and \(j\) at time \(t-1\).
-&lt;/p&gt;
-
-&lt;p&gt;
+\]</span>
+<span class="">(16)</span>
+</div><p>
+where <span class="math-inline">\(\alpha_{(i,t),(j,t-1)}\)</span> is the angle between the magnetization vectors for <span class="math-inline">\(i\)</span> at time <span class="math-inline">\(t\)</span> and <span class="math-inline">\(j\)</span> at time <span class="math-inline">\(t-1\)</span>.
+</p><p>
 Thus entropy production becomes
-&lt;/p&gt;
-
-&lt;div class=&quot;eq-block&quot; id=&quot;eq-sigma-approx&quot;&gt;
-\[
+</p><div id="article-eq-sigma-approx">
+<span class="math-inline">\[
 \sigma_t
 \sim
 \sum_{ij}\left(J_{ij}^2-J_{ij}J_{ji}\right)
 \cos^2\alpha_{(i,t),(j,t-1)}.
-\]
-&lt;span class=&quot;eq-label&quot;&gt;(17)&lt;/span&gt;
-&lt;/div&gt;
-
-&lt;p&gt;
-We already Rescued the detailed balance claim from earlier work, and now you may notice the entropy production rate in the equation immediately above has a \(J-J^T\) term, which is non-zero by asymmetry of \(J\), thus entropy production is non-zero...as long as \(\cos^2\alpha_{(i,t),(j,t-1)}\) does not identically vanish for all \(i\) and \(j\) across the time-step from \(t-1\) to \(t\).
-&lt;/p&gt;
-
-&lt;h2 id=&quot;sec-parasocial&quot;&gt;&lt;span class=&quot;num&quot;&gt;05&lt;/span&gt; Parasocial Collapse: Example Sketch&lt;/h2&gt;
-
-&lt;p&gt;
+\]</span>
+<span class="">(17)</span>
+</div><p>
+We already Rescued the detailed balance claim from earlier work, and now you may notice the entropy production rate in the equation immediately above has a <span class="math-inline">\(J-J^T\)</span> term, which is non-zero by asymmetry of <span class="math-inline">\(J\)</span>, thus entropy production is non-zero...as long as <span class="math-inline">\(\cos^2\alpha_{(i,t),(j,t-1)}\)</span> does not identically vanish for all <span class="math-inline">\(i\)</span> and <span class="math-inline">\(j\)</span> across the time-step from <span class="math-inline">\(t-1\)</span> to <span class="math-inline">\(t\)</span>.
+</p><h2 id="article-sec-parasocial"><span class="">05</span> Parasocial Collapse: Example Sketch</h2><p>
 Our key insight: detailed balance is, indeed, violated for the spin transformer as contended in the original NEAM post, and the entropy production rate in such a system is generically non-zero for asymmetric couplings with non-orthogonal delayed alignment of the state vectors.
-&lt;/p&gt;
-
-&lt;p&gt;
+</p><p>
 Now, let us work an example and illustrate the utility of the NEAM framework, now that it is thoroughly rescued.
-&lt;/p&gt;
-
-&lt;p&gt;
+</p><p>
 Let us simplify our world into two states, essentially:
-&lt;/p&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;State 1: the celebrity.&lt;/li&gt;
-  &lt;li&gt;State 2: everyone else.&lt;/li&gt;
-  &lt;li&gt;We ignore all other interactions, because everyone else is an NPC. This is a jokey way of saying we ignore \(J_{ij}\) between the masses.&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;
+</p><ul>
+  <li>State 1: the celebrity.</li>
+  <li>State 2: everyone else.</li>
+  <li>We ignore all other interactions, because everyone else is an NPC. This is a jokey way of saying we ignore <span class="math-inline">\(J_{ij}\)</span> between the masses.</li>
+</ul><p>
 The celebrity causes updates to everyone else, but it is maximally asymmetric. State 1 impacts state 2; state 1 does not care what state 2 does. Ever.
-&lt;/p&gt;
-
-&lt;p&gt;
+</p><p>
 In math, using the notation to track how the impacted state is affected by the impactor state, we have
-&lt;/p&gt;
-
-&lt;div class=&quot;eq-block&quot; id=&quot;eq-parasocial-j&quot;&gt;
-\[
+</p><div id="article-eq-parasocial-j">
+<span class="math-inline">\[
 J_{21}=c,
 \qquad
 J_{12}=0,
 \qquad
-c&gt;0.
-\]
-&lt;span class=&quot;eq-label&quot;&gt;(18)&lt;/span&gt;
-&lt;/div&gt;
-
-&lt;p&gt;
-If we plug this into the Plefka mean-field approximation for \(D_{ij,t}\), we see
-&lt;/p&gt;
-
-&lt;div class=&quot;eq-block&quot; id=&quot;eq-parasocial-d&quot;&gt;
-\[
+c>0.
+\]</span>
+<span class="">(18)</span>
+</div><p>
+If we plug this into the Plefka mean-field approximation for <span class="math-inline">\(D_{ij,t}\)</span>, we see
+</p><div id="article-eq-parasocial-d">
+<span class="math-inline">\[
 D_{12}=0,
 \qquad
 D_{21}\propto c\cos^2\alpha_{(2,t),(1,t-1)}.
-\]
-&lt;span class=&quot;eq-label&quot;&gt;(19)&lt;/span&gt;
-&lt;/div&gt;
-
-&lt;p&gt;
+\]</span>
+<span class="">(19)</span>
+</div><p>
 The entropy production immediately becomes
-&lt;/p&gt;
-
-&lt;div class=&quot;eq-block&quot; id=&quot;eq-parasocial-sigma&quot;&gt;
-\[
+</p><div id="article-eq-parasocial-sigma">
+<span class="math-inline">\[
 \sigma_t
 =
 (J_{12}-J_{21})D_{12}
@@ -500,59 +276,34 @@ The entropy production immediately becomes
 (J_{21}-J_{12})D_{21}
 \approx
 c^2\cos^2\alpha_{(2,t),(1,t-1)}.
-\]
-&lt;span class=&quot;eq-label&quot;&gt;(20)&lt;/span&gt;
-&lt;/div&gt;
-
-&lt;p&gt;
+\]</span>
+<span class="">(20)</span>
+</div><p>
 This is a dissipative system, as it continuously produces entropy. The key takeaway is that entropy production is a property of state space and dynamics, not of the attention matrix itself.
-&lt;/p&gt;
-
-&lt;h2 id=&quot;sec-next&quot;&gt;&lt;span class=&quot;num&quot;&gt;06&lt;/span&gt; What Next?&lt;/h2&gt;
-
-&lt;p&gt;
+</p><h2 id="article-sec-next"><span class="">06</span> What Next?</h2><p>
 We have made a much more rigorous argument about detailed balance, replaced key machinery with mean-field theory, and illustrated an example where the entropy production is strictly greater than zero. The NEAM is thus rescued. We are on much more solid ground, our thoughts more organized, the path forward clearer.
-&lt;/p&gt;
-
-&lt;p&gt;
+</p><p>
 But what does this mean? Why does this matter?
-&lt;/p&gt;
-
-&lt;p&gt;
+</p><p>
 The trajectory so far has been:
-&lt;/p&gt;
-
-&lt;ul&gt;
-  &lt;li&gt;See how SoftMax is secretly a collection of vector spins.&lt;/li&gt;
-  &lt;li&gt;Use mean-field theory to describe state space and dynamics.&lt;/li&gt;
-  &lt;li&gt;From state space and dynamics, see the structure of dissipation and entropy production.&lt;/li&gt;
-  &lt;li&gt;Create the bones of an example we can use to further explore the problem space.&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;p&gt;
-It is not nothing. Though, essentially, we are still at the beginning of exploration. Many of the consequences, and the &quot;and therefore,&quot; have been left as idle implications, gaps in the text, liminal space for the exercise of the readers. None of that is satisfactory. Yet, it was all necessary. We have a solid, defensible, well-considered scaffolding, and we can now begin proper exploration, simulation, and demonstration...in a future post.
-&lt;/p&gt;
-
-&lt;h2 id=&quot;sec-refs&quot;&gt;&lt;span class=&quot;num&quot;&gt;07&lt;/span&gt; References&lt;/h2&gt;
-
-&lt;h3&gt;Foundational Texts&lt;/h3&gt;
-
-&lt;ul class=&quot;refs&quot;&gt;
-  &lt;li id=&quot;ref-bal-spin-systems&quot;&gt;Bal, M. C. (2021). &lt;em&gt;Transformers Are Secretly Collectives of Spin Systems&lt;/em&gt;. &lt;a href=&quot;https://mcbal.github.io/post/transformers-are-secretly-collectives-of-spin-systems/&quot;&gt;mcbal.github.io&lt;/a&gt;&lt;/li&gt;
-  &lt;li id=&quot;ref-bal-free-energy&quot;&gt;Bal, M. C. (2021). &lt;em&gt;Transformers from Spin Models: Approximate Free Energy Minimization&lt;/em&gt;. &lt;a href=&quot;https://mcbal.github.io/post/transformers-from-spin-models-approximate-free-energy-minimization/&quot;&gt;mcbal.github.io&lt;/a&gt;&lt;/li&gt;
-  &lt;li id=&quot;ref-bal-spin-model&quot;&gt;Bal, M. C. (2023). &lt;em&gt;Spin-Model Transformers&lt;/em&gt;. &lt;a href=&quot;https://mcbal.github.io/post/spin-model-transformers/&quot;&gt;mcbal.github.io&lt;/a&gt;&lt;/li&gt;
-  &lt;li id=&quot;ref-bal-entropy-2026&quot;&gt;Bal, M. C. (2026). &lt;em&gt;Entropy Production in Non-Equilibrium Neural Networks&lt;/em&gt;. &lt;a href=&quot;https://mcbal.github.io/post/entropy-production-in-non-equilibrium-neural-networks/&quot;&gt;mcbal.github.io&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;h3&gt;Academic References&lt;/h3&gt;
-
-&lt;ul class=&quot;refs&quot;&gt;
-  &lt;li id=&quot;ref-aguilera-2020&quot;&gt;Aguilera, M., Moosavi, S. A., &amp;amp; Shimazaki, H. (2020). &lt;em&gt;A unifying framework for mean-field theories of asymmetric kinetic Ising systems&lt;/em&gt;. arXiv:2002.04309. &lt;a href=&quot;https://arxiv.org/abs/2002.04309&quot;&gt;arxiv&lt;/a&gt;&lt;/li&gt;
-  &lt;li id=&quot;ref-schnakenberg-1976&quot;&gt;Schnakenberg, J. (1976). Network theory of microscopic and macroscopic behavior of master equation systems. &lt;em&gt;Reviews of Modern Physics&lt;/em&gt;, 48(4), 571–585. &lt;a href=&quot;https://doi.org/10.1103/RevModPhys.48.571&quot;&gt;doi&lt;/a&gt;&lt;/li&gt;
-  &lt;li id=&quot;ref-cocconi-2020&quot;&gt;Cocconi, L., Garcia-Millan, R., Zhen, Z., Buturca, B., &amp;amp; Pruessner, G. (2020). &lt;em&gt;Entropy production in exactly solvable systems&lt;/em&gt;. arXiv:2010.04231. &lt;a href=&quot;https://arxiv.org/abs/2010.04231&quot;&gt;arxiv&lt;/a&gt;&lt;/li&gt;
-&lt;/ul&gt;
-
-&lt;/div&gt;</pre>
+</p><ul>
+  <li>See how SoftMax is secretly a collection of vector spins.</li>
+  <li>Use mean-field theory to describe state space and dynamics.</li>
+  <li>From state space and dynamics, see the structure of dissipation and entropy production.</li>
+  <li>Create the bones of an example we can use to further explore the problem space.</li>
+</ul><p>
+It is not nothing. Though, essentially, we are still at the beginning of exploration. Many of the consequences, and the "and therefore," have been left as idle implications, gaps in the text, liminal space for the exercise of the readers. None of that is satisfactory. Yet, it was all necessary. We have a solid, defensible, well-considered scaffolding, and we can now begin proper exploration, simulation, and demonstration...in a future post.
+</p><h2 id="article-sec-refs"><span class="">07</span> References</h2><h3>Foundational Texts</h3><ul class="">
+  <li id="article-ref-bal-spin-systems">Bal, M. C. (2021). <em>Transformers Are Secretly Collectives of Spin Systems</em>. <a href="https://mcbal.github.io/post/transformers-are-secretly-collectives-of-spin-systems/">mcbal.github.io</a></li>
+  <li id="article-ref-bal-free-energy">Bal, M. C. (2021). <em>Transformers from Spin Models: Approximate Free Energy Minimization</em>. <a href="https://mcbal.github.io/post/transformers-from-spin-models-approximate-free-energy-minimization/">mcbal.github.io</a></li>
+  <li id="article-ref-bal-spin-model">Bal, M. C. (2023). <em>Spin-Model Transformers</em>. <a href="https://mcbal.github.io/post/spin-model-transformers/">mcbal.github.io</a></li>
+  <li id="article-ref-bal-entropy-2026">Bal, M. C. (2026). <em>Entropy Production in Non-Equilibrium Neural Networks</em>. <a href="https://mcbal.github.io/post/entropy-production-in-non-equilibrium-neural-networks/">mcbal.github.io</a></li>
+</ul><h3>Academic References</h3><ul class="">
+  <li id="article-ref-aguilera-2020">Aguilera, M., Moosavi, S. A., &#x26; Shimazaki, H. (2020). <em>A unifying framework for mean-field theories of asymmetric kinetic Ising systems</em>. arXiv:2002.04309. <a href="https://arxiv.org/abs/2002.04309">arxiv</a></li>
+  <li id="article-ref-schnakenberg-1976">Schnakenberg, J. (1976). Network theory of microscopic and macroscopic behavior of master equation systems. <em>Reviews of Modern Physics</em>, 48(4), 571–585. <a href="https://doi.org/10.1103/RevModPhys.48.571">doi</a></li>
+  <li id="article-ref-cocconi-2020">Cocconi, L., Garcia-Millan, R., Zhen, Z., Buturca, B., &#x26; Pruessner, G. (2020). <em>Entropy production in exactly solvable systems</em>. arXiv:2010.04231. <a href="https://arxiv.org/abs/2010.04231">arxiv</a></li>
+</ul></div>
+</div>
 <p><a href="/#post/neam-rescue">Open the interactive transmission</a> · <a href="https://lastnpcalex.agency/p/neam-rescue.md">Markdown source</a></p>
 </article>
 </body>

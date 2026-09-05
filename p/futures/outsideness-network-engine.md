@@ -4,6 +4,7 @@ date: 2025.05.23
 tags: speculative presents, vector-punk, network-state, vectoralism
 canonical: https://lastnpcalex.agency/p/futures/outsideness-network-engine
 ---
+
 ## i. the edge equation
 
 imagine you are a node in a network.

@@ -53,6 +53,7 @@ author/effects/
 _worker.bundle
 _worker.js
 worker-content.js
+transmission-document.js
 wrangler.json
 wrangler.toml
 functions/
