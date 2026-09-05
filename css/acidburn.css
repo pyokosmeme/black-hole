@@ -520,10 +520,8 @@ body.light-mode .header-bar .header-stat-label {
     transition: all 0.2s ease;
 }
 
-/* Glow effects for the button based on current mode */
-.mode-btn-icon.glow-bh img { filter: drop-shadow(2px 2px 2px #000) drop-shadow(0 0 5px #000); }
-.mode-btn-icon.glow-dark img { filter: drop-shadow(2px 2px 2px #000) drop-shadow(0 0 5px #000); }
-.mode-btn-icon.glow-light img { filter: drop-shadow(2px 2px 2px #000) drop-shadow(0 0 5px #000); }
+/* A narrow shadow keeps the silhouettes clear over the animated background. */
+.mode-btn-icon img { filter: drop-shadow(0 1px 1px #000); }
 
 .mode-btn-icon:hover {
     background: rgba(255, 255, 255, 0.05);
