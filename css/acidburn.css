@@ -705,12 +705,52 @@ body.bh-mode .link-card {
     font-size: var(--text-base);
     line-height: 1.9;
     color: rgba(255,255,255,0.8);
-    border-left: 3px solid var(--purple);
-    padding-left: var(--space-md);
 }
 
 .author-bio p { margin-bottom: 10px; }
 .author-bio em { color: rgba(255,255,255,0.5); }
+
+/* Paired annotation marks frame prose without a continuous accent rail. */
+.author-bio,
+.post-content blockquote {
+    position: relative;
+    padding: 0.15em 2.5em;
+    overflow-wrap: anywhere;
+}
+
+.author-bio::before,
+.author-bio::after,
+.post-content blockquote::before,
+.post-content blockquote::after {
+    position: absolute;
+    color: var(--annotation-accent, var(--purple));
+    font-family: 'Cambria Math', 'Segoe UI Symbol', monospace;
+    font-size: 1em;
+    font-style: normal;
+    font-weight: 400;
+    line-height: inherit;
+    pointer-events: none;
+    user-select: none;
+}
+
+.author-bio::before,
+.post-content blockquote::before {
+    content: '\27EA\231C' / '';
+    inset-inline-start: 0;
+    top: 0.15em;
+}
+
+.author-bio::after,
+.post-content blockquote::after {
+    content: '\231F\27EB' / '';
+    inset-inline-end: 0;
+    bottom: 0.15em;
+}
+
+.author-bio > :last-child,
+.post-content blockquote > :last-child {
+    margin-bottom: 0;
+}
 
 /* ═══════════════════════════════════════════════════════════════
    LINKS SECTION
@@ -1091,8 +1131,6 @@ body.bh-mode .link-card {
 .post-content strong { color: var(--cyan); text-shadow: 0 0 calc(10px * var(--glow-intensity)) var(--cyan); }
 
 .post-content blockquote {
-    border-left: 4px solid var(--purple);
-    padding-left: var(--space-md);
     margin: var(--space-lg) 0;
     color: rgba(255,255,255,0.7);
     font-style: italic;

@@ -566,8 +566,7 @@ body.light-reading .post-view {
 }
 
 .post-content blockquote {
-    border-left: 3px solid var(--rv-quote-border);
-    padding-left: 1.5rem;
+    --annotation-accent: var(--rv-h2);
     margin: 2rem 0;
     color: var(--rv-quote-text);
     font-style: italic;
