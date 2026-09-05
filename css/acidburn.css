@@ -710,41 +710,43 @@ body.bh-mode .link-card {
 .author-bio p { margin-bottom: 10px; }
 .author-bio em { color: rgba(255,255,255,0.5); }
 
-/* Paired annotation marks frame prose without a continuous accent rail. */
-.author-bio,
-.post-content blockquote {
+/* Only rendered prose receives a snug pair of oversized corner brackets. */
+.author-bio.has-prose,
+.post-content blockquote.has-prose {
     position: relative;
-    padding: 0.15em 2.5em;
+    width: fit-content;
+    max-width: 100%;
+    padding: 0.45em 1.5em;
     overflow-wrap: anywhere;
 }
 
-.author-bio::before,
-.author-bio::after,
-.post-content blockquote::before,
-.post-content blockquote::after {
+.author-bio.has-prose::before,
+.author-bio.has-prose::after,
+.post-content blockquote.has-prose::before,
+.post-content blockquote.has-prose::after {
     position: absolute;
     color: var(--annotation-accent, var(--purple));
     font-family: 'Cambria Math', 'Segoe UI Symbol', monospace;
-    font-size: 1em;
+    font-size: 2.4em;
     font-style: normal;
     font-weight: 400;
-    line-height: inherit;
+    line-height: 1;
     pointer-events: none;
     user-select: none;
 }
 
-.author-bio::before,
-.post-content blockquote::before {
-    content: '\27EA\231C' / '';
+.author-bio.has-prose::before,
+.post-content blockquote.has-prose::before {
+    content: '\231C' / '';
     inset-inline-start: 0;
-    top: 0.15em;
+    top: 0;
 }
 
-.author-bio::after,
-.post-content blockquote::after {
-    content: '\231F\27EB' / '';
+.author-bio.has-prose::after,
+.post-content blockquote.has-prose::after {
+    content: '\231F' / '';
     inset-inline-end: 0;
-    bottom: 0.15em;
+    bottom: 0;
 }
 
 .author-bio > :last-child,

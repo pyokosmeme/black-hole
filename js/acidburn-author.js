@@ -122,6 +122,8 @@
             const bioEl = document.getElementById('author-bio');
             if (bioEl && typeof marked !== 'undefined') {
                 bioEl.innerHTML = marked.parse(markdown);
+                const { markProseBrackets } = await import(new URL('prose-brackets.js', SCRIPT_BASE).href);
+                markProseBrackets(bioEl);
             }
         } catch (error) {
             console.error('[ACIDBURN Author] Error loading bio:', error);
@@ -314,6 +316,8 @@
                 const markdown = await response.text();
                 if (typeof marked !== 'undefined') {
                     postContent.innerHTML = marked.parse(markdown);
+                    const { markProseBrackets } = await import(new URL('prose-brackets.js', SCRIPT_BASE).href);
+                    markProseBrackets(postContent);
                 }
                 typesetMath(postContent);
                 // Handle link clicks inside post content. Different posts cite

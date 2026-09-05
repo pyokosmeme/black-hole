@@ -1,4 +1,5 @@
 import * as Auth from './bsky-auth.js';
+import { markProseBrackets } from './prose-brackets.js';
 
 const state = { transmissions: [], active: null, isNew: true };
 const authPanel = document.getElementById('auth-panel');
@@ -46,6 +47,7 @@ function updatePreview() {
   const markdown = form.elements.markdown.value;
   if (window.marked) preview.innerHTML = window.marked.parse(markdown || '*Preview waiting for signal.*');
   else preview.textContent = markdown;
+  markProseBrackets(preview);
 }
 
 function resetEditor() {
