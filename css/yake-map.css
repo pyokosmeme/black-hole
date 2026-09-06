@@ -1,7 +1,8 @@
 /* Shared Acid Burn components own all page chrome.
  * This sheet only arranges the map, cards, and canvas annotations. */
 .atlas-chart { padding:0; scroll-margin-top:80px; }
-.atlas-toolbar { padding:var(--space-md); margin-bottom:0; }
+.atlas-toolbar { padding:var(--space-md); margin-bottom:0; flex-wrap:wrap; }
+#atlas-system-back[hidden] { display:none!important; }
 .atlas-toolbar h2 { min-width:0; overflow-wrap:anywhere; }
 .atlas-shell .acidburn-button { min-height:40px; }
 .atlas-shell .acidburn-button[aria-pressed=true] { text-decoration:underline; text-underline-offset:4px; font-weight:bold; }
@@ -36,7 +37,6 @@ body:not(.bh-mode) .atlas-scene { background:#05050f; }
 .scene-card .card-intro { margin:var(--space-sm) 0; }
 .card-record { margin-top:var(--space-md); }
 .card-record summary { cursor:pointer; min-height:40px; }
-.card-reference { display:block; max-width:100%; height:auto; }
 .orbital-field { position:relative; }
 .fallback-notice { padding:var(--space-md); }
 .scene-card.fallback-card { position:sticky; bottom:12px; width:auto; margin:var(--space-sm); max-height:50vh; }

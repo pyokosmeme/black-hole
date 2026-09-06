@@ -1,14 +1,38 @@
-/* One system overview; world information stays inside the map. */
+/* System overview and local moon views; information stays inside one map. */
 (function () {
   'use strict';
   const data = window.YAKE_ATLAS;
   const worlds = new Map(data.worlds.filter(w => !w.hidden).map(w => [w.id, w]));
-  const cfg = data.views.system;
-  const plotted = new Set([cfg.parent, ...cfg.nodes.map(n => n[0]), ...(cfg.locals || []).map(n => n[0])]);
+  const moonViews = ['jin','shu','xuan'];
+  const members = cfg => {
+    const ids = [cfg.parent, ...cfg.nodes.map(n => n[0]), ...(cfg.locals || []).map(n => n[0]), ...(cfg.lagrangeLocals || []).map(n => n.id)];
+    if (ids.includes('marassa')) ids.push('buka','chawkee');
+    return new Set(ids);
+  };
+  let view = 'system', cfg = data.views.system, plotted = members(cfg);
   const field = document.getElementById('orbital-field');
   let selected = null, scene = null;
   const esc = value => String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const stats = rows => '<dl class="card-stats">' + rows.map(([k,v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('') + '</dl>';
+  document.querySelector('.atlas-toolbar').insertAdjacentHTML('beforeend','<button class="acidburn-button" id="atlas-system-back" type="button" data-open-view="system" hidden>← SYSTEM OVERVIEW</button>');
+
+  function writeLocation() {
+    history.replaceState(null, '', location.pathname + location.search + (selected ? '#' + selected : view === 'system' ? '' : '#view=' + view));
+  }
+
+  function setView(name) {
+    if (name !== 'system' && !moonViews.includes(name)) return;
+    view = name; cfg = data.views[view]; plotted = members(cfg); selected = null;
+    if (scene) scene.setView(view, null);
+    else fallback();
+    document.getElementById('chart-title').textContent = view === 'system' ? 'YA KE / 野雞' : cfg.title;
+    document.getElementById('chart-scale').textContent = cfg.caption;
+    document.getElementById('atlas-system-back').hidden = view === 'system';
+    const heading = field.querySelector('.scene-heading span');
+    if (heading) heading.textContent = cfg.title.toUpperCase();
+    renderCard(); writeLocation();
+    document.getElementById('selection-status').textContent = cfg.title + ' opened. Select a destination.';
+  }
 
   function renderCard() {
     const card = document.getElementById('scene-card');
@@ -18,25 +42,29 @@
     let html = `<button class="acidburn-button card-close" type="button" data-close-card aria-label="Close world card">×</button><p class="post-date">${esc(w.kind)}</p><div class="author-info"><h1>${esc(w.name)}</h1></div><p class="author-bio card-intro">${esc(w.intro)}</p>`;
     if (w.stats) html += stats(w.stats.slice(0,4));
     if (scene?.hasBody(selected)) html += '<div class="card-actions"><button class="acidburn-button" type="button" data-scene-action="focus">FOCUS WORLD</button></div>';
+    if (moonViews.includes(selected) && view !== selected) html += `<div class="card-actions"><button class="acidburn-button" type="button" data-open-view="${selected}">EXPLORE MOONS</button></div>`;
     if (scene && selected === 'celosia') html += '<div class="card-actions" role="group" aria-label="View Celosia continents">' + ['fusang','mu','diyu'].map(region => `<button class="acidburn-button" type="button" data-scene-action="surface-${region}">${region.toUpperCase()}</button>`).join('') + '</div>';
-    // Keep the supplied lore accessible without another page section or map mode.
+    // Reference sheets guide the design; they are not reader-facing card content.
     let record = w.stats?.length > 4 ? stats(w.stats.slice(4)) : '';
     (w.paragraphs || []).forEach(p => { record += `<p>${esc(p)}</p>`; });
     if (w.places) record += '<h3>Places & infrastructure</h3><ul class="settlement-list">' + w.places.map(([name,desc]) => `<li>${esc(name)}<span>${esc(desc)}</span></li>`).join('') + '</ul>';
     (w.notes || []).forEach(p => { record += `<p>${esc(p)}</p>`; });
-    if (w.image) record += `<img class="card-reference" src="img/yake/${esc(w.image)}" alt="${esc(w.imageLabel)}" loading="lazy">`;
     if (record) html += `<details class="card-record"><summary>WORLD DETAILS</summary>${record}</details>`;
     card.innerHTML = html;
     card.scrollTop = 0;
   }
 
   function selectWorld(id) {
+    if (!plotted.has(id)) {
+      const destinationView = ['system', ...moonViews].find(name => members(data.views[name]).has(id));
+      if (destinationView) setView(destinationView);
+    }
     if (!plotted.has(id)) return;
     selected = id;
     scene?.select(id);
     field.querySelectorAll('[data-world]').forEach(el => el.setAttribute('aria-pressed', el.dataset.world === id));
     renderCard();
-    history.replaceState(null, '', '#' + id);
+    writeLocation();
     document.getElementById('selection-status').textContent = worlds.get(id).name + ' selected. Information card opened.';
   }
 
@@ -45,7 +73,7 @@
     scene?.select(null);
     field.querySelectorAll('[data-world]').forEach(el => el.setAttribute('aria-pressed','false'));
     renderCard();
-    history.replaceState(null, '', location.pathname + location.search);
+    writeLocation();
     document.getElementById('selection-status').textContent = 'World card closed.';
   }
 
@@ -60,13 +88,14 @@
     scene?.destroy();
     scene = null;
     collapseScene();
-    // A single keyboard/touch-accessible system chart when WebGL is unavailable.
+    // The same local navigation remains available without WebGL.
     const ids = [...plotted];
-    field.innerHTML = '<p class="fallback-notice">3D is unavailable in this browser. Select a world on the system chart.</p>' +
-      `<svg viewBox="0 0 380 ${ids.length * 64 + 48}" role="group" aria-label="Ya Ke system overview"><path class="orbit" d="M 35 32 V ${ids.length * 64}"/>` +
+    field.innerHTML = '<p class="fallback-notice">3D is unavailable in this browser. Select a destination on the chart.</p>' +
+      `<svg viewBox="0 0 380 ${ids.length * 64 + 48}" role="group" aria-label="${esc(cfg.title)}"><path class="orbit" d="M 35 32 V ${ids.length * 64}"/>` +
       ids.map((id,i) => {
         const w = worlds.get(id);
-        return `<g class="atlas-node" data-world="${id}" role="button" tabindex="0" aria-label="${esc(w.name)}" aria-pressed="${selected === id}" transform="translate(35,${i*64+40})" style="--body-color:${w.color}"><circle class="hit" r="28"/><circle class="node-ring" r="14"/><circle class="node-core" r="7"/><text class="node-name" x="26" y="-2">${esc(w.mapLabel || w.name)}</text><text class="node-meta" x="26" y="17">${w.au ? esc(w.au) + ' AU' : esc(w.kind)}</text></g>`;
+        const location = w.au ? w.au + ' AU' : w.km ? w.km.toLocaleString('en-US') + ' km' : w.kind;
+        return `<g class="atlas-node" data-world="${id}" role="button" tabindex="0" aria-label="${esc(w.name)}" aria-pressed="${selected === id}" transform="translate(35,${i*64+40})" style="--body-color:${w.color}"><circle class="hit" r="28"/><circle class="node-ring" r="14"/><circle class="node-core" r="7"/><text class="node-name" x="26" y="-2">${esc(w.mapLabel || w.name)}</text><text class="node-meta" x="26" y="17">${esc(location)}</text></g>`;
       }).join('') + '</svg><aside id="scene-card" class="author-card scene-card fallback-card" aria-label="World information" hidden></aside>';
     renderCard();
   }
@@ -77,11 +106,16 @@
       scene = window.YakeScene.create(field.querySelector('.atlas-scene'), id => id ? selectWorld(id) : closeCard(), fallback);
       scene.setView('system', null);
     } catch (error) { fallback(); }
-    const initial = location.hash.slice(1);
-    if (plotted.has(initial)) selectWorld(initial);
+    readLocation();
   }
 
   document.querySelector('.atlas-shell').addEventListener('click', event => {
+    const destinationView = event.target.closest('[data-open-view]');
+    if (destinationView) {
+      setView(destinationView.dataset.openView);
+      field.querySelector('canvas, g[data-world]')?.focus({preventScroll:true});
+      return;
+    }
     if (event.target.closest('[data-close-card]')) {
       closeCard();
       field.querySelector('canvas, g[data-world]')?.focus({preventScroll:true});
@@ -115,10 +149,12 @@
     if (selected) { closeCard(); field.querySelector('canvas, g[data-world]')?.focus({preventScroll:true}); }
     else collapseScene();
   });
-  window.addEventListener('hashchange', () => {
+  function readLocation() {
     const id = location.hash.slice(1);
-    if (plotted.has(id)) selectWorld(id);
-    else closeCard();
-  });
+    if (id.startsWith('view=') && moonViews.includes(id.slice(5))) setView(id.slice(5));
+    else if (worlds.has(id)) selectWorld(id);
+    else setView('system');
+  }
+  window.addEventListener('hashchange', readLocation);
   init();
 })();

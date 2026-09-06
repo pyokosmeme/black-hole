@@ -317,7 +317,7 @@ window.YakeScene = (function () {
     function select(id) {
       selected=id;
       bodies.forEach(b=>{const active=b.id===id || (b.id==='marassa' && worlds.get(id)?.parent==='marassa');b.marker.visible=active;b.label.setAttribute('aria-pressed',active?'true':'false');});
-      tracks.forEach(t=>{t.line.material.color.setHex(t.id===id?0xff0099:t.ez?0xc57b4a:0x536480);t.line.material.opacity=t.id===id?.9:t.ez?.4:.36;});
+      tracks.forEach(t=>{const active=id!=null && t.id===id;t.line.material.color.setHex(active?0xff0099:t.ez?0xc57b4a:0x536480);t.line.material.opacity=active?.9:t.ez?.4:.36;});
       draw();
     }
     function home() {
@@ -375,7 +375,11 @@ window.YakeScene = (function () {
       annotations.forEach(({label,position})=>{
         const p=position.clone().project(camera),x=(p.x*.5+.5)*width,y=(-p.y*.5+.5)*height;
         label.hidden=!labelsOn||p.z<=-1||p.z>=1||x<0||x>width||y<35||y>height-62;
-        label.style.transform=`translate(${Math.max(4,Math.min(width-label.offsetWidth-4,x+8))}px,${y}px)`;
+        if(label.hidden)return;
+        const w=label.offsetWidth,h=label.offsetHeight,bx=Math.max(4,Math.min(width-w-4,x+8));
+        const box=[0,h+4,-h-4,2*h+8,-2*h-8].map(d=>({x:bx,y:y+d,w,h})).find(b=>b.y>=35&&b.y+h<=height-62&&!occupied.some(o=>b.x<o.x+o.w+4&&b.x+w+4>o.x&&b.y<o.y+o.h+3&&b.y+h+3>o.y));
+        if(!box){label.hidden=true;return;}
+        occupied.push(box);label.style.transform=`translate(${box.x}px,${box.y}px)`;
       });
     }
     function resize() {

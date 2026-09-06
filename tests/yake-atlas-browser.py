@@ -91,7 +91,8 @@ def run():
                 assert page.locator('#scene-card h1').text_content() == page.evaluate(f"YAKE_ATLAS.worlds.find(w=>w.id==='{world}').name")
                 style = label.evaluate('(e)=>{const s=getComputedStyle(e);return [s.borderLeftWidth,s.outlineStyle,s.backgroundColor]}')
                 assert style == ['0px', 'none', 'rgba(11, 11, 20, 0.72)'], style
-                assert page.locator('[data-open-view],[data-show-detail]').count() == 0
+                assert page.locator('[data-show-detail],#scene-card img').count() == 0
+                assert page.locator('#scene-card [data-open-view]').count() == (1 if world in ['jin','shu','xuan'] else 0)
                 assert page.evaluate('__sceneTest.currentView') == 'system'
                 if world == 'celosia':
                     page.locator('.card-record summary').click()
@@ -145,11 +146,48 @@ def run():
             page.wait_for_timeout(200)
             rendered(page)
             page.screenshot(path=str(SHOTS / f'yake-overview-{width}.png'))
-            print(f'PASS {width}px: overview only, shared CSS, cards, translucent labels, orbit/pinch, geometry picks, expand, overflow', flush=True)
+            # Enter local views through the actual planet card, not test hooks.
+            references = []
+            page.on('request', lambda request: references.append(request.url) if '/img/yake/' in request.url else None)
+            for view, count, local_ids in [('jin',10,['plomo','suseong','peng','marassa','buka','chawkee']),('shu',5,['jouki','mizu','pani','buz']),('xuan',2,['kaau'])]:
+                page.evaluate('(id)=>location.hash=id', view)
+                page.locator(f'#scene-card [data-open-view={view}]').click()
+                page.wait_for_function('(name)=>__sceneTest.currentView===name', arg=view)
+                assert page.evaluate('__sceneTest.bodies.length') == count
+                assert not page.locator('#scene-card').is_visible()
+                assert page.locator('#atlas-system-back').is_visible()
+                assert page.locator('.scene-heading span').text_content() == page.evaluate(f'YAKE_ATLAS.views.{view}.title.toUpperCase()')
+                for world in local_ids:
+                    page.evaluate('(id)=>location.hash=id', world)
+                    page.wait_for_function('(id)=>document.querySelector("#scene-card h1")?.textContent===YAKE_ATLAS.worlds.find(w=>w.id===id).name', arg=world)
+                    assert page.locator('#scene-card img').count() == 0
+                    assert page.locator('[data-scene-action=focus]').count() == 1
+                    page.locator('[data-scene-action=focus]').click()
+                    rendered(page)
+                    page.locator('[data-close-card]').click()
+                    assert page.evaluate('location.hash') == '#view=' + view
+                page.locator('#atlas-reset').click()
+                assert page.evaluate('__sceneTest.currentView') == view
+                assert page.evaluate('__sceneTest.tracks.filter(t=>t.ez).every(t=>t.line.material.color.getHex()===0xc57b4a)')
+                page.wait_for_timeout(200)
+                rendered(page)
+                page.screenshot(path=str(SHOTS / f'yake-restored-{view}-{width}.png'))
+                if view == 'jin':
+                    page.reload()
+                    page.wait_for_function('__sceneTest.currentView==="jin"')
+                    assert not page.locator('#scene-card').is_visible()
+                page.locator('#atlas-system-back').click()
+                page.wait_for_function('__sceneTest.currentView==="system"')
+                assert not page.locator('#atlas-system-back').is_visible()
+                assert page.locator('canvas.scene-canvas').count() == 1
+                assert page.locator('main > section').count() == 1
+            assert not references, references
+            assert not errors, errors
+            assert page.evaluate('document.documentElement.scrollWidth<=innerWidth'), width
+            print(f'PASS {width}px: system + three moon views, cards without reference images, return/reset, bookmarks, shared CSS, controls, overflow', flush=True)
             page.close()
 
-        # Exercise the retained moon engine independently; the production page
-        # stays overview-only until local drill-down navigation is requested.
+        # Verify detailed geometry independently of the navigation checks above.
         page = browser.new_page(viewport={'width':1100,'height':950})
         page.route('**/*', serve)
         page.add_init_script("localStorage.setItem('acidburn-mode','dark')")
@@ -233,6 +271,14 @@ def run():
         assert page.locator('#scene-card h1').text_content() == 'Celosia'
         assert page.locator('#scene-card').is_visible()
         assert page.locator('main > section').count() == 1
+        page.locator('[data-world=jin]').click()
+        page.locator('#scene-card [data-open-view=jin]').click()
+        page.locator('[data-world=marassa]').focus()
+        page.keyboard.press('Enter')
+        assert page.locator('#scene-card h1').text_content() == 'Horizon’s Edge'
+        assert page.locator('#scene-card img').count() == 0
+        page.locator('#atlas-system-back').click()
+        assert page.locator('[data-world=celosia]').count() == 1
         print('PASS WebGL-unavailable system chart and world-card fallback', flush=True)
         browser.close()
 
