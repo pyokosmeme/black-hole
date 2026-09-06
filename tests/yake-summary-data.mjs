@@ -11,6 +11,11 @@ assert.equal(value('Food production','~100,000 people/day'),'~100,000 people/day
 assert.equal(value('Orbit around Jin','1,052,112 km'),'1,052,112 km');
 assert.equal(data.views.jin.ez,1560000);
 assert.ok(data.worlds.find(w=>w.id==='vas').km<data.views.jin.ez);
+const displayRadius=id=>[...data.views.jin.nodes,...data.views.jin.locals].find(n=>n[0]===id)[1];
+assert.ok(displayRadius('plomo')>displayRadius('vas'));
+for(const id of ['suseong','peng']) assert.ok(displayRadius(id)>displayRadius('skarda'));
+for(const id of ['plomo','suseong','peng']) assert.equal(data.worlds.find(w=>w.id===id).km,undefined);
+assert.equal(data.worlds.find(w=>w.id==='plomo').stats[0][1],'1.82182 million');
 const before=JSON.stringify(data.worlds);
 data.worlds.forEach(w=>assert.ok(data.summaryStats(w).length<=4));
 assert.equal(JSON.stringify(data.worlds),before);

@@ -312,7 +312,8 @@ window.YakeScene = (function () {
     }
     function home() {
       target.set(0,0,0); theta=.28;phi=.72;
-      radius=360/Math.tan(camera.fov*Math.PI/360)/Math.min(1,width/height)*1.08;
+      const extent=Math.max(360,...bodies.map(b=>b.position.length()+b.size+24));
+      radius=extent/Math.tan(camera.fov*Math.PI/360)/Math.min(1,width/height)*1.08;
       draw();
     }
     function focus() {

@@ -209,6 +209,11 @@ def run():
             return YAKE_ATLAS.views.jin.ez===1560000 && s.bodies.find(b=>b.id==='vas').position.length()<ez && Math.abs(p.length()-(ez+26))<1e-7 && p.length()-20>ez && s.tracks.filter(t=>t.ez).length===1 && Math.abs(s.tracks.find(t=>t.ez).line.geometry.vertices[0].length()-ez)<1e-7 && !s.scene.getObjectByName('L5 offset uncertainty');
         }''')
         page.screenshot(path=str(SHOTS / 'yake-corrected-jin-placement.png'))
+        assert page.evaluate('''() => {
+            const s=__sceneTest, radius=id=>s.bodies.find(b=>b.id===id).position.length();
+            const ez=s.tracks.find(t=>t.ez).line.geometry.vertices[0].length();
+            return radius('vas')<ez && radius('plomo')>radius('vas') && radius('marassa')>ez && radius('marassa')<radius('skarda') && radius('suseong')>radius('skarda') && radius('peng')>radius('skarda');
+        }''')
         page.evaluate('__sceneAPI.focus()')
         rendered(page)
         page.screenshot(path=str(SHOTS / 'yake-corrected-horizons-edge.png'))
