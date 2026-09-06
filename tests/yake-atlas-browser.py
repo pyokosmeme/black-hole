@@ -101,7 +101,10 @@ def run():
                         rendered(page)
                     page.locator('[data-scene-action=home]').click()
                     rendered(page)
+                camera_before=page.evaluate('JSON.stringify([__sceneTest.camera.position.toArray(),__sceneTest.camera.quaternion.toArray(),__sceneTest.target.toArray(),__sceneTest.radius])')
                 page.locator('[data-close-card]').click()
+                rendered(page)
+                assert page.evaluate('JSON.stringify([__sceneTest.camera.position.toArray(),__sceneTest.camera.quaternion.toArray(),__sceneTest.target.toArray(),__sceneTest.radius])')==camera_before
             canvas = page.locator('.scene-canvas')
             canvas.scroll_into_view_if_needed()
             rendered(page)

@@ -66,7 +66,8 @@
     scene?.select(id);
     field.querySelectorAll('[data-world]').forEach(el => el.setAttribute('aria-pressed', el.dataset.world === id));
     renderCard();
-    requestAnimationFrame(() => {
+    // The 3D card overlays the existing viewport; opening it must not scroll.
+    if (!scene) requestAnimationFrame(() => {
       if (selected === id) document.getElementById('scene-card').scrollIntoView({block:'nearest',behavior:'instant'});
     });
     writeLocation();
