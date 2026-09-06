@@ -9,6 +9,11 @@
   const mobile = window.matchMedia('(max-width: 600px)');
   let view = 'system';
   let selected = 'celosia';
+  let presentation = '3d';
+  let scene = null;
+  let cardOpen = false;
+  let fullRecord = false;
+  let sceneError = false;
   const esc = value => String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const numeric = value => Number(value).toLocaleString('en-US');
   const distance = world => world.au ? world.au + ' AU' : world.km ? numeric(world.km) + ' km' : 'ORBIT UNSPECIFIED';
@@ -92,9 +97,43 @@
     document.getElementById('chart-title').textContent = cfg.title;
     document.getElementById('chart-scale').textContent = cfg.caption;
     document.querySelectorAll('[data-view]').forEach(b => b.setAttribute('aria-pressed', b.dataset.view === view));
+    document.querySelectorAll('[data-presentation]').forEach(b => b.setAttribute('aria-pressed', b.dataset.presentation === presentation));
+    if (presentation === '3d') {
+      if (!scene) {
+        field.innerHTML = '<div class="atlas-scene"><div class="scene-heading"><span>YA KE / 3D EXPLORER</span><small>COMPRESSED DISTANCES · ILLUSTRATIVE SIZES</small></div><aside id="scene-card" class="scene-card" aria-label="World information" hidden></aside><div class="scene-controls"><button type="button" data-scene-action="home" title="Fit system">⌂<span class="atlas-sr"> Fit system</span></button><button type="button" data-scene-action="in" aria-label="Zoom in">+</button><button type="button" data-scene-action="out" aria-label="Zoom out">−</button><button type="button" data-scene-action="labels" aria-pressed="true">LABELS</button><button type="button" data-scene-action="expand" aria-pressed="false">EXPAND</button></div><p class="scene-hint">DRAG TO ORBIT · SCROLL / PINCH TO ZOOM · RIGHT-DRAG / TWO FINGERS TO PAN</p></div><div id="scene-unplaced"></div>';
+        try {
+          scene = window.YakeScene.create(field.querySelector('.atlas-scene'), id => {
+            if (id) selectWorld(id, false);
+            else { cardOpen=false; scene.select(null); renderCard(); }
+          }, () => {
+            sceneError=true; presentation='2d'; collapseScene(); renderChart(); renderDetail();
+          });
+        } catch (error) {
+          sceneError=true; presentation='2d'; collapseScene(); renderChart(); renderDetail();return;
+        }
+      }
+      scene.setView(view, cardOpen ? selected : null);
+      document.getElementById('scene-unplaced').innerHTML = cfg.unplaced ? `<div class="unplaced-worlds"><p class="eyebrow">${view === 'outer'?'LOCAL & DISPERSED DESTINATIONS':'ORBIT UNSPECIFIED · RECORDS ONLY'}</p><div class="related-worlds">${buttons(cfg.unplaced)}</div></div>` : '';
+      document.getElementById('chart-scale').textContent = view === 'habitats' ? 'ILLUSTRATIVE HABITAT ARRANGEMENT · NOT TO SCALE' : cfg.caption;
+      renderCard();return;
+    }
+    if (scene) { scene.destroy();scene=null; }
     field.innerHTML = view === 'habitats' ? habitatChart() : orbitalChart(cfg);
+    if(sceneError) field.insertAdjacentHTML('afterbegin','<p class="atlas-note">3D is unavailable in this browser. The schematic and all world records are still available.</p>');
     if (cfg.unplaced) field.insertAdjacentHTML('beforeend', `<div class="unplaced-worlds"><p class="eyebrow">${view === 'outer'?'LOCAL & DISPERSED DESTINATIONS':'MOONS WITH UNSPECIFIED ORBITS'}</p><div class="related-worlds">${buttons(cfg.unplaced)}</div></div>`);
     field.insertAdjacentHTML('beforeend', `<div class="field-selection"><span>SELECTED / ${esc(worlds.get(selected).name)}</span><button type="button" data-show-detail>VIEW RECORD ↓</button></div>`);
+  }
+
+  function renderCard() {
+    const card=document.getElementById('scene-card');if(!card)return;
+    card.hidden=!cardOpen;if(!cardOpen)return;
+    const w=worlds.get(selected);
+    card.innerHTML=`<button class="card-close" type="button" data-close-card aria-label="Close world card">×</button><p class="eyebrow">${esc(w.kind)}</p><h3>${esc(w.name)}</h3><p class="card-intro">${esc(w.intro)}</p>`;
+    if(w.stats) card.innerHTML+='<dl class="card-stats">'+w.stats.slice(0,4).map(([k,v])=>`<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')+'</dl>';
+    if(w.id==='celosia')card.innerHTML+='<p class="card-note">Orbit provisional: notes also give 4.55 AU.</p>';
+    if(scene && !scene.hasBody(w.id))card.innerHTML+='<p class="card-note">Position unspecified. Available as a record.</p>';
+    card.innerHTML+='<div class="card-actions">'+(scene && scene.hasBody(selected)?'<button type="button" data-scene-action="focus">FOCUS WORLD</button>':'')+'<button type="button" data-show-detail>FULL RECORD ↗</button></div>';
+    if(['jin','shu','marassa'].includes(selected))card.innerHTML+=`<button class="card-explore" type="button" data-open-view="${selected==='marassa'?'habitats':selected}">EXPLORE ${selected==='marassa'?'HABITATS':'MOONS'} ↗</button>`;
   }
 
   function renderDetail() {
@@ -110,6 +149,7 @@
     if (w.related) html += `<h3>Explore nearby</h3><div class="related-worlds">${buttons(w.related)}</div>`;
     if (w.image) html += `<details class="reference-sheet"><summary>${esc(w.imageLabel)}</summary><img src="img/yake/${w.image}" alt="${esc(w.imageLabel)}" loading="lazy"><a href="img/yake/${w.image}" target="_blank" rel="noopener">OPEN FULL REFERENCE ↗</a></details>`;
     detail.innerHTML = html;
+    detail.hidden = presentation === '3d' && !fullRecord;
   }
 
   function renderDirectory() {
@@ -129,25 +169,53 @@
   function selectWorld(id, changeView) {
     if (!worlds.has(id)) return;
     selected = id;
+    cardOpen = true;
     if (changeView) view = viewFor(worlds.get(id));
     renderChart(); renderDetail(); renderDirectory();
     history.replaceState(null, '', '#' + selected);
-    document.getElementById('selection-status').textContent = worlds.get(id).name + ' selected. Record updated below the chart.';
+    document.getElementById('selection-status').textContent = worlds.get(id).name + (presentation==='3d' ? ' selected. Information card opened in the scene.' : ' selected. Record updated below the chart.');
   }
 
   function showDetail() {
+    fullRecord=true;detail.hidden=false;
+    collapseScene();
     document.getElementById('record-title').focus({preventScroll:true});
     detail.scrollIntoView({block:'start',behavior:'auto'});
   }
 
+  function collapseScene() {
+    document.querySelector('.atlas-chart').classList.remove('is-expanded');document.body.classList.remove('atlas-expanded');
+    const b=field.querySelector('[data-scene-action="expand"]');if(b){b.textContent='EXPAND';b.setAttribute('aria-pressed','false');}
+  }
+
   document.querySelector('.atlas-shell').addEventListener('click', event => {
+    const mode=event.target.closest('[data-presentation]');
+    if(mode){presentation=mode.dataset.presentation;if(presentation==='2d')collapseScene();renderChart();renderDetail();return;}
+    const action=event.target.closest('[data-scene-action]');
+    if(action && scene){
+      const kind=action.dataset.sceneAction;
+      if(kind==='home')scene.home();
+      if(kind==='focus')scene.focus();
+      if(kind==='in')scene.zoom(.8);
+      if(kind==='out')scene.zoom(1.25);
+      if(kind==='labels')action.setAttribute('aria-pressed',scene.toggleLabels());
+      if(kind==='expand'){
+        const expanded=document.querySelector('.atlas-chart').classList.toggle('is-expanded');
+        document.body.classList.toggle('atlas-expanded',expanded);action.setAttribute('aria-pressed',expanded);action.textContent=expanded?'COLLAPSE':'EXPAND';
+      }
+      return;
+    }
+    if(event.target.closest('[data-close-card]')){cardOpen=false;scene?.select(null);renderCard();field.querySelector('canvas')?.focus({preventScroll:true});return;}
     const world = event.target.closest('[data-world]');
     if (world) {
       const fromDirectory = world.hasAttribute('data-directory');
       const fromDetail = !!world.closest('#world-detail');
       const keyboard = event.detail === 0;
       selectWorld(world.dataset.world, fromDirectory || fromDetail);
-      if (fromDirectory || fromDetail) showDetail();
+      if (fromDirectory || fromDetail) {
+        if(presentation==='3d'){document.querySelector('.atlas-chart').scrollIntoView({block:'start'});field.querySelector('[data-close-card]')?.focus({preventScroll:true});}
+        else showDetail();
+      }
       else if (keyboard) field.querySelector(`[data-world="${selected}"]`)?.focus();
       return;
     }
@@ -173,11 +241,16 @@
       field.querySelector(`[data-world="${selected}"]`)?.focus();
     }
   });
-  document.getElementById('atlas-reset').addEventListener('click', () => { view='system'; search.value=''; selectWorld('celosia',false); });
+  document.getElementById('atlas-reset').addEventListener('click', () => { view='system'; search.value=''; fullRecord=false; selectWorld('celosia',false); scene?.home(); });
+  document.addEventListener('keydown', event => {
+    if(event.key!=='Escape')return;
+    if(cardOpen && presentation==='3d'){cardOpen=false;scene?.select(null);renderCard();field.querySelector('canvas')?.focus({preventScroll:true});}
+    else collapseScene();
+  });
   search.addEventListener('input', renderDirectory);
   mobile.addEventListener('change', renderChart);
   window.addEventListener('hashchange', () => { const id=location.hash.slice(1); if(worlds.has(id)) selectWorld(id,true); });
   const initial = location.hash.slice(1);
-  if(worlds.has(initial)) { selected=initial; view=viewFor(worlds.get(initial)); }
+  if(worlds.has(initial)) { selected=initial; view=viewFor(worlds.get(initial)); cardOpen=true; }
   renderChart(); renderDetail(); renderDirectory();
 })();
