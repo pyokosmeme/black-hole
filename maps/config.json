@@ -11,6 +11,13 @@
 
   
   "links": [
+    {
+      "id": "yake",
+      "label": "YA KE / 野雞 — System Atlas",
+      "url": "yake.html",
+      "icon": "",
+      "desc": "Explore Celosia, Jin's inhabited moons, the Golden Comb, and the outer settlements."
+    },
 
     {
       "id": "exu2374",
