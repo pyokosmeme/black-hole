@@ -8,9 +8,9 @@ window.YakeScene = (function () {
     const T = window.THREE;
     const data = window.YAKE_ATLAS;
     const worlds = new Map(data.worlds.map(w => [w.id,w]));
-    const renderer = new T.WebGLRenderer({antialias:true, alpha:false});
+    const renderer = new T.WebGLRenderer({antialias:true, alpha:true});
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.setClearColor(0x05050f, 1);
+    renderer.setClearColor(0x05050f, 0);
     const canvas = renderer.domElement;
     canvas.className = 'scene-canvas';
     canvas.tabIndex = 0;
@@ -30,7 +30,7 @@ window.YakeScene = (function () {
     const target = new T.Vector3();
     let theta = .28, phi = .72, radius = 950;
     let content = null, currentView = null, selected = null;
-    let bodies = [], tracks = [], frame = null, destroyed = false;
+    let bodies = [], tracks = [], annotations = [], frame = null, destroyed = false;
     let width = 1, height = 1, labelsOn = true;
     const pointers = new Map();
     let gesture = null, dragged = false;
@@ -66,8 +66,13 @@ window.YakeScene = (function () {
         [[.747,.35],[.77,.32],[.79,.36],[.782,.40],[.807,.42],[.8,.45],[.776,.46],[.785,.49],[.771,.52],[.80,.54],[.814,.58],[.798,.60],[.818,.64],[.802,.67],[.778,.65],[.761,.61],[.742,.60],[.747,.56],[.722,.53],[.735,.49],[.719,.46],[.735,.44],[.728,.40]]
       ];
       shapes.forEach((shape,i)=>{
-        ctx.fillStyle=`rgb(${i+1},0,0)`;ctx.beginPath();
-        shape.forEach(([x,y],j)=>{if(j)ctx.lineTo(x*c.width,y*c.height);else ctx.moveTo(x*c.width,y*c.height);});ctx.closePath();ctx.fill();
+        // Broad continental shelves, scalloped bays and a fragmented archipelago
+        // silhouette rather than three narrow polygon strips.
+        const center=[.255,.62,.77][i];
+        shape=shape.map(([x,y])=>[center+(x-center)*(i===0?1.5:1.22),y]);
+        ctx.fillStyle=`rgb(${(i+1)*64},0,0)`;ctx.beginPath();
+        const last=shape[shape.length-1];ctx.moveTo((last[0]+shape[0][0])*c.width/2,(last[1]+shape[0][1])*c.height/2);
+        shape.forEach(([x,y],j)=>{const next=shape[(j+1)%shape.length];ctx.quadraticCurveTo(x*c.width,y*c.height,(x+next[0])*c.width/2,(y+next[1])*c.height/2);});ctx.closePath();ctx.fill();
         // Small shelf islands; deterministic, confined to each continent's coast.
         shape.forEach(([x,y],j)=>{
           for(let k=0;k<3;k++){
@@ -76,21 +81,33 @@ window.YakeScene = (function () {
           }
         });
       });
-      return ctx.getImageData(0,0,c.width,c.height).data;
+      const mask=ctx.getImageData(0,0,c.width,c.height).data;
+      // Sheltered seas and narrow straits break up the land masses. Coastline
+      // distortion below supplies smaller fjords; the rest of the globe is ocean.
+      for(let y=0;y<c.height;y++)for(let x=0;x<c.width;x++){
+        const j=(y*c.width+x)*4;if(!mask[j])continue;
+        const u=x/c.width,v=y/c.height;
+        const channel=noise(u*45+8,v*57,2)*.65+noise(u*110,v*130,7)*.35;
+        if(channel>.57)mask[j]=0;
+      }
+      return mask;
     }
     function texture(id) {
-      const c=document.createElement('canvas'); c.width=['jin','shu','celosia'].includes(id)?1024:512; c.height=c.width/2;
+      const c=document.createElement('canvas'); c.width=['jin','shu','celosia','gullinkambi'].includes(id)?1024:512; c.height=c.width/2;
       const ctx=c.getContext('2d'), pixels=ctx.createImageData(c.width,c.height);
+      const detailed=['celosia','gullinkambi'].includes(id);
+      const relief=detailed?ctx.createImageData(c.width,c.height):null;
+      const reflectivity=detailed?ctx.createImageData(c.width,c.height):null;
       const base=new T.Color(worlds.get(id).color);
       const gas=['jin','shu','xuan'].includes(id);
       const continents=id==='celosia'?continentMask():null;
-      const landAt=(u,v)=>continents[(Math.max(0,Math.min(511,Math.floor(v*512)))*1024+((Math.floor(u*1024)%1024+1024)%1024))*4];
+      const landAt=(u,v)=>Math.round(continents[(Math.max(0,Math.min(511,Math.floor(v*512)))*1024+((Math.floor(u*1024)%1024+1024)%1024))*4]/64);
       const offset=id.split('').reduce((n,ch)=>n+ch.charCodeAt(0),0)*.17;
       for(let y=0;y<c.height;y++) for(let x=0;x<c.width;x++) {
         const lon=x/c.width*Math.PI*2, lat=(y/c.height-.5)*Math.PI;
         const sx=Math.cos(lon)*Math.cos(lat), sy=Math.sin(lat), sz=Math.sin(lon)*Math.cos(lat);
         const n=(noise(sx*5+offset,sy*5,sz*5)*.65+noise(sx*13+offset,sy*13,sz*13)*.25+noise(sx*35,sy*35+offset,sz*35)*.1)*2-1;
-        let rgb;
+        let rgb, elevation=110+n*25, shine=45;
         if(id==='yake') rgb=[255,155+35*n,53+20*n];
         else if(gas) {
           // Differential cloud belts, curled shear filaments and oval storms.
@@ -113,30 +130,58 @@ window.YakeScene = (function () {
           const u=x/c.width+(noise(sx*42,sy*42,sz*42)-.5)*.014;
           const v=y/c.height+(noise(sx*57+8,sy*57,sz*57)-.5)*.01;
           const land=landAt(u,v),shore=landAt(u+.003,v)||landAt(u-.003,v)||landAt(u,v+.004)||landAt(u,v-.004);
-          rgb=shore?[30+n*7,87+n*15,103+n*20]:[14+n*5,40+n*12,70+n*15];
+          rgb=shore?[32+n*7,105+n*15,122+n*20]:[12+n*5,43+n*12,73+n*15];
+          elevation=75;shine=185;
           if(land){
             const dry=land===2?Math.max(0,Math.min(1,(v-.51)*8)):.18;
             rgb=[67+dry*103+n*25,106+dry*40+n*22,64+dry*22+n*17];
             if(land===1 && v<.29){const ice=Math.min(1,(.29-v)*8);rgb=rgb.map((c,i)=>c*(1-ice)+[198,215,216][i]*ice);}
-            const ridge=noise(sx*28+4,sy*28,sz*28);
-            if(ridge>.7)rgb=rgb.map(c=>c*.65+53);
+            const ridge=1-Math.abs(noise(sx*23+4,sy*23,sz*23)*2-1);
+            const fine=noise(sx*110,sy*110,sz*110)-.5;
+            elevation=115+ridge*65+fine*25;shine=15;
+            rgb=rgb.map(c=>c*(.82+ridge*.18)+fine*16);
+            if(ridge>.94 && land===1 && v<.4)rgb=rgb.map(c=>c*.6+81);
           }
           const polar=Math.max(0,Math.min(1,(Math.abs(sy)-.984+n*.009)*90));
           rgb=rgb.map((v,i)=>v*(1-polar)+[177+n*18,202+n*13,212+n*10][i]*polar);
           const cloud=Math.max(0,noise(sx*7+n*.4+3,sy*23+5,sz*7+9)-.72)*.8;
           rgb=rgb.map(v=>v*(1-cloud)+228*cloud);
         } else if(id==='gullinkambi') {
-          const comb=Math.abs(lat-.15-Math.sin(lon*3)*.09)<.09 && Math.cos(lon)>.15;
-          rgb=comb?[160+n*35,113+n*30,42+n*10]:[181+n*27,196+n*24,199+n*23];
+          // A localized oblique fissure province, not an equatorial gold belt.
+          const dx=Math.atan2(Math.sin(lon-1.55),Math.cos(lon-1.55));
+          const along=dx*.8+lat*.6, cross=lat*.8-dx*.6-.045*Math.sin(along*9);
+          const age=Math.max(0,Math.min(1,(along+.72)/1.5));
+          const teeth=.4+.4*noise(sx*27+7,sy*27,sz*27)+.2*noise(sx*83,sy*83,sz*83);
+          const taper=Math.sqrt(Math.max(0,1-Math.pow(along/.87,2)));
+          const apron=(.055+age*.25)*teeth*taper;
+          const comb=Math.abs(along)<.86 && Math.abs(cross)<apron;
+          const iceVein=Math.abs(noise(sx*31,sy*31,sz*31)-.5);
+          rgb=[180+n*25,197+n*22,207+n*18];
+          elevation=130+n*22;shine=70;
+          if(iceVein<.018){rgb=rgb.map(v=>v*.65);elevation-=18;}
+          if(comb){
+            const lamina=.5+.5*Math.sin(cross*235+along*16+n*8+noise(sx*90,sy*90,sz*90)*3);
+            const old=[180,132,57],fresh=[61,62,57];
+            rgb=fresh.map((v,i)=>v+(old[i]-v)*Math.pow(age,.6)+n*20+(lamina-.5)*32);
+            elevation=145+lamina*30+n*12;shine=20;
+            if(Math.abs(cross)<.013+(.8-age)*.009){rgb=rgb.map(v=>v*.37);elevation=78;}
+          }
         } else {
           const shade=.7+n*.15;
           rgb=[base.r*255*shade,base.g*255*shade,base.b*255*shade];
         }
         const i=(y*c.width+x)*4;
         pixels.data[i]=rgb[0];pixels.data[i+1]=rgb[1];pixels.data[i+2]=rgb[2];pixels.data[i+3]=255;
+        if(detailed){
+          for(let k=0;k<3;k++){relief.data[i+k]=elevation;reflectivity.data[i+k]=shine;}
+          relief.data[i+3]=reflectivity.data[i+3]=255;
+        }
       }
       ctx.putImageData(pixels,0,0);
       const map=new T.Texture(c); map.needsUpdate=true;map.anisotropy=Math.min(4,renderer.getMaxAnisotropy());
+      if(detailed){
+        [relief,reflectivity].forEach((pixels,i)=>{const layer=document.createElement('canvas');layer.width=c.width;layer.height=c.height;layer.getContext('2d').putImageData(pixels,0,0);const t=new T.Texture(layer);t.needsUpdate=true;map[i?'surfaceSpecular':'surfaceRelief']=t;});
+      }
       return map;
     }
 
@@ -155,21 +200,22 @@ window.YakeScene = (function () {
       let mesh;
       if(id==='marassa') {
         mesh=new T.Group();
-        // Two full Stanford toruses, spokes and hubs joined as a dumbbell.
+        // Coaxial counter-rotating wheels: the stationary spine passes through
+        // bearing hubs along the spin axis, never through either inhabited rim.
         [-1,1].forEach((side,i)=>{
-          const ring=new T.Group();ring.userData.world=i?'chawkee':'buka';ring.position.x=side*size*.54;
+          const ring=new T.Group();ring.name='rotating-wheel';ring.userData.world=i?'chawkee':'buka';ring.userData.spinDirection=i?-1:1;ring.position.x=side*size*.54;ring.rotation.y=Math.PI/2;
           const metal=new T.MeshPhongMaterial({color:0xbac5cc,shininess:55});
           ring.add(new T.Mesh(new T.TorusGeometry(size*.34,size*.028,12,64),metal));
           const interior=new T.Mesh(new T.TorusGeometry(size*.318,size*.009,8,64),new T.MeshPhongMaterial({color:i?0x819cae:0x7a9c7d}));ring.add(interior);
-          ring.add(new T.Mesh(new T.SphereGeometry(size*.045,12,8),metal.clone()));
+          const bearing=new T.Mesh(new T.TorusGeometry(size*.055,size*.012,10,32),metal.clone());bearing.name='hub-bearing';ring.add(bearing);
           for(let j=0;j<6;j++){
             const a=j*Math.PI/3,spoke=new T.Mesh(new T.CylinderGeometry(size*.008,size*.008,size*.34,5),metal.clone());
             spoke.position.set(Math.cos(a)*size*.17,Math.sin(a)*size*.17,0);spoke.rotation.z=a-Math.PI/2;ring.add(spoke);
           }
           mesh.add(ring);
         });
-        const bridge=new T.Mesh(new T.CylinderGeometry(size*.021,size*.021,size*1.08,10),new T.MeshPhongMaterial({color:0x9baebb,shininess:40}));bridge.rotation.z=Math.PI/2;mesh.add(bridge);
-        mesh.rotation.set(-.4,.2,.2);
+        const bridge=new T.Mesh(new T.CylinderGeometry(size*.021,size*.021,size*1.24,10),new T.MeshPhongMaterial({color:0x9baebb,shininess:40}));bridge.name='stationary-axial-spine';bridge.rotation.z=Math.PI/2;mesh.add(bridge);
+        mesh.rotation.set(-.3,-.4,.2);
       } else if(id==='five') {
         mesh=new T.Group();
         const offsets=[[-.68,.2,0],[-.18,-.28,.42],[.25,.16,-.35],[.7,-.1,.12],[.1,.42,.6]];
@@ -180,7 +226,9 @@ window.YakeScene = (function () {
       } else if(habitat) {
         mesh=new T.Mesh(new T.OctahedronGeometry(size*.7),new T.MeshPhongMaterial({color:0xa7c9d1,shininess:45}));
       } else {
-        const material=id==='yake'?new T.MeshBasicMaterial({map:texture(id)}):new T.MeshPhongMaterial({map:texture(id),shininess:id==='celosia'?28:6,specular:0x334155});
+        const map=texture(id);
+        const material=id==='yake'?new T.MeshBasicMaterial({map}):new T.MeshPhongMaterial({map,shininess:id==='celosia'?28:6,specular:map.surfaceRelief?0x60758b:0x334155});
+        if(map.surfaceRelief){material.bumpMap=map.surfaceRelief;material.bumpScale=size*.018;material.specularMap=map.surfaceSpecular;}
         mesh=new T.Mesh(new T.SphereGeometry(size,40,24),material);
       }
       mesh.position.copy(position);mesh.userData.world=id;content.add(mesh);
@@ -201,16 +249,48 @@ window.YakeScene = (function () {
       const material=new T.LineBasicMaterial({color:ez?0xc57b4a:0x536480,transparent:true,opacity:ez?.4:.36});
       const line=new T.Line(geometry,material);content.add(line);tracks.push({id,line,ez});
     }
+    // One radial conversion for moons, Jin's EZ, and Lagrange neighborhoods.
+    // Unknown offset bearings remain explicit display choices, not orbital data.
+    function scaledRadius(km,cfg) {
+      const points=[[0,0],...cfg.nodes.map(([id,r])=>[worlds.get(id).km,r]).filter(p=>p[0]).sort((a,b)=>a[0]-b[0])];
+      for(let i=1;i<points.length;i++){
+        if(km<=points[i][0] || i===points.length-1){
+          const [lo,rl]=points[i-1],[hi,rh]=points[i];
+          return rl+(km-lo)/(hi-lo)*(rh-rl);
+        }
+      }
+      throw new Error('No distance anchors for local view');
+    }
+    function annotation(text,position) {
+      const label=document.createElement('span');label.className='scene-label scene-annotation';label.textContent=text;labelLayer.appendChild(label);annotations.push({label,position});
+    }
+    function lagrangeNeighborhood(local,cfg) {
+      const node=cfg.nodes.find(n=>n[0]===local.secondary);
+      const km=worlds.get(local.secondary).km;
+      // Positive angular progression is the schematic prograde convention.
+      const angle=(node[2]+(local.point==='L5'?-60:60))*Math.PI/180;
+      const center=point(km,angle,0);
+      const project=p=>point(scaledRadius(p.length(),cfg),Math.atan2(p.z,p.x),0);
+      const pos=project(point(km+local.offsetKm,angle,0));
+      body(local.id,pos,20,false);
+      bodies[bodies.length-1].mesh.userData.placement={secondary:local.secondary,point:local.point,offsetKm:local.offsetKm,offsetDirection:local.offsetDirection};
+      annotation('SKARDA–JIN L5',project(center));
+      const geometry=new T.Geometry();
+      for(let i=0;i<=120;i++)geometry.vertices.push(project(center.clone().add(point(local.offsetKm,i/120*Math.PI*2,0))));
+      geometry.computeLineDistances();
+      const line=new T.Line(geometry,new T.LineDashedMaterial({color:0xa6a2b4,transparent:true,opacity:.6,dashSize:1.5,gapSize:1.5}));
+      line.name='L5 offset uncertainty';content.add(line);
+    }
     function release(group) {
       group.traverse(obj=>{
         if(obj.geometry) obj.geometry.dispose();
-        if(obj.material) { if(obj.material.map) obj.material.map.dispose();obj.material.dispose(); }
+        if(obj.material) { ['map','bumpMap','specularMap'].forEach(key=>{if(obj.material[key])obj.material[key].dispose();});obj.material.dispose(); }
       });
     }
     function setView(name,id) {
       if(currentView!==name) {
         if(content) {scene.remove(content);release(content);}
-        content=new T.Group();scene.add(content);bodies=[];tracks=[];labelLayer.textContent='';currentView=name;
+        content=new T.Group();scene.add(content);bodies=[];tracks=[];annotations=[];labelLayer.textContent='';currentView=name;
         const cfg=data.views[name];
         {
           if(!cfg.cluster)body(cfg.parent,new T.Vector3(),cfg.parent==='yake'?24:27,false);
@@ -223,14 +303,11 @@ window.YakeScene = (function () {
             body(world,point(r,a*Math.PI/180,inc),size,false);
           });
           (cfg.locals||[]).forEach(([world,r,a])=>body(world,point(r,a*Math.PI/180,0),world==='marassa'?20:worlds.get(world).mapLabel?5:8,!!worlds.get(world).mapLabel));
+          (cfg.lagrangeLocals||[]).forEach(local=>lagrangeNeighborhood(local,cfg));
           if(cfg.ez) {
-            const points=[[0,0],...cfg.nodes.map(([world,r])=>[worlds.get(world).km,r]).filter(p=>p[0]).sort((a,b)=>a[0]-b[0])];
-            for(let i=1;i<points.length;i++) {
-              const [lo,rl]=points[i-1], [hi,rh]=points[i];
-              if(hi>=cfg.ez) {
-                orbit(null,rl+(cfg.ez-lo)/(hi-lo)*(rh-rl),0,true);break;
-              }
-            }
+            const r=scaledRadius(cfg.ez,cfg);
+            orbit(null,r,0,true);
+            annotation(cfg.parent.toUpperCase()+' EZ / '+cfg.ez.toLocaleString('en-US')+' KM',point(r,-Math.PI/2,0));
           }
         }
         home();
@@ -251,6 +328,8 @@ window.YakeScene = (function () {
     function focus() {
       const b=bodies.find(b=>b.id===selected || (b.id==='marassa' && worlds.get(selected)?.parent==='marassa'));if(!b)return;
       target.copy(b.position);radius=Math.max(b.size*(width<600?11:9),75);phi=1.25;
+      // Bring the named geological feature into view when inspecting this world.
+      if(selected==='gullinkambi')theta=.1;
       if(width<600)target.add(new T.Vector3(0,1,0).applyQuaternion(camera.quaternion).multiplyScalar(-b.size*1.7));
       draw();
     }
@@ -292,6 +371,11 @@ window.YakeScene = (function () {
         }
         if(!chosen){b.label.hidden=true;return;}
         occupied.push(chosen);b.label.style.transform=`translate(${chosen.x}px,${chosen.y}px)`;
+      });
+      annotations.forEach(({label,position})=>{
+        const p=position.clone().project(camera),x=(p.x*.5+.5)*width,y=(-p.y*.5+.5)*height;
+        label.hidden=!labelsOn||p.z<=-1||p.z>=1||x<0||x>width||y<35||y>height-62;
+        label.style.transform=`translate(${Math.max(4,Math.min(width-label.offsetWidth-4,x+8))}px,${y}px)`;
       });
     }
     function resize() {

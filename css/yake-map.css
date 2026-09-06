@@ -9,7 +9,11 @@
 .chart-caption { padding:var(--space-sm) var(--space-md); }
 .chart-caption { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:var(--space-sm); }
 .chart-caption { font-size:var(--text-xs); }
-.atlas-scene { position:relative; height:600px; background:#05050f; color:#fff; isolation:isolate; overflow:hidden; touch-action:none; user-select:none; -webkit-user-select:none; }
+.atlas-scene { position:relative; height:600px; background:transparent; color:#fff; isolation:isolate; overflow:hidden; touch-action:none; user-select:none; -webkit-user-select:none; }
+/* The map is translucent in BH mode; planets/text remain fully opaque. */
+body.bh-mode .atlas-chart { background:rgba(5,5,15,.72); backdrop-filter:blur(3px); }
+body:not(.bh-mode) .atlas-scene { background:#05050f; }
+.scene-annotation { pointer-events:none; font-size:9px; color:#dda271; }
 .scene-canvas { display:block; width:100%; height:100%; cursor:grab; touch-action:none; }
 .scene-canvas:active { cursor:grabbing; }
 .scene-canvas:focus-visible { outline:2px solid var(--cyan); outline-offset:-3px; }

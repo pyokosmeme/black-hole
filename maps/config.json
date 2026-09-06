@@ -13,15 +13,15 @@
   "links": [
     {
       "id": "yake",
-      "label": "YA KE / 野雞 — System Atlas",
+      "label": "Ya Ke System Atlas",
       "url": "yake.html",
       "icon": "",
-      "desc": "Explore Celosia, Jin's inhabited moons, the Golden Comb, and the outer settlements."
+      "desc": "Explore Celosia, the inhabited moons of its gas giants, and the outer habitats."
     },
 
     {
       "id": "exu2374",
-      "label": "EXU Transmit Map (2370)",
+      "label": "EXU Transit Map (2370)",
       "url": "exu2374.html",
       "icon": "",
       "desc": "Interstellar Transit Map (K-Tube Network), Circa 2370"

@@ -11,6 +11,7 @@
       "icon": "⬡",
       "children": [
         { "label": "Maps Hub", "url": "/maps.html", "icon": "✦" },
+        { "label": "Ya Ke System Atlas", "url": "/yake.html", "icon": "◈" },
         { "label": "Transit Network", "url": "/exu2374.html", "icon": "→" }
       ]
     }
