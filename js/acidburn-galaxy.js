@@ -337,7 +337,10 @@ var AcidburnGalaxy = (function() {
     }
     
     config.animated = true;
-    onUpdate = updateCallback || null;
+    // Mode switches and renderer readiness may both request a start. Keep a
+    // single frame loop and preserve the renderer's texture-update callback.
+    if (updateCallback) onUpdate = updateCallback;
+    if (animationId !== null) return;
     
     const frameInterval = 1000 / config.frameRate;
     let lastFrame = 0;

@@ -134,7 +134,7 @@
                 const wait = setInterval(() => {
                     if (window.AcidburnBlackhole.isReady) {
                         clearInterval(wait);
-                        AcidburnGalaxy.start();
+                        if (!body.classList.contains('lite-mode')) AcidburnGalaxy.start();
                     }
                 }, 100);
             } else {

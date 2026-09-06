@@ -13,11 +13,8 @@
 (function() {
     'use strict';
     
-    // Don't initialize if in lite mode
-    if (document.body.classList.contains('lite-mode')) {
-        console.log('[ACIDBURN Blackhole] Skipping init (lite mode)');
-        return;
-    }
+    // Keep the mode listener available even when the page starts in Dark/Light.
+    // Heavy assets and the renderer are initialized on the first BH request.
     
     // Check dependencies
     if (typeof THREE === 'undefined') {
@@ -144,7 +141,7 @@
         init(textures);
         var loader = document.getElementById('loader');
         if (loader) loader.style.display = 'none';
-        animate();
+        syncMode();
     }
 
     function checkLoaded() {
@@ -362,11 +359,11 @@
     // ═══════════════════════════════════════════════════════════════
 
     var lastCameraMat = new THREE.Matrix4().identity();
-    var animating = true;
+    var animationFrame = null;
+    var loading = false;
 
     function animate() {
-        if (!animating) return;
-        requestAnimationFrame(animate);
+        animationFrame = null;
         
         // Safety check: Don't animate if not ready
         if (typeof camera === 'undefined' || !camera || typeof shader === 'undefined' || !shader) return;
@@ -375,6 +372,7 @@
         if (document.body.classList.contains('lite-mode')) {
             return;
         }
+        animationFrame = requestAnimationFrame(animate);
         
         camera.updateMatrixWorld();
         camera.matrixWorldInverse.getInverse(camera.matrixWorld);
@@ -408,21 +406,34 @@
     // MODE CHANGE LISTENER
     // ═══════════════════════════════════════════════════════════════
     
-    window.addEventListener('acidburn-mode-change', function(e) {
-        if (e.detail.isLite) {
-            animating = false;
-        } else {
-            animating = true;
+    function syncMode() {
+        var active = !document.body.classList.contains('lite-mode');
+        if (!active) {
+            if (animationFrame !== null) cancelAnimationFrame(animationFrame);
+            animationFrame = null;
+            if (window.AcidburnGalaxy) AcidburnGalaxy.stop();
+            return;
+        }
+        if (!loading) {
+            loading = true;
+            loadShaders();
+            loadAllTextures();
+        }
+        if (renderer && camera && shader && animationFrame === null) {
+            // Reset the elapsed-time clock after a paused static mode.
+            getFrameDuration();
+            shader.needsUpdate = true;
+            if (window.AcidburnGalaxy) AcidburnGalaxy.start();
             animate();
         }
-    });
+    }
+    window.addEventListener('acidburn-mode-change', syncMode);
 
     // ═══════════════════════════════════════════════════════════════
     // START
     // ═══════════════════════════════════════════════════════════════
 
-    loadShaders();
-    loadAllTextures();
+    syncMode();
 
     // Public API
     window.AcidburnBlackhole = {

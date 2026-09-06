@@ -1,20 +1,13 @@
-/* Page chrome comes from acidburn.css: main-content, author-card,
- * author-header/info, section-header/line, links-grid/link-card, post-content,
- * footer and acidburn-button (an alias of the existing shared button rules).
- * Only atlas geometry, responsive arrangements and map-label exceptions live here. */
-.atlas-breadcrumb { display:flex; align-items:baseline; gap:var(--space-sm); flex-wrap:wrap; }
+/* Shared Acid Burn components own all page chrome.
+ * This sheet only arranges the map, cards, and canvas annotations. */
 .atlas-chart { padding:0; scroll-margin-top:80px; }
 .atlas-toolbar { padding:var(--space-md); margin-bottom:0; }
 .atlas-toolbar h2 { min-width:0; overflow-wrap:anywhere; }
 .atlas-shell .acidburn-button { min-height:40px; }
 .atlas-shell .acidburn-button[aria-pressed=true] { text-decoration:underline; text-underline-offset:4px; font-weight:bold; }
-.atlas-tabs,.atlas-presentation { display:flex; gap:var(--space-xs); flex-wrap:wrap; padding:var(--space-sm); }
-.atlas-tabs button { flex:1 1 26%; }
-.atlas-presentation { align-items:center; }
-.atlas-presentation > span { margin-left:auto; font-size:var(--text-xs); }
 .orbital-field svg { display:block; width:100%; height:auto; background:#05050f; }
-.unplaced-worlds,.field-selection,.chart-caption { padding:var(--space-sm) var(--space-md); }
-.field-selection,.chart-caption { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:var(--space-sm); }
+.chart-caption { padding:var(--space-sm) var(--space-md); }
+.chart-caption { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:var(--space-sm); }
 .chart-caption { font-size:var(--text-xs); }
 .atlas-scene { position:relative; height:600px; background:#05050f; color:#fff; isolation:isolate; overflow:hidden; touch-action:none; user-select:none; -webkit-user-select:none; }
 .scene-canvas { display:block; width:100%; height:100%; cursor:grab; touch-action:none; }
@@ -23,9 +16,9 @@
 .scene-heading { position:absolute; z-index:3; top:17px; left:20px; right:20px; display:flex; gap:12px; justify-content:space-between; pointer-events:none; font-size:10px; }
 .scene-heading small { font-size:8px; }
 .scene-labels { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
-/* World labels are the explicit exception: opaque plates without box accents.
+/* World labels are the explicit exception: translucent plates without box accents.
  * These are canvas annotations, not replacement site buttons. */
-.scene-label { position:absolute; left:0; top:0; pointer-events:auto; white-space:nowrap; color:#ddd8e9; background:#0b0b14; border:0; border-radius:0; font-family:inherit; font-size:11px; padding:6px 8px; min-height:30px; max-width:185px; box-shadow:none; outline:none; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.scene-label { position:absolute; left:0; top:0; pointer-events:auto; white-space:nowrap; color:#ddd8e9; background:rgba(11,11,20,.72); border:0; border-radius:0; font-family:inherit; font-size:11px; padding:6px 8px; min-height:30px; max-width:185px; box-shadow:none; outline:none; cursor:pointer; -webkit-tap-highlight-color:transparent; }
 .scene-label[aria-pressed=true] { color:#ff83cd; }
 .scene-label:hover,.scene-label:focus-visible { color:var(--cyan); }
 .scene-label:focus-visible { outline:none; text-decoration:underline; text-underline-offset:4px; }
@@ -34,26 +27,28 @@
 .scene-controls .acidburn-button { min-width:28px; min-height:36px; padding:2px 6px; }
 .scene-hint { position:absolute; bottom:8px; left:16px; right:16px; margin:0; font-size:8px; pointer-events:none; }
 .scene-card { position:absolute; right:16px; bottom:86px; z-index:4; width:280px; max-height:calc(100% - 138px); overflow:auto; overscroll-behavior:contain; touch-action:pan-y; padding:var(--space-md); margin:0; font-size:var(--text-xs); }
-.scene-card[hidden],.scene-label[hidden],.world-detail[hidden] { display:none!important; }
+.scene-card[hidden],.scene-label[hidden] { display:none!important; }
 .scene-card .post-date { padding-right:20px; }
 .scene-card .card-intro { margin:var(--space-sm) 0; }
+.card-record { margin-top:var(--space-md); }
+.card-record summary { cursor:pointer; min-height:40px; }
+.card-reference { display:block; max-width:100%; height:auto; }
+.orbital-field { position:relative; }
+.fallback-notice { padding:var(--space-md); }
+.scene-card.fallback-card { position:sticky; bottom:12px; width:auto; margin:var(--space-sm); max-height:50vh; }
 .card-close { position:absolute; right:4px; top:6px; min-width:32px; padding:0; }
-.card-stats,.world-stats { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--space-sm); margin:var(--space-md) 0; }
-.card-stats dt,.world-stats dt { font-size:var(--text-xs); opacity:.7; }
-.card-stats dd,.world-stats dd { margin:0; overflow-wrap:anywhere; }
-.card-actions,.related-worlds { display:flex; flex-wrap:wrap; gap:var(--space-xs); margin-top:var(--space-sm); }
+.card-stats { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--space-sm); margin:var(--space-md) 0; }
+.card-stats dt { font-size:var(--text-xs); opacity:.7; }
+.card-stats dd { margin:0; overflow-wrap:anywhere; }
+.card-actions { display:flex; flex-wrap:wrap; gap:var(--space-xs); margin-top:var(--space-sm); }
 .card-actions button { flex:1; }
-.card-explore { margin-top:var(--space-sm); width:100%; }
 .atlas-chart.is-expanded { position:fixed; z-index:2000; inset:12px; display:flex; flex-direction:column; margin:0; }
 .atlas-chart.is-expanded .orbital-field { flex:1; min-height:0; overflow:auto; }
 .atlas-chart.is-expanded .atlas-scene { height:100%; min-height:300px; }
-.atlas-chart.is-expanded #scene-unplaced { display:none; }
 body.atlas-expanded { overflow:hidden; }
 body.atlas-expanded .main-content { z-index:2000; }
 /* SVG geometry and contrast inside the dark schematic viewport. */
 .orbit { fill:none; stroke:#536278; stroke-opacity:.3; stroke-width:1; }
-.orbit.selected { stroke:var(--pink); stroke-opacity:.85; stroke-width:1.5; }
-.orbit.ez { stroke:#f08e5e; stroke-dasharray:3 6; stroke-opacity:.65; }
 .atlas-node { cursor:pointer; outline:none; -webkit-tap-highlight-color:transparent; }
 .atlas-node .hit { fill:transparent; }
 .atlas-node .node-ring { stroke:var(--body-color); fill:#05050f; stroke-width:1; }
@@ -64,27 +59,10 @@ body.atlas-expanded .main-content { z-index:2000; }
 .atlas-node[aria-pressed=true] .node-core { fill:var(--pink); }
 .atlas-node[aria-pressed=true] .node-name { fill:#ff83cd; }
 .atlas-node:focus-visible text,.atlas-node:hover .node-name { fill:#fff; }
-.field-label { fill:#a8a3b7; font-size:10px; letter-spacing:2px; }
-.field-label.gold { fill:var(--cyan); }
-.atlas-parent { fill:#edc575; }
-.world-detail { scroll-margin-top:80px; }
-.detail-top { display:flex; align-items:start; justify-content:space-between; gap:var(--space-md); }
-.world-stats { grid-template-columns:repeat(3,minmax(0,1fr)); }
-.reference-sheet { margin-top:var(--space-md); }
-.reference-sheet summary { cursor:pointer; min-height:40px; }
-.reference-sheet img { display:block; max-width:100%; max-height:900px; margin:var(--space-md) auto; }
-.world-art { width:100%; height:220px; margin:var(--space-md) 0; background-repeat:no-repeat; }
-/* Frame the supplied artwork; original assets are unchanged. */
-.world-art.celosia { height:auto; aspect-ratio:657/319; background-image:url('../img/yake/celosia-reference.png'); background-size:113.7% auto; background-position:47.8% 87.94%; }
-.world-art.gullinkambi { height:auto; aspect-ratio:529/299; background-image:url('../img/yake/gullinkambi-reference.png'); background-size:139.7% auto; background-position:16.2% 93.65%; }
-.world-art.xuan { background-image:url('../img/yake/xuan-reference.png'); background-size:100% auto; background-position:50% 95%; }
-.atlas-search { grid-template-columns:1fr; }
-.atlas-search input { width:100%; }
 .atlas-sr { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 .settlement-list span { display:block; }
 @media(max-width:600px) {
   .atlas-scene { height:640px; }
-  .atlas-presentation > span { display:none; }
   .scene-heading { top:14px; left:12px; flex-direction:column; gap:5px; }
   .scene-card { left:12px; right:12px; bottom:86px; width:auto; max-height:290px; }
   .scene-card .card-intro { display:none; }
@@ -92,5 +70,4 @@ body.atlas-expanded .main-content { z-index:2000; }
   .scene-heading small { font-size:7px; }
   .atlas-chart.is-expanded { inset:4px; }
   .atlas-chart.is-expanded .atlas-toolbar { padding:var(--space-xs); }
-  .world-stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
 }

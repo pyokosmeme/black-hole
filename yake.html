@@ -14,50 +14,36 @@
   <link rel="stylesheet" href="css/yake-map.css">
   <script defer src="js/yake-data.js"></script>
   <script defer src="js-libs/three.min.js"></script>
+  <script defer src="js-libs/jquery-2.1.4.min.js"></script>
+  <script defer src="js-libs/Detector.js"></script>
+  <script defer src="js-libs/ShaderLoader.min.js"></script>
+  <script defer src="js-libs/mustache.min.js"></script>
+  <script defer src="three-js-monkey-patch.js"></script>
+  <script defer src="js/acidburn-galaxy.js"></script>
   <script defer src="js/yake-3d.js"></script>
   <script defer src="js/yake-map.js"></script>
   <script defer src="js/acidburn-mode.js"></script>
+  <script defer src="js/acidburn-blackhole.js"></script>
   <script defer src="nav-menu.js"></script>
 </head>
 <body class="yake-atlas">
   <a class="skip-link" href="#main">Skip to atlas</a>
   <div class="static-bg" aria-hidden="true"></div>
+  <div id="blackhole-container" aria-hidden="true"></div>
   <header class="header-bar">
     <div id="nav-menu"></div>
     <div class="header-content-wrapper"><a href="/maps" class="header-brand">POSSIBLE TERRITORIES</a></div>
   </header>
   <main id="main" class="main-content atlas-shell">
-    <nav class="atlas-breadcrumb" aria-label="Breadcrumb"><a class="post-back" href="/maps">MAPS</a><span>/</span><a class="post-back" href="/exu2374">INHABITED SPACE</a><span>/ 02</span></nav>
-    <section class="author-card" aria-labelledby="atlas-title">
-      <div class="author-header">
-        <div class="author-avatar" aria-hidden="true"><span>02</span></div>
-        <div class="author-info"><h1 id="atlas-title">YA KE <span lang="zh-Hant">野雞</span></h1><div class="author-handle">SPANNING WORLD INDEPENDENCE</div><div class="author-tagline">SYSTEM ATLAS / K-TYPE GIANT / 1.78—152 AU</div></div>
-      </div>
-      <div class="author-bio"><p>A golden star. An ocean capital. A long way from Sol.</p></div>
-    </section>
     <section class="author-card atlas-chart" aria-labelledby="chart-title">
-      <div class="atlas-toolbar section-header"><h2 id="chart-title">System overview</h2><div class="section-line"></div><button class="acidburn-button" id="atlas-reset" type="button">↺ RESET</button></div>
-      <div class="atlas-tabs" role="group" aria-label="Map region">
-        <button class="acidburn-button" type="button" data-view="system" aria-pressed="true">01 / SYSTEM</button>
-        <button class="acidburn-button" type="button" data-view="jin" aria-pressed="false">02 / JIN</button>
-        <button class="acidburn-button" type="button" data-view="shu" aria-pressed="false">03 / SHU</button>
-        <button class="acidburn-button" type="button" data-view="xuan" aria-pressed="false">04 / XUAN</button>
-        <button class="acidburn-button" type="button" data-view="outer" aria-pressed="false">05 / OUTER WORLDS</button>
-        <button class="acidburn-button" type="button" data-view="five" aria-pressed="false">06 / FIVE ISLANDS</button>
-      </div>
-      <div class="atlas-presentation" role="group" aria-label="Map presentation"><button class="acidburn-button" type="button" data-presentation="3d" aria-pressed="true">◈ 3D EXPLORER</button><button class="acidburn-button" type="button" data-presentation="2d" aria-pressed="false">▦ SCHEMATIC</button><span>SELECT A WORLD TO INSPECT</span></div>
+      <div class="atlas-toolbar section-header"><h2 id="chart-title">YA KE / 野雞</h2><div class="section-line"></div><button class="acidburn-button" id="atlas-reset" type="button">↺ RESET</button></div>
       <div id="orbital-field" class="orbital-field"></div>
       <div class="chart-caption"><span id="chart-scale">COMPRESSED ORBIT SPACING · SCHEMATIC PHASES</span><span><b>●</b> SELECT A DESTINATION</span></div>
     </section>
     <p id="selection-status" class="atlas-sr" role="status"></p>
-    <section id="world-detail" class="author-card post-content world-detail" aria-label="Selected destination"></section>
-    <section class="links-section atlas-directory" aria-labelledby="directory-title">
-      <div class="section-header"><h2 id="directory-title">// DESTINATIONS</h2><div class="section-line"></div></div>
-      <label class="subscribe-email-row atlas-search"><span class="author-tagline">SEARCH WORLDS / MOONS / STATIONS</span><input id="world-search" type="search" placeholder="Try Skarda or Golden Comb…" autocomplete="off"></label>
-      <div id="destination-list" class="links-grid"></div><p id="search-status" class="subscribe-status" role="status"></p>
-    </section>
-    <footer class="footer"><p>YA KE / 野雞 · FICTIONAL SYSTEM ATLAS</p><a href="/exu2374">BACK TO INTERSTELLAR TRANSIT ↗</a></footer>
     <noscript><p>This interactive atlas needs JavaScript. Ya Ke’s principal destinations are Jin (1.78 AU), Shu (2.142 AU), Celosia (6.13 AU, provisional), Gullinkambi and Chanticleer (51.4 AU), Xuan (67.4 AU), Five Islands (88.3 AU), and Kukkuta (152 AU).</p></noscript>
   </main>
+  <script id="vertex-shader" type="x-shader/x-vertex">void main() { gl_Position = vec4(position, 1.0); }</script>
+  <script data-src="raytracer.glsl" data-name="raytracer" type="x-shader/x-fragment"></script>
 </body>
 </html>
