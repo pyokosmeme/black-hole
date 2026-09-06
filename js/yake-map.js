@@ -11,10 +11,23 @@
   };
   let view = 'system', cfg = data.views.system, plotted = members(cfg);
   const field = document.getElementById('orbital-field');
-  let selected = null, scene = null;
+  let selected = null, scene = null, region = null;
   const esc = value => String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const prose = value => esc(value).replace(/\bcelariums?\b/gi, '<em>$&</em>');
   const stats = rows => '<dl class="card-stats">' + rows.map(([k,v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('') + '</dl>';
   document.querySelector('.atlas-toolbar').insertAdjacentHTML('beforeend','<button class="acidburn-button" id="atlas-system-back" type="button" data-open-view="system" hidden>← SYSTEM OVERVIEW</button>');
+  const star = worlds.get('yake');
+  document.querySelector('.atlas-toolbar').insertAdjacentHTML('afterend', `<div id="system-summary"><p class="post-date">STAR &amp; STAR SYSTEM · K-TYPE GIANT</p><p>${esc(star.intro)}</p>${stats(data.summaryStats(star).filter(([key]) => key !== 'Catalog identity'))}</div>`);
+  // Portal the card out of the chart's backdrop-filter containing block, so it
+  // is centered on the actual screen, including when the map is expanded.
+  const popup = document.createElement('aside');
+  popup.id = 'scene-card'; popup.className = 'author-card scene-card';
+  popup.setAttribute('aria-label','World information'); popup.hidden = true;
+  document.body.appendChild(popup);
+  const actionDock = document.createElement('div');
+  actionDock.id = 'world-actions'; actionDock.className = 'world-actions';
+  actionDock.setAttribute('role','group'); actionDock.hidden = true;
+  document.body.appendChild(actionDock);
 
   function writeLocation() {
     history.replaceState(null, '', location.pathname + location.search + (selected ? '#' + selected : view === 'system' ? '' : '#view=' + view));
@@ -22,11 +35,12 @@
 
   function setView(name) {
     if (name !== 'system' && !moonViews.includes(name)) return;
-    view = name; cfg = data.views[view]; plotted = members(cfg); selected = null;
+    view = name; cfg = data.views[view]; plotted = members(cfg); selected = null; region = null;
     if (scene) scene.setView(view, null);
     else fallback();
     document.getElementById('chart-title').textContent = view === 'system' ? 'YA KE / 野雞' : cfg.title;
     document.getElementById('atlas-system-back').hidden = view === 'system';
+    document.getElementById('system-summary').hidden = view !== 'system';
     const heading = field.querySelector('.scene-heading span');
     if (heading) heading.textContent = cfg.title.toUpperCase();
     renderCard(); writeLocation();
@@ -42,12 +56,15 @@
     card.innerHTML = '';
     if (!selected) return;
     const w = worlds.get(selected);
-    let html = `<button class="acidburn-button card-close" type="button" data-close-card aria-label="Close world card">×</button><p class="post-date">${esc(w.kind)}</p><div class="author-info"><h1>${esc(w.name)}</h1></div><p class="author-bio card-intro">${esc(w.intro)}</p>`;
-    if (w.stats) html += stats(data.summaryStats(w));
-    // Only the summary is public UI; draft narrative/places/notes are not rendered.
+    const continent = selected === 'celosia' && region ? data.continents[region] : null;
+    let html = `<button class="acidburn-button card-close" type="button" data-close-card aria-label="Close world card">×</button><p class="post-date">${esc(continent ? 'Celosia · continent' : w.kind)}</p><div class="author-info"><h1>${esc(continent ? continent.name : w.name)}</h1></div><p class="author-bio card-intro">${prose(continent ? continent.intro : w.intro)}</p>`;
+    if (!continent && w.stats) html += stats(data.summaryStats(w));
+    const detail = continent ? continent.detail : data.cardDetails[w.id];
+    if (detail) html += `<p class="card-detail">${prose(detail)}</p>`;
     card.innerHTML = html;
     let controls = '';
     if (scene?.hasBody(selected)) controls += '<button class="acidburn-button" type="button" data-scene-action="focus">FOCUS WORLD</button>';
+    if (selected === 'marassa' || w.parent === 'marassa') controls += ['buka','chawkee'].map(id => `<button class="acidburn-button" type="button" data-select-world="${id}" aria-pressed="${selected === id}">${id.toUpperCase()}</button>`).join('');
     if (moonViews.includes(selected) && view !== selected) controls += `<button class="acidburn-button" type="button" data-open-view="${selected}">EXPLORE MOONS</button>`;
     if (scene && selected === 'celosia') controls += ['fusang','mu','diyu'].map(region => `<button class="acidburn-button" type="button" data-scene-action="surface-${region}">${region.toUpperCase()}</button>`).join('');
     actions.innerHTML = controls;
@@ -56,6 +73,8 @@
   }
 
   function selectWorld(id) {
+    region = null;
+    if (id === 'yake') { closeCard(); return; }
     if (!plotted.has(id)) {
       const destinationView = ['system', ...moonViews].find(name => members(data.views[name]).has(id));
       if (destinationView) setView(destinationView);
@@ -65,18 +84,14 @@
     scene?.select(id);
     field.querySelectorAll('[data-world]').forEach(el => el.setAttribute('aria-pressed', el.dataset.world === id));
     renderCard();
-    // The 3D card overlays the existing viewport; opening it must not scroll.
-    if (!scene) requestAnimationFrame(() => {
-      if (selected === id) document.getElementById('scene-card').scrollIntoView({block:'nearest',behavior:'instant'});
-    });
+    // The fixed card overlays the viewport without scrolling or moving the map.
     writeLocation();
     document.getElementById('selection-status').textContent = worlds.get(id).name + ' selected. Information card opened.';
   }
 
   function closeCard() {
-    selected = null;
-    scene?.select(null);
-    field.querySelectorAll('[data-world]').forEach(el => el.setAttribute('aria-pressed','false'));
+    selected = null; region = null;
+    // Dismiss the information, not the visual selection or camera focus.
     renderCard();
     writeLocation();
     document.getElementById('selection-status').textContent = 'World card closed.';
@@ -92,29 +107,33 @@
   function fallback() {
     scene?.destroy();
     scene = null;
+    popup.classList.add('fallback-card');
     collapseScene();
     // The same local navigation remains available without WebGL.
-    const ids = [...plotted];
+    const ids = [...plotted].filter(id => id !== 'yake');
     field.innerHTML = '<p class="fallback-notice">3D is unavailable in this browser. Select a destination on the chart.</p>' +
       `<svg viewBox="0 0 380 ${ids.length * 64 + 48}" role="group" aria-label="${esc(cfg.title)}"><path class="orbit" d="M 35 32 V ${ids.length * 64}"/>` +
       ids.map((id,i) => {
         const w = worlds.get(id);
         const location = w.au ? w.au + ' AU' : w.km ? w.km.toLocaleString('en-US') + ' km' : w.kind;
         return `<g class="atlas-node" data-world="${id}" role="button" tabindex="0" aria-label="${esc(w.name)}" aria-pressed="${selected === id}" transform="translate(35,${i*64+40})" style="--body-color:${w.color}"><circle class="hit" r="28"/><circle class="node-ring" r="14"/><circle class="node-core" r="7"/><text class="node-name" x="26" y="-2">${esc(w.mapLabel || w.name)}</text><text class="node-meta" x="26" y="17">${esc(location)}</text></g>`;
-      }).join('') + '</svg><div id="world-actions" class="world-actions" role="group" hidden></div><aside id="scene-card" class="author-card scene-card fallback-card" aria-label="World information" hidden></aside>';
+      }).join('') + '</svg><div class="world-actions-slot" aria-hidden="true"></div>';
     renderCard();
   }
 
   function init() {
-    field.innerHTML = '<div class="atlas-scene"><div class="scene-heading"><span>SYSTEM OVERVIEW</span><small>COMPRESSED DISTANCES · ILLUSTRATIVE SIZES</small></div><p class="scene-hint">DRAG TO ORBIT · SCROLL / PINCH TO ZOOM · RIGHT-DRAG / TWO FINGERS TO PAN</p></div><div class="map-actions"><div class="scene-controls" role="group" aria-label="Map controls"><button class="acidburn-button" type="button" data-scene-action="home" title="Fit map">⌂<span class="atlas-sr"> Fit map</span></button><button class="acidburn-button" type="button" data-scene-action="in" aria-label="Zoom in">+</button><button class="acidburn-button" type="button" data-scene-action="out" aria-label="Zoom out">−</button><button class="acidburn-button" type="button" data-scene-action="labels" aria-pressed="true">LABELS</button><button class="acidburn-button" type="button" data-scene-action="expand" aria-pressed="false">EXPAND</button></div><div id="world-actions" class="world-actions" role="group" hidden></div></div><aside id="scene-card" class="author-card scene-card" aria-label="World information" hidden></aside>';
+    field.innerHTML = '<div class="atlas-scene"><div class="scene-heading"><span>SYSTEM OVERVIEW</span><small>COMPRESSED DISTANCES · ILLUSTRATIVE SIZES</small></div><p class="scene-hint">DRAG TO ORBIT · SCROLL / PINCH TO ZOOM · RIGHT-DRAG / TWO FINGERS TO PAN · DOUBLE-CLICK / DOUBLE-TAP TO FOCUS</p></div><div class="map-actions"><div class="scene-controls" role="group" aria-label="Map controls"><button class="acidburn-button" type="button" data-scene-action="home" title="Fit map">⌂<span class="atlas-sr"> Fit map</span></button><button class="acidburn-button" type="button" data-scene-action="in" aria-label="Zoom in">+</button><button class="acidburn-button" type="button" data-scene-action="out" aria-label="Zoom out">−</button><button class="acidburn-button" type="button" data-scene-action="labels" aria-pressed="true">LABELS</button><button class="acidburn-button" type="button" data-scene-action="expand" aria-pressed="false">EXPAND</button></div><div class="world-actions-slot" aria-hidden="true"></div></div>';
     try {
-      scene = window.YakeScene.create(field.querySelector('.atlas-scene'), id => id ? selectWorld(id) : closeCard(), fallback);
+      scene = window.YakeScene.create(field.querySelector('.atlas-scene'), id => id ? selectWorld(id) : closeCard(), fallback, id => { selectWorld(id); scene.select(id); scene.focus(); });
       scene.setView('system', null);
     } catch (error) { fallback(); }
     readLocation();
   }
 
-  document.querySelector('.atlas-shell').addEventListener('click', event => {
+  document.addEventListener('click', event => {
+    if (!event.target.closest('.atlas-shell,#scene-card,#world-actions')) return;
+    const ring = event.target.closest('[data-select-world]');
+    if (ring) { selectWorld(ring.dataset.selectWorld); return; }
     const destinationView = event.target.closest('[data-open-view]');
     if (destinationView) {
       setView(destinationView.dataset.openView);
@@ -134,7 +153,7 @@
     const kind = action.dataset.sceneAction;
     if (kind === 'home') scene.home();
     if (kind === 'focus') { scene.focus(); field.querySelector('.atlas-scene').scrollIntoView({block:'nearest'}); }
-    if (kind.startsWith('surface-')) { scene.surface(kind.slice(8)); field.querySelector('.atlas-scene').scrollIntoView({block:'nearest'}); }
+    if (kind.startsWith('surface-')) { region = kind.slice(8); scene.surface(region); renderCard(); }
     if (kind === 'in') scene.zoom(.8);
     if (kind === 'out') scene.zoom(1.25);
     if (kind === 'labels') action.setAttribute('aria-pressed',scene.toggleLabels());
@@ -149,7 +168,7 @@
     const target = event.target.closest('g[data-world]');
     if (target && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); selectWorld(target.dataset.world); }
   });
-  document.getElementById('atlas-reset').addEventListener('click', () => { closeCard(); scene?.home(); });
+  document.getElementById('atlas-reset').addEventListener('click', () => { closeCard(); scene?.select(null); scene?.home(); field.querySelectorAll('[data-world]').forEach(el => el.setAttribute('aria-pressed','false')); });
   document.addEventListener('keydown', event => {
     if (event.key !== 'Escape') return;
     if (selected) { closeCard(); field.querySelector('canvas, g[data-world]')?.focus({preventScroll:true}); }

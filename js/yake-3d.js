@@ -3,7 +3,7 @@
  * Frames are rendered only when the camera, selection, or viewport changes. */
 window.YakeScene = (function () {
   'use strict';
-  function create(host, onSelect, onFailure) {
+  function create(host, onSelect, onFailure, onFocus) {
     if (!window.THREE) throw new Error('3D library unavailable');
     const T = window.THREE;
     const data = window.YAKE_ATLAS;
@@ -34,6 +34,8 @@ window.YakeScene = (function () {
     let width = 1, height = 1, labelsOn = true;
     const pointers = new Map();
     let gesture = null, dragged = false;
+    let pendingTap = null;
+    function cancelTap() { if(pendingTap)clearTimeout(pendingTap.timer); pendingTap=null; }
     const raycaster = new T.Raycaster();
     const ndc = new T.Vector2();
 
@@ -69,7 +71,7 @@ window.YakeScene = (function () {
         // Broad continental shelves, scalloped bays and a fragmented archipelago
         // silhouette rather than three narrow polygon strips.
         const center=[.255,.62,.77][i];
-        shape=shape.map(([x,y])=>[center+(x-center)*(i===0?1.5:1.22),y]);
+        shape=shape.map(([x,y])=>[center+(x-center)*(i===0?1.5:.85),i===0?y:.53+(y-.53)*.82]);
         ctx.fillStyle=`rgb(${(i+1)*64},0,0)`;ctx.beginPath();
         const last=shape[shape.length-1];ctx.moveTo((last[0]+shape[0][0])*c.width/2,(last[1]+shape[0][1])*c.height/2);
         shape.forEach(([x,y],j)=>{const next=shape[(j+1)%shape.length];ctx.quadraticCurveTo(x*c.width,y*c.height,(x+next[0])*c.width/2,(y+next[1])*c.height/2);});ctx.closePath();ctx.fill();
@@ -146,6 +148,12 @@ window.YakeScene = (function () {
           rgb=rgb.map((v,i)=>v*(1-polar)+[177+n*18,202+n*13,212+n*10][i]*polar);
           const cloud=Math.max(0,noise(sx*7+n*.4+3,sy*23+5,sz*7+9)-.72)*.8;
           rgb=rgb.map(v=>v*(1-cloud)+228*cloud);
+          // Thin cartographic coast highlights, following the actual land mask.
+          // They include the smaller Mu/Diyu landmasses and their shelf islands.
+          if(land && [landAt(u+.0015,v),landAt(u-.0015,v),landAt(u,v+.002),landAt(u,v-.002)].some(n=>!n)) {
+            const coast=[[133,231,216],[245,210,137],[218,167,236]][Math.min(3,land)-1];
+            rgb=rgb.map((value,i)=>value*.2+coast[i]*.8);
+          }
         } else if(id==='gullinkambi') {
           // A localized oblique fissure province, not an equatorial gold belt.
           const dx=Math.atan2(Math.sin(lon-1.55),Math.cos(lon-1.55));
@@ -207,6 +215,8 @@ window.YakeScene = (function () {
           const metal=new T.MeshPhongMaterial({color:0xbac5cc,shininess:55});
           ring.add(new T.Mesh(new T.TorusGeometry(size*.34,size*.028,12,64),metal));
           const interior=new T.Mesh(new T.TorusGeometry(size*.318,size*.009,8,64),new T.MeshPhongMaterial({color:i?0x819cae:0x7a9c7d}));ring.add(interior);
+          const selection=new T.Mesh(new T.TorusGeometry(size*.34,size*.04,12,64),new T.MeshBasicMaterial({color:0xff83cd,transparent:true,opacity:.95,depthTest:false,depthWrite:false}));
+          selection.name='ring-selection';selection.visible=false;selection.renderOrder=12;ring.add(selection);
           const bearing=new T.Mesh(new T.TorusGeometry(size*.055,size*.012,10,32),metal.clone());bearing.name='hub-bearing';ring.add(bearing);
           for(let j=0;j<6;j++){
             const a=j*Math.PI/3,spoke=new T.Mesh(new T.CylinderGeometry(size*.008,size*.008,size*.34,5),metal.clone());
@@ -235,7 +245,7 @@ window.YakeScene = (function () {
       const marker=new T.Mesh(new T.TorusGeometry(size+2,.12,6,64),new T.MeshBasicMaterial({color:0xff0099,transparent:true,opacity:.85,depthTest:false,depthWrite:false}));
       marker.position.copy(position);marker.visible=false;marker.renderOrder=10;content.add(marker);
       const label=document.createElement('button');label.type='button';label.className='scene-label';label.dataset.pick=id;
-      label.textContent=w.mapLabel || w.name;label.setAttribute('aria-label','Select '+w.name);label.setAttribute('aria-pressed','false');labelLayer.appendChild(label);
+      label.textContent=w.mapLabel || w.name;label.setAttribute('aria-label','Select '+w.name);label.setAttribute('aria-pressed','false');if(id!=='yake')labelLayer.appendChild(label);
       label.addEventListener('click',e=>{ if(e.detail===0) onSelect(id); });
       bodies.push({id,mesh,marker,label,position,size});
     }
@@ -278,6 +288,7 @@ window.YakeScene = (function () {
       });
     }
     function setView(name,id) {
+      cancelTap();
       if(currentView!==name) {
         if(content) {scene.remove(content);release(content);}
         content=new T.Group();scene.add(content);bodies=[];tracks=[];annotations=[];labelLayer.textContent='';currentView=name;
@@ -305,8 +316,16 @@ window.YakeScene = (function () {
       select(id);
     }
     function select(id) {
+      cancelTap();
       selected=id;
-      bodies.forEach(b=>{const active=b.id===id || (b.id==='marassa' && worlds.get(id)?.parent==='marassa');b.marker.visible=active;b.label.setAttribute('aria-pressed',active?'true':'false');});
+      bodies.forEach(b=>{
+        const individual=b.id==='marassa' && worlds.get(id)?.parent==='marassa';
+        const active=b.id===id || individual;
+        b.marker.visible=active&&!individual;b.label.setAttribute('aria-pressed',active?'true':'false');
+        if(b.id==='marassa')b.mesh.children.filter(c=>c.name==='rotating-wheel').forEach(ring=>{
+          ring.getObjectByName('ring-selection').visible=ring.userData.world===id;
+        });
+      });
       tracks.forEach(t=>{const active=id!=null && t.id===id;t.line.material.color.setHex(active?0xff0099:t.ez?0xc57b4a:0x536480);t.line.material.opacity=active?.9:t.ez?.4:.36;});
       draw();
     }
@@ -347,6 +366,7 @@ window.YakeScene = (function () {
       const occupied=[];
       // Place the selected label first; keep other labels clear as the camera moves.
       bodies.slice().sort((a,b)=>Number(b.id===selected)-Number(a.id===selected)).forEach(b=>{
+        if(b.id==='yake')return;
         const p=b.position.clone().project(camera), x=(p.x*.5+.5)*width,y=(-p.y*.5+.5)*height;
         const visible=labelsOn&&p.z>-1&&p.z<1&&x>0&&x<width&&y>0&&y<height;
         b.label.hidden=!visible;
@@ -399,12 +419,12 @@ window.YakeScene = (function () {
       if(!pointers.size){dragged=false;gesture={x:e.clientX,y:e.clientY,pick:e.target.closest('[data-pick]')?.dataset.pick,button:e.button};}
       pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
       canvas.setPointerCapture(e.pointerId);
-      if(pointers.size>1)dragged=true;
+      if(pointers.size>1){dragged=true;cancelTap();}
     }
     function pointerMove(e) {
       if(!pointers.has(e.pointerId))return;
       const before=[...pointers.values()], old=pointers.get(e.pointerId),dx=e.clientX-old.x,dy=e.clientY-old.y;
-      if(Math.hypot(e.clientX-gesture.x,e.clientY-gesture.y)>5)dragged=true;
+      if(Math.hypot(e.clientX-gesture.x,e.clientY-gesture.y)>5){dragged=true;cancelTap();}
       pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
       const after=[...pointers.values()];
       if(after.length===2){
@@ -419,7 +439,16 @@ window.YakeScene = (function () {
       if(!pointers.has(e.pointerId))return;
       pointers.delete(e.pointerId);
       if(canvas.hasPointerCapture(e.pointerId))canvas.releasePointerCapture(e.pointerId);
-      if(!pointers.size && !dragged && e.type==='pointerup' && gesture.button===0)onSelect(gesture.pick||hit(e.clientX,e.clientY));
+      if(!pointers.size && !dragged && e.type==='pointerup' && gesture.button===0){
+        const id=gesture.pick||hit(e.clientX,e.clientY);
+        if(id && pendingTap?.id===id && performance.now()-pendingTap.time<320){
+          cancelTap();if(onFocus)onFocus(id);else{onSelect(id);focus();}
+        } else {
+          cancelTap();
+          // Briefly defer the card so it cannot intercept the second tap.
+          pendingTap={id,time:performance.now(),timer:setTimeout(()=>{pendingTap=null;onSelect(id);},320)};
+        }
+      }
     }
     function wheel(e){if(e.target.closest('.scene-card'))return;e.preventDefault();zoom(Math.exp(Math.max(-200,Math.min(200,e.deltaY))*.002));}
     function keyboard(e){
@@ -440,7 +469,7 @@ window.YakeScene = (function () {
       setView,select,home,focus,zoom,surface,
       hasBody:id=>bodies.some(b=>b.id===id || (b.id==='marassa' && worlds.get(id)?.parent==='marassa')),
       toggleLabels:()=>{labelsOn=!labelsOn;draw();return labelsOn;},
-      destroy:()=>{destroyed=true;if(frame!==null)cancelAnimationFrame(frame);observer.disconnect();document.removeEventListener('visibilitychange',draw);
+      destroy:()=>{destroyed=true;cancelTap();if(frame!==null)cancelAnimationFrame(frame);observer.disconnect();document.removeEventListener('visibilitychange',draw);
         host.removeEventListener('pointerdown',pointerDown);host.removeEventListener('pointermove',pointerMove);host.removeEventListener('pointerup',pointerUp);host.removeEventListener('pointercancel',pointerUp);host.removeEventListener('keydown',keyboard);host.removeEventListener('contextmenu',contextMenu);
         host.removeEventListener('wheel',wheel);canvas.removeEventListener('webglcontextlost',lost);release(scene);renderer.dispose();if(renderer.forceContextLoss)renderer.forceContextLoss();canvas.remove();labelLayer.remove();}
     };
