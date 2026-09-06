@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+const context={window:{}};
+vm.runInNewContext(fs.readFileSync(new URL('../js/yake-data.js',import.meta.url),'utf8'),context);
+const data=context.window.YAKE_ATLAS;
+const value=(label,text)=>data.summaryStats({stats:[[label,text]]})[0][1];
+for(const [input,expected] of [['0.7744 million','774.5 thousand'],['~780,150','~780 thousand'],['~0.576 million','~576 thousand'],['~0.5 million','~500 thousand'],['~3,200','~3 thousand'],['~55,000','~55 thousand'],['1 million','1 million'],['0.39M','390 thousand'],['1.82182 million','1.82182 million']]) assert.equal(value('Population',input),expected);
+assert.equal(value('Permanent residents','~3,200'),'~3 thousand');
+assert.equal(value('Food production','~100,000 people/day'),'~100,000 people/day');
+assert.equal(value('Orbit around Jin','1,052,112 km'),'1,052,112 km');
+assert.equal(data.views.jin.ez,1560000);
+assert.ok(data.worlds.find(w=>w.id==='vas').km<data.views.jin.ez);
+const before=JSON.stringify(data.worlds);
+data.worlds.forEach(w=>assert.ok(data.summaryStats(w).length<=4));
+assert.equal(JSON.stringify(data.worlds),before);
+console.log('PASS summary population formatting, unchanged physical values/source counts, four-stat limit, Vas inside Jin EZ');

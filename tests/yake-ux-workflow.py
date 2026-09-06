@@ -53,10 +53,11 @@ def run():
             page.wait_for_timeout(200)
             row['stationPlacement']=page.evaluate("__sceneTest.bodies.find(b=>b.id==='marassa').mesh.userData.placement")
             page.screenshot(path=str(checks.SHOTS/f'yake-ux-{width}x{height}-horizon.png'))
-            page.locator('.card-record summary').click()
             page.locator('#scene-card').evaluate('e=>e.scrollTop=e.scrollHeight')
             page.wait_for_timeout(150)
-            row['longCard']=bounds(page.locator('#scene-card'))
+            row['summaryCard']=bounds(page.locator('#scene-card'))
+            assert page.locator('#scene-card').evaluate('e=>e.scrollTop===0&&e.scrollHeight<=e.clientHeight+1')
+            assert page.locator('#scene-card details,#scene-card [data-open-view],#scene-card [data-scene-action]').count()==0
             row['closeInsideScrolledCard']=page.locator('[data-close-card]').evaluate('''e=>{const r=e.getBoundingClientRect(),c=e.closest('#scene-card').getBoundingClientRect();return r.top>=c.top&&r.bottom<=c.bottom}''')
             page.keyboard.press('Escape')
             row['escapeClosesCard']=not page.locator('#scene-card').is_visible()
@@ -81,17 +82,20 @@ def run():
             row['keyboardSelection']=page.locator('#scene-card').is_visible()
             row['smallestControl']=page.locator('.scene-controls button').evaluate_all('es=>Math.min(...es.map(e=>Math.min(e.offsetWidth,e.offsetHeight)))')
             row['errors']=errors
-            if width==1920:
-                ids=page.evaluate('''()=>{const d=YAKE_ATLAS,ids=new Set();for(const key of ['system','jin','shu','xuan']){const v=d.views[key];[v.parent,...v.nodes.map(n=>n[0]),...(v.locals||[]).map(n=>n[0]),...(v.ezLocals||[]).map(n=>n.id)].forEach(id=>ids.add(id));}if(ids.has('marassa'))['buka','chawkee'].forEach(id=>ids.add(id));return [...ids];}''')
-                for world in ids:
-                    page.evaluate('(id)=>location.hash=id',world)
-                    page.wait_for_function('(id)=>document.querySelector("#scene-card h1")?.textContent===YAKE_ATLAS.worlds.find(w=>w.id===id).name',arg=world)
-                    assert page.evaluate('''id=>{const w=YAKE_ATLAS.worlds.find(w=>w.id===id),c=document.querySelector('#scene-card'),text=c.textContent;return [w.name,w.kind,w.intro,...(w.stats||[]).flat(),...(w.paragraphs||[]),...(w.places||[]).flat(),...(w.notes||[])].every(s=>text.includes(s))&&!c.querySelector('img');}''',world),world
-                row['completeCardsVerified']=len(ids)
-                page.evaluate("location.hash='view=jin'")
-                page.wait_for_function("__sceneTest.currentView==='jin'")
-                page.wait_for_timeout(250)
-                page.screenshot(path=str(checks.SHOTS/'yake-ux-jin-ez-overview.png'))
+            ids=page.evaluate('''()=>{const d=YAKE_ATLAS,ids=new Set();for(const key of ['system','jin','shu','xuan']){const v=d.views[key];[v.parent,...v.nodes.map(n=>n[0]),...(v.locals||[]).map(n=>n[0]),...(v.ezLocals||[]).map(n=>n.id)].forEach(id=>ids.add(id));}if(ids.has('marassa'))['buka','chawkee'].forEach(id=>ids.add(id));return [...ids];}''')
+            for world in ids:
+                page.evaluate('(id)=>location.hash=id',world)
+                page.wait_for_function('(id)=>document.querySelector("#scene-card h1")?.textContent===YAKE_ATLAS.worlds.find(w=>w.id===id).name',arg=world)
+                checks.rendered(page)
+                assert page.evaluate('''id=>{const w=YAKE_ATLAS.worlds.find(w=>w.id===id),c=document.querySelector('#scene-card'),text=c.textContent;return [w.name,w.kind,w.intro,...YAKE_ATLAS.summaryStats(w).flat()].every(s=>text.includes(s))&&!c.querySelector('img,details,[data-scene-action],[data-open-view]')&&c.scrollHeight<=c.clientHeight+1&&c.scrollWidth<=c.clientWidth+1;}''',world),(world,width,height)
+                assert page.locator('.card-intro').is_visible()
+                assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+                assert page.locator('#scene-card').evaluate('''e=>getComputedStyle(e).position!=='absolute'||e.getBoundingClientRect().bottom<=document.querySelector('.atlas-scene').getBoundingClientRect().bottom'''),world
+            row['completeCardsVerified']=len(ids)
+            page.evaluate("location.hash='view=jin'")
+            page.wait_for_function("__sceneTest.currentView==='jin'")
+            page.wait_for_timeout(250)
+            page.screenshot(path=str(checks.SHOTS/'yake-ux-jin-ez-overview.png'))
             report.append(row)
             page.close()
         browser.close()

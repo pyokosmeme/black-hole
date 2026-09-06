@@ -10,7 +10,7 @@
 .chart-caption { padding:var(--space-sm) var(--space-md); }
 .chart-caption { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:var(--space-sm); }
 .chart-caption { font-size:var(--text-xs); }
-.atlas-scene { position:relative; height:600px; background:transparent; color:#fff; isolation:isolate; overflow:hidden; touch-action:none; user-select:none; -webkit-user-select:none; }
+.atlas-scene { position:relative; height:clamp(240px,55svh,600px); background:transparent; color:#fff; isolation:isolate; overflow:hidden; touch-action:none; user-select:none; -webkit-user-select:none; }
 /* The map is translucent in BH mode; planets/text remain fully opaque. */
 body.bh-mode .atlas-chart { background:rgba(5,5,15,.72); backdrop-filter:blur(3px); }
 body:not(.bh-mode) .atlas-scene { background:#05050f; }
@@ -27,28 +27,27 @@ body:not(.bh-mode) .atlas-scene { background:#05050f; }
 .scene-label[aria-pressed=true] { color:#ff83cd; }
 .scene-label:hover,.scene-label:focus-visible { color:var(--cyan); }
 .scene-label:focus-visible { outline:none; text-decoration:underline; text-underline-offset:4px; }
-.scene-controls { display:flex; gap:4px; position:absolute; z-index:5; bottom:27px; left:8px; padding:4px; margin:0; }
-.scene-controls::before { display:none; }
-.scene-controls .acidburn-button { min-width:28px; min-height:36px; padding:2px 6px; }
+.map-actions { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:var(--space-sm); padding:var(--space-sm); }
+.scene-controls,.world-actions { display:flex; flex-wrap:wrap; gap:4px; }
+.scene-controls .acidburn-button,.world-actions .acidburn-button { min-width:44px; min-height:44px; padding:4px 8px; }
+.world-actions[hidden] { display:none!important; }
+.orbital-field > .world-actions { margin:var(--space-sm); }
 .scene-hint { position:absolute; bottom:8px; left:16px; right:16px; margin:0; font-size:8px; pointer-events:none; }
-.scene-card { position:absolute; right:16px; bottom:86px; z-index:4; width:280px; max-height:calc(100% - 138px); overflow:auto; overscroll-behavior:contain; touch-action:pan-y; padding:var(--space-md); margin:0; font-size:var(--text-xs); }
+.scene-card { position:relative; z-index:4; width:auto; max-height:none; overflow:visible; padding:var(--space-sm); margin:var(--space-sm); font-size:var(--text-xs); }
+.atlas-scene,.scene-card { scroll-margin-top:70px; scroll-margin-bottom:12px; }
 .scene-card[hidden],.scene-label[hidden] { display:none!important; }
-.scene-card .post-date { padding-right:20px; }
-.scene-card .card-intro { margin:var(--space-sm) 0; }
-.card-record { margin-top:var(--space-md); }
-.card-record summary { cursor:pointer; min-height:40px; }
+.scene-card .card-intro { margin:var(--space-sm) 0; font-size:var(--text-sm); line-height:1.6; text-align:left; }
 .orbital-field { position:relative; }
 .fallback-notice { padding:var(--space-md); }
-.scene-card.fallback-card { position:sticky; bottom:12px; width:auto; margin:var(--space-sm); max-height:50vh; }
-.card-close { position:absolute; right:4px; top:6px; min-width:32px; padding:0; }
+.card-close { position:absolute; right:4px; top:6px; min-width:44px; min-height:44px; padding:0; }
+.scene-card .post-date { padding-right:36px; }
+.scene-card .author-info h1 { overflow-wrap:anywhere; padding-right:20px; font-size:var(--text-xl); margin:0 0 var(--space-sm); }
 .card-stats { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--space-sm); margin:var(--space-md) 0; }
 .card-stats dt { font-size:var(--text-xs); opacity:.7; }
 .card-stats dd { margin:0; overflow-wrap:anywhere; }
-.card-actions { display:flex; flex-wrap:wrap; gap:var(--space-xs); margin-top:var(--space-sm); }
-.card-actions button { flex:1; }
 .atlas-chart.is-expanded { position:fixed; z-index:2000; inset:12px; display:flex; flex-direction:column; margin:0; }
 .atlas-chart.is-expanded .orbital-field { flex:1; min-height:0; overflow:auto; }
-.atlas-chart.is-expanded .atlas-scene { height:100%; min-height:300px; }
+.atlas-chart.is-expanded .atlas-scene { height:clamp(220px,55svh,900px); }
 body.atlas-expanded { overflow:hidden; }
 body.atlas-expanded .main-content { z-index:2000; }
 /* SVG geometry and contrast inside the dark schematic viewport. */
@@ -64,14 +63,20 @@ body.atlas-expanded .main-content { z-index:2000; }
 .atlas-node[aria-pressed=true] .node-name { fill:#ff83cd; }
 .atlas-node:focus-visible text,.atlas-node:hover .node-name { fill:#fff; }
 .atlas-sr { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
-.settlement-list span { display:block; }
+/* Spacious displays keep the compact card over the map. Short/narrow screens
+ * use document flow, never a clipped or independently scrolling card. */
+@media(min-width:1100px) and (min-height:900px) {
+  .atlas-scene { height:600px; }
+  .scene-card:not(.fallback-card) { position:absolute; top:54px; right:8px; width:300px; }
+  .atlas-chart.is-expanded .atlas-scene { height:calc(100svh - 220px); }
+}
 @media(max-width:600px) {
-  .atlas-scene { height:640px; }
   .scene-heading { top:14px; left:12px; flex-direction:column; gap:5px; }
-  .scene-card { left:12px; right:12px; bottom:86px; width:auto; max-height:290px; }
-  .scene-card .card-intro { display:none; }
   .scene-hint { font-size:7px; line-height:1.6; }
   .scene-heading small { font-size:7px; }
   .atlas-chart.is-expanded { inset:4px; }
   .atlas-chart.is-expanded .atlas-toolbar { padding:var(--space-xs); }
+}
+@media(max-height:600px) {
+  .atlas-chart.is-expanded .atlas-scene { height:max(110px,calc(100svh - 260px)); }
 }

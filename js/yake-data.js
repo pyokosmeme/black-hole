@@ -3,6 +3,14 @@
  * No settlement coordinates or orbital elements are inferred from artwork.
  * Conflicting values are preserved in notes rather than reconciled silently. */
 window.YAKE_ATLAS = {
+  // Presentation only: preserve source counts while rounding small populations.
+  summaryStats(world) {
+    return (world.stats || []).slice(0,4).map(([label,value]) => [label,
+      /population|residents/i.test(label) ? value.replace(/[\d,]+(?:\.\d+)?\s*(million|M|thousand|k)?\b/gi, (match,unit) => {
+        const count=parseFloat(match.replace(/,/g,''))*(/^(million|m)$/i.test(unit||'')?1e6:/^(thousand|k)$/i.test(unit||'')?1e3:1);
+        return count<1e6 ? (Math.round(count/500)/2).toLocaleString('en-US',{maximumFractionDigits:1})+' thousand' : match;
+      }) : value]);
+  },
   worlds: [
     {id:'yake', name:'Ya Ke / 野雞', no:'02', kind:'K-type giant · system primary', color:'#edc575',
       intro:'The political heart of the Spanning World Independence, connected to Sol by long journeys and comparatively economical burns.',
@@ -12,7 +20,7 @@ window.YAKE_ATLAS = {
       related:['celosia','jin','shu','gullinkambi','chanticleer','xuan','five','kukkuta']},
     {id:'jin', name:'Jin / 金', no:'02', kind:'Gas giant · food & helium economy', parent:'yake', au:1.78, color:'#d5bd7f',
       intro:'An industrial giant surrounded by inhabited moons, helium extraction sites, and agricultural stations.',
-      stats:[['Orbit','1.78 AU'],['Population','19.37M + 4.65M in orbit'],['Exclusion zone','1,171,000 km'],['Eccentricity','0.14'],['Mass, primary value','1.895 Jupiter masses'],['Radius, primary value','12.1 Earth radii']],
+      stats:[['Orbit','1.78 AU'],['Population','19.37M + 4.65M in orbit'],['Exclusion zone','1,560,000 km'],['Eccentricity','0.14'],['Mass, primary value','1.895 Jupiter masses'],['Radius, primary value','12.1 Earth radii']],
       paragraphs:['Outside the deadly radiation belts, Jin’s magnetic field provides shielding from galactic cosmic rays. Farming communes support the industrial settlements; food is Jin’s principal export within the system.','The reference sheet lists 79 moons, seven of them primary. Prata is heavily irradiated and uninhabited. Vas, Skarda, and Plomo hold most of the moon population.'],
       notes:['The notes also give 3.2 Jupiter masses and 14.4 Earth radii in parentheses. These alternatives are retained here rather than used to derive periods.'],
       image:'jin-reference.png', imageLabel:'Moons of Jin reference sheet',
@@ -61,7 +69,7 @@ window.YAKE_ATLAS = {
     {id:'prata', name:'Prata', kind:'Jin moon · silver', parent:'jin', km:256389, color:'#b9bec5',
       intro:'Jin’s innermost named moon, inside the exclusion zone and exposed to severe radiation.', stats:[['Orbit around Jin','256,389 km'],['Surface habitation','Uninhabited']], paragraphs:['The Jin reference identifies Prata as the exception among its primary moons: its radiation environment prevents settlement.']},
     {id:'kobber', name:'Kobber', kind:'Jin moon · copper', parent:'jin', km:1052112, color:'#bf8b68',
-      intro:'A copper-named moon just inside Jin’s quoted exclusion boundary.', stats:[['Orbit around Jin','1,052,112 km'],['Population','~0.576 million']], paragraphs:['Detailed settlement locations are not supplied.']},
+      intro:'A copper-named moon inside Jin’s exclusion boundary.', stats:[['Orbit around Jin','1,052,112 km'],['Population','~0.576 million']], paragraphs:['Detailed settlement locations are not supplied.']},
     {id:'vas', name:'Vas', kind:'Jin moon · iron', parent:'jin', km:1413613, color:'#e0c892',
       intro:'A major inhabited moon with low gravity and two named cosmodromes.',
       stats:[['Orbit around Jin','1,413,613 km'],['Surface population','7.30 million'],['Orbital population','1.75 million'],['Gravity','0.34 g₀'],['Radius','2,432.96 km'],['Mass','2.95999 × 10²³ kg']],
@@ -94,7 +102,7 @@ window.YAKE_ATLAS = {
       paragraphs:['The arrival control volume is described from the center looking outward. Only arrivals may enter the no-go zone. Dajinmen is distinct from Dadanshui, the Great Plain Water Ring.'], related:['jin','marassa']},
     {id:'marassa', name:'Horizon’s Edge', kind:'Marassa Jumeaux · twin Stanford toruses', parent:'jin', color:'#c6a2d5',
       intro:'Two coaxial, counter-rotating Stanford toruses joined through bearing hubs by a non-rotating spine: Buka grows the food; Chawkee makes, repairs, and trades.',
-      stats:[['Hoop radius','1,492 m'],['Structure radius','122 m'],['Gravity','1 g₀'],['Volume per ring','5.48 × 10⁷ m³'],['Location','Just outside Jin’s exclusion zone'],['Jin EZ radius','1,171,000 km']],
+      stats:[['Hoop radius','1,492 m'],['Structure radius','122 m'],['Gravity','1 g₀'],['Volume per ring','5.48 × 10⁷ m³'],['Location','Just outside Jin’s exclusion zone'],['Jin EZ radius','1,560,000 km']],
       paragraphs:['Horizon’s Edge sits just outside Jin’s exclusion boundary.','The rings share a working ecology of agriculture, cargo handling, chemical industry, transport, and public space. Nearby Jin Orbitguard stations, smaller habitat pods, and temporary orbital stays become especially strained when interstellar traffic is ordered to shelter in place. During Ergo, nearly 20,000 people are in orbit nearby.'], notes:['The station’s exact orbital radius and angular position are unspecified; its clearance from the EZ is schematic.'], related:['buka','chawkee','skarda']},
     {id:'buka', name:'Buka / Primus', kind:'Marassa Jumeaux · agricultural ring', parent:'marassa', color:'#85c7a3',
       intro:'Stacked farms and open landscapes around Central City, with Antipode on the far side of the ring.', stats:[['Usual population','~5,000'],['Permanent residents','~3,200'],['Food production','~100,000 people/day']],
@@ -111,7 +119,7 @@ window.YAKE_ATLAS = {
   views: {
     system:{title:'System overview',parent:'yake',unit:'AU',caption:'COMPRESSED ORBIT SPACING · SCHEMATIC PHASES',nodes:[['jin',70,-25],['shu',104,145],['celosia',146,60],['gullinkambi',202,-155],['chanticleer',202,25],['xuan',242,-65],['five',280,160],['kukkuta',316,-15]],locals:[['dajinmen',70,-85],['celosia-hubs',146,120]]},
     // Locals have display positions only: they deliberately do not acquire km values or physical orbit tracks.
-    jin:{title:'The moons of Jin',parent:'jin',unit:'km',caption:'JIN · SEVEN PRIMARY MOONS & HORIZON’S EDGE',ez:1171000,nodes:[['prata',80,-40],['kobber',145,155],['vas',210,25],['skarda',300,-65]],locals:[['plomo',235,-140],['suseong',295,65],['peng',185,95]],ezLocals:[{id:'marassa',angle:-125}]},
+    jin:{title:'The moons of Jin',parent:'jin',unit:'km',caption:'JIN · SEVEN PRIMARY MOONS & HORIZON’S EDGE',ez:1560000,nodes:[['prata',80,-40],['kobber',145,155],['vas',210,25],['skarda',300,-65]],locals:[['plomo',235,-140],['suseong',295,65],['peng',185,95]],ezLocals:[{id:'marassa',angle:-125}]},
     shu:{title:'The moons of Shu',parent:'shu',unit:'km',caption:'COMPRESSED MOON ORBITS · DISTANCES FROM SHU',ez:1599180,nodes:[['jouki',86,-40],['mizu',152,145],['pani',220,25],['buz',301,-65]]},
     xuan:{title:'Xuan & Kaʻauhelemoa',parent:'xuan',unit:'km',caption:'KAʻAUHELEMOA / 0401 · XUAN’S LARGEST MOON',ez:237000,nodes:[['kaau',235,155]]},
     outer:{title:'Beyond Celosia',parent:'yake',unit:'AU',caption:'RESONANT OUTER WORLDS · SCHEMATIC PHASES',nodes:[['gullinkambi',130,-155],['chanticleer',130,25],['xuan',200,-65],['five',264,155],['kukkuta',318,-10]],unplaced:['minor']},

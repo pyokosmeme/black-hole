@@ -11,21 +11,14 @@ for(const name of ['system','jin','shu','xuan']) {
 }
 if(ids.has('marassa')) ['buka','chawkee'].forEach(id=>ids.add(id));
 const cards=data.worlds.filter(w=>ids.has(w.id)&&!w.hidden);
-const lines=['# Ya Ke atlas — current info-card inventory','',`${cards.length} reachable cards. Text is unpruned. The first four stats appear on the main card; remaining stats, paragraphs, places, and notes are under World Details. Intro text is currently hidden at phone widths (600px and below).`,''];
+const lines=['# Ya Ke atlas — current info-card inventory','',`${cards.length} reachable summary cards. Only name, type, introduction, and up to four stats are displayed. World Details is removed. Small populations are shown in thousands, rounded to the nearest 500. Map actions are outside the cards.`,''];
 for(const w of cards) {
   lines.push(`## ${w.name}`,'',w.kind,'',w.intro,'');
   if(w.mapLabel) lines.push(`Map label: ${w.mapLabel}`,'');
   if(w.stats?.length) {
     lines.push('### Main-card stats','');
-    w.stats.slice(0,4).forEach(([k,v])=>lines.push(`- ${k}: ${v}`));
+    data.summaryStats(w).forEach(([k,v])=>lines.push(`- ${k}: ${v}`));
     lines.push('');
-  }
-  if(w.stats?.length>4 || w.paragraphs?.length || w.places?.length || w.notes?.length) {
-    lines.push('### World Details','');
-    if(w.stats?.length>4) {w.stats.slice(4).forEach(([k,v])=>lines.push(`- ${k}: ${v}`));lines.push('');}
-    (w.paragraphs||[]).forEach(p=>lines.push(p,''));
-    if(w.places?.length) {lines.push('Places & infrastructure:','');w.places.forEach(([k,v])=>lines.push(`- ${k}: ${v}`));lines.push('');}
-    (w.notes||[]).forEach(p=>lines.push(p,''));
   }
 }
 console.log(lines.join('\n'));

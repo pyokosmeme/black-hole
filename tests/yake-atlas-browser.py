@@ -92,11 +92,10 @@ def run():
                 style = label.evaluate('(e)=>{const s=getComputedStyle(e);return [s.borderLeftWidth,s.outlineStyle,s.backgroundColor]}')
                 assert style == ['0px', 'none', 'rgba(11, 11, 20, 0.72)'], style
                 assert page.locator('[data-show-detail],#scene-card img').count() == 0
-                assert page.locator('#scene-card [data-open-view]').count() == (1 if world in ['jin','shu','xuan'] else 0)
+                assert page.locator('#world-actions [data-open-view]').count() == (1 if world in ['jin','shu','xuan'] else 0)
+                assert page.locator('#scene-card details,#scene-card [data-scene-action],#scene-card [data-open-view]').count() == 0
                 assert page.evaluate('__sceneTest.currentView') == 'system'
                 if world == 'celosia':
-                    page.locator('.card-record summary').click()
-                    assert page.locator('.card-record').get_attribute('open') is not None
                     for region in ['fusang','mu','diyu']:
                         page.locator(f'[data-scene-action=surface-{region}]').click()
                         rendered(page)
@@ -151,7 +150,7 @@ def run():
             page.on('request', lambda request: references.append(request.url) if '/img/yake/' in request.url else None)
             for view, count, local_ids in [('jin',9,['plomo','suseong','peng','marassa','buka','chawkee']),('shu',5,['jouki','mizu','pani','buz']),('xuan',2,['kaau'])]:
                 page.evaluate('(id)=>location.hash=id', view)
-                page.locator(f'#scene-card [data-open-view={view}]').click()
+                page.locator(f'#world-actions [data-open-view={view}]').click()
                 page.wait_for_function('(name)=>__sceneTest.currentView===name', arg=view)
                 assert page.evaluate('__sceneTest.bodies.length') == count
                 assert page.evaluate("!__sceneTest.bodies.some(b=>b.id==='fengsheng')")
@@ -206,8 +205,8 @@ def run():
         }''')
         assert page.evaluate('''() => {
             const s=__sceneTest, p=s.bodies.find(b=>b.id==='marassa').position;
-            const ez=145+(1171000-1052112)/(1413613-1052112)*65;
-            return Math.abs(p.length()-(ez+26))<1e-7 && p.length()-20>ez && s.tracks.filter(t=>t.ez).length===1 && Math.abs(s.tracks.find(t=>t.ez).line.geometry.vertices[0].length()-ez)<1e-7 && !s.scene.getObjectByName('L5 offset uncertainty');
+            const ez=210+(1560000-1413613)/(2836675-1413613)*90;
+            return YAKE_ATLAS.views.jin.ez===1560000 && s.bodies.find(b=>b.id==='vas').position.length()<ez && Math.abs(p.length()-(ez+26))<1e-7 && p.length()-20>ez && s.tracks.filter(t=>t.ez).length===1 && Math.abs(s.tracks.find(t=>t.ez).line.geometry.vertices[0].length()-ez)<1e-7 && !s.scene.getObjectByName('L5 offset uncertainty');
         }''')
         page.screenshot(path=str(SHOTS / 'yake-corrected-jin-placement.png'))
         page.evaluate('__sceneAPI.focus()')
@@ -273,7 +272,7 @@ def run():
         assert page.locator('#scene-card').is_visible()
         assert page.locator('main > section').count() == 1
         page.locator('[data-world=jin]').click()
-        page.locator('#scene-card [data-open-view=jin]').click()
+        page.locator('#world-actions [data-open-view=jin]').click()
         assert page.locator('[data-world=fengsheng]').count() == 0
         assert page.evaluate("(()=>{const w=YAKE_ATLAS.worlds.find(w=>w.id==='fengsheng');return w.hidden&&!w.mapLabel&&w.kind.includes('weather station')&&w.stats.some(([k,v])=>k==='Orbit type'&&v==='Polar');})()")
         page.locator('[data-world=marassa]').focus()

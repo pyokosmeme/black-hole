@@ -320,7 +320,6 @@ window.YakeScene = (function () {
       target.copy(b.position);radius=Math.max(b.size*(width<600?11:9),75);phi=1.25;
       // Bring the named geological feature into view when inspecting this world.
       if(selected==='gullinkambi')theta=.1;
-      if(width<600)target.add(new T.Vector3(0,1,0).applyQuaternion(camera.quaternion).multiplyScalar(-b.size*1.7));
       draw();
     }
     function surface(region) {
