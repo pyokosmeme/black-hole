@@ -62,15 +62,24 @@
     // ROUTE DATA
     // ═══════════════════════════════════════════════════════════════
 
+    // Estimated Sol links: FDR hours = |heliocentric radial km/s| * 24 / 30,
+    // rounded to 0.1 h. Present-day radial motion only; 1 day per 30 km/s.
+    // Luyten 18.36: https://simbad.u-strasbg.fr/simbad/sim-id?Ident=GJ+273
+    // Gowjin 1.47: https://simbad.cds.unistra.fr/simbad/sim-id?Ident=GJ+876
+    // Issetock 9.75: https://www.aanda.org/articles/aa/pdf/2024/08/aa49375-24.pdf
+    // Nursia 52.003101: https://simbad.u-strasbg.fr/simbad/sim-id?Ident=TRAPPIST-1
+    // Bakunawa 13.329: https://simbad.u-strasbg.fr/simbad/sim-id?Ident=LHS+1140
+    // Tau Ceti 16.597: https://simbad.cds.unistra.fr/simbad/sim-id?Ident=tau+Cet
+    // Barnard 110.11: https://simbad.u-strasbg.fr/simbad/sim-id?Ident=Barnard%27s+star
     const routes = [
         // UPLB routes
         {from: 'Sol', to: 'Gamov', proper: 55.58, tau: 6.0, fdr: 24, type: 'uplb'},
         {from: 'Sol', to: 'Wolf', proper: 19.17, tau: 1.92, fdr: 24, type: 'uplb'},
-        {from: 'Sol', to: 'Luyten', proper: 17.32, tau: null, fdr: null, type: 'uplb'},
-        {from: 'Sol', to: 'Gowjin', proper: 20.78, tau: null, fdr: null, type: 'uplb'},
-        {from: 'Sol', to: 'Issetock', proper: 28.48, tau: null, fdr: null, type: 'uplb'},
-        {from: 'Sol', to: 'Nursia', proper: 54.86, tau: null, fdr: null, type: 'uplb'},
-        {from: 'Sol', to: 'Bakunawa', proper: 56.8, tau: null, fdr: null, type: 'uplb'},
+        {from: 'Sol', to: 'Luyten', proper: 17.32, tau: null, fdr: 14.7, fdrEstimated: true, type: 'uplb'},
+        {from: 'Sol', to: 'Gowjin', proper: 20.78, tau: null, fdr: 1.2, fdrEstimated: true, type: 'uplb'},
+        {from: 'Sol', to: 'Issetock', proper: 28.48, tau: null, fdr: 7.8, fdrEstimated: true, type: 'uplb'},
+        {from: 'Sol', to: 'Nursia', proper: 54.86, tau: null, fdr: 41.6, fdrEstimated: true, type: 'uplb'},
+        {from: 'Sol', to: 'Bakunawa', proper: 56.8, tau: null, fdr: 10.7, fdrEstimated: true, type: 'uplb'},
         {from: 'Wolf', to: 'Gamov', proper: 31.55, tau: 3.128, fdr: 48, type: 'uplb'},
     
         // SWI internal routes (note: "All None Listed SWI To SWI routes are Prohibitively Long/Expensive")
@@ -85,8 +94,8 @@
         {from: 'Sol', to: 'Rigil', proper: 5.90, tau: 1.0, fdr: 20, type: 'inter'},
         {from: 'Sol', to: 'Toliman', proper: 5.90, tau: 1.0, fdr: 20, type: 'inter'},
         {from: 'Sol', to: 'Tartarus', proper: 15.13, tau: 1.51, fdr: 24, type: 'inter'},
-        {from: 'Sol', to: 'Tau Ceti', proper: 16.5, tau: null, fdr: null, type: 'inter'},
-        {from: 'Sol', to: 'Barnard', proper: 8.31, tau: null, fdr: null, type: 'inter'},
+        {from: 'Sol', to: 'Tau Ceti', proper: 16.5, tau: null, fdr: 13.3, fdrEstimated: true, type: 'inter'},
+        {from: 'Sol', to: 'Barnard', proper: 8.31, tau: null, fdr: 88.1, fdrEstimated: true, type: 'inter'},
 
         // Homeworlds internal routes - Rigil/Toliman (AL only, same binary system)
         {from: 'Rigil', to: 'Toliman', proper: 0.01, tau: 0.05, fdr: 0.1, type: 'hw'},
@@ -305,7 +314,7 @@
             '<button class="route-priority-btn" type="button" data-routing-mode="transfers" aria-pressed="false">' +
             '<span class="route-priority-name">FEWEST TRANSFERS</span><span class="route-priority-detail">number of jumps</span></button>' +
             '<button class="route-priority-btn" type="button" data-routing-mode="burn" aria-pressed="false">' +
-            '<span class="route-priority-name">LOWEST BURN</span><span class="route-priority-detail">known FDR hours</span></button>' +
+            '<span class="route-priority-name">LOWEST BURN</span><span class="route-priority-detail">FDR hours</span></button>' +
             '</div>' +
             '<div id="route-priority-note" class="route-priority-note" aria-live="polite"></div>';
         planner.insertBefore(controls, routeContent);
@@ -341,7 +350,7 @@
         } else if (routingMode === 'transfers') {
             note.textContent = 'MINIMIZES JUMPS · FASTEST ROUTE WINS TIES';
         } else {
-            note.textContent = 'MINIMIZES KNOWN FDR BURN · UNRATED LEGS EXCLUDED';
+            note.textContent = 'MINIMIZES FDR BURN · INCLUDES ESTIMATES';
         }
     }
 
@@ -940,6 +949,7 @@
         let totalTau = 0;
         let totalFdr = 0;
         let allFdrKnown = true;
+        let hasFdrEstimate = false;
         const legs = [];
 
         plannedHops().forEach(function(hop) {
@@ -955,6 +965,7 @@
                     allFdrKnown = false;
                 } else {
                     totalFdr += route.fdr;
+                    if (route.fdrEstimated) hasFdrEstimate = true;
                 }
                 legs.push(Object.assign({}, route, {from: hop.from, to: hop.to}));
             } else {
@@ -989,7 +1000,7 @@
 
                 html +=
                     '<div class="total-box">' +
-                    '<div class="total-label">Total FDR Burn</div>' +
+                    '<div class="total-label">Total FDR Burn' + (hasFdrEstimate ? ' (estimated)' : '') + '</div>' +
                     (allFdrKnown
                         ? '<div class="total-value">' + totalFdr.toFixed(1) + '<span class="total-unit">hours</span></div>'
                         : '<div class="total-value total-unknown">UNKNOWN</div>') +
@@ -1026,7 +1037,7 @@
                     }
                     if (leg.fdr) {
                         html +=
-                            '<div class="leg-time"><span class="leg-time-label">FDR:</span>' +
+                            '<div class="leg-time"><span class="leg-time-label">FDR' + (leg.fdrEstimated ? ' (est.)' : '') + ':</span>' +
                             '<span class="leg-time-value">' + leg.fdr.toFixed(1) + 'h</span></div>';
                     }
                     html += '</div></div>';
