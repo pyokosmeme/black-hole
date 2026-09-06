@@ -1212,6 +1212,10 @@
 
     function build3d() {
         const container = document.getElementById('map-container');
+        // Use the same theme color as both SVG maps' selected routes.
+        const routeHighlightColor = new THREE.Color(
+            getComputedStyle(container).getPropertyValue('--pink').trim() || '#ff0099'
+        );
         const wrap = document.createElement('div');
         wrap.className = 't3d-wrap';
         wrap.style.display = 'none';
@@ -1280,7 +1284,7 @@
         })));
         scene.add(solRays);
 
-        // Route lines: faction-coloured network lines plus a soft cyan tube
+        // Route lines: faction-coloured network lines plus a soft pink tube
         // that is only shown around selected legs. WebGL lineWidth is ignored
         // by most browsers, so geometry is needed for a visible halo.
         const lineObjs = {};
@@ -1322,7 +1326,7 @@
                 const shell = new THREE.Mesh(
                     new THREE.CylinderGeometry(layer.radius, layer.radius, length, 12, 1, true),
                     new THREE.MeshBasicMaterial({
-                        color: 0x00ffff,
+                        color: routeHighlightColor,
                         transparent: true,
                         opacity: layer.opacity,
                         blending: THREE.AdditiveBlending,
@@ -1422,6 +1426,7 @@
             wrap: wrap, canvas: canvas,
             renderer: renderer, scene: scene, camera: camera, controls: controls,
             meshObjs: meshObjs, haloObjs: haloObjs, lineObjs: lineObjs, glowObjs: glowObjs,
+            routeHighlightColor: routeHighlightColor,
             selectionGlowObjs: selectionGlowObjs,
             labelEls: labelEls, pos: pos,
             width: 1, height: 1, rafId: null, tmp: new THREE.Vector3()
@@ -1492,16 +1497,18 @@
             const active = !!activeHops[key];
             const base = ROUTE_COLORS[line.userData.type] || 0xffffff;
             line.userData.active = active;
-            // Selected legs: bright cyan and drawn on top of everything so
+            // Selected legs: subway pink and drawn on top of everything so
             // they can't hide behind halos, grid, or other geometry.
             line.material.opacity = active ? 1 : 0.5;
-            line.material.color.setHex(active ? 0x00ffff : base);
+            if (active) line.material.color.copy(t3.routeHighlightColor);
+            else line.material.color.setHex(base);
             line.material.depthTest = !active;
             line.renderOrder = active ? 999 : 0;
             if (glow) {
                 glow.userData.active = active;
                 glow.material.opacity = active ? 0.6 : 0.22;
-                glow.material.color.setHex(active ? 0x66ffff : base);
+                if (active) glow.material.color.copy(t3.routeHighlightColor);
+                else glow.material.color.setHex(base);
                 glow.material.depthTest = !active;
                 glow.renderOrder = active ? 998 : 0;
             }

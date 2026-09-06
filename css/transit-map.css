@@ -87,7 +87,7 @@
 
 .route-line.active {
     opacity: 1;
-    stroke-width: 5;
+    stroke-width: 8;
     stroke: var(--pink) !important;
     stroke-dasharray: none;
     filter: drop-shadow(0 0 5px var(--pink)) drop-shadow(0 0 11px rgba(255, 0, 128, 0.72));
