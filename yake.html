@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#090c13">
+  <meta name="theme-color" content="#000000">
   <title>YA KE / 野雞 — System Atlas</title>
   <meta name="description" content="Explore Ya Ke: the ocean world Celosia, Jin's inhabited moons, the Golden Comb, and the outer settlements. An interactive atlas of A.N. Alex's fictional universe.">
   <link rel="icon" href="img/favicon.ico">
@@ -37,8 +37,9 @@
         <button type="button" data-view="system" aria-pressed="true">01 / SYSTEM</button>
         <button type="button" data-view="jin" aria-pressed="false">02 / JIN</button>
         <button type="button" data-view="shu" aria-pressed="false">03 / SHU</button>
-        <button type="button" data-view="outer" aria-pressed="false">04 / OUTER WORLDS</button>
-        <button type="button" data-view="habitats" aria-pressed="false">05 / HABITATS</button>
+        <button type="button" data-view="xuan" aria-pressed="false">04 / XUAN</button>
+        <button type="button" data-view="outer" aria-pressed="false">05 / OUTER WORLDS</button>
+        <button type="button" data-view="five" aria-pressed="false">06 / FIVE ISLANDS</button>
       </div>
       <div class="atlas-presentation" role="group" aria-label="Map presentation"><button type="button" data-presentation="3d" aria-pressed="true">◈ 3D EXPLORER</button><button type="button" data-presentation="2d" aria-pressed="false">▦ SCHEMATIC</button><span>SELECT A WORLD TO INSPECT</span></div>
       <div id="orbital-field" class="orbital-field"></div>
@@ -50,7 +51,6 @@
       <div class="directory-heading"><div><p class="eyebrow">WORLDS / MOONS / STATIONS</p><h2 id="directory-title">Find your destination</h2></div><label class="atlas-search">SEARCH<input id="world-search" type="search" placeholder="Try Skarda or Golden Comb…" autocomplete="off"></label></div>
       <div id="destination-list" class="destination-list"></div><p id="search-status" role="status"></p>
     </section>
-    <details class="atlas-source-notes"><summary>Chart conventions & source notes</summary><p>This atlas depicts a fictional system from A.N. Alex’s worldbuilding. Orbit sizes are compressed, body sizes exaggerated, and angular positions chosen for readability. The 3D explorer uses circular display paths and illustrative procedural surfaces, not calculated ephemerides or mapped surface geography. Celosia’s supplied 4.78° inclination is shown. Other planes are schematic. This is an interactive atlas, not a gravity simulation. The optional 2D schematic uses an ordered orbital strip on phones.</p><p>Distances are measured from the named parent. EZ denotes the exclusion-zone boundary in the supplied notes. Habitat positions and ring sizes are illustrative. Objects without orbital elements remain available as records rather than being assigned invented orbits. Surface locations without coordinates appear in the directory.</p><p>Celosia is plotted at the leading value of 6.13 AU; 4.55 AU is also recorded in the notes. The system population of 579.4 million does not reconcile with the supplied local totals, so local figures are presented separately and are not summed. Shu’s population figures and the UV descriptions also conflict; relevant records retain those qualifications.</p><p>Images in the records are the supplied reference sheets, preserved intact. The fourth sheet is Gullinkambi; the fifth is Celosia. The city and habitat records are selected summaries of the supplied notes.</p></details>
     <footer class="atlas-footer"><span>YA KE / 野雞 · FICTIONAL SYSTEM ATLAS</span><a href="/exu2374">BACK TO INTERSTELLAR TRANSIT ↗</a></footer>
     <noscript><p>This interactive atlas needs JavaScript. Ya Ke’s principal destinations are Jin (1.78 AU), Shu (2.142 AU), Celosia (6.13 AU, provisional), Gullinkambi and Chanticleer (51.4 AU), Xuan (67.4 AU), Five Islands (88.3 AU), and Kukkuta (152 AU).</p></noscript>
   </main>

@@ -10,7 +10,7 @@ window.YakeScene = (function () {
     const worlds = new Map(data.worlds.map(w => [w.id,w]));
     const renderer = new T.WebGLRenderer({antialias:true, alpha:false});
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-    renderer.setClearColor(0x050810, 1);
+    renderer.setClearColor(0x05050f, 1);
     const canvas = renderer.domElement;
     canvas.className = 'scene-canvas';
     canvas.tabIndex = 0;
@@ -55,11 +55,36 @@ window.YakeScene = (function () {
       const mix=(a,b,t)=>a+(b-a)*t;
       return mix(mix(mix(hash(ix,iy,iz),hash(ix+1,iy,iz),fx),mix(hash(ix,iy+1,iz),hash(ix+1,iy+1,iz),fx),fy),mix(mix(hash(ix,iy,iz+1),hash(ix+1,iy,iz+1),fx),mix(hash(ix,iy+1,iz+1),hash(ix+1,iy+1,iz+1),fx),fy),fz);
     }
+    // Authored coast silhouettes approximate the supplied Fusang / Mu / Diyu
+    // globes. This is an illustrative geography, not a georeferenced texture.
+    function continentMask() {
+      const c=document.createElement('canvas');c.width=1024;c.height=512;
+      const ctx=c.getContext('2d');
+      const shapes=[
+        [[.235,.08],[.255,.10],[.246,.15],[.268,.18],[.251,.23],[.278,.28],[.272,.33],[.293,.37],[.278,.41],[.303,.45],[.283,.47],[.29,.51],[.269,.52],[.276,.57],[.301,.61],[.322,.65],[.313,.69],[.28,.70],[.274,.74],[.241,.73],[.226,.68],[.198,.67],[.184,.62],[.21,.60],[.193,.56],[.219,.54],[.21,.50],[.234,.48],[.222,.44],[.24,.42],[.232,.38],[.245,.36],[.23,.32],[.247,.29],[.232,.26],[.245,.22],[.228,.18],[.238,.15],[.222,.11]],
+        [[.572,.37],[.596,.35],[.62,.39],[.608,.43],[.63,.46],[.618,.49],[.635,.53],[.655,.54],[.66,.58],[.647,.60],[.673,.64],[.666,.69],[.636,.72],[.61,.70],[.593,.66],[.611,.64],[.586,.61],[.594,.57],[.573,.56],[.582,.51],[.564,.48],[.58,.45]],
+        [[.747,.35],[.77,.32],[.79,.36],[.782,.40],[.807,.42],[.8,.45],[.776,.46],[.785,.49],[.771,.52],[.80,.54],[.814,.58],[.798,.60],[.818,.64],[.802,.67],[.778,.65],[.761,.61],[.742,.60],[.747,.56],[.722,.53],[.735,.49],[.719,.46],[.735,.44],[.728,.40]]
+      ];
+      shapes.forEach((shape,i)=>{
+        ctx.fillStyle=`rgb(${i+1},0,0)`;ctx.beginPath();
+        shape.forEach(([x,y],j)=>{if(j)ctx.lineTo(x*c.width,y*c.height);else ctx.moveTo(x*c.width,y*c.height);});ctx.closePath();ctx.fill();
+        // Small shelf islands; deterministic, confined to each continent's coast.
+        shape.forEach(([x,y],j)=>{
+          for(let k=0;k<3;k++){
+            const dx=Math.sin(j*13+k*7)*.024,dy=Math.cos(j*9+k*17)*.023;
+            ctx.beginPath();ctx.ellipse((x+dx)*c.width,(y+dy)*c.height,1+(j+k)%3,.7+(j*3+k)%2, j,0,Math.PI*2);ctx.fill();
+          }
+        });
+      });
+      return ctx.getImageData(0,0,c.width,c.height).data;
+    }
     function texture(id) {
-      const c=document.createElement('canvas'); c.width=512; c.height=256;
+      const c=document.createElement('canvas'); c.width=['jin','shu','celosia'].includes(id)?1024:512; c.height=c.width/2;
       const ctx=c.getContext('2d'), pixels=ctx.createImageData(c.width,c.height);
       const base=new T.Color(worlds.get(id).color);
       const gas=['jin','shu','xuan'].includes(id);
+      const continents=id==='celosia'?continentMask():null;
+      const landAt=(u,v)=>continents[(Math.max(0,Math.min(511,Math.floor(v*512)))*1024+((Math.floor(u*1024)%1024+1024)%1024))*4];
       const offset=id.split('').reduce((n,ch)=>n+ch.charCodeAt(0),0)*.17;
       for(let y=0;y<c.height;y++) for(let x=0;x<c.width;x++) {
         const lon=x/c.width*Math.PI*2, lat=(y/c.height-.5)*Math.PI;
@@ -68,13 +93,38 @@ window.YakeScene = (function () {
         let rgb;
         if(id==='yake') rgb=[255,155+35*n,53+20*n];
         else if(gas) {
-          const band=.74+.14*Math.sin(lat*48+Math.sin(lon*5+lat*8)*.5)+n*.08;
-          rgb=[base.r*255*band,base.g*255*band,base.b*255*band];
+          // Differential cloud belts, curled shear filaments and oval storms.
+          // Spherical noise and wrapped longitudes keep the seam continuous.
+          let flowLat=lat, storm=0;
+          const storms=id==='jin'?[[1.6,-.25,.28,.10],[4.5,.36,.17,.065]]:[[1.35,-.18,.24,.085],[4.1,.42,.16,.06]];
+          storms.forEach(([cx,cy,rx,ry])=>{
+            const dx=Math.atan2(Math.sin(lon-cx),Math.cos(lon-cx))/rx,dy=(lat-cy)/ry,d=dx*dx+dy*dy;
+            if(d<9){const twist=2.9*Math.exp(-d*.45);flowLat+=(dx*Math.sin(twist)+dy*(Math.cos(twist)-1))*ry;storm=Math.max(storm,Math.exp(-d*1.5));}
+          });
+          const turbulence=noise(sx*18+offset,sy*32,sz*18)-.5;
+          const flow=flowLat*18+n*.8+turbulence*.4;
+          const band=Math.max(0,Math.min(1,.52+.23*Math.sin(flow)+.18*Math.sin(flowLat*7+.5)+.06*Math.sin(flow*3.7+turbulence*4)+.035*Math.sin(flow*13)));
+          const dark=id==='jin'?[130,83,51]:id==='shu'?[65,92,126]:[92,148,174];
+          const pale=id==='jin'?[242,226,185]:id==='shu'?[215,226,229]:[186,223,230];
+          rgb=dark.map((v,i)=>v+(pale[i]-v)*band+n*12);
+          const eye=id==='jin'?[185,100,58]:[233,238,222];
+          rgb=rgb.map((v,i)=>v*(1-storm*.75)+eye[i]*storm*.75);
         } else if(id==='celosia') {
-          rgb=n>.18?[132+n*35,113+n*27,56+n*20]:[18+n*5,62+n*16,94+n*24];
-          if(Math.abs(sy)>.91) rgb=[170,191,197];
-          const cloud=noise(sx*11+3,sy*18+5,sz*11+9);
-          if(cloud>.67) rgb=rgb.map(v=>v*.6+90);
+          const u=x/c.width+(noise(sx*42,sy*42,sz*42)-.5)*.014;
+          const v=y/c.height+(noise(sx*57+8,sy*57,sz*57)-.5)*.01;
+          const land=landAt(u,v),shore=landAt(u+.003,v)||landAt(u-.003,v)||landAt(u,v+.004)||landAt(u,v-.004);
+          rgb=shore?[30+n*7,87+n*15,103+n*20]:[14+n*5,40+n*12,70+n*15];
+          if(land){
+            const dry=land===2?Math.max(0,Math.min(1,(v-.51)*8)):.18;
+            rgb=[67+dry*103+n*25,106+dry*40+n*22,64+dry*22+n*17];
+            if(land===1 && v<.29){const ice=Math.min(1,(.29-v)*8);rgb=rgb.map((c,i)=>c*(1-ice)+[198,215,216][i]*ice);}
+            const ridge=noise(sx*28+4,sy*28,sz*28);
+            if(ridge>.7)rgb=rgb.map(c=>c*.65+53);
+          }
+          const polar=Math.max(0,Math.min(1,(Math.abs(sy)-.984+n*.009)*90));
+          rgb=rgb.map((v,i)=>v*(1-polar)+[177+n*18,202+n*13,212+n*10][i]*polar);
+          const cloud=Math.max(0,noise(sx*7+n*.4+3,sy*23+5,sz*7+9)-.72)*.8;
+          rgb=rgb.map(v=>v*(1-cloud)+228*cloud);
         } else if(id==='gullinkambi') {
           const comb=Math.abs(lat-.15-Math.sin(lon*3)*.09)<.09 && Math.cos(lon)>.15;
           rgb=comb?[160+n*35,113+n*30,42+n*10]:[181+n*27,196+n*24,199+n*23];
@@ -86,7 +136,7 @@ window.YakeScene = (function () {
         pixels.data[i]=rgb[0];pixels.data[i+1]=rgb[1];pixels.data[i+2]=rgb[2];pixels.data[i+3]=255;
       }
       ctx.putImageData(pixels,0,0);
-      const map=new T.Texture(c); map.needsUpdate=true;
+      const map=new T.Texture(c); map.needsUpdate=true;map.anisotropy=Math.min(4,renderer.getMaxAnisotropy());
       return map;
     }
 
@@ -103,18 +153,41 @@ window.YakeScene = (function () {
     function body(id,position,size,habitat) {
       const w=worlds.get(id);
       let mesh;
-      if(habitat) {
-        mesh=new T.Mesh(new T.TorusGeometry(size,size*.16,10,48),new T.MeshPhongMaterial({color:w.color,shininess:45}));
-        mesh.rotation.set(.7,.25,.15);
+      if(id==='marassa') {
+        mesh=new T.Group();
+        // Two full Stanford toruses, spokes and hubs joined as a dumbbell.
+        [-1,1].forEach((side,i)=>{
+          const ring=new T.Group();ring.userData.world=i?'chawkee':'buka';ring.position.x=side*size*.54;
+          const metal=new T.MeshPhongMaterial({color:0xbac5cc,shininess:55});
+          ring.add(new T.Mesh(new T.TorusGeometry(size*.34,size*.028,12,64),metal));
+          const interior=new T.Mesh(new T.TorusGeometry(size*.318,size*.009,8,64),new T.MeshPhongMaterial({color:i?0x819cae:0x7a9c7d}));ring.add(interior);
+          ring.add(new T.Mesh(new T.SphereGeometry(size*.045,12,8),metal.clone()));
+          for(let j=0;j<6;j++){
+            const a=j*Math.PI/3,spoke=new T.Mesh(new T.CylinderGeometry(size*.008,size*.008,size*.34,5),metal.clone());
+            spoke.position.set(Math.cos(a)*size*.17,Math.sin(a)*size*.17,0);spoke.rotation.z=a-Math.PI/2;ring.add(spoke);
+          }
+          mesh.add(ring);
+        });
+        const bridge=new T.Mesh(new T.CylinderGeometry(size*.021,size*.021,size*1.08,10),new T.MeshPhongMaterial({color:0x9baebb,shininess:40}));bridge.rotation.z=Math.PI/2;mesh.add(bridge);
+        mesh.rotation.set(-.4,.2,.2);
+      } else if(id==='five') {
+        mesh=new T.Group();
+        const offsets=[[-.68,.2,0],[-.18,-.28,.42],[.25,.16,-.35],[.7,-.1,.12],[.1,.42,.6]];
+        ['mun','in','sin','island-mu','yong'].forEach((island,i)=>{
+          const m=new T.Mesh(new T.SphereGeometry(size*(i?.16:.24),24,16),new T.MeshPhongMaterial({map:texture(island)}));
+          m.position.set(...offsets[i].map(v=>v*size));mesh.add(m);
+        });
+      } else if(habitat) {
+        mesh=new T.Mesh(new T.OctahedronGeometry(size*.7),new T.MeshPhongMaterial({color:0xa7c9d1,shininess:45}));
       } else {
         const material=id==='yake'?new T.MeshBasicMaterial({map:texture(id)}):new T.MeshPhongMaterial({map:texture(id),shininess:id==='celosia'?28:6,specular:0x334155});
         mesh=new T.Mesh(new T.SphereGeometry(size,40,24),material);
       }
       mesh.position.copy(position);mesh.userData.world=id;content.add(mesh);
-      const marker=new T.Mesh(new T.TorusGeometry(size+2,.32,6,64),new T.MeshBasicMaterial({color:0xff0099,transparent:true,opacity:.95,depthTest:false,depthWrite:false}));
+      const marker=new T.Mesh(new T.TorusGeometry(size+2,.12,6,64),new T.MeshBasicMaterial({color:0xff0099,transparent:true,opacity:.85,depthTest:false,depthWrite:false}));
       marker.position.copy(position);marker.visible=false;marker.renderOrder=10;content.add(marker);
       const label=document.createElement('button');label.type='button';label.className='scene-label';label.dataset.pick=id;
-      label.textContent=w.name;label.setAttribute('aria-label','Select '+w.name);label.setAttribute('aria-pressed','false');labelLayer.appendChild(label);
+      label.textContent=w.mapLabel || w.name;label.setAttribute('aria-label','Select '+w.name);label.setAttribute('aria-pressed','false');labelLayer.appendChild(label);
       label.addEventListener('click',e=>{ if(e.detail===0) onSelect(id); });
       bodies.push({id,mesh,marker,label,position,size});
     }
@@ -139,25 +212,23 @@ window.YakeScene = (function () {
         if(content) {scene.remove(content);release(content);}
         content=new T.Group();scene.add(content);bodies=[];tracks=[];labelLayer.textContent='';currentView=name;
         const cfg=data.views[name];
-        if(name==='habitats') {
-          const positions=[[-190,0,-80],[-190,0,30],[-90,0,130],[-150,-45,210],[30,-45,210],[100,0,-80],[240,0,60]];
-          cfg.members.forEach((world,i)=>body(world,new T.Vector3(...positions[i]),world==='marassa'?22:14,true));
-          light.position.set(0,200,0);
-        } else {
-          body(cfg.parent,new T.Vector3(),cfg.parent==='yake'?24:27,false);
+        {
+          if(!cfg.cluster)body(cfg.parent,new T.Vector3(),cfg.parent==='yake'?24:27,false);
           if(cfg.parent==='yake') corona();
           light.position.set(cfg.parent==='yake'?0:-200,cfg.parent==='yake'?0:160,cfg.parent==='yake'?0:80);
           cfg.nodes.forEach(([world,r,a])=>{
             const inc=world==='celosia'?4.78*Math.PI/180:0;
-            orbit(world,r,inc,false);
-            const size={jin:13,shu:12,xuan:11,celosia:9,gullinkambi:7,chanticleer:7,five:8,kukkuta:7}[world]||8;
+            if(!cfg.cluster)orbit(world,r,inc,false);
+            const size=cfg.cluster?worlds.get(world).radiusKm/65:{jin:13,shu:12,xuan:11,celosia:9,gullinkambi:7,chanticleer:7,five:20,kukkuta:7}[world]||8;
             body(world,point(r,a*Math.PI/180,inc),size,false);
           });
+          (cfg.locals||[]).forEach(([world,r,a])=>body(world,point(r,a*Math.PI/180,0),world==='marassa'?20:worlds.get(world).mapLabel?5:8,!!worlds.get(world).mapLabel));
           if(cfg.ez) {
-            for(let i=1;i<cfg.nodes.length;i++) {
-              const [lo,rl]=cfg.nodes[i-1], [hi,rh]=cfg.nodes[i];
-              if(worlds.get(hi).km>=cfg.ez) {
-                orbit(null,rl+(cfg.ez-worlds.get(lo).km)/(worlds.get(hi).km-worlds.get(lo).km)*(rh-rl),0,true);break;
+            const points=[[0,0],...cfg.nodes.map(([world,r])=>[worlds.get(world).km,r]).filter(p=>p[0]).sort((a,b)=>a[0]-b[0])];
+            for(let i=1;i<points.length;i++) {
+              const [lo,rl]=points[i-1], [hi,rh]=points[i];
+              if(hi>=cfg.ez) {
+                orbit(null,rl+(cfg.ez-lo)/(hi-lo)*(rh-rl),0,true);break;
               }
             }
           }
@@ -168,7 +239,7 @@ window.YakeScene = (function () {
     }
     function select(id) {
       selected=id;
-      bodies.forEach(b=>{b.marker.visible=b.id===id;b.label.setAttribute('aria-pressed',b.id===id?'true':'false');});
+      bodies.forEach(b=>{const active=b.id===id || (b.id==='marassa' && worlds.get(id)?.parent==='marassa');b.marker.visible=active;b.label.setAttribute('aria-pressed',active?'true':'false');});
       tracks.forEach(t=>{t.line.material.color.setHex(t.id===id?0xff0099:t.ez?0xc57b4a:0x536480);t.line.material.opacity=t.id===id?.9:t.ez?.4:.36;});
       draw();
     }
@@ -178,10 +249,14 @@ window.YakeScene = (function () {
       draw();
     }
     function focus() {
-      const b=bodies.find(b=>b.id===selected);if(!b)return;
-      target.copy(b.position);radius=Math.max(b.size*(width<600?11:9),75);
+      const b=bodies.find(b=>b.id===selected || (b.id==='marassa' && worlds.get(selected)?.parent==='marassa'));if(!b)return;
+      target.copy(b.position);radius=Math.max(b.size*(width<600?11:9),75);phi=1.25;
       if(width<600)target.add(new T.Vector3(0,1,0).applyQuaternion(camera.quaternion).multiplyScalar(-b.size*1.7));
       draw();
+    }
+    function surface(region) {
+      if(selected!=='celosia')return;
+      focus();theta=({fusang:.25,mu:.62,diyu:.77}[region]-.25)*Math.PI*2;draw();
     }
     function zoom(factor) {radius=Math.max(40,Math.min(2600,radius*factor));draw();}
     function pan(dx,dy) {
@@ -230,8 +305,8 @@ window.YakeScene = (function () {
       const rect=canvas.getBoundingClientRect();
       ndc.set((x-rect.left)/rect.width*2-1,-(y-rect.top)/rect.height*2+1);
       raycaster.setFromCamera(ndc,camera);
-      const hits=raycaster.intersectObjects(bodies.map(b=>b.mesh));
-      if(hits.length)return hits[0].object.userData.world;
+      const hits=raycaster.intersectObjects(bodies.map(b=>b.mesh),true);
+      if(hits.length){let object=hits[0].object;while(object && !object.userData.world)object=object.parent;if(object)return object.userData.world;}
       let nearest=null,best=19;
       bodies.forEach(b=>{const p=b.position.clone().project(camera);if(p.z<-1||p.z>1)return;
         const d=Math.hypot((p.x*.5+.5)*width-(x-rect.left),(-p.y*.5+.5)*height-(y-rect.top));
@@ -284,8 +359,8 @@ window.YakeScene = (function () {
     document.addEventListener('visibilitychange',draw);
     const observer=new ResizeObserver(resize);observer.observe(host);resize();
     return {
-      setView,select,home,focus,zoom,
-      hasBody:id=>bodies.some(b=>b.id===id),
+      setView,select,home,focus,zoom,surface,
+      hasBody:id=>bodies.some(b=>b.id===id || (b.id==='marassa' && worlds.get(id)?.parent==='marassa')),
       toggleLabels:()=>{labelsOn=!labelsOn;draw();return labelsOn;},
       destroy:()=>{destroyed=true;if(frame!==null)cancelAnimationFrame(frame);observer.disconnect();document.removeEventListener('visibilitychange',draw);
         host.removeEventListener('pointerdown',pointerDown);host.removeEventListener('pointermove',pointerMove);host.removeEventListener('pointerup',pointerUp);host.removeEventListener('pointercancel',pointerUp);host.removeEventListener('keydown',keyboard);host.removeEventListener('contextmenu',contextMenu);

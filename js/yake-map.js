@@ -2,7 +2,7 @@
 (function () {
   'use strict';
   const data = window.YAKE_ATLAS;
-  const worlds = new Map(data.worlds.map(world => [world.id, world]));
+  const worlds = new Map(data.worlds.filter(world => !world.hidden).map(world => [world.id, world]));
   const field = document.getElementById('orbital-field');
   const detail = document.getElementById('world-detail');
   const search = document.getElementById('world-search');
@@ -16,14 +16,15 @@
   let sceneError = false;
   const esc = value => String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const numeric = value => Number(value).toLocaleString('en-US');
-  const distance = world => world.au ? world.au + ' AU' : world.km ? numeric(world.km) + ' km' : 'ORBIT UNSPECIFIED';
+  const distance = world => world.au ? world.au + ' AU' : world.km ? numeric(world.km) + ' km' : world.parent === 'five' ? 'FIVE ISLANDS / 88.3 AU' : 'SCHEMATIC LOCATION';
+  const entries = cfg => [...cfg.nodes, ...(cfg.locals || [])];
   const buttons = ids => ids.map(id => `<button type="button" data-world="${id}" aria-pressed="${id === selected}">${esc(worlds.get(id).name)}</button>`).join('');
 
   function node(id, x, y, label, side) {
     const w = worlds.get(id);
     const offset = side === 'left' ? -24 : 24;
     const anchor = side === 'left' ? 'end' : 'start';
-    return `<g class="atlas-node" data-world="${id}" tabindex="0" role="button" aria-label="${esc(w.name + ', ' + label)}" aria-pressed="${selected === id}" style="--body-color:${w.color}" transform="translate(${x},${y})"><title>${esc(w.name + ' · ' + label)}</title><circle class="hit" r="28"/><circle class="node-ring" r="14"/><circle class="node-core" r="7"/><text class="node-name" x="${offset}" y="-3" text-anchor="${anchor}">${esc(w.name)}</text><text class="node-meta" x="${offset}" y="15" text-anchor="${anchor}">${esc(label)}</text></g>`;
+    return `<g class="atlas-node" data-world="${id}" tabindex="0" role="button" aria-label="${esc(w.name + ', ' + label)}" aria-pressed="${selected === id}" style="--body-color:${w.color}" transform="translate(${x},${y})"><title>${esc(w.name + ' · ' + label)}</title><circle class="hit" r="28"/><circle class="node-ring" r="14"/><circle class="node-core" r="7"/><text class="node-name" x="${offset}" y="-3" text-anchor="${anchor}">${esc(w.mapLabel || w.name)}</text><text class="node-meta" x="${offset}" y="15" text-anchor="${anchor}">${esc(label)}</text></g>`;
   }
 
   function parentNode(id, x, y) {
@@ -31,7 +32,7 @@
   }
 
   function orbitRadius(value, cfg) {
-    const points = cfg.nodes.map(([id, radius]) => [worlds.get(id).km, radius]);
+    const points = [[0,0], ...cfg.nodes.map(([id, radius]) => [worlds.get(id).km, radius]).filter(p => p[0]).sort((a,b) => a[0]-b[0])];
     for (let i=1; i<points.length; i++) {
       if (value <= points[i][0]) {
         const [lo, rlo] = points[i-1], [hi, rhi] = points[i];
@@ -43,20 +44,20 @@
 
   function orbitalChart(cfg) {
     if (mobile.matches) {
-      const height = 115 + cfg.nodes.length * 66;
-      let svg = `<svg viewBox="0 0 380 ${height}" role="group" aria-label="${esc(cfg.title)}"><text class="field-label gold" x="28" y="29">OUTWARD FROM ${esc(worlds.get(cfg.parent).name.toUpperCase())}</text><path class="orbit" d="M 52 48 V ${height-40}"/>`;
-      cfg.nodes.forEach(([id], i) => {
+      const height = 115 + entries(cfg).length * 66;
+      let svg = `<svg viewBox="0 0 380 ${height}" role="group" aria-label="${esc(cfg.title)}"><text class="field-label gold" x="28" y="29">${esc(cfg.title.toUpperCase())}</text><path class="orbit" d="M 52 48 V ${height-40}"/>`;
+      entries(cfg).forEach(([id], i) => {
         const w = worlds.get(id), y = 74 + i*66;
-        if (cfg.ez && w.km > cfg.ez && (i === 0 || worlds.get(cfg.nodes[i-1][0]).km < cfg.ez)) {
+        if (cfg.ez && w.km > cfg.ez && (i === 0 || worlds.get(entries(cfg)[i-1][0]).km < cfg.ez)) {
           svg += `<path class="orbit ez" d="M 22 ${y-34} H 354"/><text class="field-label gold" x="175" y="${y-39}">EZ BOUNDARY</text>`;
         }
         svg += node(id, 52, y, distance(w), 'right');
       });
-      return svg + `<text class="field-label" x="28" y="${height-15}">ORDERED ORBITAL STRIP · NOT TO SCALE</text></svg>`;
+      return svg + `<text class="field-label" x="28" y="${height-15}">LOCAL DESTINATIONS · NOT TO SCALE</text></svg>`;
     }
     let svg = `<svg viewBox="0 0 840 700" role="group" aria-label="${esc(cfg.title)}"><defs><pattern id="field-stars" width="117" height="93" patternUnits="userSpaceOnUse"><circle cx="13" cy="28" r=".7" fill="#71869d" opacity=".3"/><circle cx="87" cy="73" r=".5" fill="#71869d" opacity=".3"/></pattern></defs><rect width="840" height="700" fill="url(#field-stars)"/><text class="field-label" x="26" y="32">${esc(cfg.unit === 'AU' ? 'HELIOCENTRIC ORIENTATION' : 'PLANETOCENTRIC ORIENTATION')}</text><path class="orbit" d="M 400 350 H 440 M 420 330 V 370"/>`;
     // Share a ring for bodies at the same plotted orbital radius.
-    [...new Set(cfg.nodes.map(n => n[1]))].forEach(radius => {
+    [...new Set((cfg.cluster ? [] : cfg.nodes).map(n => n[1]))].forEach(radius => {
       const active = cfg.nodes.some(n => n[1] === radius && n[0] === selected);
       svg += `<circle class="orbit${active?' selected':''}" cx="420" cy="350" r="${radius}"/>`;
     });
@@ -64,32 +65,12 @@
       const r = orbitRadius(cfg.ez, cfg);
       svg += `<circle class="orbit ez" cx="420" cy="350" r="${r}"/><text class="field-label gold" x="420" y="${350+r+15}" text-anchor="middle">EZ / ${numeric(cfg.ez)} km</text>`;
     }
-    svg += parentNode(cfg.parent, 420, 350);
-    cfg.nodes.forEach(([id, radius, angle]) => {
+    if (!cfg.cluster) svg += parentNode(cfg.parent, 420, 350);
+    entries(cfg).forEach(([id, radius, angle]) => {
       const a = angle*Math.PI/180, x = 420+radius*Math.cos(a), y = 350+radius*Math.sin(a);
-      svg += node(id, x, y, distance(worlds.get(id)), x<390?'left':'right');
+      svg += node(id, x, y, distance(worlds.get(id)), x<390 || x>590?'left':'right');
     });
     return svg + '<text class="field-label" x="26" y="676">ANGULAR POSITIONS ARE SCHEMATIC</text></svg>';
-  }
-
-  function habitatChart() {
-    if (mobile.matches) {
-      let svg = '<svg viewBox="0 0 380 560" role="group" aria-label="Habitat location directory"><text class="field-label gold" x="26" y="28">STATIONS & THEIR NEIGHBORHOODS</text>';
-      data.views.habitats.members.forEach((id,i) => {
-        const w = worlds.get(id);
-        svg += node(id, 38, 75+i*65, worlds.get(w.parent).name, 'right');
-      });
-      return svg+'</svg>';
-    }
-    let svg = '<svg viewBox="0 0 840 540" role="group" aria-label="Habitat location hierarchy">';
-    const columns = [{x:95,name:'JIN',ids:['dajinmen','fengsheng','marassa']},{x:405,name:'SHU',ids:['dto']},{x:640,name:'CELOSIA',ids:['celosia-hubs']}];
-    columns.forEach(col => {
-      svg += `<text class="field-label gold" x="${col.x}" y="48">${col.name}</text><path class="orbit" d="M ${col.x} 63 V ${97+col.ids.length*86}"/>`;
-      col.ids.forEach((id,i) => { svg += node(id,col.x,110+i*86,worlds.get(id).kind.split(' · ')[0],'right'); });
-    });
-    svg += '<path class="orbit" d="M 95 297 V 360 H 460 M 130 360 V 390 M 460 360 V 390"/>';
-    svg += node('buka',130,415,'AGRICULTURE','right') + node('chawkee',460,415,'INDUSTRY & CULTURE','right');
-    return svg+'<text class="field-label" x="26" y="514">BRANCHES INDICATE LOCATION, NOT FLIGHT ROUTES</text></svg>';
   }
 
   function renderChart() {
@@ -114,11 +95,11 @@
       }
       scene.setView(view, cardOpen ? selected : null);
       document.getElementById('scene-unplaced').innerHTML = cfg.unplaced ? `<div class="unplaced-worlds"><p class="eyebrow">${view === 'outer'?'LOCAL & DISPERSED DESTINATIONS':'ORBIT UNSPECIFIED · RECORDS ONLY'}</p><div class="related-worlds">${buttons(cfg.unplaced)}</div></div>` : '';
-      document.getElementById('chart-scale').textContent = view === 'habitats' ? 'ILLUSTRATIVE HABITAT ARRANGEMENT · NOT TO SCALE' : cfg.caption;
+      document.getElementById('chart-scale').textContent = cfg.caption;
       renderCard();return;
     }
     if (scene) { scene.destroy();scene=null; }
-    field.innerHTML = view === 'habitats' ? habitatChart() : orbitalChart(cfg);
+    field.innerHTML = orbitalChart(cfg);
     if(sceneError) field.insertAdjacentHTML('afterbegin','<p class="atlas-note">3D is unavailable in this browser. The schematic and all world records are still available.</p>');
     if (cfg.unplaced) field.insertAdjacentHTML('beforeend', `<div class="unplaced-worlds"><p class="eyebrow">${view === 'outer'?'LOCAL & DISPERSED DESTINATIONS':'MOONS WITH UNSPECIFIED ORBITS'}</p><div class="related-worlds">${buttons(cfg.unplaced)}</div></div>`);
     field.insertAdjacentHTML('beforeend', `<div class="field-selection"><span>SELECTED / ${esc(worlds.get(selected).name)}</span><button type="button" data-show-detail>VIEW RECORD ↓</button></div>`);
@@ -131,9 +112,10 @@
     card.innerHTML=`<button class="card-close" type="button" data-close-card aria-label="Close world card">×</button><p class="eyebrow">${esc(w.kind)}</p><h3>${esc(w.name)}</h3><p class="card-intro">${esc(w.intro)}</p>`;
     if(w.stats) card.innerHTML+='<dl class="card-stats">'+w.stats.slice(0,4).map(([k,v])=>`<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')+'</dl>';
     if(w.id==='celosia')card.innerHTML+='<p class="card-note">Orbit provisional: notes also give 4.55 AU.</p>';
-    if(scene && !scene.hasBody(w.id))card.innerHTML+='<p class="card-note">Position unspecified. Available as a record.</p>';
+    if(scene && !scene.hasBody(w.id) && !(view==='five' && w.id==='five'))card.innerHTML+='<p class="card-note">Position unspecified. Available as a record.</p>';
     card.innerHTML+='<div class="card-actions">'+(scene && scene.hasBody(selected)?'<button type="button" data-scene-action="focus">FOCUS WORLD</button>':'')+'<button type="button" data-show-detail>FULL RECORD ↗</button></div>';
-    if(['jin','shu','marassa'].includes(selected))card.innerHTML+=`<button class="card-explore" type="button" data-open-view="${selected==='marassa'?'habitats':selected}">EXPLORE ${selected==='marassa'?'HABITATS':'MOONS'} ↗</button>`;
+    if(selected==='celosia')card.innerHTML+='<div class="card-actions" role="group" aria-label="View Celosia continents">'+['fusang','mu','diyu'].map(region=>`<button type="button" data-scene-action="surface-${region}">${region.toUpperCase()}</button>`).join('')+'</div>';
+    if(['jin','shu','xuan','five','marassa'].includes(selected))card.innerHTML+=`<button class="card-explore" type="button" data-open-view="${selected==='marassa'?'jin':selected}">EXPLORE ${selected==='five'?'FIVE ISLANDS':'MOON SYSTEM'} ↗</button>`;
   }
 
   function renderDetail() {
@@ -145,7 +127,7 @@
     (w.paragraphs || []).forEach(p => { html += `<p>${esc(p)}</p>`; });
     if (w.places) html += '<h3>Places & infrastructure</h3><ul class="settlement-list">' + w.places.map(([name,desc]) => `<li>${esc(name)}<span>${esc(desc)}</span></li>`).join('') + '</ul>';
     (w.notes || []).forEach(p => { html += `<p class="atlas-note">${esc(p)}</p>`; });
-    if (['jin','shu','marassa'].includes(selected)) html += `<button type="button" data-open-view="${selected === 'marassa'?'habitats':selected}">EXPLORE ${selected === 'marassa'?'HABITATS':'MOON SYSTEM'} ↗</button>`;
+    if (['jin','shu','xuan','five','marassa'].includes(selected)) html += `<button type="button" data-open-view="${selected === 'marassa'?'jin':selected}">EXPLORE ${selected === 'five'?'FIVE ISLANDS':'MOON SYSTEM'} ↗</button>`;
     if (w.related) html += `<h3>Explore nearby</h3><div class="related-worlds">${buttons(w.related)}</div>`;
     if (w.image) html += `<details class="reference-sheet"><summary>${esc(w.imageLabel)}</summary><img src="img/yake/${w.image}" alt="${esc(w.imageLabel)}" loading="lazy"><a href="img/yake/${w.image}" target="_blank" rel="noopener">OPEN FULL REFERENCE ↗</a></details>`;
     detail.innerHTML = html;
@@ -154,15 +136,16 @@
 
   function renderDirectory() {
     const query = search.value.trim().toLocaleLowerCase();
-    const matches = data.worlds.filter(w => JSON.stringify(w).toLocaleLowerCase().includes(query));
+    const matches = [...worlds.values()].filter(w => JSON.stringify(w).toLocaleLowerCase().includes(query));
     document.getElementById('destination-list').innerHTML = matches.map(w => `<button type="button" data-world="${w.id}" data-directory aria-pressed="${w.id===selected}"><strong>${esc(w.name)}</strong><small>${esc(w.kind)}</small></button>`).join('');
     document.getElementById('search-status').textContent = matches.length ? `${matches.length} destinations` : 'No destinations match. Try a world, moon, station, or settlement name.';
   }
 
   function viewFor(w) {
-    if (data.views.habitats.members.includes(w.id)) return 'habitats';
-    if (w.parent === 'jin' || w.parent === 'shu') return w.parent;
-    if (w.parent === 'xuan' || w.id === 'minor') return 'outer';
+    if (w.id === 'dajinmen') return 'system';
+    if (w.parent === 'marassa') return 'jin';
+    if (['jin','shu','xuan','five'].includes(w.parent)) return w.parent;
+    if (w.id === 'minor') return 'outer';
     return 'system';
   }
 
@@ -196,6 +179,7 @@
       const kind=action.dataset.sceneAction;
       if(kind==='home')scene.home();
       if(kind==='focus')scene.focus();
+      if(kind.startsWith('surface-'))scene.surface(kind.slice(8));
       if(kind==='in')scene.zoom(.8);
       if(kind==='out')scene.zoom(1.25);
       if(kind==='labels')action.setAttribute('aria-pressed',scene.toggleLabels());
@@ -223,9 +207,11 @@
     if (tab) {
       view = tab.dataset.view || tab.dataset.openView;
       const cfg = data.views[view];
-      const visible = [cfg.parent, ...cfg.nodes.map(n => n[0]), ...(cfg.unplaced || []), ...(cfg.members || [])];
-      if (!visible.includes(selected)) selected = view === 'habitats' ? 'marassa' : cfg.parent;
+      const visible = [cfg.parent, ...entries(cfg).map(n => n[0]), ...(cfg.unplaced || [])];
+      if (!visible.includes(selected)) selected = cfg.parent;
       selectWorld(selected, false);
+      // Enter a region with an unobstructed map; cards open on world picks.
+      if (presentation === '3d') { cardOpen=false;scene?.select(null);renderCard(); }
       if (tab.dataset.openView) {
         document.querySelector(`[data-view="${view}"]`).focus();
         document.querySelector('.atlas-chart').scrollIntoView({block:'start'});
