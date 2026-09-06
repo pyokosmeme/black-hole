@@ -1,6 +1,6 @@
 # Ya Ke atlas — current info-card inventory
 
-27 reachable cards. Text is unpruned. The first four stats appear on the main card; remaining stats, paragraphs, places, and notes are under World Details. Intro text is currently hidden at phone widths (600px and below).
+26 reachable cards. Text is unpruned. The first four stats appear on the main card; remaining stats, paragraphs, places, and notes are under World Details. Intro text is currently hidden at phone widths (600px and below).
 
 ## Ya Ke / 野雞
 
@@ -523,24 +523,6 @@ An industrial and cultural ring organized around the Central Gap market.
 Housing, manufacturing, and chemical facilities fill much of the ring volume. High-speed transport layers connect to recycling, utilities, eight vertical transport spaces, and dry docks.
 
 Population initially doubles during the disruption after A Mote in Shadow, then settles into a new, still elevated normal.
-
-## Fengsheng
-
-Jin system · Vas-L5 flyby
-
-A recurring close approach to the Vas-L5 neighborhood.
-
-Map label: K-stations
-
-### Main-card stats
-
-- Orbital period: 6 days 2 hours
-- Flyby interval: ~3 days 1 hour
-- Flyby distance: 51,200 km
-
-### World Details
-
-The source does not supply a full orbit or a present phase; placement is schematic.
 
 ## Celosia L4 / L5
 

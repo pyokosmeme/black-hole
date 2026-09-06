@@ -149,11 +149,13 @@ def run():
             # Enter local views through the actual planet card, not test hooks.
             references = []
             page.on('request', lambda request: references.append(request.url) if '/img/yake/' in request.url else None)
-            for view, count, local_ids in [('jin',10,['plomo','suseong','peng','marassa','buka','chawkee']),('shu',5,['jouki','mizu','pani','buz']),('xuan',2,['kaau'])]:
+            for view, count, local_ids in [('jin',9,['plomo','suseong','peng','marassa','buka','chawkee']),('shu',5,['jouki','mizu','pani','buz']),('xuan',2,['kaau'])]:
                 page.evaluate('(id)=>location.hash=id', view)
                 page.locator(f'#scene-card [data-open-view={view}]').click()
                 page.wait_for_function('(name)=>__sceneTest.currentView===name', arg=view)
                 assert page.evaluate('__sceneTest.bodies.length') == count
+                assert page.evaluate("!__sceneTest.bodies.some(b=>b.id==='fengsheng')")
+                assert page.locator('[data-pick=fengsheng]').count() == 0
                 assert not page.locator('#scene-card').is_visible()
                 assert page.locator('#atlas-system-back').is_visible()
                 assert page.locator('.scene-heading span').text_content() == page.evaluate(f'YAKE_ATLAS.views.{view}.title.toUpperCase()')
@@ -272,6 +274,8 @@ def run():
         assert page.locator('main > section').count() == 1
         page.locator('[data-world=jin]').click()
         page.locator('#scene-card [data-open-view=jin]').click()
+        assert page.locator('[data-world=fengsheng]').count() == 0
+        assert page.evaluate("(()=>{const w=YAKE_ATLAS.worlds.find(w=>w.id==='fengsheng');return w.hidden&&!w.mapLabel&&w.kind.includes('weather station')&&w.stats.some(([k,v])=>k==='Orbit type'&&v==='Polar');})()")
         page.locator('[data-world=marassa]').focus()
         page.keyboard.press('Enter')
         assert page.locator('#scene-card h1').text_content() == 'Horizon’s Edge'
