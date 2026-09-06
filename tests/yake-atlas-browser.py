@@ -41,8 +41,31 @@ def run():
             errors = []
             page.on('pageerror', lambda error: errors.append(str(error)))
             page.route('**/*', serve)
+            page.add_init_script("localStorage.setItem('acidburn-mode','dark')")
             page.goto('https://atlas.test/yake.html')
             page.wait_for_function('window.__sceneTest && __sceneTest.bodies.length===11')
+            assert page.locator('main.main-content').count() == 1
+            assert page.locator('.author-header .author-info h1').count() == 1
+            assert page.locator('#destination-list .link-card').count() > 20
+            assert page.locator('.atlas-shell button:not(.acidburn-button):not(.scene-label)').count() == 0
+            # Prove the shared stylesheet owns the chrome: a change to its
+            # existing component rules must propagate without atlas overrides.
+            assert page.evaluate("""async () => {
+                const sheet=[...document.styleSheets].find(s=>s.href?.endsWith('/css/acidburn.css'));
+                const start=sheet.cssRules.length;
+                sheet.insertRule('.author-info h1 {color:rgb(12,34,56)}',sheet.cssRules.length);
+                sheet.insertRule('.main-content {padding-top:77px}',sheet.cssRules.length);
+                await new Promise(resolve=>setTimeout(resolve,150));
+                const result=getComputedStyle(document.querySelector('#atlas-title')).color==='rgb(12, 34, 56)' && getComputedStyle(document.querySelector('main')).paddingTop==='77px';
+                while(sheet.cssRules.length>start)sheet.deleteRule(start);
+                return result;
+            }""")
+            page.evaluate("AcidburnMode.setMode('light')")
+            page.wait_for_function("getComputedStyle(document.querySelector('.author-card')).backgroundColor==='rgb(253, 250, 245)'")
+            page.evaluate("AcidburnMode.setMode('dark')")
+            page.wait_for_function("getComputedStyle(document.querySelector('.author-card')).backgroundColor==='rgb(18, 18, 26)'")
+            if width in [1100,390]:
+                page.screenshot(path=str(SHOTS / f'yake-shared-css-{width}.png'))
             assert page.locator('[data-view=habitats]').count() == 0
             assert page.locator('.atlas-source-notes').count() == 0
             assert page.locator('[data-directory][data-world=dto]').count() == 0
@@ -66,7 +89,7 @@ def run():
                 rendered(page)
                 assert page.locator('#scene-card').is_visible()
                 assert page.locator('[data-scene-action=focus]').count() == 1, (width, world)
-                assert page.locator('#scene-card h3').text_content() == page.evaluate(f"YAKE_ATLAS.worlds.find(w=>w.id==='{world}').name")
+                assert page.locator('#scene-card h1').text_content() == page.evaluate(f"YAKE_ATLAS.worlds.find(w=>w.id==='{world}').name")
                 page.locator('[data-scene-action=focus]').click()
                 rendered(page)
                 if world in ['celosia', 'jin', 'shu', 'marassa'] and width in [1100, 390]:
@@ -75,7 +98,7 @@ def run():
                     for region in ['fusang', 'mu', 'diyu']:
                         page.locator(f'[data-scene-action=surface-{region}]').click()
                         rendered(page)
-                        assert page.locator('#scene-card h3').text_content() == 'Celosia'
+                        assert page.locator('#scene-card h1').text_content() == 'Celosia'
             # Opaque borderless nameplates preserve non-box keyboard focus.
             page.locator('[data-view=jin]').click()
             label = page.locator('[data-pick=plomo]')
@@ -121,9 +144,14 @@ def run():
                 pos = page.evaluate(f"""() => {{const s=__sceneTest,p=s.bodies.find(b=>b.id==='{world}').position.clone().project(s.camera),r=document.querySelector('canvas.scene-canvas').getBoundingClientRect();return [r.x+(p.x*.5+.5)*r.width,r.y+(-p.y*.5+.5)*r.height]}}""")
                 page.mouse.click(*pos)
                 assert page.locator('#scene-card').is_visible(), (width, world, 'raycast')
-                assert page.locator('#scene-card h3').text_content() == page.evaluate(f"YAKE_ATLAS.worlds.find(w=>w.id==='{world}').name")
+                assert page.locator('#scene-card h1').text_content() == page.evaluate(f"YAKE_ATLAS.worlds.find(w=>w.id==='{world}').name")
                 page.locator('[data-close-card]').click()
             # Both schematic and WebGL show the new worlds; rebuilding cleans up.
+            page.locator('[data-scene-action=expand]').click()
+            page.wait_for_function("!!document.elementFromPoint(innerWidth/2,20)?.closest('.atlas-chart')")
+            page.locator('[data-presentation="2d"]').click()
+            assert page.locator('.is-expanded').count() == 0
+            page.locator('[data-presentation="3d"]').click()
             for view in ['jin', 'xuan', 'five']:
                 page.locator(f'[data-view={view}]').click()
                 page.locator('[data-presentation="2d"]').click()

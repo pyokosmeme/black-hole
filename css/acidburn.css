@@ -1349,7 +1349,7 @@ body.bh-mode .link-card {
   font-size: 13px;
   min-width: 140px;
 }
-.tx-auth-btn, .tx-form-submit {
+.acidburn-button, .tx-auth-btn, .tx-form-submit {
   background: transparent;
   border: 1px solid rgba(255, 255, 255, 0.3);
   color: var(--cyan);
@@ -1361,11 +1361,11 @@ body.bh-mode .link-card {
   text-transform: lowercase;
   transition: background 0.15s ease, color 0.15s ease;
 }
-.tx-auth-btn:hover, .tx-form-submit:hover {
+.acidburn-button:hover, .tx-auth-btn:hover, .tx-form-submit:hover {
   background: rgba(255, 255, 255, 0.1);
   color: #fff;
 }
-.tx-auth-btn:disabled, .tx-form-submit:disabled { opacity: 0.4; cursor: wait; }
+.acidburn-button:disabled, .tx-auth-btn:disabled, .tx-form-submit:disabled { opacity: 0.4; cursor: wait; }
 .tx-admin-badge { color: var(--cyan); font-weight: 700; font-size: 12px; }
 .tx-auth-err { color: rgba(255, 255, 255, 0.8); font-size: 12px; }
 .tx-auth-status { color: var(--cyan); }
@@ -1838,6 +1838,8 @@ body.light-mode .tx-auth-status,
 body.light-reading .tx-auth-status { color: #bf00ff; }
 body.light-mode .tx-auth-input,
 body.light-reading .tx-auth-input { color: #2e2a26; border-color: #b0a89e; }
+body.light-mode .acidburn-button,
+body.light-reading .acidburn-button,
 body.light-mode .tx-auth-btn,
 body.light-mode .tx-form-submit,
 body.light-reading .tx-auth-btn,
@@ -1845,6 +1847,8 @@ body.light-reading .tx-form-submit {
   border-color: rgba(74, 24, 104, 0.3);
   color: #4a1868;
 }
+body.light-mode .acidburn-button:hover,
+body.light-reading .acidburn-button:hover,
 body.light-mode .tx-auth-btn:hover,
 body.light-mode .tx-form-submit:hover,
 body.light-reading .tx-auth-btn:hover,

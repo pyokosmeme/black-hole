@@ -18,7 +18,7 @@
   const numeric = value => Number(value).toLocaleString('en-US');
   const distance = world => world.au ? world.au + ' AU' : world.km ? numeric(world.km) + ' km' : world.parent === 'five' ? 'FIVE ISLANDS / 88.3 AU' : 'SCHEMATIC LOCATION';
   const entries = cfg => [...cfg.nodes, ...(cfg.locals || [])];
-  const buttons = ids => ids.map(id => `<button type="button" data-world="${id}" aria-pressed="${id === selected}">${esc(worlds.get(id).name)}</button>`).join('');
+  const buttons = ids => ids.map(id => `<button class="acidburn-button" type="button" data-world="${id}" aria-pressed="${id === selected}">${esc(worlds.get(id).name)}</button>`).join('');
 
   function node(id, x, y, label, side) {
     const w = worlds.get(id);
@@ -81,7 +81,7 @@
     document.querySelectorAll('[data-presentation]').forEach(b => b.setAttribute('aria-pressed', b.dataset.presentation === presentation));
     if (presentation === '3d') {
       if (!scene) {
-        field.innerHTML = '<div class="atlas-scene"><div class="scene-heading"><span>YA KE / 3D EXPLORER</span><small>COMPRESSED DISTANCES · ILLUSTRATIVE SIZES</small></div><aside id="scene-card" class="scene-card" aria-label="World information" hidden></aside><div class="scene-controls"><button type="button" data-scene-action="home" title="Fit system">⌂<span class="atlas-sr"> Fit system</span></button><button type="button" data-scene-action="in" aria-label="Zoom in">+</button><button type="button" data-scene-action="out" aria-label="Zoom out">−</button><button type="button" data-scene-action="labels" aria-pressed="true">LABELS</button><button type="button" data-scene-action="expand" aria-pressed="false">EXPAND</button></div><p class="scene-hint">DRAG TO ORBIT · SCROLL / PINCH TO ZOOM · RIGHT-DRAG / TWO FINGERS TO PAN</p></div><div id="scene-unplaced"></div>';
+        field.innerHTML = '<div class="atlas-scene"><div class="scene-heading"><span>YA KE / 3D EXPLORER</span><small>COMPRESSED DISTANCES · ILLUSTRATIVE SIZES</small></div><aside id="scene-card" class="author-card scene-card" aria-label="World information" hidden></aside><div class="author-card scene-controls"><button class="acidburn-button" type="button" data-scene-action="home" title="Fit system">⌂<span class="atlas-sr"> Fit system</span></button><button class="acidburn-button" type="button" data-scene-action="in" aria-label="Zoom in">+</button><button class="acidburn-button" type="button" data-scene-action="out" aria-label="Zoom out">−</button><button class="acidburn-button" type="button" data-scene-action="labels" aria-pressed="true">LABELS</button><button class="acidburn-button" type="button" data-scene-action="expand" aria-pressed="false">EXPAND</button></div><p class="scene-hint">DRAG TO ORBIT · SCROLL / PINCH TO ZOOM · RIGHT-DRAG / TWO FINGERS TO PAN</p></div><div id="scene-unplaced"></div>';
         try {
           scene = window.YakeScene.create(field.querySelector('.atlas-scene'), id => {
             if (id) selectWorld(id, false);
@@ -94,40 +94,40 @@
         }
       }
       scene.setView(view, cardOpen ? selected : null);
-      document.getElementById('scene-unplaced').innerHTML = cfg.unplaced ? `<div class="unplaced-worlds"><p class="eyebrow">${view === 'outer'?'LOCAL & DISPERSED DESTINATIONS':'ORBIT UNSPECIFIED · RECORDS ONLY'}</p><div class="related-worlds">${buttons(cfg.unplaced)}</div></div>` : '';
+      document.getElementById('scene-unplaced').innerHTML = cfg.unplaced ? `<div class="unplaced-worlds"><p class="post-date">${view === 'outer'?'LOCAL & DISPERSED DESTINATIONS':'ORBIT UNSPECIFIED · RECORDS ONLY'}</p><div class="related-worlds">${buttons(cfg.unplaced)}</div></div>` : '';
       document.getElementById('chart-scale').textContent = cfg.caption;
       renderCard();return;
     }
     if (scene) { scene.destroy();scene=null; }
     field.innerHTML = orbitalChart(cfg);
     if(sceneError) field.insertAdjacentHTML('afterbegin','<p class="atlas-note">3D is unavailable in this browser. The schematic and all world records are still available.</p>');
-    if (cfg.unplaced) field.insertAdjacentHTML('beforeend', `<div class="unplaced-worlds"><p class="eyebrow">${view === 'outer'?'LOCAL & DISPERSED DESTINATIONS':'MOONS WITH UNSPECIFIED ORBITS'}</p><div class="related-worlds">${buttons(cfg.unplaced)}</div></div>`);
-    field.insertAdjacentHTML('beforeend', `<div class="field-selection"><span>SELECTED / ${esc(worlds.get(selected).name)}</span><button type="button" data-show-detail>VIEW RECORD ↓</button></div>`);
+    if (cfg.unplaced) field.insertAdjacentHTML('beforeend', `<div class="unplaced-worlds"><p class="post-date">${view === 'outer'?'LOCAL & DISPERSED DESTINATIONS':'MOONS WITH UNSPECIFIED ORBITS'}</p><div class="related-worlds">${buttons(cfg.unplaced)}</div></div>`);
+    field.insertAdjacentHTML('beforeend', `<div class="field-selection"><span>SELECTED / ${esc(worlds.get(selected).name)}</span><button class="acidburn-button" type="button" data-show-detail>VIEW RECORD ↓</button></div>`);
   }
 
   function renderCard() {
     const card=document.getElementById('scene-card');if(!card)return;
     card.hidden=!cardOpen;if(!cardOpen)return;
     const w=worlds.get(selected);
-    card.innerHTML=`<button class="card-close" type="button" data-close-card aria-label="Close world card">×</button><p class="eyebrow">${esc(w.kind)}</p><h3>${esc(w.name)}</h3><p class="card-intro">${esc(w.intro)}</p>`;
+    card.innerHTML=`<button class="acidburn-button card-close" type="button" data-close-card aria-label="Close world card">×</button><p class="post-date">${esc(w.kind)}</p><div class="author-info"><h1>${esc(w.name)}</h1></div><p class="author-bio card-intro">${esc(w.intro)}</p>`;
     if(w.stats) card.innerHTML+='<dl class="card-stats">'+w.stats.slice(0,4).map(([k,v])=>`<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('')+'</dl>';
     if(w.id==='celosia')card.innerHTML+='<p class="card-note">Orbit provisional: notes also give 4.55 AU.</p>';
     if(scene && !scene.hasBody(w.id) && !(view==='five' && w.id==='five'))card.innerHTML+='<p class="card-note">Position unspecified. Available as a record.</p>';
-    card.innerHTML+='<div class="card-actions">'+(scene && scene.hasBody(selected)?'<button type="button" data-scene-action="focus">FOCUS WORLD</button>':'')+'<button type="button" data-show-detail>FULL RECORD ↗</button></div>';
-    if(selected==='celosia')card.innerHTML+='<div class="card-actions" role="group" aria-label="View Celosia continents">'+['fusang','mu','diyu'].map(region=>`<button type="button" data-scene-action="surface-${region}">${region.toUpperCase()}</button>`).join('')+'</div>';
-    if(['jin','shu','xuan','five','marassa'].includes(selected))card.innerHTML+=`<button class="card-explore" type="button" data-open-view="${selected==='marassa'?'jin':selected}">EXPLORE ${selected==='five'?'FIVE ISLANDS':'MOON SYSTEM'} ↗</button>`;
+    card.innerHTML+='<div class="card-actions">'+(scene && scene.hasBody(selected)?'<button class="acidburn-button" type="button" data-scene-action="focus">FOCUS WORLD</button>':'')+'<button class="acidburn-button" type="button" data-show-detail>FULL RECORD ↗</button></div>';
+    if(selected==='celosia')card.innerHTML+='<div class="card-actions" role="group" aria-label="View Celosia continents">'+['fusang','mu','diyu'].map(region=>`<button class="acidburn-button" type="button" data-scene-action="surface-${region}">${region.toUpperCase()}</button>`).join('')+'</div>';
+    if(['jin','shu','xuan','five','marassa'].includes(selected))card.innerHTML+=`<button class="acidburn-button card-explore" type="button" data-open-view="${selected==='marassa'?'jin':selected}">EXPLORE ${selected==='five'?'FIVE ISLANDS':'MOON SYSTEM'} ↗</button>`;
   }
 
   function renderDetail() {
     const w = worlds.get(selected);
-    let html = `<div class="detail-top"><div><p class="eyebrow">${esc(w.kind)}</p><h2 tabindex="-1" id="record-title">${esc(w.name)}</h2></div><span class="world-number">${esc(w.no || 'LOCAL')}</span></div>`;
+    let html = `<div class="detail-top"><div><p class="post-date">${esc(w.kind)}</p><h2 tabindex="-1" id="record-title">${esc(w.name)}</h2></div><span class="post-date">${esc(w.no || 'LOCAL')}</span></div>`;
     html += `<p class="lead">${esc(w.intro)}</p>`;
     if (w.art) html += `<div class="world-art ${w.art}" role="img" aria-label="${esc(w.name)} reference artwork; full sheet below"></div>`;
     if (w.stats) html += '<dl class="world-stats">' + w.stats.map(([k,v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('') + '</dl>';
     (w.paragraphs || []).forEach(p => { html += `<p>${esc(p)}</p>`; });
     if (w.places) html += '<h3>Places & infrastructure</h3><ul class="settlement-list">' + w.places.map(([name,desc]) => `<li>${esc(name)}<span>${esc(desc)}</span></li>`).join('') + '</ul>';
     (w.notes || []).forEach(p => { html += `<p class="atlas-note">${esc(p)}</p>`; });
-    if (['jin','shu','xuan','five','marassa'].includes(selected)) html += `<button type="button" data-open-view="${selected === 'marassa'?'jin':selected}">EXPLORE ${selected === 'five'?'FIVE ISLANDS':'MOON SYSTEM'} ↗</button>`;
+    if (['jin','shu','xuan','five','marassa'].includes(selected)) html += `<button class="acidburn-button" type="button" data-open-view="${selected === 'marassa'?'jin':selected}">EXPLORE ${selected === 'five'?'FIVE ISLANDS':'MOON SYSTEM'} ↗</button>`;
     if (w.related) html += `<h3>Explore nearby</h3><div class="related-worlds">${buttons(w.related)}</div>`;
     if (w.image) html += `<details class="reference-sheet"><summary>${esc(w.imageLabel)}</summary><img src="img/yake/${w.image}" alt="${esc(w.imageLabel)}" loading="lazy"><a href="img/yake/${w.image}" target="_blank" rel="noopener">OPEN FULL REFERENCE ↗</a></details>`;
     detail.innerHTML = html;
@@ -137,7 +137,7 @@
   function renderDirectory() {
     const query = search.value.trim().toLocaleLowerCase();
     const matches = [...worlds.values()].filter(w => JSON.stringify(w).toLocaleLowerCase().includes(query));
-    document.getElementById('destination-list').innerHTML = matches.map(w => `<button type="button" data-world="${w.id}" data-directory aria-pressed="${w.id===selected}"><strong>${esc(w.name)}</strong><small>${esc(w.kind)}</small></button>`).join('');
+    document.getElementById('destination-list').innerHTML = matches.map(w => `<a class="link-card" href="#${w.id}" data-world="${w.id}" data-directory aria-current="${w.id===selected?'location':'false'}"><div class="link-card-inner"><div class="link-text"><h3>${esc(w.name)}</h3><p>${esc(w.kind)}</p></div></div></a>`).join('');
     document.getElementById('search-status').textContent = matches.length ? `${matches.length} destinations` : 'No destinations match. Try a world, moon, station, or settlement name.';
   }
 
@@ -192,6 +192,7 @@
     if(event.target.closest('[data-close-card]')){cardOpen=false;scene?.select(null);renderCard();field.querySelector('canvas')?.focus({preventScroll:true});return;}
     const world = event.target.closest('[data-world]');
     if (world) {
+      event.preventDefault();
       const fromDirectory = world.hasAttribute('data-directory');
       const fromDetail = !!world.closest('#world-detail');
       const keyboard = event.detail === 0;
