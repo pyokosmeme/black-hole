@@ -204,9 +204,8 @@ def run():
         }''')
         assert page.evaluate('''() => {
             const s=__sceneTest, p=s.bodies.find(b=>b.id==='marassa').position;
-            const r=300+180000/(2836675-1413613)*90;
             const ez=145+(1171000-1052112)/(1413613-1052112)*65;
-            return Math.abs(p.length()-r)<1e-7 && Math.abs(Math.atan2(p.z,p.x)*180/Math.PI+125)<1e-7 && s.tracks.filter(t=>t.ez).length===1 && Math.abs(s.tracks.find(t=>t.ez).line.geometry.vertices[0].length()-ez)<1e-7;
+            return Math.abs(p.length()-(ez+26))<1e-7 && p.length()-20>ez && s.tracks.filter(t=>t.ez).length===1 && Math.abs(s.tracks.find(t=>t.ez).line.geometry.vertices[0].length()-ez)<1e-7 && !s.scene.getObjectByName('L5 offset uncertainty');
         }''')
         page.screenshot(path=str(SHOTS / 'yake-corrected-jin-placement.png'))
         page.evaluate('__sceneAPI.focus()')
@@ -228,7 +227,7 @@ def run():
                     page.screenshot(path=str(SHOTS / f'yake-coast-{region}.png'))
             else:
                 page.screenshot(path=str(SHOTS / 'yake-golden-comb-detail.png'))
-        print('PASS coaxial toruses, hub bearings, L5 placement, Jin EZ, surface maps, link copy, menu and typo scan', flush=True)
+        print('PASS coaxial toruses, hub bearings, station outside Jin EZ, surface maps, link copy, menu and typo scan', flush=True)
         page.close()
 
         # Real shared shader renderer: delayed BH entry, pause/resume, no duplicate

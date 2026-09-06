@@ -249,8 +249,7 @@ window.YakeScene = (function () {
       const material=new T.LineBasicMaterial({color:ez?0xc57b4a:0x536480,transparent:true,opacity:ez?.4:.36});
       const line=new T.Line(geometry,material);content.add(line);tracks.push({id,line,ez});
     }
-    // One radial conversion for moons, Jin's EZ, and Lagrange neighborhoods.
-    // Unknown offset bearings remain explicit display choices, not orbital data.
+    // One radial conversion for moons and their parent's EZ.
     function scaledRadius(km,cfg) {
       const points=[[0,0],...cfg.nodes.map(([id,r])=>[worlds.get(id).km,r]).filter(p=>p[0]).sort((a,b)=>a[0]-b[0])];
       for(let i=1;i<points.length;i++){
@@ -264,22 +263,13 @@ window.YakeScene = (function () {
     function annotation(text,position) {
       const label=document.createElement('span');label.className='scene-label scene-annotation';label.textContent=text;labelLayer.appendChild(label);annotations.push({label,position});
     }
-    function lagrangeNeighborhood(local,cfg) {
-      const node=cfg.nodes.find(n=>n[0]===local.secondary);
-      const km=worlds.get(local.secondary).km;
-      // Positive angular progression is the schematic prograde convention.
-      const angle=(node[2]+(local.point==='L5'?-60:60))*Math.PI/180;
-      const center=point(km,angle,0);
-      const project=p=>point(scaledRadius(p.length(),cfg),Math.atan2(p.z,p.x),0);
-      const pos=project(point(km+local.offsetKm,angle,0));
-      body(local.id,pos,20,false);
-      bodies[bodies.length-1].mesh.userData.placement={secondary:local.secondary,point:local.point,offsetKm:local.offsetKm,offsetDirection:local.offsetDirection};
-      annotation('SKARDA–JIN L5',project(center));
-      const geometry=new T.Geometry();
-      for(let i=0;i<=120;i++)geometry.vertices.push(project(center.clone().add(point(local.offsetKm,i/120*Math.PI*2,0))));
-      geometry.computeLineDistances();
-      const line=new T.Line(geometry,new T.LineDashedMaterial({color:0xa6a2b4,transparent:true,opacity:.6,dashSize:1.5,gapSize:1.5}));
-      line.name='L5 offset uncertainty';content.add(line);
+    function ezNeighborhood(local,cfg) {
+      const size=20;
+      // Enough display clearance for the whole illustrative station to remain
+      // outside the boundary. This is not a newly invented orbital radius.
+      const r=scaledRadius(cfg.ez,cfg)+size+6;
+      body(local.id,point(r,local.angle*Math.PI/180,0),size,false);
+      bodies[bodies.length-1].mesh.userData.placement={boundary:cfg.parent,ezKm:cfg.ez,clearance:'schematic'};
     }
     function release(group) {
       group.traverse(obj=>{
@@ -303,7 +293,7 @@ window.YakeScene = (function () {
             body(world,point(r,a*Math.PI/180,inc),size,false);
           });
           (cfg.locals||[]).forEach(([world,r,a])=>body(world,point(r,a*Math.PI/180,0),world==='marassa'?20:worlds.get(world).mapLabel?5:8,!!worlds.get(world).mapLabel));
-          (cfg.lagrangeLocals||[]).forEach(local=>lagrangeNeighborhood(local,cfg));
+          (cfg.ezLocals||[]).forEach(local=>ezNeighborhood(local,cfg));
           if(cfg.ez) {
             const r=scaledRadius(cfg.ez,cfg);
             orbit(null,r,0,true);

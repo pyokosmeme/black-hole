@@ -5,7 +5,7 @@
   const worlds = new Map(data.worlds.filter(w => !w.hidden).map(w => [w.id, w]));
   const moonViews = ['jin','shu','xuan'];
   const members = cfg => {
-    const ids = [cfg.parent, ...cfg.nodes.map(n => n[0]), ...(cfg.locals || []).map(n => n[0]), ...(cfg.lagrangeLocals || []).map(n => n.id)];
+    const ids = [cfg.parent, ...cfg.nodes.map(n => n[0]), ...(cfg.locals || []).map(n => n[0]), ...(cfg.ezLocals || []).map(n => n.id)];
     if (ids.includes('marassa')) ids.push('buka','chawkee');
     return new Set(ids);
   };
