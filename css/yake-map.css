@@ -7,9 +7,6 @@
 .atlas-shell .acidburn-button { min-height:40px; }
 .atlas-shell .acidburn-button[aria-pressed=true] { text-decoration:underline; text-underline-offset:4px; font-weight:bold; }
 .orbital-field svg { display:block; width:100%; height:auto; background:#05050f; }
-.chart-caption { padding:var(--space-sm) var(--space-md); }
-.chart-caption { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:var(--space-sm); }
-.chart-caption { font-size:var(--text-xs); }
 .atlas-scene { position:relative; height:clamp(400px,65svh,600px); background:transparent; color:#fff; isolation:isolate; overflow:hidden; touch-action:none; user-select:none; -webkit-user-select:none; }
 /* The map is translucent in BH mode; planets/text remain fully opaque. */
 body.bh-mode .atlas-chart { background:rgba(5,5,15,.72); backdrop-filter:blur(3px); }
@@ -52,8 +49,9 @@ body.yake-atlas.light-mode .scene-card { background:rgba(253,250,245,.82); }
 .card-stats dt { font-size:var(--text-xs); opacity:.7; }
 .card-stats dd { margin:0; overflow-wrap:anywhere; }
 .atlas-chart.is-expanded { position:fixed; z-index:2000; inset:12px; display:flex; flex-direction:column; margin:0; }
-.atlas-chart.is-expanded .orbital-field { flex:1; min-height:0; overflow:auto; }
-.atlas-chart.is-expanded .atlas-scene { height:clamp(400px,65svh,900px); }
+.atlas-chart.is-expanded .orbital-field { flex:1; min-height:0; overflow:auto; display:flex; flex-direction:column; }
+.atlas-chart.is-expanded .atlas-scene { height:clamp(400px,65svh,900px); flex-shrink:0; }
+.atlas-chart.is-expanded .map-actions { margin-top:auto; }
 body.atlas-expanded { overflow:hidden; }
 body.atlas-expanded .main-content { z-index:2000; }
 /* SVG geometry and contrast inside the dark schematic viewport. */
@@ -76,6 +74,7 @@ body.atlas-expanded .main-content { z-index:2000; }
 @media(max-width:600px) {
   .scene-card:not(.fallback-card) { left:12px; width:auto; }
   .map-actions .world-actions { flex-basis:100%; }
+  .map-actions .scene-controls { order:1; }
   .scene-heading { top:14px; left:12px; flex-direction:column; gap:5px; }
   .scene-hint { font-size:7px; line-height:1.6; }
   .scene-heading small { font-size:7px; }
@@ -84,7 +83,6 @@ body.atlas-expanded .main-content { z-index:2000; }
 }
 @media(max-height:600px) {
   .atlas-chart.is-expanded .atlas-toolbar { padding:var(--space-xs); }
-  .atlas-chart.is-expanded .chart-caption { display:none; }
   .atlas-chart.is-expanded .atlas-scene { height:max(240px,calc(100svh - 170px)); }
 }
 /* Short landscape screens use a wide card, not tiny text or a scroll box. */

@@ -26,7 +26,6 @@
     if (scene) scene.setView(view, null);
     else fallback();
     document.getElementById('chart-title').textContent = view === 'system' ? 'YA KE / 野雞' : cfg.title;
-    document.getElementById('chart-scale').textContent = cfg.caption;
     document.getElementById('atlas-system-back').hidden = view === 'system';
     const heading = field.querySelector('.scene-heading span');
     if (heading) heading.textContent = cfg.title.toUpperCase();

@@ -61,6 +61,8 @@ def run():
             assert page.evaluate('__sceneTest.renderer.getContextAttributes().alpha && __sceneTest.renderer.getClearAlpha()===0')
             page.wait_for_selector('#nav-menu a[href="/yake.html"]', state='attached')
             assert page.locator('main > section').count() == 1
+            assert page.locator('.chart-caption,#chart-scale').count() == 0
+            assert page.locator('.scene-controls').evaluate('e=>document.querySelector(".atlas-chart").getBoundingClientRect().bottom-e.getBoundingClientRect().bottom<=20')
             assert page.locator('[data-view],[data-presentation],#world-detail,#destination-list,.atlas-breadcrumb,.footer').count() == 0
             assert page.locator('.atlas-shell button:not(.acidburn-button):not(.scene-label)').count() == 0
             assert page.locator('#blackhole-container canvas').count() == 0
