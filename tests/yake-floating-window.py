@@ -32,6 +32,9 @@ with sync_playwright() as p:
         page.evaluate("location.hash='view=system'")
         page.wait_for_timeout(300)
         checks.rendered(page)
+        assert page.locator('.atlas-toolbar #atlas-reset').count() == 0
+        assert page.locator('.scene-controls > [data-scene-action=expand] + #atlas-reset').count() == 1
+        assert page.locator('#atlas-reset').evaluate('e=>{const r=e.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight-11&&r.left>=0&&r.right<=innerWidth}')
         assert page.evaluate('''()=>{const c=document.querySelector('.atlas-chart').getBoundingClientRect(),h=document.querySelector('.header-bar').getBoundingClientRect(),s=document.querySelector('.atlas-scene').getBoundingClientRect();return c.top>=h.bottom+8&&c.bottom<=innerHeight-11&&c.left>=8&&c.right<=innerWidth-8&&s.height>=90&&document.documentElement.scrollHeight<=innerHeight+1}'''),(width,height)
         assert page.evaluate('''()=>{const font=e=>getComputedStyle(e).fontFamily,body=font(document.body);return body.includes('Share Tech Mono')&&font(document.querySelector('.scene-label'))===body&&font(document.querySelector('#system-summary .system-description'))===body&&font(document.querySelector('#chart-title')).includes('Orbitron')}''')
         assert page.locator('.scene-hint').evaluate('e=>parseFloat(getComputedStyle(e).fontSize)>=11')

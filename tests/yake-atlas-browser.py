@@ -151,8 +151,12 @@ def run():
             page.locator('#scene-card').wait_for(state='visible')
             assert page.locator('#scene-card h1').text_content() == 'Celosia',(pick_target,page.locator('#scene-card h1').text_content())
             page.screenshot(path=str(SHOTS / f'yake-overview-card-{width}.png'))
+            # Dismiss the world-action dock before using the bottom map controls.
+            page.keyboard.press('Escape')
             page.locator('#atlas-reset').click()
             assert not page.locator('#scene-card').is_visible()
+            assert page.locator('.scene-label[aria-pressed=true]').count() == 0
+            assert overview_angle()
             page.locator('[data-scene-action=expand]').click()
             page.wait_for_function("!!document.elementFromPoint(innerWidth/2,20)?.closest('.atlas-chart')")
             page.keyboard.press('Escape')
@@ -304,6 +308,13 @@ def run():
         assert page.locator('#scene-card img').count() == 0
         page.locator('#atlas-system-back').click()
         assert page.locator('[data-world=celosia]').count() == 1
+        assert page.locator('.scene-controls #atlas-reset').count() == 1
+        page.locator('[data-world=celosia]').focus()
+        page.keyboard.press('Enter')
+        page.keyboard.press('Escape')
+        page.locator('#atlas-reset').click()
+        assert not page.locator('#scene-card').is_visible()
+        assert page.locator('[data-world][aria-pressed=true]').count() == 0
         print('PASS WebGL-unavailable system chart and world-card fallback', flush=True)
         browser.close()
 

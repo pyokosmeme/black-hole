@@ -11,6 +11,7 @@
   };
   let view = 'system', cfg = data.views.system, plotted = members(cfg);
   const field = document.getElementById('orbital-field');
+  const resetButton = document.getElementById('atlas-reset');
   let selected = null, scene = null, region = null;
   const esc = value => String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const prose = value => esc(value).replace(/\bcelariums?\b/gi, '<em>$&</em>');
@@ -120,12 +121,14 @@
         const w = worlds.get(id);
         const location = w.au ? w.au + ' AU' : w.km ? w.km.toLocaleString('en-US') + ' km' : w.kind;
         return `<g class="atlas-node" data-world="${id}" role="button" tabindex="0" aria-label="${esc(w.name)}" aria-pressed="${selected === id}" transform="translate(35,${i*64+40})" style="--body-color:${w.color}"><circle class="hit" r="28"/><circle class="node-ring" r="14"/><circle class="node-core" r="7"/><text class="node-name" x="26" y="-2">${esc(w.mapLabel || w.name)}</text><text class="node-meta" x="26" y="17">${esc(location)}</text></g>`;
-      }).join('') + '</svg><div class="world-actions-slot" aria-hidden="true"></div>';
+      }).join('') + '</svg><div class="map-actions"><div class="scene-controls" role="group" aria-label="Map controls"></div></div>';
+    field.querySelector('.scene-controls').appendChild(resetButton);
     renderCard();
   }
 
   function init() {
     field.innerHTML = '<div class="atlas-scene"><div class="scene-heading"><span>SYSTEM OVERVIEW</span><small>COMPRESSED DISTANCES · ILLUSTRATIVE SIZES</small></div><p class="scene-hint">DRAG: ORBIT · SCROLL / PINCH: ZOOM · DOUBLE-CLICK / TAP: FOCUS</p></div><div class="map-actions"><div class="scene-controls" role="group" aria-label="Map controls"><button class="acidburn-button" type="button" data-scene-action="home" title="Fit map">⌂<span class="atlas-sr"> Fit map</span></button><button class="acidburn-button" type="button" data-scene-action="in" aria-label="Zoom in">+</button><button class="acidburn-button" type="button" data-scene-action="out" aria-label="Zoom out">−</button><button class="acidburn-button" type="button" data-scene-action="labels" aria-pressed="true">LABELS</button><button class="acidburn-button" type="button" data-scene-action="expand" aria-pressed="false">EXPAND</button></div><div class="world-actions-slot" aria-hidden="true"></div></div>';
+    field.querySelector('.scene-controls').appendChild(resetButton);
     try {
       scene = window.YakeScene.create(field.querySelector('.atlas-scene'), id => id ? selectWorld(id) : closeCard(), fallback, id => { selectWorld(id); scene.select(id); scene.focus(); });
       scene.setView('system', null);
@@ -171,7 +174,7 @@
     const target = event.target.closest('g[data-world]');
     if (target && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); selectWorld(target.dataset.world); }
   });
-  document.getElementById('atlas-reset').addEventListener('click', () => { closeCard(); scene?.select(null); scene?.home(); field.querySelectorAll('[data-world]').forEach(el => el.setAttribute('aria-pressed','false')); });
+  resetButton.addEventListener('click', () => { closeCard(); scene?.select(null); scene?.home(); field.querySelectorAll('[data-world]').forEach(el => el.setAttribute('aria-pressed','false')); });
   document.addEventListener('keydown', event => {
     if (event.key !== 'Escape') return;
     if (selected) { closeCard(); field.querySelector('canvas, g[data-world]')?.focus({preventScroll:true}); }
