@@ -363,7 +363,15 @@ window.YakeScene = (function () {
       camera.lookAt(target);camera.updateMatrixWorld();
       bodies.forEach(b=>b.marker.quaternion.copy(camera.quaternion));
       renderer.render(scene,camera);
+      const heading=host.querySelector('.scene-heading'),hint=host.querySelector('.scene-hint');
+      const labelTop=heading.offsetTop+heading.offsetHeight+6,labelBottom=hint.offsetHeight+16;
       const occupied=[];
+      const markers=bodies.map(b=>{
+        const p=b.position.clone().project(camera);
+        return {x:(p.x*.5+.5)*width,y:(-p.y*.5+.5)*height,z:p.z,r:Math.max(5,b.size*height/(2*Math.tan(camera.fov*Math.PI/360)*camera.position.distanceTo(b.position)))};
+      }).filter(p=>p.z>-1&&p.z<1);
+      // Text must not steal clicks from another world's visible sphere.
+      const clear=box=>!occupied.some(o=>box.x<o.x+o.w+4&&box.x+box.w+4>o.x&&box.y<o.y+o.h+3&&box.y+box.h+3>o.y)&&!markers.some(p=>Math.hypot(Math.max(box.x-p.x,0,p.x-box.x-box.w),Math.max(box.y-p.y,0,p.y-box.y-box.h))<p.r+3);
       // Place the selected label first; keep other labels clear as the camera moves.
       bodies.slice().sort((a,b)=>Number(b.id===selected)-Number(a.id===selected)).forEach(b=>{
         if(b.id==='yake')return;
@@ -372,22 +380,23 @@ window.YakeScene = (function () {
         b.label.hidden=!visible;
         if(!visible)return;
         const w=b.label.offsetWidth,h=b.label.offsetHeight;
+        if(height-labelTop-labelBottom<h){b.label.hidden=true;return;}
         const r=b.size*height/(2*Math.tan(camera.fov*Math.PI/360)*camera.position.distanceTo(b.position));
-        const candidates=[[x+r+7,y-h/2],[x-r-w-7,y-h/2],[x-w/2,y-r-h-6],[x-w/2,y+r+6]];
+        const candidates=[7,24,44].flatMap(gap=>[[x+r+gap,y-h/2],[x-r-w-gap,y-h/2],[x-w/2,y-r-h-gap],[x-w/2,y+r+gap]]);
         let chosen=null;
         for(const [cx,cy] of candidates) {
-          const box={x:Math.max(4,Math.min(width-w-4,cx)),y:Math.max(35,Math.min(height-h-62,cy)),w,h};
-          if(!occupied.some(o=>box.x<o.x+o.w+4&&box.x+box.w+4>o.x&&box.y<o.y+o.h+3&&box.y+box.h+3>o.y)){chosen=box;break;}
+          const box={x:Math.max(4,Math.min(width-w-4,cx)),y:Math.max(labelTop,Math.min(height-h-labelBottom,cy)),w,h};
+          if(clear(box)){chosen=box;break;}
         }
         if(!chosen){b.label.hidden=true;return;}
         occupied.push(chosen);b.label.style.transform=`translate(${chosen.x}px,${chosen.y}px)`;
       });
       annotations.forEach(({label,position})=>{
         const p=position.clone().project(camera),x=(p.x*.5+.5)*width,y=(-p.y*.5+.5)*height;
-        label.hidden=!labelsOn||p.z<=-1||p.z>=1||x<0||x>width||y<35||y>height-62;
+        label.hidden=!labelsOn||p.z<=-1||p.z>=1||x<0||x>width||y<labelTop||y>height-labelBottom;
         if(label.hidden)return;
         const w=label.offsetWidth,h=label.offsetHeight,bx=Math.max(4,Math.min(width-w-4,x+8));
-        const box=[0,h+4,-h-4,2*h+8,-2*h-8].map(d=>({x:bx,y:y+d,w,h})).find(b=>b.y>=35&&b.y+h<=height-62&&!occupied.some(o=>b.x<o.x+o.w+4&&b.x+w+4>o.x&&b.y<o.y+o.h+3&&b.y+h+3>o.y));
+        const box=[0,h+4,-h-4,2*h+8,-2*h-8].map(d=>({x:bx,y:y+d,w,h})).find(b=>b.y>=labelTop&&b.y+h<=height-labelBottom&&clear(b));
         if(!box){label.hidden=true;return;}
         occupied.push(box);label.style.transform=`translate(${box.x}px,${box.y}px)`;
       });
@@ -465,6 +474,7 @@ window.YakeScene = (function () {
     host.addEventListener('contextmenu',contextMenu);canvas.addEventListener('webglcontextlost',lost);
     document.addEventListener('visibilitychange',draw);
     const observer=new ResizeObserver(resize);observer.observe(host);resize();
+    document.fonts?.ready.then(draw);
     return {
       setView,select,home,focus,zoom,surface,
       hasBody:id=>bodies.some(b=>b.id===id || (b.id==='marassa' && worlds.get(id)?.parent==='marassa')),

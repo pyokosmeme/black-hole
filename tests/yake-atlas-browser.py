@@ -136,8 +136,10 @@ def run():
             rendered(page)
             # Pick the actual sphere, not only its HTML label.
             pos = page.evaluate("""() => {const s=__sceneTest,p=s.bodies.find(b=>b.id==='celosia').position.clone().project(s.camera),r=document.querySelector('canvas.scene-canvas').getBoundingClientRect();return [r.x+(p.x*.5+.5)*r.width,r.y+(-p.y*.5+.5)*r.height]}""")
+            pick_target = page.evaluate('(p)=>document.elementFromPoint(...p).outerHTML',pos)
             page.mouse.click(*pos)
-            assert page.locator('#scene-card h1').text_content() == 'Celosia'
+            page.locator('#scene-card').wait_for(state='visible')
+            assert page.locator('#scene-card h1').text_content() == 'Celosia',(pick_target,page.locator('#scene-card h1').text_content())
             page.screenshot(path=str(SHOTS / f'yake-overview-card-{width}.png'))
             page.locator('#atlas-reset').click()
             assert not page.locator('#scene-card').is_visible()
@@ -281,6 +283,7 @@ def run():
         assert page.locator('#scene-card h1').text_content() == 'Celosia'
         assert page.locator('#scene-card').is_visible()
         assert page.locator('main > section').count() == 1
+        page.locator('[data-close-card]').click()
         page.locator('[data-world=jin]').click()
         page.locator('#world-actions [data-open-view=jin]').click()
         assert page.locator('[data-world=fengsheng]').count() == 0

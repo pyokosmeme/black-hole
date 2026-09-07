@@ -39,6 +39,9 @@ def run():
             page.wait_for_timeout(250)
             row={'viewport':f'{width}x{height}','initialScene':bounds(page.locator('.atlas-scene'))}
             row['horizontalOverflow']=page.evaluate('document.documentElement.scrollWidth>innerWidth')
+            assert row['initialScene']['inViewport'],(width,height,row['initialScene'])
+            assert page.locator('.atlas-chart').evaluate('e=>{const r=e.getBoundingClientRect();return r.top>=document.querySelector(".header-bar").getBoundingClientRect().bottom+8&&r.bottom<=innerHeight-11&&r.left>=8&&r.right<=innerWidth-8}'),(width,height)
+            assert page.evaluate('document.documentElement.scrollHeight<=innerHeight+1'),(width,height)
             page.screenshot(path=str(checks.SHOTS/f'yake-ux-{width}x{height}-overview.png'))
             # Deep-link selection measures visibility without Playwright auto-scrolling.
             before_open=page.evaluate('({scroll:scrollY,top:document.querySelector(".atlas-scene").getBoundingClientRect().top})')

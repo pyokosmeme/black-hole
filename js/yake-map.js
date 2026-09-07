@@ -17,7 +17,10 @@
   const stats = rows => '<dl class="card-stats">' + rows.map(([k,v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('') + '</dl>';
   document.querySelector('.atlas-toolbar').insertAdjacentHTML('beforeend','<button class="acidburn-button" id="atlas-system-back" type="button" data-open-view="system" hidden>← SYSTEM OVERVIEW</button>');
   const star = worlds.get('yake');
-  document.querySelector('.atlas-toolbar').insertAdjacentHTML('afterend', `<div id="system-summary"><p class="post-date">STAR &amp; STAR SYSTEM · K-TYPE GIANT</p><p>${esc(star.intro)}</p>${stats(data.summaryStats(star).filter(([key]) => key !== 'Catalog identity'))}</div>`);
+  document.querySelector('.atlas-toolbar').insertAdjacentHTML('afterend', `<details id="system-summary"><summary class="post-date">STAR &amp; STAR SYSTEM · K-TYPE GIANT</summary><div class="system-description"><p>${esc(star.intro)}</p>${stats(data.summaryStats(star).filter(([key]) => key !== 'Catalog identity'))}</div></details>`);
+  const shortScreen = matchMedia('(max-height:600px)');
+  const fitSummary = () => { document.getElementById('system-summary').open = !shortScreen.matches; };
+  shortScreen.addEventListener('change',fitSummary); fitSummary();
   // Portal the card out of the chart's backdrop-filter containing block, so it
   // is centered on the actual screen, including when the map is expanded.
   const popup = document.createElement('aside');
@@ -122,7 +125,7 @@
   }
 
   function init() {
-    field.innerHTML = '<div class="atlas-scene"><div class="scene-heading"><span>SYSTEM OVERVIEW</span><small>COMPRESSED DISTANCES · ILLUSTRATIVE SIZES</small></div><p class="scene-hint">DRAG TO ORBIT · SCROLL / PINCH TO ZOOM · RIGHT-DRAG / TWO FINGERS TO PAN · DOUBLE-CLICK / DOUBLE-TAP TO FOCUS</p></div><div class="map-actions"><div class="scene-controls" role="group" aria-label="Map controls"><button class="acidburn-button" type="button" data-scene-action="home" title="Fit map">⌂<span class="atlas-sr"> Fit map</span></button><button class="acidburn-button" type="button" data-scene-action="in" aria-label="Zoom in">+</button><button class="acidburn-button" type="button" data-scene-action="out" aria-label="Zoom out">−</button><button class="acidburn-button" type="button" data-scene-action="labels" aria-pressed="true">LABELS</button><button class="acidburn-button" type="button" data-scene-action="expand" aria-pressed="false">EXPAND</button></div><div class="world-actions-slot" aria-hidden="true"></div></div>';
+    field.innerHTML = '<div class="atlas-scene"><div class="scene-heading"><span>SYSTEM OVERVIEW</span><small>COMPRESSED DISTANCES · ILLUSTRATIVE SIZES</small></div><p class="scene-hint">DRAG: ORBIT · SCROLL / PINCH: ZOOM · DOUBLE-CLICK / TAP: FOCUS</p></div><div class="map-actions"><div class="scene-controls" role="group" aria-label="Map controls"><button class="acidburn-button" type="button" data-scene-action="home" title="Fit map">⌂<span class="atlas-sr"> Fit map</span></button><button class="acidburn-button" type="button" data-scene-action="in" aria-label="Zoom in">+</button><button class="acidburn-button" type="button" data-scene-action="out" aria-label="Zoom out">−</button><button class="acidburn-button" type="button" data-scene-action="labels" aria-pressed="true">LABELS</button><button class="acidburn-button" type="button" data-scene-action="expand" aria-pressed="false">EXPAND</button></div><div class="world-actions-slot" aria-hidden="true"></div></div>';
     try {
       scene = window.YakeScene.create(field.querySelector('.atlas-scene'), id => id ? selectWorld(id) : closeCard(), fallback, id => { selectWorld(id); scene.select(id); scene.focus(); });
       scene.setView('system', null);

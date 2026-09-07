@@ -20,7 +20,7 @@ with sync_playwright() as p:
         page.goto('https://atlas.test/yake.html')
         page.wait_for_function('window.__sceneTest && window.__sceneAPI')
         assert page.locator('[data-pick=yake]').count() == 0
-        summary = page.locator('#system-summary').inner_text()
+        summary = page.locator('#system-summary').text_content()
         assert 'STAR & STAR SYSTEM' in summary and 'K-TYPE GIANT' in summary
         assert 'Spanning Worlds Independence' in summary
         assert 'Canis' not in summary and 'Catalog' not in summary
@@ -29,6 +29,10 @@ with sync_playwright() as p:
         assert all(name in page.locator('.card-detail').inner_text() for name in ['Mun','In','Sin','Mu','Yong'])
         page.keyboard.press('Escape')
         page.locator('.scene-canvas').scroll_into_view_if_needed()
+        if not page.locator('[data-pick=jin]').is_visible():
+            page.evaluate("location.hash='jin'")
+            page.wait_for_selector('[data-pick=jin]')
+            page.keyboard.press('Escape')
         # Real mouse double click: the first click must not open an intercepting card.
         page.locator('[data-pick=jin]').dblclick(delay=90)
         page.wait_for_function("__sceneTest.radius<200 && document.querySelector('#scene-card h1')?.textContent==='Jin / 金'")
