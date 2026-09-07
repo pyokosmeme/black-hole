@@ -174,7 +174,7 @@
     if (!action || !scene) return;
     const kind = action.dataset.sceneAction;
     if (kind === 'home') scene.home();
-    if (kind === 'focus') { scene.focus(); closeCard(); field.querySelector('canvas')?.focus({preventScroll:true}); }
+    if (kind === 'focus') { closeCard(); scene.focus(true); field.querySelector('canvas')?.focus({preventScroll:true}); }
     if (kind.startsWith('surface-')) { region = kind.slice(8); scene.surface(region); renderCard(); }
     if (kind === 'in') scene.zoom(.8);
     if (kind === 'out') scene.zoom(1.25);

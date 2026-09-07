@@ -30,6 +30,8 @@ window.YakeScene = (function () {
     const target = new T.Vector3();
     const systemOrientation = {theta:1.55, phi:.85};
     let theta = systemOrientation.theta, phi = systemOrientation.phi, radius = 950;
+    let flight = null;
+    function cancelFlight() { flight=null; }
     let content = null, currentView = null, selected = null;
     let bodies = [], tracks = [], annotations = [], frame = null, destroyed = false;
     let width = 1, height = 1, labelsOn = true;
@@ -319,6 +321,7 @@ window.YakeScene = (function () {
       });
     }
     function setView(name,id) {
+      cancelFlight();
       cancelTap();
       if(currentView!==name) {
         if(content) {scene.remove(content);release(content);}
@@ -355,6 +358,7 @@ window.YakeScene = (function () {
       select(id);
     }
     function select(id) {
+      cancelFlight();
       cancelTap();
       selected=id;
       bodies.forEach(b=>{
@@ -369,6 +373,7 @@ window.YakeScene = (function () {
       draw();
     }
     function home() {
+      cancelFlight();
       target.set(0,0,0);
       // Reference overview angle; local moon maps retain their own familiar tilt.
       theta=currentView==='system'?systemOrientation.theta:.28;
@@ -377,19 +382,26 @@ window.YakeScene = (function () {
       radius=extent/Math.tan(camera.fov*Math.PI/360)/Math.min(1,width/height)*1.08;
       draw();
     }
-    function focus() {
+    function focus(animate=false) {
       const b=bodies.find(b=>b.id===selected || (b.id==='marassa' && worlds.get(selected)?.parent==='marassa'));if(!b)return;
-      target.copy(b.position);radius=Math.max(b.size*(width<600?11:9),75);phi=1.25;
+      cancelFlight();
+      const endRadius=Math.max(b.size*(width<600?11:9),75);
       // Bring the named geological feature into view when inspecting this world.
-      if(selected==='gullinkambi')theta=.1;
+      const endTheta=selected==='gullinkambi'?theta+Math.atan2(Math.sin(.1-theta),Math.cos(.1-theta)):theta;
+      if(animate&&!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        flight={start:null,from:target.clone(),to:b.position.clone(),radius,endRadius,theta,endTheta,phi};
+      } else {
+        target.copy(b.position);radius=endRadius;phi=1.25;theta=endTheta;
+      }
       draw();
     }
     function surface(region) {
       if(selected!=='celosia')return;
       focus();theta=({fusang:.25,mu:.62,diyu:.77}[region]-.25)*Math.PI*2;draw();
     }
-    function zoom(factor) {radius=Math.max(40,Math.min(2600,radius*factor));draw();}
+    function zoom(factor) {cancelFlight();radius=Math.max(40,Math.min(2600,radius*factor));draw();}
     function pan(dx,dy) {
+      cancelFlight();
       const unit=radius*2*Math.tan(camera.fov*Math.PI/360)/height;
       const right=new T.Vector3(1,0,0).applyQuaternion(camera.quaternion);
       const up=new T.Vector3(0,1,0).applyQuaternion(camera.quaternion);
@@ -397,9 +409,18 @@ window.YakeScene = (function () {
     }
     function draw() {
       if(frame!==null||destroyed||document.hidden)return;
-      frame=requestAnimationFrame(()=>{frame=null;render();});
+      frame=requestAnimationFrame(now=>{frame=null;render(now);});
     }
-    function render() {
+    function render(now) {
+      if(flight) {
+        // Start at the existing pose on the first frame, after the card closes.
+        if(flight.start===null)flight.start=now;
+        const t=Math.min(1,(now-flight.start)/1000),ease=t*t*(3-2*t),f=flight;
+        target.copy(f.from).lerp(f.to,ease);
+        radius=Math.exp(Math.log(f.radius)+(Math.log(f.endRadius)-Math.log(f.radius))*ease);
+        theta=f.theta+(f.endTheta-f.theta)*ease;phi=f.phi+(1.25-f.phi)*ease;
+        if(t===1){target.copy(f.to);radius=f.endRadius;flight=null;}
+      }
       phi=Math.max(.12,Math.min(Math.PI-.12,phi));
       camera.position.set(target.x+radius*Math.sin(phi)*Math.sin(theta),target.y+radius*Math.cos(phi),target.z+radius*Math.sin(phi)*Math.cos(theta));
       camera.lookAt(target);camera.updateMatrixWorld();
@@ -442,6 +463,7 @@ window.YakeScene = (function () {
         if(!box){label.hidden=true;return;}
         occupied.push(box);label.style.transform=`translate(${box.x}px,${box.y}px)`;
       });
+      if(flight)draw();
     }
     function resize() {
       const oldAspect=width/height;
@@ -468,6 +490,7 @@ window.YakeScene = (function () {
     function pointerDown(e) {
       if(e.target.closest('.scene-controls,.scene-card,.scene-heading'))return;
       if(e.button!==0&&e.button!==2)return;
+      cancelFlight();
       e.preventDefault();
       if(!pointers.size){dragged=false;gesture={x:e.clientX,y:e.clientY,pick:e.target.closest('[data-pick]')?.dataset.pick,button:e.button};}
       pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
@@ -507,6 +530,7 @@ window.YakeScene = (function () {
     function keyboard(e){
       if(e.target!==canvas)return;
       if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','=','-','0'].includes(e.key))e.preventDefault();else return;
+      cancelFlight();
       if(e.key==='0')home();else if(e.key==='+'||e.key==='=')zoom(.85);else if(e.key==='-')zoom(1.15);
       else{const dx=e.key==='ArrowLeft'?-20:e.key==='ArrowRight'?20:0,dy=e.key==='ArrowUp'?-20:e.key==='ArrowDown'?20:0;if(e.shiftKey)pan(dx,dy);else{theta+=dx*.008;phi+=dy*.008;}draw();}
     }
@@ -523,7 +547,7 @@ window.YakeScene = (function () {
       setView,select,home,focus,zoom,surface,
       hasBody:id=>bodies.some(b=>b.id===id || (b.id==='marassa' && worlds.get(id)?.parent==='marassa')),
       toggleLabels:()=>{labelsOn=!labelsOn;draw();return labelsOn;},
-      destroy:()=>{destroyed=true;cancelTap();if(frame!==null)cancelAnimationFrame(frame);observer.disconnect();document.removeEventListener('visibilitychange',draw);
+      destroy:()=>{destroyed=true;cancelFlight();cancelTap();if(frame!==null)cancelAnimationFrame(frame);observer.disconnect();document.removeEventListener('visibilitychange',draw);
         host.removeEventListener('pointerdown',pointerDown);host.removeEventListener('pointermove',pointerMove);host.removeEventListener('pointerup',pointerUp);host.removeEventListener('pointercancel',pointerUp);host.removeEventListener('keydown',keyboard);host.removeEventListener('contextmenu',contextMenu);
         host.removeEventListener('wheel',wheel);canvas.removeEventListener('webglcontextlost',lost);release(scene);renderer.dispose();if(renderer.forceContextLoss)renderer.forceContextLoss();canvas.remove();labelLayer.remove();}
     };

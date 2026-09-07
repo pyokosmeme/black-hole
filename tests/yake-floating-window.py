@@ -62,6 +62,7 @@ with sync_playwright() as p:
             page.locator('[data-scene-action=focus]').click()
             checks.rendered(page)
             assert not page.locator('#scene-card').is_visible()
+            page.wait_for_function('!__sceneTest.focusing')
             assert page.evaluate('__sceneTest.radius')<radius_before
             assert page.evaluate('''id=>{const s=__sceneTest,b=s.bodies.find(b=>b.id===id||(b.id==='marassa'&&['buka','chawkee'].includes(id)));return b&&s.target.distanceTo(b.position)<.001}''',world)
             assert page.locator('.scene-label[aria-pressed=true]').count()>0
