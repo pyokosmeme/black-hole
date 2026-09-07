@@ -52,7 +52,7 @@ def run():
             row['introVisible']=page.locator('.card-intro').is_visible()
             assert page.evaluate('({scroll:scrollY,top:document.querySelector(".atlas-scene").getBoundingClientRect().top})')==before_open
             row['openingDoesNotShiftMap']=True
-            assert page.locator('#scene-card').evaluate("e=>getComputedStyle(e).backgroundColor==='rgba(11, 11, 20, 0.78)'")
+            assert page.locator('#scene-card').evaluate("e=>getComputedStyle(e).backgroundColor==='rgba(11, 11, 20, 0.92)'")
             # Continue using real controls, including keyboard activation.
             page.locator('[data-open-view=jin]').click()
             page.wait_for_function("__sceneTest.currentView==='jin'")

@@ -5,7 +5,7 @@ body.yake-atlas { --atlas-gap:clamp(12px,2vmin,24px); }
 body.yake-atlas,body.yake-atlas .header-bar,.atlas-shell,.atlas-chart,.atlas-toolbar,.orbital-field,.atlas-scene,.map-actions,.scene-controls,#system-summary { transition-property:background-color,border-color,box-shadow; }
 .atlas-shell { height:100vh; height:100svh; height:100dvh; display:flex; flex-direction:column; padding-top:calc(50px + var(--atlas-gap)); padding-bottom:calc(var(--atlas-gap) + env(safe-area-inset-bottom,0px)); }
 .atlas-chart { padding:0; scroll-margin-top:80px; margin-bottom:0; display:flex; flex-direction:column; flex:1; min-height:0; }
-.atlas-toolbar { padding:var(--space-md); margin-bottom:0; flex-wrap:wrap; flex-shrink:0; }
+.atlas-toolbar { padding:var(--space-sm) var(--space-md); margin-bottom:0; flex-wrap:wrap; flex-shrink:0; }
 #atlas-system-back[hidden] { display:none!important; }
 .atlas-toolbar h2 { min-width:0; overflow-wrap:anywhere; }
 #system-summary { padding:0 var(--space-md) var(--space-sm); font-size:var(--text-sm); flex-shrink:0; max-height:35vh; max-height:35svh; max-height:35dvh; overflow:auto; }
@@ -14,7 +14,8 @@ body.yake-atlas,body.yake-atlas .header-bar,.atlas-shell,.atlas-chart,.atlas-too
 #system-summary .system-description { padding-top:var(--space-xs); }
 #system-summary[hidden] { display:none; }
 #system-summary p { margin:0 0 var(--space-xs); }
-#system-summary .card-stats { margin:var(--space-sm) 0 0; }
+#system-summary .card-stats { display:flex; flex-wrap:wrap; gap:var(--space-xs) var(--space-lg); margin:var(--space-xs) 0 0; }
+#system-summary .card-stats > div { display:flex; flex-wrap:wrap; align-items:baseline; gap:0 var(--space-xs); }
 .atlas-shell .acidburn-button { min-height:40px; }
 .atlas-shell .acidburn-button[aria-pressed=true],.world-actions .acidburn-button[aria-pressed=true] { text-decoration:underline; text-underline-offset:4px; font-weight:bold; }
 .orbital-field svg { display:block; width:100%; height:auto; background:#05050f; }
@@ -41,14 +42,15 @@ body:not(.bh-mode) .atlas-scene { background:#05050f; }
 .world-actions { display:flex; flex-wrap:wrap; gap:4px; justify-content:flex-end; max-width:240px; }
 .view-controls[hidden] { display:none!important; }
 .scene-controls .acidburn-button,.world-actions .acidburn-button { min-width:44px; min-height:44px; padding:4px 8px; }
+.scene-controls [data-scene-action=labels],.scene-controls #atlas-reset { margin-inline-start:var(--space-xs); }
 .world-actions[hidden] { display:none!important; }
 /* World actions live in the card heading; the map footer remains stable. */
 .world-actions-slot { display:none; }
-.scene-hint { position:absolute; bottom:var(--space-xs); left:var(--space-sm); right:var(--space-sm); margin:0; font-size:var(--text-xs); line-height:1.4; pointer-events:none; }
+.scene-hint { position:absolute; bottom:var(--space-xs); left:var(--space-sm); right:var(--space-sm); margin:0; font-size:var(--text-xs); line-height:1.4; opacity:.7; pointer-events:none; }
 .scene-card { position:fixed; z-index:2100; top:50%; left:50%; transform:translate(-50%,-50%); box-sizing:border-box; width:min(720px,calc(100vw - 24px)); max-height:none; overflow:visible; padding:var(--space-md); margin:0; font-size:var(--text-sm); }
-body.yake-atlas .scene-card { background:rgba(11,11,20,.78); backdrop-filter:blur(3px); }
+body.yake-atlas .scene-card { background:rgba(11,11,20,.92); backdrop-filter:blur(6px); }
 .scene-card { transition-property:background-color,border-color; }
-body.yake-atlas.light-mode .scene-card { background:rgba(253,250,245,.82); }
+body.yake-atlas.light-mode .scene-card { background:rgba(253,250,245,.94); }
 .atlas-scene,.scene-card { scroll-margin-top:70px; scroll-margin-bottom:12px; }
 .scene-card[hidden],.scene-label[hidden] { display:none!important; }
 .card-heading { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:var(--space-sm); padding-right:40px; align-items:start; }
@@ -57,7 +59,7 @@ body.yake-atlas.light-mode .scene-card { background:rgba(253,250,245,.82); }
 .card-copy { min-width:0; text-align:left; letter-spacing:normal; }
 .scene-card .card-intro { margin:0; font-size:var(--text-sm); line-height:1.5; text-align:left; }
 .scene-card .card-detail { margin:var(--space-sm) 0 0; font-size:var(--text-sm); line-height:1.5; }
-.scene-card .card-stats { grid-template-columns:1fr; align-content:start; margin:0; gap:var(--space-sm); }
+.scene-card .card-stats { grid-template-columns:repeat(2,minmax(0,1fr)); align-content:start; margin:0; gap:var(--space-sm); }
 .scene-card em { color:inherit; }
 .orbital-field { position:relative; flex:1; min-height:0; display:flex; flex-direction:column; }
 /* Keep the non-WebGL chart available in a bounded scroll region. */
@@ -66,7 +68,7 @@ body.yake-atlas.light-mode .scene-card { background:rgba(253,250,245,.82); }
 .fallback-notice { padding:var(--space-md); }
 .card-close { position:absolute; right:4px; top:6px; min-width:44px; min-height:44px; padding:0; }
 .scene-card .post-date { margin:4px 0 0; line-height:1.4; }
-.scene-card .author-info h1 { overflow-wrap:anywhere; font-size:var(--text-xl); margin:0; }
+.scene-card .author-info h1 { overflow-wrap:anywhere; font-size:var(--text-xl); margin:0; -webkit-text-stroke:.5px #000; text-shadow:0 0 calc(8px * var(--glow-intensity)) var(--cyan); }
 .card-stats { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--space-sm); margin:var(--space-md) 0; }
 .card-stats dt { font-size:var(--text-xs); opacity:.7; }
 .card-stats dd { margin:0; overflow-wrap:anywhere; }
@@ -92,6 +94,9 @@ body.atlas-expanded .main-content { z-index:2000; }
 @media(max-width:600px) {
   .atlas-shell { padding-top:calc(44px + var(--atlas-gap)); }
   .atlas-toolbar { padding:var(--space-sm); }
+  #system-summary { padding-inline:var(--space-sm); }
+  #system-summary .card-stats { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--space-sm); }
+  #system-summary .card-stats > div { display:block; }
   .scene-card { padding:var(--space-sm); }
   .card-heading { grid-template-columns:1fr; }
   .world-actions { justify-content:flex-start; max-width:none; }

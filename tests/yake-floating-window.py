@@ -47,13 +47,14 @@ with sync_playwright() as p:
             assert page.locator('.system-description').is_visible()
             assert page.locator('.atlas-chart').evaluate('e=>e.getBoundingClientRect().bottom<=innerHeight-11')
             page.locator('#system-summary summary').click()
-        for world in ['jin','marassa','chawkee','skarda','plomo','gullinkambi','celosia','five','mun','in','sin','island-mu','yong','pani']:
+        for world in ['jin','shu','marassa','chawkee','skarda','plomo','gullinkambi','celosia','five','mun','in','sin','island-mu','yong','pani']:
             page.evaluate('(id)=>location.hash=id',world)
             page.wait_for_function('(id)=>document.querySelector("#scene-card h1")?.textContent===YAKE_ATLAS.worlds.find(w=>w.id===id).name',arg=world)
             checks.rendered(page)
             assert page.locator('#scene-card').evaluate('''e=>{const r=e.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight&&r.left>=0&&r.right<=innerWidth&&e.scrollHeight<=e.clientHeight+1}'''),('card',world,width,height,page.locator('#scene-card').evaluate('e=>({rect:e.getBoundingClientRect().toJSON(),top:e.style.top,footer:document.querySelector(".map-actions").getBoundingClientRect().toJSON()})'))
             assert page.locator('#scene-card .card-heading #world-actions button').evaluate_all('''es=>es.length>0&&es.every(e=>{const r=e.getBoundingClientRect(),c=document.querySelector('#scene-card').getBoundingClientRect();return r.top>=c.top&&r.bottom<=c.bottom&&r.left>=c.left&&r.right<=c.right&&e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))})'''),('actions',world,width,height)
             assert page.locator('.card-intro').evaluate("e=>getComputedStyle(e).textAlign==='left'")
+            assert page.locator('#scene-card .card-stats').evaluate('''e=>{const cells=[...e.children].map(c=>c.getBoundingClientRect());return cells.length<2||Math.abs(cells[0].top-cells[1].top)<1&&cells[0].right<=cells[1].left}'''),('two-column facts',world,width,height)
             assert page.locator('#world-actions button').evaluate_all('''es=>es.every(e=>{const r=e.getBoundingClientRect(),x=document.querySelector('.card-close').getBoundingClientRect();return r.top>=x.bottom||r.bottom<=x.top||r.right<=x.left-8})'''),('close clearance',world,width,height)
             page.screenshot(path=str(checks.SHOTS/f'yake-card-actions-{world}-{width}x{height}.png'))
             radius_before=page.evaluate('__sceneTest.radius')
