@@ -33,11 +33,10 @@
   actionDock.id = 'world-actions'; actionDock.className = 'world-actions';
   actionDock.setAttribute('role','group'); actionDock.hidden = true;
 
-  // One in-window footer owns all controls. Keep cards clear of it, even on
-  // short screens, without creating another fixed button layer over the map.
+  // World actions belong to the card; the map footer stays unchanged.
   function fitCard() {
     if (!mapActions || popup.hidden) return;
-    const bottom = mapActions.getBoundingClientRect().top - 8;
+    const bottom = innerHeight - 8;
     const half = popup.getBoundingClientRect().height / 2;
     popup.style.top = Math.max(half + 4, Math.min(innerHeight / 2, bottom - half)) + 'px';
   }
@@ -62,20 +61,18 @@
 
   function renderCard() {
     const card = document.getElementById('scene-card');
-    const actions = document.getElementById('world-actions');
+    const actions = actionDock;
     card.hidden = !selected;
     actions.hidden = !selected;
     actions.innerHTML = '';
     card.innerHTML = '';
-    viewControls.hidden = !scene || !!selected;
+    viewControls.hidden = !scene;
     if (!selected) return;
     const w = worlds.get(selected);
     const continent = selected === 'celosia' && region ? data.continents[region] : null;
-    let html = `<button class="acidburn-button card-close" type="button" data-close-card aria-label="Close world card">×</button><p class="post-date">${esc(continent ? 'Celosia · continent' : w.kind)}</p><div class="author-info"><h1>${esc(continent ? continent.name : w.name)}</h1></div><p class="author-bio card-intro">${prose(continent ? continent.intro : w.intro)}</p>`;
-    if (!continent && w.stats) html += stats(data.summaryStats(w));
     const detail = continent ? continent.detail : data.cardDetails[w.id];
-    if (detail) html += `<p class="card-detail">${prose(detail)}</p>`;
-    card.innerHTML = html;
+    card.innerHTML = `<button class="acidburn-button card-close" type="button" data-close-card aria-label="Close world card">×</button><div class="card-heading"><div class="card-title"><div class="author-info"><h1>${esc(continent ? continent.name : w.name)}</h1></div><p class="post-date">${esc(continent ? 'Celosia · continent' : w.kind)}</p></div></div><div class="card-body"><div class="card-copy"><p class="author-bio card-intro">${prose(continent ? continent.intro : w.intro)}</p>${detail ? `<p class="card-detail">${prose(detail)}</p>` : ''}</div>${!continent && w.stats ? stats(data.summaryStats(w)) : ''}</div>`;
+    card.querySelector('.card-heading').appendChild(actions);
     let controls = '';
     if (scene?.hasBody(selected)) controls += '<button class="acidburn-button" type="button" data-scene-action="focus">FOCUS WORLD</button>';
     if (selected === 'marassa' || w.parent === 'marassa') controls += ['buka','chawkee'].map(id => `<button class="acidburn-button" type="button" data-select-world="${id}" aria-pressed="${selected === id}">${id.toUpperCase()}</button>`).join('');
@@ -144,7 +141,7 @@
     viewControls = document.createElement('div');
     viewControls.className = 'view-controls';
     while (group.firstChild) viewControls.appendChild(group.firstChild);
-    group.append(viewControls, actionDock, document.getElementById('atlas-system-back'), resetButton);
+    group.append(viewControls, document.getElementById('atlas-system-back'), resetButton);
     const cardLayout = new ResizeObserver(fitCard);
     cardLayout.observe(mapActions); cardLayout.observe(popup);
     window.addEventListener('resize',fitCard);
@@ -177,7 +174,7 @@
     if (!action || !scene) return;
     const kind = action.dataset.sceneAction;
     if (kind === 'home') scene.home();
-    if (kind === 'focus') { scene.focus(); field.querySelector('.atlas-scene').scrollIntoView({block:'nearest'}); }
+    if (kind === 'focus') { scene.focus(); closeCard(); field.querySelector('canvas')?.focus({preventScroll:true}); }
     if (kind.startsWith('surface-')) { region = kind.slice(8); scene.surface(region); renderCard(); }
     if (kind === 'in') scene.zoom(.8);
     if (kind === 'out') scene.zoom(1.25);

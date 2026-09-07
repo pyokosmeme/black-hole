@@ -54,6 +54,9 @@ with sync_playwright() as p:
         page.evaluate("location.hash='marassa'")
         page.wait_for_function("__sceneTest.currentView==='jin'")
         page.locator('[data-scene-action=focus]').click()
+        assert not page.locator('#scene-card').is_visible()
+        page.evaluate("location.hash='marassa'")
+        page.wait_for_selector('#scene-card h1')
         for ring in ['buka','chawkee']:
             page.locator(f'[data-select-world={ring}]').click()
             checks.rendered(page)
@@ -71,7 +74,7 @@ with sync_playwright() as p:
         for region in ['fusang','mu','diyu']:
             page.locator(f'[data-scene-action=surface-{region}]').click()
             assert page.locator('#scene-card h1').inner_text().lower() == region
-            assert page.locator('#scene-card').evaluate('''e=>{const r=e.getBoundingClientRect();return r.top>=0&&r.bottom<=document.querySelector('.map-actions').getBoundingClientRect().top-7&&r.left>=0&&r.right<=innerWidth&&e.scrollHeight<=e.clientHeight+1}'''),(width,height,region)
+            assert page.locator('#scene-card').evaluate('''e=>{const r=e.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight-8&&r.left>=0&&r.right<=innerWidth&&e.scrollHeight<=e.clientHeight+1}'''),(width,height,region)
             page.screenshot(path=str(checks.SHOTS/f'yake-{region}-card-{width}.png'))
         page.keyboard.press('Escape')
         for region in ['fusang','mu','diyu']:

@@ -35,7 +35,8 @@ with sync_playwright() as p:
         page.wait_for_function("__sceneTest.currentView==='shu' && document.querySelector('#scene-card h1')?.textContent==='Pani'")
         assert '95 kPa' in page.locator('#scene-card').inner_text()
         page.locator('[data-scene-action=focus]').click()
-        page.keyboard.press('Escape');checks.rendered(page)
+        assert not page.locator('#scene-card').is_visible()
+        checks.rendered(page)
         assert page.evaluate('''()=>{const m=__sceneTest.bodies.find(b=>b.id==='pani').mesh;return m.getObjectByName('pani-atmosphere').material.type==='ShaderMaterial'&&m.getObjectByName('pani-clouds').material.map.image.width===512&&m.material.specularMap!=null}''')
         page.screenshot(path=str(checks.SHOTS/f'yake-pani-atmosphere-{width}.png'))
         assert not errors,errors

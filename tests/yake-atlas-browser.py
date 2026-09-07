@@ -105,7 +105,8 @@ def run():
                 assert style == ['0px', 'none', 'rgba(11, 11, 20, 0.72)'], style
                 assert page.locator('[data-show-detail],#scene-card img').count() == 0
                 assert page.locator('#world-actions [data-open-view]').count() == (1 if world in ['jin','shu','xuan','five'] else 0)
-                assert page.locator('#scene-card details,#scene-card [data-scene-action],#scene-card [data-open-view]').count() == 0
+                assert page.locator('#scene-card details').count() == 0
+                assert page.locator('#scene-card .card-heading [data-scene-action=focus]').count() == 1
                 assert page.evaluate('__sceneTest.currentView') == 'system'
                 if world == 'celosia':
                     for region in ['fusang','mu','diyu']:
@@ -186,7 +187,7 @@ def run():
                     assert page.locator('[data-scene-action=focus]').count() == 1
                     page.locator('[data-scene-action=focus]').click()
                     rendered(page)
-                    page.locator('[data-close-card]').click()
+                    assert not page.locator('#scene-card').is_visible()
                     assert page.evaluate('location.hash') == '#view=' + view
                 page.locator('#atlas-reset').click()
                 assert page.evaluate('__sceneTest.currentView') == view
