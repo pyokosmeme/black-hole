@@ -58,6 +58,16 @@ def run():
             page.add_init_script("localStorage.setItem('acidburn-mode','dark')")
             page.goto('https://atlas.test/yake.html')
             page.wait_for_function('window.__sceneTest && __sceneTest.bodies.length===11')
+            # Initial overview and Fit map share the approved reference angle.
+            def overview_angle():
+                rendered(page)
+                return page.evaluate('''()=>{const s=__sceneTest,v=s.camera.position.clone().sub(s.target);return Math.abs(Math.atan2(v.x,v.z)-1.55)<.0001&&Math.abs(Math.acos(v.y/v.length())-.85)<.0001}''')
+            assert overview_angle()
+            page.locator('.scene-canvas').focus()
+            page.keyboard.press('ArrowRight')
+            assert not overview_angle()
+            page.locator('[data-scene-action=home]').click()
+            assert overview_angle()
             assert page.evaluate('__sceneTest.renderer.getContextAttributes().alpha && __sceneTest.renderer.getClearAlpha()===0')
             page.wait_for_selector('#nav-menu a[href="/yake.html"]', state='attached')
             assert page.locator('main > section').count() == 1

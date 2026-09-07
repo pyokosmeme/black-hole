@@ -28,7 +28,8 @@ window.YakeScene = (function () {
     fill.position.set(100,200,250);
     scene.add(fill);
     const target = new T.Vector3();
-    let theta = .28, phi = .72, radius = 950;
+    const systemOrientation = {theta:1.55, phi:.85};
+    let theta = systemOrientation.theta, phi = systemOrientation.phi, radius = 950;
     let content = null, currentView = null, selected = null;
     let bodies = [], tracks = [], annotations = [], frame = null, destroyed = false;
     let width = 1, height = 1, labelsOn = true;
@@ -330,7 +331,10 @@ window.YakeScene = (function () {
       draw();
     }
     function home() {
-      target.set(0,0,0); theta=.28;phi=.72;
+      target.set(0,0,0);
+      // Reference overview angle; local moon maps retain their own familiar tilt.
+      theta=currentView==='system'?systemOrientation.theta:.28;
+      phi=currentView==='system'?systemOrientation.phi:.72;
       const extent=Math.max(360,...bodies.map(b=>b.position.length()+b.size+24));
       radius=extent/Math.tan(camera.fov*Math.PI/360)/Math.min(1,width/height)*1.08;
       draw();
