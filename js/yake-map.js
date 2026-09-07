@@ -17,7 +17,7 @@
   const esc = value => String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const prose = value => esc(value).replace(/\bcelariums?\b/gi, '<em>$&</em>');
   const stats = rows => '<dl class="card-stats">' + rows.map(([k,v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('') + '</dl>';
-  document.querySelector('.atlas-toolbar').insertAdjacentHTML('beforeend','<button class="acidburn-button" id="atlas-system-back" type="button" data-open-view="system" hidden>← SYSTEM OVERVIEW</button>');
+  document.querySelector('.atlas-toolbar').insertAdjacentHTML('beforeend','<button class="acidburn-button" id="atlas-system-back" type="button" data-open-view="system" hidden>← BACK TO SYSTEM VIEW</button>');
   const star = worlds.get('yake');
   document.querySelector('.atlas-toolbar').insertAdjacentHTML('afterend', `<details id="system-summary"><summary class="post-date">STAR &amp; STAR SYSTEM · K-TYPE GIANT</summary><div class="system-description"><p>${esc(star.intro)}</p>${stats(data.summaryStats(star).filter(([key]) => key !== 'Catalog identity'))}</div></details>`);
   const shortScreen = matchMedia('(max-height:600px)');
@@ -77,7 +77,6 @@
     if (scene?.hasBody(selected)) controls += '<button class="acidburn-button" type="button" data-scene-action="focus">FOCUS WORLD</button>';
     if (selected === 'marassa' || w.parent === 'marassa') controls += ['buka','chawkee'].map(id => `<button class="acidburn-button" type="button" data-select-world="${id}" aria-pressed="${selected === id}">${id.toUpperCase()}</button>`).join('');
     if (moonViews.includes(selected) && view !== selected) controls += `<button class="acidburn-button" type="button" data-open-view="${selected}">${selected === 'five' ? 'EXPLORE ISLANDS' : 'EXPLORE MOONS'}</button>`;
-    if (scene && selected === 'celosia') controls += ['fusang','mu','diyu'].map(region => `<button class="acidburn-button" type="button" data-scene-action="surface-${region}">${region.toUpperCase()}</button>`).join('');
     actions.innerHTML = controls;
     actions.hidden = !controls;
     actions.setAttribute('aria-label', w.name + ' map actions');

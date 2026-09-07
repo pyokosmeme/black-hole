@@ -109,9 +109,11 @@ def run():
                 assert page.locator('#scene-card .card-heading [data-scene-action=focus]').count() == 1
                 assert page.evaluate('__sceneTest.currentView') == 'system'
                 if world == 'celosia':
-                    for region in ['fusang','mu','diyu']:
-                        page.locator(f'[data-scene-action=surface-{region}]').click()
-                        rendered(page)
+                    assert page.locator('#world-actions button').count() == 1
+                    assert page.locator('[data-scene-action^="surface-"]').count() == 0
+                if world == 'five':
+                    assert 'in-universe' not in page.locator('#scene-card').inner_text()
+                    assert 'first known natural hierarchical binary resonance.' in page.locator('#scene-card').inner_text()
                 camera_before=page.evaluate('JSON.stringify([__sceneTest.camera.position.toArray(),__sceneTest.camera.quaternion.toArray(),__sceneTest.target.toArray(),__sceneTest.radius])')
                 page.locator('[data-close-card]').click()
                 rendered(page)
@@ -179,6 +181,7 @@ def run():
                 assert page.locator('[data-pick=fengsheng]').count() == 0
                 assert not page.locator('#scene-card').is_visible()
                 assert page.locator('#atlas-system-back').is_visible()
+                assert page.locator('#atlas-system-back').text_content() == '← BACK TO SYSTEM VIEW'
                 assert page.locator('.scene-heading span').text_content() == page.evaluate(f'YAKE_ATLAS.views.{view}.title.toUpperCase()')
                 for world in local_ids:
                     page.evaluate('(id)=>location.hash=id', world)

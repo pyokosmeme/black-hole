@@ -71,17 +71,16 @@ with sync_playwright() as p:
         page.keyboard.press('Escape')
         page.evaluate("location.hash='celosia'")
         page.wait_for_function("__sceneTest.currentView==='system'")
-        for region in ['fusang','mu','diyu']:
-            page.locator(f'[data-scene-action=surface-{region}]').click()
-            assert page.locator('#scene-card h1').inner_text().lower() == region
-            assert page.locator('#scene-card').evaluate('''e=>{const r=e.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight-8&&r.left>=0&&r.right<=innerWidth&&e.scrollHeight<=e.clientHeight+1}'''),(width,height,region)
-            page.screenshot(path=str(checks.SHOTS/f'yake-{region}-card-{width}.png'))
+        page.wait_for_selector('#scene-card h1')
+        assert page.locator('#scene-card h1').inner_text() == 'Celosia'
+        assert page.locator('[data-scene-action^="surface-"]').count() == 0
+        assert page.locator('#world-actions button').count() == 1
         page.keyboard.press('Escape')
         for region in ['fusang','mu','diyu']:
             page.evaluate('(region)=>{__sceneAPI.select("celosia");__sceneAPI.surface(region)}',region)
             checks.rendered(page)
             page.screenshot(path=str(checks.SHOTS/f'yake-{region}-coast-{width}.png'))
         assert not errors, errors
-        print(f'PASS {width}x{height}: header, names, double-click/tap, independent rings, italics, continent cards',flush=True)
+        print(f'PASS {width}x{height}: header, names, double-click/tap, independent rings, italics, Celosia controls and surfaces',flush=True)
         page.close()
     browser.close()
