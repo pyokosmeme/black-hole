@@ -3,7 +3,7 @@
   'use strict';
   const data = window.YAKE_ATLAS;
   const worlds = new Map(data.worlds.filter(w => !w.hidden).map(w => [w.id, w]));
-  const moonViews = ['jin','shu','xuan'];
+  const moonViews = ['jin','shu','xuan','five'];
   const members = cfg => {
     const ids = [cfg.parent, ...cfg.nodes.map(n => n[0]), ...(cfg.locals || []).map(n => n[0]), ...(cfg.ezLocals || []).map(n => n.id)];
     if (ids.includes('marassa')) ids.push('buka','chawkee');
@@ -79,7 +79,7 @@
     let controls = '';
     if (scene?.hasBody(selected)) controls += '<button class="acidburn-button" type="button" data-scene-action="focus">FOCUS WORLD</button>';
     if (selected === 'marassa' || w.parent === 'marassa') controls += ['buka','chawkee'].map(id => `<button class="acidburn-button" type="button" data-select-world="${id}" aria-pressed="${selected === id}">${id.toUpperCase()}</button>`).join('');
-    if (moonViews.includes(selected) && view !== selected) controls += `<button class="acidburn-button" type="button" data-open-view="${selected}">EXPLORE MOONS</button>`;
+    if (moonViews.includes(selected) && view !== selected) controls += `<button class="acidburn-button" type="button" data-open-view="${selected}">${selected === 'five' ? 'EXPLORE ISLANDS' : 'EXPLORE MOONS'}</button>`;
     if (scene && selected === 'celosia') controls += ['fusang','mu','diyu'].map(region => `<button class="acidburn-button" type="button" data-scene-action="surface-${region}">${region.toUpperCase()}</button>`).join('');
     actions.innerHTML = controls;
     actions.hidden = !controls;

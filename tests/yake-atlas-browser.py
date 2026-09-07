@@ -104,7 +104,7 @@ def run():
                 style = label.evaluate('(e)=>{const s=getComputedStyle(e);return [s.borderLeftWidth,s.outlineStyle,s.backgroundColor]}')
                 assert style == ['0px', 'none', 'rgba(11, 11, 20, 0.72)'], style
                 assert page.locator('[data-show-detail],#scene-card img').count() == 0
-                assert page.locator('#world-actions [data-open-view]').count() == (1 if world in ['jin','shu','xuan'] else 0)
+                assert page.locator('#world-actions [data-open-view]').count() == (1 if world in ['jin','shu','xuan','five'] else 0)
                 assert page.locator('#scene-card details,#scene-card [data-scene-action],#scene-card [data-open-view]').count() == 0
                 assert page.evaluate('__sceneTest.currentView') == 'system'
                 if world == 'celosia':
@@ -169,7 +169,7 @@ def run():
             # Enter local views through the actual planet card, not test hooks.
             references = []
             page.on('request', lambda request: references.append(request.url) if '/img/yake/' in request.url else None)
-            for view, count, local_ids in [('jin',9,['plomo','suseong','peng','marassa','buka','chawkee']),('shu',5,['jouki','mizu','pani','buz']),('xuan',2,['kaau'])]:
+            for view, count, local_ids in [('jin',9,['plomo','suseong','peng','marassa','buka','chawkee']),('shu',5,['jouki','mizu','pani','buz']),('xuan',2,['kaau']),('five',5,['mun','in','sin','island-mu','yong'])]:
                 page.evaluate('(id)=>location.hash=id', view)
                 page.locator(f'#world-actions [data-open-view={view}]').click()
                 page.wait_for_function('(name)=>__sceneTest.currentView===name', arg=view)

@@ -34,6 +34,15 @@ for(const id of ['suseong','peng']) assert.ok(displayRadius(id)>displayRadius('s
 for(const id of ['plomo','suseong','peng']) assert.equal(data.worlds.find(w=>w.id===id).km,undefined);
 assert.equal(data.worlds.find(w=>w.id==='plomo').stats[0][1],'1.82182 million');
 const before=JSON.stringify(data.worlds);
+assert.equal(data.views.five.hierarchy.central,'mun');
+assert.deepEqual(Array.from(data.views.five.hierarchy.periodRatio),[2,3]);
+assert.equal(data.views.five.nodes.length,5);
+for(const [id,mass,density,radius] of [['mun',3.68e22,2.1,1611],['in',9.19e21,1.8,1068],['sin',9.19e21,1.9,1049],['island-mu',9.19e21,2,1031],['yong',9.19e21,2.2,999]]) {
+  assert.equal(world(id).massKg,mass);assert.equal(world(id).density,density);assert.equal(world(id).radiusKm,radius);
+}
+assert.equal(world('pani').atmosphere.pressureKPa,95);
+assert.equal(world('pani').atmosphere.composition.reduce((sum,[gas,pct])=>sum+pct,0),100);
+assert.ok(data.summaryStats(world('pani')).some(([key,val])=>key==='Atmospheric pressure'&&val==='95 kPa'));
 data.worlds.forEach(w=>assert.ok(data.summaryStats(w).length<=4));
 assert.equal(JSON.stringify(data.worlds),before);
 console.log('PASS summary population formatting, unchanged physical values/source counts, four-stat limit, Vas inside Jin EZ');

@@ -53,16 +53,16 @@ window.YAKE_ATLAS = {
       intro:'Across the orbit from Gullinkambi, in the same inner resonance with Xuan.',
       stats:[['Orbit','51.4 AU'],['Population','105.2 thousand'],['Resonance','Inner 3:2 with Xuan']],
       paragraphs:['The supplied system layout places Chanticleer opposite Gullinkambi. Their opposing placement is preserved in the overview; the absolute orbital phase is schematic.'], related:['gullinkambi','xuan']},
-    {id:'five', name:'Five Islands', no:'07', kind:'Loose planetesimal group', parent:'yake', au:88.3, color:'#81b5ac',
-      intro:'Five separate planetesimals sharing a loose, stable region beyond Xuan — not moons of a central world.',
-      stats:[['Orbit','88.3 AU'],['Population','112 thousand'],['Resonance','Outer 3:2 with Xuan']],
-      paragraphs:['Mun, In, Sin, Mu, and Yong make up the Five Islands. Individual orbital elements and population shares are not supplied.'],
+    {id:'five', name:'Five Islands', no:'07', kind:'Hierarchical quintuple', parent:'yake', au:88.3, color:'#81b5ac',
+      intro:'Mun is the central body, with two tight binary pairs: In–Sin and Mu–Yong. The assembly orbits Ya Ke as one compact unit.',
+      stats:[['Orbit','88.3 AU'],['Population','112 thousand'],['Binary barycenter periods','2:3 resonance'],['System orbit','Outer 3:2 with Xuan']],
+      paragraphs:['The first known natural hierarchical binary resonance in-universe. Internal separations, orbital phases, and individual population shares are unspecified; the chart shows schematic spacing.'],
       places:[['0701 / Mun','Five Islands member'],['0702 / In','Five Islands member'],['0703 / Sin','Five Islands member'],['0704 / Mu','Five Islands member; distinct from Celosia’s continent Mu.'],['0705 / Yong','Five Islands member']], related:['mun','in','sin','island-mu','yong','xuan']},
-    {id:'mun', name:'Mun', no:'0701', kind:'Five Islands · planetesimal', parent:'five', color:'#b9c4a5', radiusKm:1611, intro:'The largest of the Five Islands, in their shared outer-system region.', stats:[['Radius','1,611 km'],['Escape speed','1,746 m/s'],['Region','88.3 AU']], related:['five','in']},
-    {id:'in', name:'In', no:'0702', kind:'Five Islands · planetesimal', parent:'five', color:'#9eadaf', radiusKm:1068, intro:'One of five independent planetesimals in the loose Five Islands region.', stats:[['Radius','1,068 km'],['Escape speed','1,072 m/s'],['Region','88.3 AU']], related:['five','mun']},
-    {id:'sin', name:'Sin', no:'0703', kind:'Five Islands · planetesimal', parent:'five', color:'#b9a7b5', radiusKm:1049, intro:'A separate world in the Five Islands, sharing the outer resonance region with Xuan.', stats:[['Radius','1,049 km'],['Escape speed','1,081 m/s'],['Region','88.3 AU']], related:['five']},
-    {id:'island-mu', name:'Mu', no:'0704', kind:'Five Islands · planetesimal', parent:'five', color:'#a2b3c5', radiusKm:1031, intro:'The planetesimal Mu, distinct from the continent of the same name on Celosia.', stats:[['Radius','1,031 km'],['Escape speed','1,091 m/s'],['Region','88.3 AU']], related:['five']},
-    {id:'yong', name:'Yong', no:'0705', kind:'Five Islands · planetesimal', parent:'five', color:'#c7b896', radiusKm:999, intro:'The smallest of the five named planetesimals in this loose outer-system group.', stats:[['Radius','999 km'],['Escape speed','1,108 m/s'],['Region','88.3 AU']], related:['five']},
+    {id:'mun', name:'Mun', no:'0701', kind:'Five Islands · central body', parent:'five', color:'#b9c4a5', radiusKm:1611, massKg:3.68e22, density:2.1, intro:'The central and largest body of the hierarchical quintuple.', stats:[['Radius','1,611 km'],['Mass','3.68 × 10²² kg'],['Density','2.1 g/cm³'],['Escape speed','1.746 km/s']], related:['five','in','sin','island-mu','yong']},
+    {id:'in', name:'In', no:'0702', kind:'Five Islands · In–Sin binary', parent:'five', color:'#9eadaf', radiusKm:1068, massKg:9.19e21, density:1.8, intro:'An intermittently venting world in the tight In–Sin binary.', stats:[['Radius','1,068 km'],['Mass','9.19 × 10²¹ kg'],['Density','1.8 g/cm³'],['Escape speed','1.072 km/s']], related:['five','sin']},
+    {id:'sin', name:'Sin', no:'0703', kind:'Five Islands · In–Sin binary', parent:'five', color:'#b9a7b5', radiusKm:1049, massKg:9.19e21, density:1.9, intro:'Smooth plains and frost cycles mark In’s binary companion.', stats:[['Radius','1,049 km'],['Mass','9.19 × 10²¹ kg'],['Density','1.9 g/cm³'],['Escape speed','1.081 km/s']], related:['five','in']},
+    {id:'island-mu', name:'Mu', no:'0704', kind:'Five Islands · Mu–Yong binary', parent:'five', color:'#a2b3c5', radiusKm:1031, massKg:9.19e21, density:2.0, intro:'Yong’s binary companion and the reference body for CTHS; distinct from Celosia’s Mu.', stats:[['Radius','1,031 km'],['Mass','9.19 × 10²¹ kg'],['Density','2.0 g/cm³'],['Escape speed','1.091 km/s']], related:['five','yong']},
+    {id:'yong', name:'Yong', no:'0705', kind:'Five Islands · Mu–Yong binary', parent:'five', color:'#e4ebef', radiusKm:999, massKg:9.19e21, density:2.2, intro:'Crystalline water-ice plains give Yong the highest albedo of the Five Islands.', stats:[['Radius','999 km'],['Mass','9.19 × 10²¹ kg'],['Density','2.2 g/cm³'],['Escape speed','1.108 km/s']], related:['five','island-mu']},
     {id:'kukkuta', name:'Kukkuta', no:'08', kind:'Far outer world', parent:'yake', au:152, color:'#c1abc9',
       intro:'The most distant named destination in this chart.',
       stats:[['Orbit','152 AU'],['Population','20 thousand']], paragraphs:['Kukkuta extends the inhabited system well beyond Five Islands. Further physical and settlement details have not yet been supplied.'], related:['five']},
@@ -89,7 +89,8 @@ window.YAKE_ATLAS = {
     {id:'jouki', name:'Jouki', kind:'Shu moon · steam', parent:'shu', km:408000, color:'#d98c6c', intro:'A hostile, Io-like world deep inside Shu’s exclusion zone.', stats:[['Orbit around Shu','408,000 km'],['Mass','0.655 Titan masses'],['Atmospheric pressure','100 Pa']], paragraphs:['The supplied atmosphere is roughly 70% sulfur dioxide, 20% sodium, and 10% potassium.']},
     {id:'mizu', name:'Mizu', kind:'Shu moon · water', parent:'shu', km:649000, color:'#94c6d6', intro:'A cryovolcanic moon with a substantial subsurface ocean and lethal radiation zones.', stats:[['Orbit around Shu','649,000 km'],['Mass','0.352 Titan masses'],['Atmospheric pressure','1 kPa']], paragraphs:['Albedo 0.7. The supplied atmosphere is 95% carbon dioxide and 2.7% nitrogen.']},
     {id:'pani', name:'Pani', kind:'Shu moon · industrial seas', parent:'shu', km:1036000, color:'#5cbbb4', intro:'Dark teal seas under a peach sky: hot brines, mineral extraction, and extremophile research.',
-      stats:[['Orbit around Shu','1,036,000 km'],['Population','~780,150'],['Mass','1.087 Titan masses'],['Gravity','0.14 g₀'],['Ocean temperature','330–360 K'],['Atmospheric pressure','95 kPa']],
+      stats:[['Orbit around Shu','1,036,000 km'],['Population','~780,150'],['Atmospheric pressure','95 kPa'],['Ocean temperature','330–360 K (57–87°C)'],['Mass','1.087 Titan masses'],['Gravity','0.14 g₀']],
+      atmosphere:{pressureKPa:95,composition:[['N₂',75],['CO₂',15],['H₂O vapor',4],['SO₂',3],['Methanol',2],['Formaldehyde',1]],sky:'Reddish-orange / peach with pastel clouds'},
       paragraphs:['About 85% of residents live in Eosphora; the notes also list roughly 150,000 CADSS without a defined accounting boundary. Water, methanol, formaldehyde, dissolved gases, salts, and minerals form a chemically complex ocean averaging 3.739 km deep.','Sulfur mining, deep-sea lithium, cobalt and rare-earth extraction, methane harvesting, and brine processing support the industrial economy.'],
       places:[['Eosphora','Principal city'],['The Caustic Expanse','Largest sea'],['The Phlegethon Deep','Deep basin'],['Mare Tenebris · The Viridian Void · The Lethe Basin','Major seas'],['The Mephitic Gulf · Charybdis Sound · The Stygian Shoals','Gulfs and shallows'],['The Mordant Mere · Thanatos Reach','Smaller waters']], related:['shu']},
     {id:'buz', name:'Buz', kind:'Shu moon · frozen outer world', parent:'shu', km:1821760, color:'#c4d4df', intro:'A frozen moon beyond Shu’s exclusion boundary.', stats:[['Orbit around Shu','1,821,760 km'],['Mass','0.280 Titan masses'],['Atmospheric pressure','100 Pa']], paragraphs:['The supplied atmosphere is 70% nitrogen, 25% methane, and 5% carbon monoxide.'], notes:['The 3.079 million population appears both beside Buz and in a description of smaller moons; it is not assigned as a settled Buz census.'], related:['shu']},
@@ -124,7 +125,12 @@ window.YAKE_ATLAS = {
     xuan:'Kaʻauhelemoa is its largest moon. Gullinkambi and Chanticleer occupy the inner resonance region; Five Islands lies beyond Xuan.',
     gullinkambi:'The Golden Comb (金冠, Jīnguān) records brine eruptions, iron-rich ochre, and precipitated gold. Gullinkambi is neutral ground between hive and non-hive cultures.',
     chanticleer:'Chanticleer and Gullinkambi occupy opposite sides of their shared orbital region.',
-    five:'The five worlds are Mun, In, Sin, Mu, and Yong. This Mu is distinct from Celosia’s continent and city.',
+    five:'The two binary barycenters are locked in a 2:3 mean-motion resonance: the first known natural hierarchical binary resonance in-universe.',
+    mun:'Composition: 60% rocky core, 35% H₂O, and 5% CH₄/N₂.',
+    in:'The In–Sin and Mu–Yong barycenters share a 2:3 mean-motion resonance around Mun.',
+    sin:'The In–Sin and Mu–Yong barycenters share a 2:3 mean-motion resonance around Mun.',
+    'island-mu':'A thin N₂/CH₄ atmosphere has a pressure of 0.1–3 mbar.',
+    yong:'Mu and Yong form one of the two tight binary pairs around Mun.',
     kukkuta:'At 152 AU, Kukkuta lies beyond both Xuan and Five Islands.',
     prata:'Its severe radiation environment prevents surface habitation.',
     kobber:'Kobber orbits inward of Vas; both lie inside Jin’s exclusion zone.',
@@ -135,7 +141,7 @@ window.YAKE_ATLAS = {
     peng:'Peng lies farther out than Skarda; its exact orbital radius is unspecified.',
     jouki:'Its thin atmosphere is approximately 70% sulfur dioxide, 20% sodium, and 10% potassium.',
     mizu:'A reflective icy surface overlies a substantial ocean. Its thin atmosphere is predominantly carbon dioxide.',
-    pani:'Eosphora is the principal city. Oceans at 330–360 K support sulfur mining, deep-sea metal extraction, and brine processing.',
+    pani:'Atmosphere: 75% N₂, 15% CO₂, 4% water vapor, 3% SO₂, 2% methanol, 1% formaldehyde. About 85% of residents live in Eosphora, beside hot chemical seas averaging 3.739 km deep.',
     buz:'Its thin atmosphere is approximately 70% nitrogen, 25% methane, and 5% carbon monoxide.',
     kaau:'Collection flights coast 6–8 hours each way, with a 20–30-minute atmospheric pass at Xuan.',
     dajinmen:'Only arrivals may enter the control zone. Dajinmen is distinct from Dadanshui, the Great Plain Water Ring.',
@@ -158,6 +164,16 @@ window.YAKE_ATLAS = {
     shu:{title:'The moons of Shu',parent:'shu',unit:'km',caption:'COMPRESSED MOON ORBITS · DISTANCES FROM SHU',ez:1599180,nodes:[['jouki',86,-40],['mizu',152,145],['pani',220,25],['buz',301,-65]]},
     xuan:{title:'Xuan & Kaʻauhelemoa',parent:'xuan',unit:'km',caption:'KAʻAUHELEMOA / 0401 · XUAN’S LARGEST MOON',ez:237000,nodes:[['kaau',235,155]]},
     outer:{title:'Beyond Celosia',parent:'yake',unit:'AU',caption:'RESONANT OUTER WORLDS · SCHEMATIC PHASES',nodes:[['gullinkambi',130,-155],['chanticleer',130,25],['xuan',200,-65],['five',264,155],['kukkuta',318,-10]],unplaced:['minor']},
-    five:{title:'The Five Islands',parent:'five',cluster:true,unit:'region',caption:'FIVE INDEPENDENT PLANETESIMALS · 88.3 AU REGION',nodes:[['mun',190,-145],['in',120,-55],['sin',230,5],['island-mu',190,70],['yong',220,150]]}
+    five:{title:'The Five Islands',parent:'five',cluster:true,unit:'region',caption:'HIERARCHICAL QUINTUPLE · SCHEMATIC SPACING',nodes:[],hierarchy:{central:'mun',periodRatio:[2,3],pairs:[{members:['in','sin'],center:[-130,-100],offset:[32,-28]},{members:['island-mu','yong'],center:[150,155],offset:[-30,30]}]}}
   }
 };
+// Illustrative internal spacing only, shared by the overview glyph and detail
+// view. No kilometer distances or orbital periods are invented here.
+{
+  const view=window.YAKE_ATLAS.views.five;
+  view.nodes.push([view.hierarchy.central,0,0]);
+  view.hierarchy.pairs.forEach(pair=>pair.members.forEach((id,i)=>{
+    const side=i?1:-1,x=pair.center[0]+side*pair.offset[0],z=pair.center[1]+side*pair.offset[1];
+    view.nodes.push([id,Math.hypot(x,z),Math.atan2(z,x)*180/Math.PI]);
+  }));
+}

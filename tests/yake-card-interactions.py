@@ -26,7 +26,7 @@ with sync_playwright() as p:
         assert 'Canis' not in summary and 'Catalog' not in summary
         page.evaluate("location.hash='five'")
         page.wait_for_selector('.card-detail')
-        assert all(name in page.locator('.card-detail').inner_text() for name in ['Mun','In','Sin','Mu','Yong'])
+        assert all(name in page.locator('#scene-card').inner_text() for name in ['Mun','In','Sin','Mu','Yong'])
         page.keyboard.press('Escape')
         page.locator('.scene-canvas').scroll_into_view_if_needed()
         if not page.locator('[data-pick=jin]').is_visible():

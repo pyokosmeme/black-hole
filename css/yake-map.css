@@ -1,6 +1,8 @@
 /* Shared Acid Burn components own all page chrome.
  * This sheet only arranges the map, cards, and canvas annotations. */
 body.yake-atlas { --atlas-gap:clamp(12px,2vmin,24px); }
+/* View changes and viewport resizing must not tween the window off-screen. */
+body.yake-atlas,body.yake-atlas .header-bar,.atlas-shell,.atlas-chart,.atlas-toolbar,.orbital-field,.atlas-scene,.map-actions,.scene-controls,#system-summary { transition-property:background-color,border-color,box-shadow; }
 .atlas-shell { height:100vh; height:100svh; height:100dvh; display:flex; flex-direction:column; padding-top:calc(50px + var(--atlas-gap)); padding-bottom:calc(var(--atlas-gap) + env(safe-area-inset-bottom,0px)); }
 .atlas-chart { padding:0; scroll-margin-top:80px; margin-bottom:0; display:flex; flex-direction:column; flex:1; min-height:0; }
 .atlas-toolbar { padding:var(--space-md); margin-bottom:0; flex-wrap:wrap; flex-shrink:0; }

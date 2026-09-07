@@ -97,7 +97,7 @@ def run():
             row['keyboardSelection']=page.locator('#scene-card').is_visible()
             row['smallestControl']=page.locator('.scene-controls button:visible').evaluate_all('es=>Math.min(...es.map(e=>Math.min(e.offsetWidth,e.offsetHeight)))')
             row['errors']=errors
-            ids=page.evaluate('''()=>{const d=YAKE_ATLAS,ids=new Set();for(const key of ['system','jin','shu','xuan']){const v=d.views[key];[v.parent,...v.nodes.map(n=>n[0]),...(v.locals||[]).map(n=>n[0]),...(v.ezLocals||[]).map(n=>n.id)].forEach(id=>ids.add(id));}if(ids.has('marassa'))['buka','chawkee'].forEach(id=>ids.add(id));ids.delete('yake');return [...ids];}''')
+            ids=page.evaluate('''()=>{const d=YAKE_ATLAS,ids=new Set();for(const key of ['system','jin','shu','xuan','five']){const v=d.views[key];[v.parent,...v.nodes.map(n=>n[0]),...(v.locals||[]).map(n=>n[0]),...(v.ezLocals||[]).map(n=>n.id)].forEach(id=>ids.add(id));}if(ids.has('marassa'))['buka','chawkee'].forEach(id=>ids.add(id));ids.delete('yake');return [...ids];}''')
             for world in ids:
                 page.evaluate('(id)=>location.hash=id',world)
                 page.wait_for_function('(id)=>document.querySelector("#scene-card h1")?.textContent===YAKE_ATLAS.worlds.find(w=>w.id===id).name',arg=world)

@@ -34,7 +34,7 @@ with sync_playwright() as p:
         checks.rendered(page)
         assert page.locator('.atlas-toolbar #atlas-reset').count() == 0
         assert page.locator('.atlas-chart > .map-actions .scene-controls > #atlas-reset').count() == 1
-        assert page.locator('#atlas-reset').evaluate('e=>{const r=e.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight-11&&r.left>=0&&r.right<=innerWidth}')
+        assert page.locator('#atlas-reset').evaluate('e=>{const r=e.getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight-11&&r.left>=0&&r.right<=innerWidth}'),(width,height,page.evaluate('({scroll:scrollY,reset:document.querySelector("#atlas-reset").getBoundingClientRect().toJSON(),chart:document.querySelector(".atlas-chart").getBoundingClientRect().toJSON()})'))
         assert page.evaluate('''()=>{const c=document.querySelector('.atlas-chart').getBoundingClientRect(),h=document.querySelector('.header-bar').getBoundingClientRect(),s=document.querySelector('.atlas-scene').getBoundingClientRect();return c.top>=h.bottom+8&&c.bottom<=innerHeight-11&&c.left>=8&&c.right<=innerWidth-8&&s.height>=90&&document.documentElement.scrollHeight<=innerHeight+1}'''),(width,height)
         assert page.evaluate('''()=>{const font=e=>getComputedStyle(e).fontFamily,body=font(document.body);return body.includes('Share Tech Mono')&&font(document.querySelector('.scene-label'))===body&&font(document.querySelector('#system-summary .system-description'))===body&&font(document.querySelector('#chart-title')).includes('Orbitron')}''')
         assert page.locator('.scene-hint').evaluate('e=>parseFloat(getComputedStyle(e).fontSize)>=11')
@@ -47,7 +47,7 @@ with sync_playwright() as p:
             assert page.locator('.system-description').is_visible()
             assert page.locator('.atlas-chart').evaluate('e=>e.getBoundingClientRect().bottom<=innerHeight-11')
             page.locator('#system-summary summary').click()
-        for world in ['jin','marassa','chawkee','skarda','plomo','gullinkambi','celosia']:
+        for world in ['jin','marassa','chawkee','skarda','plomo','gullinkambi','celosia','five','mun','in','sin','island-mu','yong','pani']:
             page.evaluate('(id)=>location.hash=id',world)
             page.wait_for_function('(id)=>document.querySelector("#scene-card h1")?.textContent===YAKE_ATLAS.worlds.find(w=>w.id===id).name',arg=world)
             checks.rendered(page)

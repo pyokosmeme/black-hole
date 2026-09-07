@@ -98,7 +98,7 @@ window.YakeScene = (function () {
     function texture(id) {
       const c=document.createElement('canvas'); c.width=['jin','shu','celosia','gullinkambi'].includes(id)?1024:512; c.height=c.width/2;
       const ctx=c.getContext('2d'), pixels=ctx.createImageData(c.width,c.height);
-      const detailed=['celosia','gullinkambi'].includes(id);
+      const detailed=['celosia','gullinkambi','pani'].includes(id);
       const relief=detailed?ctx.createImageData(c.width,c.height):null;
       const reflectivity=detailed?ctx.createImageData(c.width,c.height):null;
       const base=new T.Color(worlds.get(id).color);
@@ -175,6 +175,10 @@ window.YakeScene = (function () {
             elevation=145+lamina*30+n*12;shine=20;
             if(Math.abs(cross)<.013+(.8-age)*.009){rgb=rgb.map(v=>v*.37);elevation=78;}
           }
+        } else if(id==='pani') {
+          const minerals=noise(sx*19+2,sy*19,sz*19);
+          rgb=[18+n*9+minerals*9,70+n*25+minerals*19,81+n*28+minerals*15];
+          elevation=128+n*3;shine=170;
         } else {
           const shade=.7+n*.15;
           rgb=[base.r*255*shade,base.g*255*shade,base.b*255*shade];
@@ -204,6 +208,30 @@ window.YakeScene = (function () {
       sprite.scale.set(140,140,1);content.add(sprite);
     }
 
+    function paniAtmosphere(mesh,size) {
+      const c=document.createElement('canvas');c.width=512;c.height=256;
+      const ctx=c.getContext('2d'),pixels=ctx.createImageData(c.width,c.height);
+      for(let y=0;y<c.height;y++)for(let x=0;x<c.width;x++){
+        const lon=x/c.width*Math.PI*2,lat=(y/c.height-.5)*Math.PI;
+        const sx=Math.cos(lon)*Math.cos(lat),sy=Math.sin(lat),sz=Math.sin(lon)*Math.cos(lat);
+        const cloud=noise(sx*7+11,sy*11,sz*7)*.7+noise(sx*24,sy*30,sz*24)*.3;
+        const i=(y*c.width+x)*4;
+        pixels.data[i]=245;pixels.data[i+1]=190+cloud*25;pixels.data[i+2]=177+cloud*35;
+        pixels.data[i+3]=Math.max(0,cloud-.43)*330;
+      }
+      ctx.putImageData(pixels,0,0);
+      const map=new T.Texture(c);map.needsUpdate=true;
+      const clouds=new T.Mesh(new T.SphereGeometry(size*1.025,40,24),new T.MeshPhongMaterial({map,transparent:true,depthWrite:false,shininess:8}));
+      clouds.name='pani-clouds';mesh.add(clouds);
+      const material=new T.ShaderMaterial({
+        uniforms:{tint:{type:'c',value:new T.Color(0xffb08a)}},transparent:true,depthWrite:false,
+        vertexShader:'varying vec3 n; varying vec3 p; void main(){vec4 v=modelViewMatrix*vec4(position,1.0); n=normalize(normalMatrix*normal); p=v.xyz; gl_Position=projectionMatrix*v;}',
+        fragmentShader:'uniform vec3 tint; varying vec3 n; varying vec3 p; void main(){float rim=1.0-max(dot(normalize(n),normalize(-p)),0.0); float fade=1.0-smoothstep(0.65,1.0,rim); gl_FragColor=vec4(tint,pow(rim,2.0)*fade*0.8);}'
+      });
+      const air=new T.Mesh(new T.SphereGeometry(size*1.06,40,24),material);
+      air.name='pani-atmosphere';air.userData.pressureKPa=95;mesh.add(air);
+    }
+
     function body(id,position,size,habitat) {
       const w=worlds.get(id);
       let mesh;
@@ -229,18 +257,19 @@ window.YakeScene = (function () {
         mesh.rotation.set(-.3,-.4,.2);
       } else if(id==='five') {
         mesh=new T.Group();
-        const offsets=[[-.68,.2,0],[-.18,-.28,.42],[.25,.16,-.35],[.7,-.1,.12],[.1,.42,.6]];
-        ['mun','in','sin','island-mu','yong'].forEach((island,i)=>{
-          const m=new T.Mesh(new T.SphereGeometry(size*(i?.16:.24),24,16),new T.MeshPhongMaterial({map:texture(island)}));
-          m.position.set(...offsets[i].map(v=>v*size));mesh.add(m);
+        data.views.five.nodes.forEach(([island,r,a])=>{
+          const m=new T.Mesh(new T.SphereGeometry(size*.2*worlds.get(island).radiusKm/1611,24,16),new T.MeshPhongMaterial({map:texture(island)}));
+          m.name=island;m.userData.member=island;
+          m.position.copy(point(r*size/300,a*Math.PI/180,0));mesh.add(m);
         });
       } else if(habitat) {
         mesh=new T.Mesh(new T.OctahedronGeometry(size*.7),new T.MeshPhongMaterial({color:0xa7c9d1,shininess:45}));
       } else {
         const map=texture(id);
-        const material=id==='yake'?new T.MeshBasicMaterial({map}):new T.MeshPhongMaterial({map,shininess:id==='celosia'?28:6,specular:map.surfaceRelief?0x60758b:0x334155});
-        if(map.surfaceRelief){material.bumpMap=map.surfaceRelief;material.bumpScale=size*.018;material.specularMap=map.surfaceSpecular;}
+        const material=id==='yake'?new T.MeshBasicMaterial({map}):new T.MeshPhongMaterial({map,shininess:id==='pani'?48:id==='celosia'?28:6,specular:map.surfaceRelief?0x60758b:0x334155});
+        if(map.surfaceRelief){material.bumpMap=map.surfaceRelief;material.bumpScale=size*(id==='pani'?.001:.018);material.specularMap=map.surfaceSpecular;}
         mesh=new T.Mesh(new T.SphereGeometry(size,40,24),material);
+        if(id==='pani')paniAtmosphere(mesh,size);
       }
       mesh.position.copy(position);mesh.userData.world=id;content.add(mesh);
       const marker=new T.Mesh(new T.TorusGeometry(size+2,.12,6,64),new T.MeshBasicMaterial({color:0xff0099,transparent:true,opacity:.85,depthTest:false,depthWrite:false}));
@@ -259,6 +288,7 @@ window.YakeScene = (function () {
       for(let i=0;i<=180;i++) geometry.vertices.push(point(r,i/180*Math.PI*2,inc));
       const material=new T.LineBasicMaterial({color:ez?0xc57b4a:0x536480,transparent:true,opacity:ez?.4:.36});
       const line=new T.Line(geometry,material);content.add(line);tracks.push({id,line,ez});
+      return line;
     }
     // One radial conversion for moons and their parent's EZ.
     function scaledRadius(km,cfg) {
@@ -304,6 +334,14 @@ window.YakeScene = (function () {
             const size=cfg.cluster?worlds.get(world).radiusKm/65:{jin:13,shu:12,xuan:11,celosia:9,gullinkambi:7,chanticleer:7,five:20,kukkuta:7}[world]||8;
             body(world,point(r,a*Math.PI/180,inc),size,false);
           });
+          if(cfg.hierarchy)cfg.hierarchy.pairs.forEach(pair=>{
+            const outer=orbit(null,Math.hypot(...pair.center),0,false);
+            outer.name='binary-barycenter-orbit';outer.userData.members=pair.members;
+            const inner=orbit(null,Math.hypot(...pair.offset),0,false);
+            inner.name='tight-binary-orbit';inner.userData.members=pair.members;
+            inner.position.set(pair.center[0],0,pair.center[1]);
+            annotation(pair.members.map(id=>worlds.get(id).name).join('–'),inner.position.clone());
+          });
           (cfg.locals||[]).forEach(([world,r,a])=>body(world,point(r,a*Math.PI/180,0),world==='marassa'?20:worlds.get(world).mapLabel?5:8,!!worlds.get(world).mapLabel));
           (cfg.ezLocals||[]).forEach(local=>ezNeighborhood(local,cfg));
           if(cfg.ez) {
@@ -327,7 +365,7 @@ window.YakeScene = (function () {
           ring.getObjectByName('ring-selection').visible=ring.userData.world===id;
         });
       });
-      tracks.forEach(t=>{const active=id!=null && t.id===id;t.line.material.color.setHex(active?0xff0099:t.ez?0xc57b4a:0x536480);t.line.material.opacity=active?.9:t.ez?.4:.36;});
+      tracks.forEach(t=>{const active=id!=null && (t.id===id || t.line.userData.members?.includes(id));t.line.material.color.setHex(active?0xff0099:t.ez?0xc57b4a:0x536480);t.line.material.opacity=active?.9:t.ez?.4:.36;});
       draw();
     }
     function home() {
