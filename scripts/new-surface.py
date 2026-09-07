@@ -47,7 +47,6 @@ SCAFFOLD = """<!DOCTYPE html>
   <div class="wrap">
     <h1>{title}</h1>
     <p><em>surface scaffold ;; vibe-code here.</em></p>
-    <p><a href="/surfaces.html">← surfaces</a></p>
   </div>
 </body>
 </html>
