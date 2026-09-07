@@ -410,7 +410,9 @@ window.YakeScene = (function () {
       width=host.clientWidth;height=host.clientHeight;
       if(!width||!height)return;
       camera.aspect=width/height;camera.updateProjectionMatrix();renderer.setSize(width,height,false);
-      if(oldAspect!==width/height && radius>500) home();else draw();
+      // Context controls may change canvas height; keep the selected world's
+      // camera intact when its card opens or closes. Reset/Fit remain explicit.
+      if(oldAspect!==width/height && radius>500 && !selected) home();else draw();
     }
     function hit(x,y) {
       const rect=canvas.getBoundingClientRect();

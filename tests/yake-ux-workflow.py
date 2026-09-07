@@ -85,7 +85,7 @@ def run():
             page.wait_for_timeout(250)
             row['expandedScene']=bounds(page.locator('.atlas-scene'))
             row['expandedControls']=bounds(page.locator('.scene-controls'))
-            row['expandedControlsUnobscured']=page.locator('.scene-controls button').evaluate_all('''es=>es.every(e=>{const r=e.getBoundingClientRect();return e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))})''')
+            row['expandedControlsUnobscured']=page.locator('.scene-controls button:visible').evaluate_all('''es=>es.every(e=>{const r=e.getBoundingClientRect();return e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))})''')
             assert row['expandedControls']['inViewport'] and row['expandedControlsUnobscured'],(width,height,row['expandedControls'])
             page.screenshot(path=str(checks.SHOTS/f'yake-ux-{width}x{height}-expanded.png'))
             page.keyboard.press('Escape')
@@ -95,7 +95,7 @@ def run():
             label.focus()
             page.keyboard.press('Enter')
             row['keyboardSelection']=page.locator('#scene-card').is_visible()
-            row['smallestControl']=page.locator('.scene-controls button').evaluate_all('es=>Math.min(...es.map(e=>Math.min(e.offsetWidth,e.offsetHeight)))')
+            row['smallestControl']=page.locator('.scene-controls button:visible').evaluate_all('es=>Math.min(...es.map(e=>Math.min(e.offsetWidth,e.offsetHeight)))')
             row['errors']=errors
             ids=page.evaluate('''()=>{const d=YAKE_ATLAS,ids=new Set();for(const key of ['system','jin','shu','xuan']){const v=d.views[key];[v.parent,...v.nodes.map(n=>n[0]),...(v.locals||[]).map(n=>n[0]),...(v.ezLocals||[]).map(n=>n.id)].forEach(id=>ids.add(id));}if(ids.has('marassa'))['buka','chawkee'].forEach(id=>ids.add(id));ids.delete('yake');return [...ids];}''')
             for world in ids:
@@ -106,7 +106,8 @@ def run():
                 assert page.locator('.card-intro').is_visible()
                 assert page.locator('#world-actions button').evaluate_all('''es=>es.every(e=>{const r=e.getBoundingClientRect(),c=document.querySelector('#scene-card').getBoundingClientRect();return r.top>=0&&r.bottom<=innerHeight&&r.left>=0&&r.right<=innerWidth&&!(r.left<c.right&&r.right>c.left&&r.top<c.bottom&&r.bottom>c.top)})'''),('actions',world,width,height)
                 assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
-                assert page.locator('#scene-card').evaluate('''e=>{const c=e.getBoundingClientRect();return getComputedStyle(e).position==='fixed'&&c.top>=0&&c.bottom<=innerHeight&&c.left>=0&&c.right<=innerWidth&&Math.abs(c.x+c.width/2-innerWidth/2)<1&&Math.abs(c.y+c.height/2-innerHeight/2)<1}'''),(world,width,height)
+                assert page.locator('#scene-card').evaluate('''e=>{const c=e.getBoundingClientRect();return getComputedStyle(e).position==='fixed'&&c.top>=0&&c.bottom<=document.querySelector('.map-actions').getBoundingClientRect().top-7&&c.left>=0&&c.right<=innerWidth&&Math.abs(c.x+c.width/2-innerWidth/2)<1}'''),(world,width,height)
+                assert page.locator('.scene-controls button:visible').evaluate_all('''es=>es.every(e=>{const r=e.getBoundingClientRect();return r.bottom<=innerHeight-11&&e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))})'''),('footer',world,width,height)
             # All cards must also fit in expanded mode, including short landscape.
             # Dismiss the centered overlay before changing the underlying map frame.
             page.keyboard.press('Escape')
@@ -115,7 +116,8 @@ def run():
                 page.evaluate('(id)=>location.hash=id',world)
                 page.wait_for_function('(id)=>document.querySelector("#scene-card h1")?.textContent===YAKE_ATLAS.worlds.find(w=>w.id===id).name',arg=world)
                 checks.rendered(page)
-                assert page.locator('#scene-card').evaluate('''e=>{const c=e.getBoundingClientRect();return c.top>=0&&c.bottom<=innerHeight&&c.left>=0&&c.right<=innerWidth&&e.scrollHeight<=e.clientHeight+1&&Math.abs(c.y+c.height/2-innerHeight/2)<1}'''),('expanded',world,width,height)
+                assert page.locator('#scene-card').evaluate('''e=>{const c=e.getBoundingClientRect();return c.top>=0&&c.bottom<=document.querySelector('.map-actions').getBoundingClientRect().top-7&&c.left>=0&&c.right<=innerWidth&&e.scrollHeight<=e.clientHeight+1}'''),('expanded',world,width,height)
+                assert page.locator('.scene-controls button:visible').evaluate_all('''es=>es.every(e=>{const r=e.getBoundingClientRect();return r.bottom<=innerHeight-11&&e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))})'''),('expanded footer',world,width,height)
             page.keyboard.press('Escape')
             page.keyboard.press('Escape')
             row['completeCardsVerified']=len(ids)

@@ -111,12 +111,13 @@ def run():
                     for region in ['fusang','mu','diyu']:
                         page.locator(f'[data-scene-action=surface-{region}]').click()
                         rendered(page)
-                    page.locator('[data-scene-action=home]').click()
-                    rendered(page)
                 camera_before=page.evaluate('JSON.stringify([__sceneTest.camera.position.toArray(),__sceneTest.camera.quaternion.toArray(),__sceneTest.target.toArray(),__sceneTest.radius])')
                 page.locator('[data-close-card]').click()
                 rendered(page)
                 assert page.evaluate('JSON.stringify([__sceneTest.camera.position.toArray(),__sceneTest.camera.quaternion.toArray(),__sceneTest.target.toArray(),__sceneTest.radius])')==camera_before
+                page.locator('[data-scene-action=home]').click()
+                rendered(page)
+            page.locator('[data-scene-action=home]').click()
             canvas = page.locator('.scene-canvas')
             canvas.scroll_into_view_if_needed()
             rendered(page)
@@ -151,8 +152,7 @@ def run():
             page.locator('#scene-card').wait_for(state='visible')
             assert page.locator('#scene-card h1').text_content() == 'Celosia',(pick_target,page.locator('#scene-card h1').text_content())
             page.screenshot(path=str(SHOTS / f'yake-overview-card-{width}.png'))
-            # Dismiss the world-action dock before using the bottom map controls.
-            page.keyboard.press('Escape')
+            # Reset stays clickable while the card and contextual actions are open.
             page.locator('#atlas-reset').click()
             assert not page.locator('#scene-card').is_visible()
             assert page.locator('.scene-label[aria-pressed=true]').count() == 0
@@ -233,7 +233,7 @@ def run():
         assert page.evaluate('''() => {
             const s=__sceneTest, radius=id=>s.bodies.find(b=>b.id===id).position.length();
             const ez=s.tracks.find(t=>t.ez).line.geometry.vertices[0].length();
-            return radius('vas')<ez && radius('plomo')>radius('vas') && radius('marassa')>ez && radius('marassa')<radius('skarda') && radius('suseong')>radius('skarda') && radius('peng')>radius('skarda');
+            return radius('vas')<ez && radius('plomo')>radius('skarda') && radius('marassa')>ez && radius('marassa')<radius('skarda') && radius('suseong')>radius('skarda') && radius('peng')>radius('skarda');
         }''')
         page.evaluate('__sceneAPI.focus()')
         rendered(page)

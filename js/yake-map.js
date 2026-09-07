@@ -13,6 +13,7 @@
   const field = document.getElementById('orbital-field');
   const resetButton = document.getElementById('atlas-reset');
   let selected = null, scene = null, region = null;
+  let mapActions, viewControls;
   const esc = value => String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
   const prose = value => esc(value).replace(/\bcelariums?\b/gi, '<em>$&</em>');
   const stats = rows => '<dl class="card-stats">' + rows.map(([k,v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join('') + '</dl>';
@@ -31,7 +32,15 @@
   const actionDock = document.createElement('div');
   actionDock.id = 'world-actions'; actionDock.className = 'world-actions';
   actionDock.setAttribute('role','group'); actionDock.hidden = true;
-  document.body.appendChild(actionDock);
+
+  // One in-window footer owns all controls. Keep cards clear of it, even on
+  // short screens, without creating another fixed button layer over the map.
+  function fitCard() {
+    if (!mapActions || popup.hidden) return;
+    const bottom = mapActions.getBoundingClientRect().top - 8;
+    const half = popup.getBoundingClientRect().height / 2;
+    popup.style.top = Math.max(half + 4, Math.min(innerHeight / 2, bottom - half)) + 'px';
+  }
 
   function writeLocation() {
     history.replaceState(null, '', location.pathname + location.search + (selected ? '#' + selected : view === 'system' ? '' : '#view=' + view));
@@ -58,6 +67,7 @@
     actions.hidden = !selected;
     actions.innerHTML = '';
     card.innerHTML = '';
+    viewControls.hidden = !scene || !!selected;
     if (!selected) return;
     const w = worlds.get(selected);
     const continent = selected === 'celosia' && region ? data.continents[region] : null;
@@ -74,6 +84,7 @@
     actions.innerHTML = controls;
     actions.hidden = !controls;
     actions.setAttribute('aria-label', w.name + ' map actions');
+    fitCard();
   }
 
   function selectWorld(id) {
@@ -104,7 +115,7 @@
   function collapseScene() {
     document.querySelector('.atlas-chart').classList.remove('is-expanded');
     document.body.classList.remove('atlas-expanded');
-    const button = field.querySelector('[data-scene-action="expand"]');
+    const button = mapActions.querySelector('[data-scene-action="expand"]');
     if (button) { button.textContent = 'EXPAND'; button.setAttribute('aria-pressed','false'); }
   }
 
@@ -121,14 +132,22 @@
         const w = worlds.get(id);
         const location = w.au ? w.au + ' AU' : w.km ? w.km.toLocaleString('en-US') + ' km' : w.kind;
         return `<g class="atlas-node" data-world="${id}" role="button" tabindex="0" aria-label="${esc(w.name)}" aria-pressed="${selected === id}" transform="translate(35,${i*64+40})" style="--body-color:${w.color}"><circle class="hit" r="28"/><circle class="node-ring" r="14"/><circle class="node-core" r="7"/><text class="node-name" x="26" y="-2">${esc(w.mapLabel || w.name)}</text><text class="node-meta" x="26" y="17">${esc(location)}</text></g>`;
-      }).join('') + '</svg><div class="map-actions"><div class="scene-controls" role="group" aria-label="Map controls"></div></div>';
-    field.querySelector('.scene-controls').appendChild(resetButton);
+      }).join('') + '</svg>';
     renderCard();
   }
 
   function init() {
     field.innerHTML = '<div class="atlas-scene"><div class="scene-heading"><span>SYSTEM OVERVIEW</span><small>COMPRESSED DISTANCES · ILLUSTRATIVE SIZES</small></div><p class="scene-hint">DRAG: ORBIT · SCROLL / PINCH: ZOOM · DOUBLE-CLICK / TAP: FOCUS</p></div><div class="map-actions"><div class="scene-controls" role="group" aria-label="Map controls"><button class="acidburn-button" type="button" data-scene-action="home" title="Fit map">⌂<span class="atlas-sr"> Fit map</span></button><button class="acidburn-button" type="button" data-scene-action="in" aria-label="Zoom in">+</button><button class="acidburn-button" type="button" data-scene-action="out" aria-label="Zoom out">−</button><button class="acidburn-button" type="button" data-scene-action="labels" aria-pressed="true">LABELS</button><button class="acidburn-button" type="button" data-scene-action="expand" aria-pressed="false">EXPAND</button></div><div class="world-actions-slot" aria-hidden="true"></div></div>';
-    field.querySelector('.scene-controls').appendChild(resetButton);
+    mapActions = field.querySelector('.map-actions');
+    field.after(mapActions);
+    const group = mapActions.querySelector('.scene-controls');
+    viewControls = document.createElement('div');
+    viewControls.className = 'view-controls';
+    while (group.firstChild) viewControls.appendChild(group.firstChild);
+    group.append(viewControls, actionDock, document.getElementById('atlas-system-back'), resetButton);
+    const cardLayout = new ResizeObserver(fitCard);
+    cardLayout.observe(mapActions); cardLayout.observe(popup);
+    window.addEventListener('resize',fitCard);
     try {
       scene = window.YakeScene.create(field.querySelector('.atlas-scene'), id => id ? selectWorld(id) : closeCard(), fallback, id => { selectWorld(id); scene.select(id); scene.focus(); });
       scene.setView('system', null);

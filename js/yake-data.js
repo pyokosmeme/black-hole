@@ -130,7 +130,7 @@ window.YAKE_ATLAS = {
     kobber:'Kobber orbits inward of Vas; both lie inside Jin’s exclusion zone.',
     vas:'Vas lies inside Jin’s 1,560,000 km exclusion boundary. Its low gravity supports surface-to-orbit traffic.',
     skarda:'Its celariums combine stacked agriculture, housing, and ports. A tidally locked rotation gives roughly nine standard days from sunrise to sunset.',
-    plomo:'Plomo lies farther from Jin than Vas. Its exact orbital radius is unspecified.',
+    plomo:'Plomo lies farther from Jin than Skarda. Its exact orbital radius is unspecified.',
     suseong:'Suseong lies farther out than Skarda; its exact orbital radius is unspecified.',
     peng:'Peng lies farther out than Skarda; its exact orbital radius is unspecified.',
     jouki:'Its thin atmosphere is approximately 70% sulfur dioxide, 20% sodium, and 10% potassium.',
@@ -152,9 +152,9 @@ window.YAKE_ATLAS = {
   views: {
     system:{title:'System overview',parent:'yake',unit:'AU',caption:'COMPRESSED ORBIT SPACING · SCHEMATIC PHASES',nodes:[['jin',70,-25],['shu',104,145],['celosia',146,60],['gullinkambi',202,-155],['chanticleer',202,25],['xuan',242,-65],['five',280,160],['kukkuta',316,-15]],locals:[['dajinmen',70,-85],['celosia-hubs',146,120]]},
     // Locals have display positions only: they deliberately do not acquire km values or physical orbit tracks.
-    // Relative ordering only: Plomo beyond Vas; Suseong and Peng beyond Skarda.
+    // Relative ordering only: Plomo, Suseong and Peng are all beyond Skarda.
     // Plomo's 1.82182 million is a population, not an orbital distance.
-    jin:{title:'The moons of Jin',parent:'jin',unit:'km',caption:'JIN · SEVEN PRIMARY MOONS & HORIZON’S EDGE',ez:1560000,nodes:[['prata',80,-40],['kobber',145,155],['vas',210,25],['skarda',300,-65]],locals:[['plomo',235,-140],['suseong',340,65],['peng',370,95]],ezLocals:[{id:'marassa',angle:-125}]},
+    jin:{title:'The moons of Jin',parent:'jin',unit:'km',caption:'JIN · SEVEN PRIMARY MOONS & HORIZON’S EDGE',ez:1560000,nodes:[['prata',80,-40],['kobber',145,155],['vas',210,25],['skarda',300,-65]],locals:[['plomo',370,-140],['suseong',340,65],['peng',370,95]],ezLocals:[{id:'marassa',angle:-125}]},
     shu:{title:'The moons of Shu',parent:'shu',unit:'km',caption:'COMPRESSED MOON ORBITS · DISTANCES FROM SHU',ez:1599180,nodes:[['jouki',86,-40],['mizu',152,145],['pani',220,25],['buz',301,-65]]},
     xuan:{title:'Xuan & Kaʻauhelemoa',parent:'xuan',unit:'km',caption:'KAʻAUHELEMOA / 0401 · XUAN’S LARGEST MOON',ez:237000,nodes:[['kaau',235,155]]},
     outer:{title:'Beyond Celosia',parent:'yake',unit:'AU',caption:'RESONANT OUTER WORLDS · SCHEMATIC PHASES',nodes:[['gullinkambi',130,-155],['chanticleer',130,25],['xuan',200,-65],['five',264,155],['kukkuta',318,-10]],unplaced:['minor']},
