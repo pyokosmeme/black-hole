@@ -1,350 +1,847 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>JOIN — lastnpcalex.agency</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>JOIN // LASTNPCALEX</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --cyan: #00ffff;
-    --purple: #bf00ff;
-    --green: #00ff88;
-    --dark: #000000;
-    --panel: rgba(5, 5, 15, 0.92);
+    --ink: #141619;
+    --ink-2: #1b1e22;
+    --paper: #f1efe8;
+    --paper-dim: #a8a69d;
+    --inkRGB: 20,22,25; --paperRGB: 241,239,232;   /* palette engine rewrites these */
+    --hair: rgba(var(--paperRGB),.18);
+    --hair-soft: rgba(var(--paperRGB),.09);
+    --hx: 72%; --hy: 55%;          /* horizon center, matches JS */
   }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body { height: 100%; }
+  * { box-sizing:border-box; }
+  html { scroll-behavior:smooth; }
   body {
-    font-family: 'Share Tech Mono', 'Courier New', monospace;
-    background: var(--dark);
-    color: #cfcfcf;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow-x: hidden;
+    margin:0; background:var(--ink); color:var(--paper);
+    font-family:"Space Grotesk",system-ui,sans-serif;
+    overflow-x:hidden;
   }
-  /* black hole backdrop */
-  #bh {
-    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  ::selection { background:var(--paper); color:var(--ink); }
+
+  /* ---------- simulation background ----------
+     one simulation, rendered once: the whole page shares the same
+     fuzzy treatment. --fuzz (the tuner's FUZZ slider) sets the blur. */
+  .bglayer { position:fixed; inset:0; width:100%; height:100%; z-index:0; display:block; }
+  #bgBlur  { filter:blur(var(--fuzz, 4px)) contrast(1.32) brightness(.92); }
+  /* axis reticles live on their own layer ABOVE the fuzz: a 1.5px dashed
+     line under a 4px CSS blur is invisible, so the overlay never blurs */
+  #axesOv  { position:fixed; inset:0; width:100%; height:100%; z-index:2; pointer-events:none; display:block; }
+  .vignette {
+    position:fixed; inset:0; z-index:1; pointer-events:none;
     background:
-      radial-gradient(circle at 50% 55%, rgba(0,0,0,0) 0 9vmin, rgba(0,0,0,.9) 9vmin 10vmin, transparent 10vmin),
-      radial-gradient(circle at 50% 55%, transparent 0 10vmin, rgba(191,0,255,.18) 10vmin 13vmin, rgba(0,255,255,.10) 13vmin 16vmin, transparent 17vmin),
-      radial-gradient(circle at 50% 55%, rgba(0,255,255,.06) 17vmin 22vmin, transparent 24vmin);
+      linear-gradient(180deg, rgba(var(--inkRGB),.6) 0%, rgba(var(--inkRGB),0) 13%),
+      linear-gradient(90deg, rgba(var(--inkRGB),.78) 0%, rgba(var(--inkRGB),.35) 30%, rgba(var(--inkRGB),0) 55%),
+      radial-gradient(ellipse 120% 90% at var(--hx) var(--hy), rgba(var(--inkRGB),0) 40%, rgba(var(--inkRGB),.62) 100%);
   }
-  #bh::after {
-    content: '';
-    position: absolute; inset: -20%;
-    background: conic-gradient(from 0deg, transparent 0deg, rgba(0,255,255,.05) 40deg, transparent 90deg, rgba(191,0,255,.06) 200deg, transparent 260deg);
-    animation: spin 24s linear infinite;
+  /* ---------- chrome ---------- */
+  nav {
+    position:fixed; top:0; left:0; right:0; z-index:20;
+    display:flex; justify-content:space-between; align-items:center;
+    padding:22px 40px;
   }
-  @keyframes bh-spin { to { transform: rotate(360deg); } }
-  #bh::after { animation-name: bh-spin; }
-  @media (prefers-reduced-motion: reduce) { #bh::after { animation: none; } }
+  nav .brand { font-family:"Space Mono",monospace; font-size:13px; letter-spacing:.28em; font-weight:700; }
+  nav .links { display:flex; gap:34px; font-family:"Space Mono",monospace; font-size:11px; letter-spacing:.22em; }
+  nav a { color:var(--paper); text-decoration:none; opacity:.85; }
+  nav a:hover { opacity:1; text-decoration:underline; text-underline-offset:5px; }
 
-  main { position: relative; z-index: 1; width: min(560px, 92vw); }
+  main { position:relative; z-index:2; }
 
-  .panel {
-    border: 1px solid rgba(0, 255, 255, 0.35);
-    background: var(--panel);
-    padding: 28px;
-    box-shadow: 0 0 32px rgba(0, 255, 255, 0.08), inset 0 0 60px rgba(0, 0, 0, 0.6);
+  footer {
+    display:flex; justify-content:space-between; padding:30px 40px;
+    border-top:1px solid var(--hair-soft); font-family:"Space Mono",monospace;
+    font-size:10.5px; letter-spacing:.28em; color:var(--paper-dim);
   }
-  .panel::before {
-    content: '';
-    position: absolute; top: -1px; left: -1px; right: -1px; height: 2px;
-    background: linear-gradient(90deg, transparent, var(--cyan), var(--purple), transparent);
-  }
-  header {
-    display: flex; justify-content: space-between; align-items: baseline;
-    color: var(--cyan); letter-spacing: 0.2em; font-size: 12px;
-    margin-bottom: 22px; text-shadow: 0 0 8px rgba(0,255,255,.5);
-  }
-  header .dim { color: #556; }
-  h1 {
-    font-size: clamp(18px, 4vw, 26px);
-    color: #eee; letter-spacing: 2px; margin-bottom: 8px;
-    text-shadow: 0 0 10px rgba(0,255,255,.35);
-  }
-  .sub { color: #889; font-size: 13px; margin-bottom: 26px; line-height: 1.6; }
-  .sub b { color: var(--cyan); font-weight: normal; }
-
-  .status { font-size: 13px; margin-bottom: 26px; }
-  .status .tag { color: var(--purple); }
-  .status .val { color: var(--green); }
-  .status .val.zero { color: #f66; }
-
-  .choice { display: flex; gap: 16px; }
-  button {
-    flex: 1;
-    font: inherit;
-    font-size: 16px;
-    letter-spacing: 3px;
-    color: var(--cyan);
-    background: rgba(0, 255, 255, 0.06);
-    border: 1px solid rgba(0, 255, 255, 0.45);
-    padding: 14px 10px;
-    cursor: pointer;
-    transition: background .15s, color .15s, box-shadow .15s;
-  }
-  button:hover { background: rgba(0, 255, 255, 0.18); box-shadow: 0 0 18px rgba(0,255,255,.25); }
-  button:disabled { opacity: .4; cursor: wait; }
-  #no {
-    color: var(--purple);
-    border-color: rgba(191, 0, 255, 0.45);
-    background: rgba(191, 0, 255, 0.05);
-  }
-  #no:hover { background: rgba(191, 0, 255, 0.16); box-shadow: 0 0 18px rgba(191,0,255,.25); }
-
-  .loginrow { display: none; margin-top: 18px; }
-  .loginrow.visible { display: flex; gap: 8px; }
-  .loginrow input {
-    flex: 1; font: inherit; font-size: 14px;
-    background: #050510; color: var(--cyan);
-    border: 1px solid rgba(0,255,255,.35); padding: 10px 12px;
-  }
-  .loginrow button { flex: 0 0 auto; font-size: 13px; padding: 10px 18px; }
-  .hint { color: #556; font-size: 12px; margin-top: 10px; }
-
-  .result { display: none; margin-top: 24px; border-top: 1px dashed rgba(0,255,255,.25); padding-top: 16px; font-size: 13px; line-height: 1.8; }
-  .result.visible { display: block; }
-  .result .ok { color: var(--green); text-shadow: 0 0 8px rgba(0,255,136,.5); }
-  .result .uri { color: #667; word-break: break-all; font-size: 12px; }
-  .result .flip { display: inline-block; margin-top: 8px; color: #889; cursor: pointer; text-decoration: underline dotted; }
-
-  .err { display: none; margin-top: 16px; color: #ff5566; font-size: 13px; }
-  .err.visible { display: block; }
-
-  footer { margin-top: 20px; font-size: 12px; color: #556; display: flex; justify-content: space-between; align-items: center; }
-  footer a { color: var(--cyan); text-decoration: none; }
-  footer .who { color: #889; }
-  footer .signout { cursor: pointer; color: #667; text-decoration: underline dotted; background: none; border: 0; padding: 0; flex: 0 0 auto; font-size: 12px; letter-spacing: 1px; }
+  footer a { color:var(--paper); text-decoration:none; }
 </style>
 </head>
 <body>
-<div id="bh"></div>
-<main>
-  <div class="panel">
-    <header>
-      <span>[ OPT-IN TERMINAL ]</span>
-      <span class="dim">node: join</span>
-    </header>
 
-    <h1>OPT IN TO THE GAME?</h1>
-    <p class="sub">
-      a record is written to <b>your</b> repo —
-      <span style="color:#667">agency.lastnpcalex.player/self</span> —<br>
-      playerCharacter <b>1</b> if you enter, <b>0</b> if you refuse.
-      no record means you were never asked.
-    </p>
+<canvas id="bgBlur" class="bglayer"></canvas>
+<canvas id="axesOv"></canvas>
+<div class="vignette"></div>
 
-    <div class="status" id="status">checking node...</div>
+<nav>
+  <div class="brand">LASTNPCALEX&nbsp;//&nbsp;JOIN&nbsp;<span style="opacity:.45">AGENCY</span></div>
+  <div class="links">
+    <span id="navT" style="opacity:.65">T&thinsp;=&thinsp;1.12</span>
+  </div>
+</nav>
+
+<style>
+  html, body { overflow: hidden; height: 100%; }
+  .win { position: fixed; left: 50%; top: max(76px, 9vh); transform: translateX(-50%);   /* always below the fixed nav */
+         width: min(620px, 92vw); max-height: min(82vh, calc(100vh - 100px)); display: flex; flex-direction: column;
+         background: rgba(var(--inkRGB), .68);
+         border: 1px solid var(--hair); border-radius: 14px;
+         box-shadow: 0 30px 90px rgba(0,0,0,.55);
+         backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+         z-index: 30; overflow: hidden; transition: max-height .45s cubic-bezier(.2,.8,.2,1); }
+  .win-head { display: flex; align-items: baseline; gap: 14px; padding: 18px 22px 14px;
+              border-bottom: 1px solid var(--hair-soft); flex: 0 0 auto; }
+  .win-title { font-family: "Space Grotesk", sans-serif; font-size: 22px; font-weight: 700; line-height: 1.1; }
+  .win-min { margin-left: auto; background: none; border: 1px solid var(--paper-dim); color: var(--paper);
+             font-family: "Space Mono", monospace; font-size: 12px; letter-spacing: .14em;
+             padding: 4px 12px; border-radius: 99px; cursor: pointer; }
+  .win-min:hover { border-color: var(--paper); }
+  .win-body { overflow-y: auto; padding: 18px 22px; scrollbar-width: thin;
+              flex: 1 1 auto; min-height: 0;   /* shrink with the window: footer stays inside the frame */
+              scrollbar-color: rgba(var(--paperRGB), .3) transparent; }
+  .win-body p { margin: 0 0 14px; color: rgba(var(--paperRGB), .78);
+                font-family: "Space Grotesk", sans-serif; font-size: 15px; line-height: 1.65; }
+  .win-body b { color: var(--paper); }
+  .win-foot { flex: 0 0 auto; padding: 10px 22px 14px; border-top: 1px solid var(--hair-soft);
+              color: rgba(var(--paperRGB), .55); font-family: "Space Mono", monospace;
+              font-size: 12px; letter-spacing: .12em; }
+  .win.min { max-height: 58px; }
+  .win.min .win-body, .win.min .win-foot { display: none; }
+  .win.min .win-head { border-bottom: none; }
+
+  /* ---------- opt-in controls (same grammar as the tuner presets) ---------- */
+  .opt-status {
+    font-family: "Space Mono", monospace; font-size: 12px; letter-spacing: .14em;
+    color: var(--paper-dim); margin: 2px 0 18px;
+  }
+  .opt-status b { color: var(--paper); font-weight: 700; }
+  .choice { display: flex; gap: 10px; margin-bottom: 16px; }
+  .choice button {
+    flex: 1; background: none; border: 1px solid var(--hair); color: var(--paper);
+    font-family: "Space Mono", monospace; font-size: 13px; letter-spacing: .3em;
+    padding: 13px 0; cursor: pointer; transition: color .2s, border-color .2s, background .2s;
+  }
+  .choice button:hover { color: var(--ink); background: var(--paper); border-color: var(--paper); }
+  .choice button:disabled { opacity: .4; cursor: wait; }
+  .loginrow { display: none; gap: 10px; margin-bottom: 6px; }
+  .loginrow.visible { display: flex; }
+  .loginrow input {
+    flex: 1; font-family: "Space Mono", monospace; font-size: 13px; letter-spacing: .08em;
+    background: rgba(var(--paperRGB), .06); color: var(--paper);
+    border: 1px solid var(--hair); padding: 11px 14px; outline: none;
+  }
+  .loginrow input:focus { border-color: var(--paper-dim); }
+  .loginrow button {
+    flex: 0 0 auto; background: none; border: 1px solid var(--paper-dim); color: var(--paper);
+    font-family: "Space Mono", monospace; font-size: 11px; letter-spacing: .18em;
+    padding: 0 20px; cursor: pointer;
+  }
+  .loginrow button:hover { border-color: var(--paper); }
+  .opt-hint { font-family: "Space Mono", monospace; font-size: 10.5px; letter-spacing: .1em;
+              color: var(--paper-dim); margin-bottom: 14px; }
+  .opt-result { display: none; border-top: 1px solid var(--hair-soft); padding-top: 14px;
+                font-family: "Space Mono", monospace; font-size: 12px; letter-spacing: .1em;
+                color: rgba(var(--paperRGB), .78); line-height: 1.9; }
+  .opt-result.visible { display: block; }
+  .opt-result .ok { color: var(--paper); font-weight: 700; }
+  .opt-result .uri { color: var(--paper-dim); font-size: 10.5px; word-break: break-all; }
+  .opt-result .flip { cursor: pointer; text-decoration: underline; text-underline-offset: 5px; }
+  .opt-err { display: none; font-family: "Space Mono", monospace; font-size: 12px;
+             letter-spacing: .08em; color: #ffb0a6; margin-bottom: 10px; }
+  .opt-err.visible { display: block; }
+</style>
+
+<div class="win" id="win">
+  <div class="win-head">
+    <div class="win-title">Opt in to the <b>game?</b></div>
+    <button type="button" class="win-min" id="winMin" title="minimize">—</button>
+  </div>
+  <div class="win-body">
+    <p>A record is written to <b>your</b> repo — <b>agency.lastnpcalex.player/self</b>.
+    Say yes and <b>playerCharacter&nbsp;=&thinsp;1</b>: you are a player character in the game.
+    Say no and <b>playerCharacter&nbsp;=&thinsp;0</b>: present, but not playing.
+    No record means you were never asked.</p>
+
+    <div class="opt-status" id="status">checking node...</div>
+
+    <div class="opt-err" id="err"></div>
 
     <div class="choice">
-      <button id="yes">YES</button>
-      <button id="no">NO</button>
+      <button id="yes" type="button">YES</button>
+      <button id="no" type="button">NO</button>
     </div>
 
     <div class="loginrow" id="loginrow">
       <input id="handle" type="text" placeholder="your.handle" autocomplete="username" spellcheck="false">
-      <button id="gologin">continue</button>
+      <button id="gologin" type="button">CONTINUE</button>
     </div>
-    <div class="hint" id="hint">sign in with your ATProto handle (bluesky, blacksky, your own PDS)</div>
+    <div class="opt-hint" id="hint">sign in with your ATProto handle — bluesky, blacksky, your own PDS</div>
 
-    <div class="result" id="result"></div>
-    <div class="err" id="err"></div>
-
-    <footer>
-      <a href="https://lastnpcalex.agency/" target="_blank" rel="noopener">lastnpcalex.agency</a>
-      <span class="who" id="who"></span>
-      <span class="signout" id="signout" style="display:none">sign out</span>
-    </footer>
+    <div class="opt-result" id="result"></div>
   </div>
-</main>
-
+  <div class="win-foot">AGENCY.LASTNPCALEX.PLAYER · RKEY SELF · <span id="winT">T = 1.70</span></div>
+</div>
 <script>
-const PLAYER_TYPE = 'agency.lastnpcalex.player';
-const RKEY = 'self';
-const BSKY_SOCIAL = 'https://bsky.social';
-const PENDING_KEY = 'join.pendingChoice';
-
-const statusEl = document.getElementById('status');
-const resultEl = document.getElementById('result');
-const errEl = document.getElementById('err');
-const whoEl = document.getElementById('who');
-const signoutEl = document.getElementById('signout');
-const loginRow = document.getElementById('loginrow');
-const hintEl = document.getElementById('hint');
-const yesBtn = document.getElementById('yes');
-const noBtn = document.getElementById('no');
-const handleInput = document.getElementById('handle');
-const goLoginBtn = document.getElementById('gologin');
-
-let session = null;
-let pendingChoice = sessionStorage.getItem(PENDING_KEY);
-
-function showErr(msg) { errEl.textContent = msg; errEl.classList.add('visible'); }
-function clearErr() { errEl.textContent = ''; errEl.classList.remove('visible'); }
-
-function fmtTime(iso) {
-  return new Date(iso).toLocaleString('en-US', {
-    year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+(function () {
+  var win = document.getElementById("win"), mn = document.getElementById("winMin");
+  mn.addEventListener("click", function () {
+    win.classList.toggle("min");
+    mn.textContent = win.classList.contains("min") ? "+" : "\u2014";
   });
-}
+  win.addEventListener("pointerdown", function (e) { e.stopPropagation(); });
+  var wt = document.getElementById("winT"), nt = document.getElementById("navT");
+  setInterval(function () { if (nt) wt.textContent = nt.textContent; }, 500);
+})();
+</script>
 
-async function getSession() {
-  try {
-    const res = await fetch('/api/oauth/session');
-    if (!res.ok) return null;
-    return await res.json();
-  } catch { return null; }
-}
+<div style="display:none"><span id="mval"></span><span id="tval"></span><span id="fval"></span><section id="crossing"><span id="rval"></span><span id="phase"></span></section></div>
+<script>
+(function () {
+  "use strict";
 
-async function loadCurrent(did) {
-  try {
-    const res = await fetch(
-      `${BSKY_SOCIAL}/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(did)}` +
-      `&collection=${encodeURIComponent(PLAYER_TYPE)}&rkey=${RKEY}`
-    );
-    if (!res.ok) return null;
-    const data = await res.json();
-    if (data.value?.$type !== PLAYER_TYPE) return null;
-    return data.value;
-  } catch { return null; }
-}
+  /* ================= setup ================= */
+  var cvB = document.getElementById("bgBlur");
+  var ctxB = cvB.getContext("2d");
+  var cvO = document.getElementById("axesOv");   /* crisp overlay: axis reticles (never fuzzed) */
+  var ctxO = cvO.getContext("2d");
+  var COLS = 420;
+  var ROWS = 240;
+  var horizon = { cx: 0.72, cy: 0.55, R: 0.30 };
+  var INK = [20, 22, 25], PAPER = [241, 239, 232];
 
-function renderStatus(record) {
-  statusEl.innerHTML = '';
-  if (!record) {
-    statusEl.innerHTML = '<span class="tag">[ STATUS ]</span> no record — <span class="val zero" style="color:#889">never asked</span>';
-  } else {
-    const v = record.playerCharacter;
-    statusEl.innerHTML =
-      `<span class="tag">[ STATUS ]</span> playerCharacter = ` +
-      `<span class="val${v === 0 ? ' zero' : ''}">${v}</span>` +
-      `<span style="color:#556"> // set ${fmtTime(record.createdAt)}</span>`;
+  /* lattices */
+  var N = COLS * ROWS;
+  var s = new Int8Array(N);
+  var base = new Float32Array(N);
+  var amp  = new Float32Array(N);
+  var amp2 = new Float32Array(N);   /* 3-arm spiral amplitude */
+  var amp3 = new Float32Array(N);   /* lensed-arc bead amplitude */
+  var wK   = new Float32Array(N);   /* Keplerian angular speed at that radius */
+  var phA  = new Float32Array(N);
+  var coup = new Float32Array(N);
+  var seedTex = new Float32Array(N);
+  var env = new Float32Array(N);      /* emission envelope (tone-mapped) */
+  var rPr = new Float32Array(N);      /* disk-plane radius per cell (0 = off-disk) */
+  var azA = new Float32Array(N);      /* disk-plane azimuth per cell */
+  function vhash(ix, iy) {
+    var n = Math.sin(ix * 127.1 + iy * 311.7) * 43758.5453;
+    return n - Math.floor(n);
   }
-}
+  function vnoise(x, y) {
+    var ix = Math.floor(x), iy = Math.floor(y), fx = x - ix, fy = y - iy;
+    var ux = fx * fx * (3 - 2 * fx), uy = fy * fy * (3 - 2 * fy);
+    var a = vhash(ix, iy), b = vhash(ix + 1, iy), c = vhash(ix, iy + 1), d = vhash(ix + 1, iy + 1);
+    return a + (b - a) * ux + (c - a) * uy + (a - b - c + d) * ux * uy;
+  }
+  (function bakeSeed() {
+    var i = 0;
+    for (var y = 0; y < ROWS; y++) for (var x = 0; x < COLS; x++, i++) {
+      var n = 0.62 * vnoise(x / 11, y / 11) + 0.38 * vnoise(x / 4.5 + 37.2, y / 4.5 + 91.7);
+      seedTex[i] = n;
+    }
+  })();
+  var pinned = new Uint8Array(N);
+  var afm = new Float32Array(N);   /* 0..1 blend weight: feathered AFM onset */
+  var STARS = (function () {
+    var a = [];
+    for (var k = 0; k < 90; k++) a.push([(Math.random() * COLS) | 0, (Math.random() * ROWS) | 0]);
+    return a;
+  })();
 
-function renderResult(value) {
-  resultEl.innerHTML =
-    `<span class="ok">[ SIGNAL ACCEPTED ]</span><br>` +
-    `playerCharacter set to <b>${value}</b> in your repo.<br>` +
-    `<span class="uri">at://${session.did}/${PLAYER_TYPE}/${RKEY}</span><br>` +
-    `<span class="flip" id="flip">change your answer</span>`;
-  document.getElementById('flip').onclick = () => {
-    resultEl.classList.remove('visible');
-    setButtonsEnabled(true);
-  };
-  resultEl.classList.add('visible');
-}
+  for (var i = 0; i < N; i++) { s[i] = Math.random() < 0.5 ? -1 : 1; coup[i] = 1; }
 
-function setButtonsEnabled(on) {
-  yesBtn.disabled = !on;
-  noBtn.disabled = !on;
-}
-
-async function applyChoice(value) {
-  clearErr();
-  setButtonsEnabled(false);
-  yesBtn.textContent = value === 1 ? '...' : 'YES';
-  noBtn.textContent = value === 0 ? '...' : 'NO';
-  try {
-    const res = await fetch('/api/bsky/putRecord', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        collection: PLAYER_TYPE,
-        rkey: RKEY,
-        record: {
-          $type: PLAYER_TYPE,
-          playerCharacter: value,
-          handle: session?.handle || undefined,
-          createdAt: new Date().toISOString(),
-        },
-      }),
+  /* ================= magnetic surface bake (per frame) =================
+     2.5D NEUTRON STAR. The star is an orthographic disc and each lattice
+     cell inside it is a point on the visible hemisphere. A dipole tilted
+     off the spin axis co-rotates with the star; the surface field sets the
+     LOCAL Ising coupling, so magnetic polar caps ORDER (aurora) while the
+     equator boils. Dipole field-line loops are stamped into the
+     magnetosphere as coupling ridges - the sea orders ALONG the field. */
+  var OMEGA = Math.PI * 2 / 14;              /* spin period: 14 s at 1x */
+  var FLARES = (function () {
+    var a = [];
+    for (var k = 0; k < 9; k++) a.push({
+      th: 0.25 + Math.random() * 2.6,
+      lam: Math.random() * Math.PI * 2,
+      age: Math.random() * 8, life: 5 + Math.random() * 9,
+      sig: 0.14 + Math.random() * 0.16, amp: 0.55 + Math.random() * 0.75
     });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || `write failed (${res.status})`);
-    renderStatus({ playerCharacter: value, createdAt: new Date().toISOString() });
-    renderResult(value);
-  } catch (e) {
-    showErr(e.message);
-  } finally {
-    setButtonsEnabled(true);
-    yesBtn.textContent = 'YES';
-    noBtn.textContent = 'NO';
-  }
-}
-
-async function beginLogin(value) {
-  clearErr();
-  sessionStorage.setItem(PENDING_KEY, String(value));
-  const handle = handleInput.value.trim();
-  if (!handle) {
-    loginRow.classList.add('visible');
-    hintEl.style.display = '';
-    handleInput.focus();
-    showErr('handle required to write to your repo');
-    return;
-  }
-  setButtonsEnabled(false);
-  try {
-    const res = await fetch('/api/oauth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ handle, returnTo: window.location.href }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'login failed');
-    window.location.assign(data.redirect_url);
-  } catch (e) {
-    setButtonsEnabled(true);
-    showErr(e.message);
-  }
-}
-
-yesBtn.onclick = () => (session ? applyChoice(1) : beginLogin(1));
-noBtn.onclick = () => (session ? applyChoice(0) : beginLogin(0));
-
-signoutEl.onclick = async () => {
-  await fetch('/api/oauth/logout', { method: 'POST' });
-  sessionStorage.removeItem(PENDING_KEY);
-  window.location.reload();
-};
-
-goLogin.onclick = () => {
-  const value = pendingChoice !== null ? parseInt(pendingChoice, 10) : 1;
-  beginLogin(isNaN(value) ? 1 : value);
-};
-handleInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') goLogin.onclick(); });
-
-(async function init() {
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('auth_error')) {
-    showErr('authorization refused: ' + params.get('auth_error'));
-  }
-
-  session = await getSession();
-  whoEl.textContent = session ? '@' + session.handle : 'anonymous';
-  signoutEl.style.display = session ? '' : 'none';
-
-  if (session) {
-    const record = await loadCurrent(session.did);
-    renderStatus(record);
-    if (pendingChoice !== null) {
-      sessionStorage.removeItem(PENDING_KEY);
-      const value = parseInt(pendingChoice, 10);
-      if (value === 0 || value === 1) {
-        pendingChoice = null;
-        await applyChoice(value);
+    return a;
+  })();
+  function stepFlares(dt) {
+    for (var k = 0; k < FLARES.length; k++) {
+      var f = FLARES[k];
+      f.age += dt;
+      if (f.age >= f.life) {
+        f.th = 0.25 + Math.random() * 2.6; f.lam = Math.random() * Math.PI * 2;
+        f.age = 0; f.life = 5 + Math.random() * 9;
+        f.sig = 0.14 + Math.random() * 0.16; f.amp = 0.55 + Math.random() * 0.75;
       }
     }
-  } else {
-    statusEl.innerHTML = '<span class="tag">[ STATUS ]</span> not signed in — a choice writes a record to your ATProto repo';
-    if (pendingChoice !== null) {
-      loginRow.classList.add('visible');
+  }
+  function buildField() {
+    DISKW = TUN.D;
+    base.fill(0); amp.fill(0); phA.fill(0); coup.fill(1); afm.fill(0); pinned.fill(0);
+    env.fill(0); rPr.fill(0);
+    var RS = horizon.R * ROWS;
+    var CX = horizon.cx * COLS, CY = horizon.cy * ROWS;
+    var B0 = TUN.D;
+    var beta = TUN.R * Math.PI / 180;
+    var phi = flowT * OMEGA;
+    var cb = Math.cos(beta), sb = Math.sin(beta);
+    var cph = Math.cos(phi), sph = Math.sin(phi);
+    var mx = sb * cph, my = cb, mz = sb * sph;
+    var ci = COSI, si = SINI;
+    var PAr = (TUN.PA || 0) * Math.PI / 180, PAC = Math.cos(PAr), PAS = Math.sin(PAr);
+    var e1x = my * 0 - mz * 1, e1y = mz * 0 - mx * 0, e1z = mx * 1 - my * 0;
+    var e1l = Math.sqrt(e1x * e1x + e1y * e1y + e1z * e1z) || 1;
+    e1x /= e1l; e1y /= e1l; e1z /= e1l;
+    var e2x = my * e1z - mz * e1y, e2y = mz * e1x - mx * e1z, e2z = mx * e1y - my * e1x;
+    var fdx = [], fdy = [], fdz = [], fw = [];
+    for (var fk = 0; fk < FLARES.length; fk++) {
+      var ff = FLARES[fk];
+      var ct = Math.cos(ff.th), st = Math.sin(ff.th), cl = Math.cos(ff.lam), sl2 = Math.sin(ff.lam);
+      var dx2 = ct * mx + st * (cl * e1x + sl2 * e2x);
+      var dy2 = ct * my + st * (cl * e1y + sl2 * e2y);
+      var dz2 = ct * mz + st * (cl * e1z + sl2 * e2z);
+      fdx[fk] = dx2; fdy[fk] = dy2; fdz[fk] = dz2;
+      fw[fk] = ff.amp * Math.sin(Math.PI * ff.age / ff.life) / (2 * ff.sig * ff.sig);
+    }
+    for (var y = 0; y < ROWS; y++) {
+      for (var x = 0; x < COLS; x++) {
+        var i = y * COLS + x;
+        var nx0 = (x - CX) / RS, ny0 = -(y - CY) / RS;
+        var nx = nx0 * PAC + ny0 * PAS, ny = -nx0 * PAS + ny0 * PAC;
+        var r2 = nx0 * nx0 + ny0 * ny0;
+        var I = 0;
+        if (r2 < 1) {
+          var z = Math.sqrt(1 - r2);
+          var Ys = ny * ci - z * si, Zs = ny * si + z * ci, Xs = nx;
+          var cm = Xs * mx + Ys * my + Zs * mz;
+          var lam = Math.atan2(Xs * cph - Zs * sph, Zs * cph + Xs * sph);
+          var Brel = Math.sqrt(1 + 3 * cm * cm);
+          var stri = 1 + 0.28 * Math.sin(lam * 9 + flowT * 0.7)
+                        + 0.16 * Math.sin(lam * 23 - flowT * 1.1);
+          var lum = 0.42 + 0.58 * Math.pow(z, 0.35);
+          var capd = 1 - Math.abs(cm);
+          var aur = Math.exp(-(capd * 2.6) * (capd * 2.6));
+          I = lum * (0.55 + 0.75 * aur) * stri * (0.75 + 0.5 * seedTex[i]) * (0.7 + 0.15 * Brel);
+          for (var fk2 = 0; fk2 < FLARES.length; fk2++) {
+            var ddx = Xs - fdx[fk2], ddy = Ys - fdy[fk2], ddz = Zs - fdz[fk2];
+            var q2 = ddx * ddx + ddy * ddy + ddz * ddz;
+            if (q2 < 0.36) I += fw[fk2] * (0.36 - q2);
+          }
+          coup[i] = TUN.J * (0.35 + 0.45 * Brel * Brel) * (0.8 + 0.4 * seedTex[i]);
+          phA[i] = lam;
+          var In0 = 1 - Math.exp(-0.9 * I);
+          amp[i] = 0.85 * In0 * Math.max(0, Math.min(1, (In0 - 0.38) / 0.30));
+        }
+        var In = 1 - Math.exp(-0.9 * I);
+        env[i] = In;
+        var fi = 1.5 * (2 * In - 1);
+        base[i] += fi;
+        if (r2 >= 1 && r2 < 1.22) {
+          var she = 1 - (r2 - 1) / 0.22;
+          base[i] += -0.9 * she * she;
+        }
+        if (r2 >= 1.22) {
+          var wA = Math.min(1, (r2 - 1.22) / 0.5);
+          afm[i] = wA;
+          coup[i] = 1 + wA * (TUN.SPC * (0.85 + 0.3 * seedTex[i]) - 1);
+          base[i] += (seedTex[i] - 0.5) * 0.5 * wA;
+        }
+      }
+    }
+    var shells = [2.0, 2.9, 4.1, 5.7, 7.9];
+    for (var sh = 0; sh < shells.length; sh++) {
+      var L = shells[sh] * (0.8 + 0.2 * Math.min(2, B0));
+      var th0 = Math.asin(Math.sqrt(1 / L));
+      var ampL = 3.2 / (1 + L * 0.42) * (0.45 + 0.55 * Math.min(1.6, B0));
+      for (var ips = 0; ips < 8; ips++) {
+        var psi = ips * Math.PI / 4 + sh * 0.31;
+        var cps = Math.cos(psi), sps = Math.sin(psi);
+        for (var it = 0; it <= 96; it++) {
+          var th = th0 + (Math.PI - 2 * th0) * it / 96;
+          var sn = Math.sin(th);
+          var rr = L * sn * sn;
+          if (rr < 1.02) continue;
+          var xdf = rr * sn * cps, zdf = rr * sn * sps, ydf = rr * Math.cos(th);
+          var xs1 = xdf * cph + zdf * sph, zs1 = -xdf * sph + zdf * cph;
+          var ys1 = ydf * cb - zs1 * sb, zs2 = ydf * sb + zs1 * cb;
+          var vX = xs1, vY = ys1 * ci - zs2 * si, vZ = ys1 * si + zs2 * ci;
+          if (vZ < 0.05) continue;
+          var vXr = vX * PAC + vY * PAS, vYr = -vX * PAS + vY * PAC;
+          var sx2 = vXr * RS + CX, sy2 = -vYr * RS + CY;
+          var gx = Math.round(sx2), gy = Math.round(sy2);
+          for (var oy = -2; oy <= 2; oy++) for (var ox = -2; ox <= 2; ox++) {
+            var cx2 = gx + ox, cy2 = gy + oy;
+            if (cx2 < 0 || cx2 >= COLS || cy2 < 0 || cy2 >= ROWS) continue;
+            var dd2 = ox * ox + oy * oy; if (dd2 > 4) continue;
+            var nxs = (cx2 - CX) / RS, nys = -(cy2 - CY) / RS;
+            if (nxs * nxs + nys * nys < 1.06) continue;
+            var j2 = cy2 * COLS + cx2;
+            base[j2] += ampL * Math.exp(-dd2 / 1.8) * 4.5;
+          }
+        }
+      }
+    }
+    for (var k2 = 0; k2 < STARS.length; k2 += 2) {
+      var sx = STARS[k2], sy = STARS[k2 + 1], i2 = sy * COLS + sx;
+      if (afm[i2] > 0.5 && !pinned[i2]) { pinned[i2] = 1; s[i2] = 1; base[i2] += 1.2; }
     }
   }
+  var zoneEls = [];
+  function collectZones() {
+    zoneEls = [];
+    var sels = [".kicker", "h1", ".sub", ".datastrip", ".cards", ".gauge"];
+    for (var k = 0; k < sels.length; k++) {
+      var el = document.querySelector(sels[k]);
+      if (el) zoneEls.push(el);
+    }
+  }
+  function stampPanels() {
+    for (var i = 0; i < N; i++) if (afm[i] > 0) coup[i] = 1 + afm[i] * (TUN.SPC * (0.85 + 0.3 * seedTex[i]) - 1);
+    for (var k = 0; k < zoneEls.length; k++) {
+      var el = zoneEls[k];
+      var rng = document.createRange();
+      rng.selectNodeContents(el);
+      var rects = rng.getClientRects();
+      if (rects.length > 48) rects = [el.getBoundingClientRect()];
+      for (var q = 0; q < rects.length; q++) {
+        var r = rects[q];
+        if (r.width < 2 || r.height < 2) continue;
+        if (r.bottom < -80 || r.top > innerHeight + 80) continue;
+        var X0 = r.left / innerWidth * COLS - 3, X1 = r.right / innerWidth * COLS + 3;
+        var Y0 = r.top / innerHeight * ROWS - 3, Y1 = r.bottom / innerHeight * ROWS + 3;
+        var x0 = Math.max(0, Math.floor(X0)), x1 = Math.min(COLS, Math.ceil(X1));
+        var y0 = Math.max(0, Math.floor(Y0)), y1 = Math.min(ROWS, Math.ceil(Y1));
+        for (var y = y0; y < y1; y++)
+          for (var x = x0; x < x1; x++) {
+            var j = y * COLS + x;
+            var d = Math.min(x - X0, X1 - x, y - Y0, Y1 - y) / 8;
+            var tg = -1.35 * (0.75 + 0.5 * seedTex[j]);
+            if (d >= 1) coup[j] = Math.min(coup[j], tg);
+            else if (d > 0) {
+              var w = d * d * (3 - 2 * d);
+              coup[j] = Math.min(coup[j], coup[j] + (tg - coup[j]) * w);
+            }
+          }
+      }
+    }
+  }
+  /* ================= orbiting hot spots ================= */
+  var SPOTS = [
+    { r: 1.05, w: 0.28, phase: 4.4 }, { r: 1.15, w: 0.30, phase: 0.0 },
+    { r: 1.35, w: 0.32, phase: 1.3 }, { r: 1.45, w: 0.33, phase: 5.9 },
+    { r: 1.60, w: 0.34, phase: 2.6 }, { r: 1.90, w: 0.36, phase: 3.9 },
+    { r: 2.05, w: 0.38, phase: 1.9 }, { r: 2.30, w: 0.40, phase: 5.2 },
+    { r: 2.80, w: 0.45, phase: 0.8 }, { r: 3.40, w: 0.50, phase: 2.1 },
+    { r: 4.00, w: 0.55, phase: 3.4 }, { r: 4.45, w: 0.58, phase: 4.8 }
+  ];
+  (function () {
+    for (var k = 0; k < SPOTS.length; k++) {
+      var sp = SPOTS[k];
+      sp.speed = 0.83 / Math.pow(sp.r, 1.5);
+      sp.dmax = Math.min(Math.PI, 2.8 * sp.w);
+      sp.cmin = Math.cos(sp.dmax);
+    }
+  })();
+  var spotTh = new Float64Array(SPOTS.length);
+  function spotField(i, t) {
+    var rP = rPr[i];
+    if (rP <= 0) return 0;
+    var az = azA[i];
+    var add = 0;
+    for (var k = 0; k < SPOTS.length; k++) {
+      var sp = SPOTS[k];
+      var dc = Math.cos(az - spotTh[k]);
+      if (dc < sp.cmin) continue;
+      var da = Math.acos(dc);
+      var g = Math.exp(-(da * da) / (2 * sp.w * sp.w));
+      if (g < 0.02) continue;
+      var dr = (rP - sp.r) / 0.30;
+      if (dr > 2.2 || dr < -2.2) continue;
+      add += 1.6 * g * Math.exp(-dr * dr);
+    }
+    return add;
+  }
+
+  /* cursor = a local INVERSE on the field h */
+  var mouse = { x: -1e4, y: -1e4, on: false };
+  var shock = 0;
+  addEventListener("pointerdown", function (e) {
+    if (e.target.closest && e.target.closest(".win")) return;
+    var r = cvB.getBoundingClientRect();
+    burst(e.clientX - r.left, e.clientY - r.top);
+    shock = 1;
+  });
+  function burst(px, py) {
+    var cellW = innerWidth / COLS, cellH = innerHeight / ROWS;
+    var mx = px / cellW, my = py / cellH, Rm = 12, n = (Rm * Rm * 2.2) | 0;
+    for (var k = 0; k < n; k++) {
+      var a = Math.random() * Math.PI * 2;
+      var d = Math.pow(Math.random(), 0.5) * Rm;
+      var x = (mx + Math.cos(a) * d) | 0, y = (my + Math.sin(a) * d) | 0;
+      if (x < 0 || x >= COLS || y < 0 || y >= ROWS) continue;
+      var i = y * COLS + x;
+      if (!pinned[i]) s[i] = Math.random() < 0.5 ? -1 : 1;
+    }
+  }
+
+  /* ================= simulation ================= */
+  var T = 0.98, Ttarget = 0.98;
+  var TUN = { T: 1.58, J: 2.0, h: 0.81, SPC: 0.30, D: 2.05, R: 4, I: 24, PA: -41, X: 0.5, Y: 0.5, F: 4, S: 1.38, FV: 1.4, FSH: 0.76, FTB: 1.0, HUE: 36, SAT: 61, GAM: 0.8 };
+  var DISKW = TUN.D, hMul = TUN.h;
+  var SPD = TUN.S;
+  var flowT = 0, lastNow = 0;
+  var rowAcc = new Float32Array(ROWS);
+  var quakeAcc = 0, quakeNext = 16;
+  var flipsTotal = 0;
+  function fieldAt(i, x, y, t, rt) {
+    var a = phA[i] - 2 * Math.PI * (rt || t) / 14;
+    var dop = 0.40 + 0.60 * Math.max(0, -Math.cos(a));
+    var f = base[i] + amp[i] * dop + spotField(i, t);
+    if (amp2[i]) f += amp2[i] * Math.sin(3 * (phA[i] - wK[i] * t));
+    if (amp3[i]) f += amp3[i] * Math.sin(5 * phA[i] - 2 * Math.PI / 8 * t);
+    f = f < -1 ? -1 : (f > 1 ? 1 : f);
+    return f;
+  }
+  function step(count) {
+    var beta = 1 / Math.max(0.05, T);
+    var rt = performance.now() / 1000;
+    var t = flowT;
+    for (var k = 0; k < SPOTS.length; k++) spotTh[k] = SPOTS[k].speed * t + SPOTS[k].phase;
+    for (var k = 0; k < count; k++) {
+      var i = (Math.random() * N) | 0;
+      if (pinned[i]) continue;
+      var x = i % COLS, y = (i / COLS) | 0;
+      var xm = (x + COLS - 1) % COLS, xp = (x + 1) % COLS;
+      var ym = (y + ROWS - 1) % ROWS, yp = (y + 1) % ROWS;
+      var nb = s[y * COLS + xm] + s[y * COLS + xp] + s[ym * COLS + x] + s[yp * COLS + x];
+      var dE = 2 * s[i] * (coup[i] * nb * 0.5 + fieldAt(i, x, y, t, rt) * hMul * 3.1);
+      if (dE <= 0 || Math.random() < Math.exp(-beta * dE)) { s[i] = -s[i]; flipsTotal++; }
+    }
+  }
+  function simmer() {
+    for (var k = 0; k < 5400; k++) {
+      var i = (Math.random() * N) | 0;
+      if (pinned[i]) continue;
+      var e = env[i];
+      if (e <= 0.03) continue;
+      if (Math.random() < e * 0.9) s[i] = Math.random() < 0.5 ? -1 : 1;
+    }
+  }
+
+  /* ================= render (triangle sub-pixels) ================= */
+  var SUB = 2;
+  var grid = document.createElement("canvas");
+  grid.width = COLS * SUB; grid.height = ROWS * SUB;
+  var gctx = grid.getContext("2d");
+  var img = gctx.createImageData(grid.width, grid.height);
+  var COL_MAIN = [242, 226, 196], COL_DARK = [23, 17, 13];
+  var gLUT = new Float32Array(256);
+  function bakeGamma() { for (var q = 0; q < 256; q++) gLUT[q] = Math.pow(q / 255, TUN.GAM); }
+  /* acidburn colormap - neon green/cyan/purple/magenta on black */
+  var MAP = { id: "acid", chrome: [[255,255,255],[0,0,0],[154,144,168]],
+    stops: [[0,0,0,0],[0.15,0,64,52],[0.3,0,255,136],[0.45,0,255,255],[0.55,90,60,220],[0.68,191,0,255],[0.8,255,0,255],[0.92,255,0,153],[1,255,190,225]] };
+  var LUT = new Uint8ClampedArray(256 * 3);
+  function bakeLUT() {
+    var st = MAP.stops;
+    for (var q = 0; q < 256; q++) {
+      var t = gLUT[q], k = 0;
+      while (k < st.length - 2 && t > st[k + 1][0]) k++;
+      var a = st[k], b = st[k + 1];
+      var u = (t - a[0]) / Math.max(1e-4, b[0] - a[0]);
+      LUT[q * 3] = a[1] + (b[1] - a[1]) * u;
+      LUT[q * 3 + 1] = a[2] + (b[2] - a[2]) * u;
+      LUT[q * 3 + 2] = a[3] + (b[3] - a[3]) * u;
+    }
+  }
+  function applyChrome(mi, di, dm) {
+    var r = document.documentElement.style;
+    r.setProperty("--paper", "rgb(" + mi.join(",") + ")");
+    r.setProperty("--ink", "rgb(" + di.join(",") + ")");
+    r.setProperty("--ink-2", "rgb(" + di.join(",") + ")");
+    r.setProperty("--paper-dim", "rgb(" + dm.join(",") + ")");
+    r.setProperty("--inkRGB", di.join(","));
+    r.setProperty("--paperRGB", mi.join(","));
+    r.setProperty("--hair", "rgba(" + mi.join(",") + ",.18)");
+    r.setProperty("--hair-soft", "rgba(" + mi.join(",") + ",.09)");
+    INK[0] = di[0]; INK[1] = di[1]; INK[2] = di[2];
+    PAPER[0] = mi[0]; PAPER[1] = mi[1]; PAPER[2] = mi[2];
+  }
+  var cC = new Uint8ClampedArray(N * 3);
+  function render() {
+    for (var i = 0; i < N; i++) {
+      var x = i % COLS, y = (i / COLS) | 0;
+      var xm = (x + COLS - 1) % COLS, xp = (x + 1) % COLS;
+      var ym = ((y + ROWS - 1) % ROWS) * COLS, yp = ((y + 1) % ROWS) * COLS;
+      var m5 = (s[i] + s[ym + x] + s[yp + x] + s[y * COLS + xm] + s[y * COLS + xp]) * 0.2;
+      var q = (m5 + 1) * 127.5; if (q < 0) q = 0; else if (q > 255) q = 255;
+      var j3 = (q | 0) * 3, j = i * 3;
+      cC[j] = LUT[j3]; cC[j + 1] = LUT[j3 + 1]; cC[j + 2] = LUT[j3 + 2];
+    }
+    var d = img.data, W = grid.width;
+    for (var y2 = 0; y2 < ROWS; y2++) {
+      for (var x2 = 0; x2 < COLS; x2++) {
+        var i2 = y2 * COLS + x2, j2 = i2 * 3;
+        var ju = (((y2 - 1 + ROWS) % ROWS) * COLS + x2) * 3;
+        var jl = (y2 * COLS + ((x2 - 1 + COLS) % COLS)) * 3;
+        var px = x2 * SUB, py = y2 * SUB;
+        var p = (py * W + px) * 4;
+        d[p] = cC[j2]; d[p+1] = cC[j2+1]; d[p+2] = cC[j2+2]; d[p+3] = 255;
+        p = ((py+1) * W + (px+1)) * 4;
+        d[p] = cC[j2]; d[p+1] = cC[j2+1]; d[p+2] = cC[j2+2]; d[p+3] = 255;
+        p = (py * W + (px+1)) * 4;
+        d[p] = cC[ju]; d[p+1] = cC[ju+1]; d[p+2] = cC[ju+2]; d[p+3] = 255;
+        p = ((py+1) * W + px) * 4;
+        d[p] = cC[jl]; d[p+1] = cC[jl+1]; d[p+2] = cC[jl+2]; d[p+3] = 255;
+      }
+    }
+    gctx.putImageData(img, 0, 0);
+    ctxB.imageSmoothingEnabled = true;
+    ctxB.imageSmoothingQuality = "high";
+    ctxB.drawImage(grid, 0, 0, cvB.width, cvB.height);
+  }
+
+  var built = false;
+  function fitHorizon() {
+    var ar = innerWidth / Math.max(1, innerHeight);
+    if (ar >= 1.55 && innerWidth >= 900) { horizon.cx = 0.72; horizon.cy = 0.55; horizon.R = 0.30; }
+    else if (ar >= 1.15)                 { horizon.cx = 0.64; horizon.cy = 0.52; horizon.R = 0.27; }
+    else if (ar >= 0.80)                 { horizon.cx = 0.58; horizon.cy = 0.46; horizon.R = 0.25; }
+    else                                 { horizon.cx = 0.50; horizon.cy = 0.40; horizon.R = 0.22; }
+    if (TUN.X >= 0) horizon.cx = TUN.X;
+    if (TUN.Y >= 0) horizon.cy = TUN.Y;
+    var st = document.documentElement.style;
+    st.setProperty("--hx", (horizon.cx * 100) + "%");
+    st.setProperty("--hy", (horizon.cy * 100) + "%");
+  }
+  function resize() {
+    cvB.width = innerWidth; cvB.height = innerHeight;
+    cvO.width = cvB.width; cvO.height = cvB.height;
+    fitHorizon();
+    if (built) { buildField(); stampPanels(); render(); }
+  }
+  addEventListener("resize", resize); resize();
+
+  /* ================= scroll + hud (stub elements) ================= */
+  var crossingEl = document.getElementById("crossing");
+  var rvalEl = document.getElementById("rval");
+  var phaseEl = document.getElementById("phase");
+  var navTEl = document.getElementById("navT");
+  function updateFall() {
+    if (!crossingEl) return;
+    var rect = crossingEl.getBoundingClientRect();
+    var total = rect.height - innerHeight;
+    if (total <= 0) return;
+    var prog = Math.min(1, Math.max(0, -rect.top / total));
+    Ttarget = TUN.T - (TUN.T - 0.12) * prog;
+  }
+
+  /* ================= loop ================= */
+  var frame = 0;
+  var mvalEl = document.getElementById("mval"), tvalEl = document.getElementById("tval"), fvalEl = document.getElementById("fval");
+  function simFrame() {
+    buildField();
+    frame++;
+    if (frame < 220) T = 3.2 - 2.22 * (frame / 220);
+    else { T += (Ttarget - T) * 0.06; }
+    var shockT = T + shock * 1.8; shock *= 0.965;
+    var savedT = T; T = Math.min(3.2, shockT);
+    var now = performance.now() / 1000;
+    var dtF = Math.min(0.1, Math.max(0, now - lastNow)) * SPD;
+    flowT += dtF; lastNow = now;
+    stepFlares(dtF);
+    quakeAcc += dtF;
+    if (quakeAcc >= quakeNext && frame > 240) {
+      quakeAcc = 0; quakeNext = 22 + Math.random() * 26;
+      shock = 1;
+      for (var qk = 0; qk < 3; qk++) {
+        var fq = FLARES[(Math.random() * FLARES.length) | 0];
+        fq.age = 0; fq.life = 4 + Math.random() * 5;
+        fq.th = Math.PI / 2 + (Math.random() - 0.5) * 1.2;
+        fq.sig = 0.2 + Math.random() * 0.18; fq.amp = 1.2 + Math.random() * 0.8;
+      }
+    }
+    var RSf = horizon.R * ROWS, CXf = horizon.cx * COLS, CYf = horizon.cy * ROWS;
+    for (var fy = 0; fy < ROWS; fy++) {
+      var dy2 = (fy - CYf) / RSf;
+      if (dy2 * dy2 >= 0.98) continue;
+      var half = RSf * Math.sqrt(1 - dy2 * dy2);
+      if (half < 2) continue;
+      var w = 1 - TUN.FSH * dy2 * dy2;
+      var tb = Math.sin(fy * 0.211 + flowT * 0.37) * Math.sin(fy * 0.067 - flowT * 0.129);
+      var v = w * (1 + TUN.FTB * 0.9 * tb);
+      rowAcc[fy] += 20.6 * TUN.FV * v * dtF;
+      var nsh = Math.floor(rowAcc[fy]);
+      if (nsh <= 0) continue;
+      if (nsh > 8) nsh = 8;
+      rowAcc[fy] -= nsh;
+      var xa = Math.round(CXf - half), xb = Math.round(CXf + half);
+      if (xa < 0) xa = 0; if (xb >= COLS) xb = COLS - 1;
+      var row = fy * COLS;
+      for (var shk = 0; shk < nsh; shk++) {
+        for (var fx = xb; fx > xa; fx--) s[row + fx] = s[row + fx - 1];
+        s[row + xa] = Math.random() < 0.5 ? -1 : 1;
+      }
+    }
+    if (TUN.FTB > 0.02) {
+      var nE = (N * 0.0011 * TUN.FTB * dtF * 60) | 0;
+      for (var e2 = 0; e2 < nE; e2++) {
+        var ex2 = (CXf + (Math.random() * 1.6 - 0.8) * RSf) | 0;
+        var ey2 = (CYf + (Math.random() * 1.6 - 0.8) * RSf) | 0;
+        if (ex2 < 1 || ex2 >= COLS - 1 || ey2 < 1 || ey2 >= ROWS - 1) continue;
+        var dxE = (ex2 - CXf) / RSf, dyE = (ey2 - CYf) / RSf;
+        if (dxE * dxE + dyE * dyE > 0.92) continue;
+        var iE = ey2 * COLS + ex2, jE = iE + (Math.random() < 0.5 ? -COLS : COLS);
+        if (jE < 0 || jE >= N) continue;
+        var tmpE = s[iE]; s[iE] = s[jE]; s[jE] = tmpE;
+      }
+    }
+    step(COLS * ROWS * 0.12 | 0);
+    T = savedT;
+    if (frame >= 240) simmer();
+  }
+  function hud() {
+    var sum = 0; for (var k = 0; k < 4000; k++) sum += s[(Math.random() * N) | 0];
+    var mSum = sum / 4000;
+    if (mvalEl) mvalEl.textContent = (mSum >= 0 ? "" : "−") + Math.abs(mSum).toFixed(2);
+    if (tvalEl) tvalEl.textContent = T.toFixed(2);
+    if (navTEl) navTEl.textContent = "T\u2009=\u2009" + T.toFixed(2);
+    if (fvalEl) fvalEl.textContent = flipsTotal.toLocaleString("en-US");
+  }
+  function tick() {
+    simFrame();
+    stampPanels();
+    render();
+    updateFall();
+    if (frame % 20 === 0) hud();
+    requestAnimationFrame(tick);
+  }
+
+  buildField();
+  stampPanels();
+  built = true;
+  bakeGamma();
+  applyChrome(MAP.chrome[0], MAP.chrome[1], MAP.chrome[2]);
+  bakeLUT();
+  document.documentElement.style.setProperty("--fuzz", TUN.F + "px");
+  tick();
+})();
+</script>
+
+<script>
+/* ================= opt-in: ATProto OAuth + player lexicon write ================= */
+(function () {
+  var PLAYER_TYPE = "agency.lastnpcalex.player";
+  var RKEY = "self";
+  var BSKY_SOCIAL = "https://bsky.social";
+  var PENDING_KEY = "join.pendingChoice";
+  var session = null;
+  var $ = function (id) { return document.getElementById(id); };
+  var statusEl = $("status"), resultEl = $("result"), errEl = $("err");
+  var yesBtn = $("yes"), noBtn = $("no");
+  var loginRow = $("loginrow"), hintEl = $("hint");
+  var handleInput = $("handle"), goLogin = $("gologin");
+  var pendingChoice = sessionStorage.getItem(PENDING_KEY);
+
+  function showErr(m) { errEl.textContent = m; errEl.classList.add("visible"); }
+  function clearErr() { errEl.textContent = ""; errEl.classList.remove("visible"); }
+  function fmtTime(iso) {
+    return new Date(iso).toLocaleString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  }
+  function getSession() {
+    return fetch("/api/oauth/session").then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+  }
+  function loadCurrent(did) {
+    var url = BSKY_SOCIAL + "/xrpc/com.atproto.repo.getRecord?repo=" + encodeURIComponent(did) +
+      "&collection=" + encodeURIComponent(PLAYER_TYPE) + "&rkey=" + RKEY;
+    return fetch(url).then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { return d && d.value && d.value.$type === PLAYER_TYPE ? d.value : null; })
+      .catch(function () { return null; });
+  }
+  function renderStatus(rec) {
+    if (!rec) {
+      statusEl.innerHTML = 'STATUS: <b>no record</b> — never asked';
+    } else {
+      statusEl.innerHTML = 'STATUS: playerCharacter = <b>' + rec.playerCharacter + '</b>' +
+        '<span style="opacity:.6"> // set ' + fmtTime(rec.createdAt) + '</span>';
+    }
+  }
+  function renderResult(v) {
+    resultEl.innerHTML = '<span class="ok">[ SIGNAL ACCEPTED ]</span> playerCharacter set to <b>' + v + '</b>.<br>' +
+      '<span class="uri">at://' + session.did + '/' + PLAYER_TYPE + '/' + RKEY + '</span><br>' +
+      '<span class="flip" id="flip">change your answer</span>';
+    $("flip").onclick = function () { resultEl.classList.remove("visible"); setEnabled(true); };
+    resultEl.classList.add("visible");
+  }
+  function setEnabled(on) { yesBtn.disabled = !on; noBtn.disabled = !on; }
+  function applyChoice(v) {
+    clearErr();
+    setEnabled(false);
+    yesBtn.textContent = v === 1 ? "..." : "YES";
+    noBtn.textContent = v === 0 ? "..." : "NO";
+    fetch("/api/bsky/putRecord", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ collection: PLAYER_TYPE, rkey: RKEY, record: {
+        $type: PLAYER_TYPE, playerCharacter: v,
+        handle: session ? session.handle : undefined,
+        createdAt: new Date().toISOString() } })
+    }).then(function (res) {
+      return res.json().catch(function () { return {}; }).then(function (d) {
+        if (!res.ok) throw new Error(d.error || "write failed (" + res.status + ")");
+        renderStatus({ playerCharacter: v, createdAt: new Date().toISOString() });
+        renderResult(v);
+      });
+    }).catch(function (e) { showErr(e.message); }).then(function () {
+      setEnabled(true); yesBtn.textContent = "YES"; noBtn.textContent = "NO";
+    });
+  }
+  function beginLogin(v) {
+    clearErr();
+    sessionStorage.setItem(PENDING_KEY, String(v));
+    var handle = handleInput.value.trim();
+    if (!handle) {
+      loginRow.classList.add("visible");
+      hintEl.style.display = "";
+      handleInput.focus();
+      showErr("handle required to write to your repo");
+      return;
+    }
+    setEnabled(false);
+    fetch("/api/oauth/login", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ handle: handle, returnTo: window.location.href })
+    }).then(function (res) { return res.json(); }).then(function (d) {
+      if (d.redirect_url) window.location.assign(d.redirect_url);
+      else throw new Error(d.error || "login failed");
+    }).catch(function (e) { setEnabled(true); showErr(e.message); });
+  }
+  yesBtn.onclick = function () { session ? applyChoice(1) : beginLogin(1); };
+  noBtn.onclick = function () { session ? applyChoice(0) : beginLogin(0); };
+  goLogin.onclick = function () {
+    var v = pendingChoice !== null ? parseInt(pendingChoice, 10) : 1;
+    beginLogin(isNaN(v) ? 1 : v);
+  };
+  handleInput.addEventListener("keydown", function (e) { if (e.key === "Enter") goLogin.onclick(); });
+
+  var params = new URLSearchParams(window.location.search);
+  if (params.get("auth_error")) showErr("authorization refused: " + params.get("auth_error"));
+
+  getSession().then(function (s) {
+    session = s;
+    if (!session) {
+      statusEl.innerHTML = 'STATUS: <b>not signed in</b> — a choice writes a record to your ATProto repo';
+      if (pendingChoice !== null) loginRow.classList.add("visible");
+      return;
+    }
+    loadCurrent(session.did).then(function (rec) {
+      renderStatus(rec);
+      if (pendingChoice !== null) {
+        sessionStorage.removeItem(PENDING_KEY);
+        var v = parseInt(pendingChoice, 10);
+        pendingChoice = null;
+        if (v === 0 || v === 1) applyChoice(v);
+      }
+    });
+  });
 })();
 </script>
 </body>
