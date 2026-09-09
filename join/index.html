@@ -105,7 +105,11 @@
     color: var(--paper-dim); margin: 2px 0 18px;
   }
   .opt-status b { color: var(--paper); font-weight: 700; }
-  .choice { display: flex; gap: 10px; margin-bottom: 16px; }
+  .choice { display: none; gap: 10px; margin-bottom: 16px; }
+  .choice.visible { display: flex; }
+  .opt-q { font-family: "Space Grotesk", sans-serif; font-size: 18px; font-weight: 500;
+           letter-spacing: .01em; margin: 0 0 14px; color: var(--paper); }
+  .opt-q b { font-weight: 700; }
   .choice button {
     flex: 1; background: none; border: 1px solid var(--hair); color: var(--paper);
     font-family: "Space Mono", monospace; font-size: 13px; letter-spacing: .3em;
@@ -155,16 +159,17 @@
 
     <div class="opt-err" id="err"></div>
 
-    <div class="choice">
-      <button id="yes" type="button">YES</button>
-      <button id="no" type="button">NO</button>
-    </div>
-
     <div class="loginrow" id="loginrow">
       <input id="handle" type="text" placeholder="your.handle" autocomplete="username" spellcheck="false">
       <button id="gologin" type="button">CONTINUE</button>
     </div>
     <div class="opt-hint" id="hint">sign in with your ATProto handle — bluesky, blacksky, your own PDS</div>
+
+    <div class="opt-q" id="question" style="display:none"></div>
+    <div class="choice" id="choice">
+      <button id="yes" type="button">YES</button>
+      <button id="no" type="button">NO</button>
+    </div>
 
     <div class="opt-result" id="result"></div>
   </div>
@@ -736,6 +741,8 @@
       .then(function (d) { return d && d.value && d.value.$type === PLAYER_TYPE ? d.value : null; })
       .catch(function () { return null; });
   }
+  var questionEl = $("question"), choiceEl = $("choice");
+  var lastRec = null, hintDefault = "";
   function renderStatus(rec) {
     if (!rec) {
       statusEl.innerHTML = 'STATUS: <b>no record</b> — never asked';
@@ -744,19 +751,33 @@
         '<span style="opacity:.6"> // set ' + fmtTime(rec.createdAt) + '</span>';
     }
   }
+  function setQuestion(rec) {
+    lastRec = rec;
+    var playing = rec && rec.playerCharacter === 1;
+    questionEl.innerHTML = playing ? 'remain a <b>player character</b>?' : 'become a <b>player character</b>?';
+    hintDefault = 'step 2 — hover a button to see what it does';
+    hintEl.textContent = hintDefault;
+  }
+  function showChoice(on) {
+    questionEl.style.display = on ? "" : "none";
+    choiceEl.classList.toggle("visible", on);
+  }
   function renderResult(v) {
     resultEl.innerHTML = '<span class="ok">[ SIGNAL ACCEPTED ]</span> playerCharacter set to <b>' + v + '</b>.<br>' +
       '<span class="uri">at://' + session.did + '/' + PLAYER_TYPE + '/' + RKEY + '</span><br>' +
       '<span class="flip" id="flip">change your answer</span>';
-    $("flip").onclick = function () { resultEl.classList.remove("visible"); setEnabled(true); };
+    $("flip").onclick = function () {
+      resultEl.classList.remove("visible");
+      setQuestion(lastRec);
+      showChoice(true);
+      setEnabled(true);
+    };
     resultEl.classList.add("visible");
   }
   function setEnabled(on) { yesBtn.disabled = !on; noBtn.disabled = !on; }
   function applyChoice(v) {
     clearErr();
-    setEnabled(false);
-    yesBtn.textContent = v === 1 ? "..." : "YES";
-    noBtn.textContent = v === 0 ? "..." : "NO";
+    showChoice(false);
     fetch("/api/bsky/putRecord", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ collection: PLAYER_TYPE, rkey: RKEY, record: {
@@ -766,47 +787,32 @@
     }).then(function (res) {
       return res.json().catch(function () { return {}; }).then(function (d) {
         if (!res.ok) throw new Error(d.error || "write failed (" + res.status + ")");
-        renderStatus({ playerCharacter: v, createdAt: new Date().toISOString() });
+        var rec = { playerCharacter: v, createdAt: new Date().toISOString() };
+        renderStatus(rec);
         renderResult(v);
       });
-    }).catch(function (e) { showErr(e.message); }).then(function () {
-      setEnabled(true); yesBtn.textContent = "YES"; noBtn.textContent = "NO";
-    });
+    }).catch(function (e) { showErr(e.message); setQuestion(lastRec); showChoice(true); });
   }
-  function beginLogin(v) {
-    clearErr();
-    sessionStorage.setItem(PENDING_KEY, String(v));
-    var handle = handleInput.value.trim();
-    if (!handle) {
-      loginRow.classList.add("visible");
-      hintEl.style.display = "";
-      handleInput.focus();
-      showErr("handle required to write to your repo");
-      return;
-    }
-    setEnabled(false);
-    fetch("/api/oauth/login", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ handle: handle, returnTo: window.location.href })
-    }).then(function (res) { return res.json(); }).then(function (d) {
-      if (d.redirect_url) window.location.assign(d.redirect_url);
-      else throw new Error(d.error || "login failed");
-    }).catch(function (e) { setEnabled(true); showErr(e.message); });
-  }
-  yesBtn.onclick = function () { session ? applyChoice(1) : beginLogin(1); };
-  noBtn.onclick = function () { session ? applyChoice(0) : beginLogin(0); };
+  yesBtn.addEventListener("mouseenter", function () { hintEl.textContent = 'YES — stay a player character'; });
+  noBtn.addEventListener("mouseenter", function () {
+    hintEl.textContent = (lastRec && lastRec.playerCharacter === 1) ? 'NO — become an NPC' : 'NO — stay background: an NPC';
+  });
+  [yesBtn, noBtn].forEach(function (b) {
+    b.addEventListener("mouseleave", function () { hintEl.textContent = hintDefault; });
+  });
+  yesBtn.onclick = function () { applyChoice(1); };
+  noBtn.onclick = function () { applyChoice(0); };
   goLogin.onclick = function () {
-    if (!handleInput.value.trim()) { handleInput.focus(); showErr("handle required to write to your repo"); return; }
-    var v = pendingChoice !== null ? parseInt(pendingChoice, 10) : null;
+    if (!handleInput.value.trim()) { handleInput.focus(); showErr("handle required to sign in"); return; }
     clearErr();
-    setEnabled(false);
+    goLogin.disabled = true;
     fetch("/api/oauth/login", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ handle: handleInput.value.trim(), returnTo: window.location.href })
     }).then(function (res) { return res.json(); }).then(function (d) {
       if (d.redirect_url) window.location.assign(d.redirect_url);
       else throw new Error(d.error || "login failed");
-    }).catch(function (e) { setEnabled(true); showErr(e.message); });
+    }).catch(function (e) { goLogin.disabled = false; showErr(e.message); });
   };
   handleInput.addEventListener("keydown", function (e) { if (e.key === "Enter") goLogin.onclick(); });
 
@@ -816,13 +822,16 @@
   getSession().then(function (s) {
     session = s;
     if (!session) {
-      statusEl.innerHTML = 'STATUS: <b>not signed in</b> — a choice writes a record to your ATProto repo';
+      statusEl.innerHTML = 'STATUS: <b>not signed in</b> — sign in first, then choose';
       loginRow.classList.add("visible");
       hintEl.textContent = 'step 1 — sign in with your ATProto handle (bluesky, blacksky, your own PDS)';
       return;
     }
+    loginRow.classList.remove("visible");
     loadCurrent(session.did).then(function (rec) {
       renderStatus(rec);
+      setQuestion(rec);
+      showChoice(true);
       if (pendingChoice !== null) {
         sessionStorage.removeItem(PENDING_KEY);
         var v = parseInt(pendingChoice, 10);
