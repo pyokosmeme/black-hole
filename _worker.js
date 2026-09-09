@@ -2,7 +2,7 @@ import { handleContentRequest } from './worker-content.js';
 
 // ── Shared helpers ──
 
-const CLIENT_ID = 'https://black-hole.ex-astris-umbra.workers.dev/client-metadata.json';
+const CLIENT_ID = 'https://lastnpcalex.agency/client-metadata.json';
 const SCOPE = 'atproto transition:generic';
 const BSKY_PUBLIC = 'https://public.api.bsky.app';
 const BSKY_SOCIAL = 'https://bsky.social';

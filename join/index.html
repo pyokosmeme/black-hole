@@ -72,7 +72,7 @@
 <nav>
   <div class="brand">LASTNPCALEX&nbsp;//&nbsp;JOIN&nbsp;<span style="opacity:.45">AGENCY</span></div>
   <div class="links">
-    <span id="navT" style="opacity:.65">T&thinsp;=&thinsp;1.12</span>
+    <a href="https://lastnpcalex.agency/">LASTNPCALEX.AGENCY&nbsp;&#8593;</a>
   </div>
 </nav>
 
@@ -88,10 +88,7 @@
   .win-head { display: flex; align-items: baseline; gap: 14px; padding: 18px 22px 14px;
               border-bottom: 1px solid var(--hair-soft); flex: 0 0 auto; }
   .win-title { font-family: "Space Grotesk", sans-serif; font-size: 22px; font-weight: 700; line-height: 1.1; }
-  .win-min { margin-left: auto; background: none; border: 1px solid var(--paper-dim); color: var(--paper);
-             font-family: "Space Mono", monospace; font-size: 12px; letter-spacing: .14em;
-             padding: 4px 12px; border-radius: 99px; cursor: pointer; }
-  .win-min:hover { border-color: var(--paper); }
+
   .win-body { overflow-y: auto; padding: 18px 22px; scrollbar-width: thin;
               flex: 1 1 auto; min-height: 0;   /* shrink with the window: footer stays inside the frame */
               scrollbar-color: rgba(var(--paperRGB), .3) transparent; }
@@ -101,9 +98,6 @@
   .win-foot { flex: 0 0 auto; padding: 10px 22px 14px; border-top: 1px solid var(--hair-soft);
               color: rgba(var(--paperRGB), .55); font-family: "Space Mono", monospace;
               font-size: 12px; letter-spacing: .12em; }
-  .win.min { max-height: 58px; }
-  .win.min .win-body, .win.min .win-foot { display: none; }
-  .win.min .win-head { border-bottom: none; }
 
   /* ---------- opt-in controls (same grammar as the tuner presets) ---------- */
   .opt-status {
@@ -150,7 +144,6 @@
 <div class="win" id="win">
   <div class="win-head">
     <div class="win-title">Opt in to the <b>game?</b></div>
-    <button type="button" class="win-min" id="winMin" title="minimize">—</button>
   </div>
   <div class="win-body">
     <p>A record is written to <b>your</b> repo — <b>agency.lastnpcalex.player/self</b>.
@@ -175,20 +168,8 @@
 
     <div class="opt-result" id="result"></div>
   </div>
-  <div class="win-foot">AGENCY.LASTNPCALEX.PLAYER · RKEY SELF · <span id="winT">T = 1.70</span></div>
+  <div class="win-foot">AGENCY.LASTNPCALEX.PLAYER · RKEY SELF</div>
 </div>
-<script>
-(function () {
-  var win = document.getElementById("win"), mn = document.getElementById("winMin");
-  mn.addEventListener("click", function () {
-    win.classList.toggle("min");
-    mn.textContent = win.classList.contains("min") ? "+" : "\u2014";
-  });
-  win.addEventListener("pointerdown", function (e) { e.stopPropagation(); });
-  var wt = document.getElementById("winT"), nt = document.getElementById("navT");
-  setInterval(function () { if (nt) wt.textContent = nt.textContent; }, 500);
-})();
-</script>
 
 <div style="display:none"><span id="mval"></span><span id="tval"></span><span id="fval"></span><section id="crossing"><span id="rval"></span><span id="phase"></span></section></div>
 <script>
@@ -625,7 +606,6 @@
   var crossingEl = document.getElementById("crossing");
   var rvalEl = document.getElementById("rval");
   var phaseEl = document.getElementById("phase");
-  var navTEl = document.getElementById("navT");
   function updateFall() {
     if (!crossingEl) return;
     var rect = crossingEl.getBoundingClientRect();
@@ -704,7 +684,6 @@
     var mSum = sum / 4000;
     if (mvalEl) mvalEl.textContent = (mSum >= 0 ? "" : "−") + Math.abs(mSum).toFixed(2);
     if (tvalEl) tvalEl.textContent = T.toFixed(2);
-    if (navTEl) navTEl.textContent = "T\u2009=\u2009" + T.toFixed(2);
     if (fvalEl) fvalEl.textContent = flipsTotal.toLocaleString("en-US");
   }
   function tick() {
@@ -817,8 +796,17 @@
   yesBtn.onclick = function () { session ? applyChoice(1) : beginLogin(1); };
   noBtn.onclick = function () { session ? applyChoice(0) : beginLogin(0); };
   goLogin.onclick = function () {
-    var v = pendingChoice !== null ? parseInt(pendingChoice, 10) : 1;
-    beginLogin(isNaN(v) ? 1 : v);
+    if (!handleInput.value.trim()) { handleInput.focus(); showErr("handle required to write to your repo"); return; }
+    var v = pendingChoice !== null ? parseInt(pendingChoice, 10) : null;
+    clearErr();
+    setEnabled(false);
+    fetch("/api/oauth/login", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ handle: handleInput.value.trim(), returnTo: window.location.href })
+    }).then(function (res) { return res.json(); }).then(function (d) {
+      if (d.redirect_url) window.location.assign(d.redirect_url);
+      else throw new Error(d.error || "login failed");
+    }).catch(function (e) { setEnabled(true); showErr(e.message); });
   };
   handleInput.addEventListener("keydown", function (e) { if (e.key === "Enter") goLogin.onclick(); });
 
@@ -829,7 +817,8 @@
     session = s;
     if (!session) {
       statusEl.innerHTML = 'STATUS: <b>not signed in</b> — a choice writes a record to your ATProto repo';
-      if (pendingChoice !== null) loginRow.classList.add("visible");
+      loginRow.classList.add("visible");
+      hintEl.textContent = 'step 1 — sign in with your ATProto handle (bluesky, blacksky, your own PDS)';
       return;
     }
     loadCurrent(session.did).then(function (rec) {

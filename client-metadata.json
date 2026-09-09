@@ -1,13 +1,11 @@
 {
-  "client_id": "https://black-hole.ex-astris-umbra.workers.dev/client-metadata.json",
+  "client_id": "https://lastnpcalex.agency/client-metadata.json",
   "client_name": "Black Hole Transmissions",
-  "client_uri": "https://black-hole.ex-astris-umbra.workers.dev",
+  "client_uri": "https://lastnpcalex.agency",
   "redirect_uris": [
     "https://lastnpcalex.agency/api/oauth/callback",
     "https://join.lastnpcalex.agency/api/oauth/callback",
-    "https://lastnpcalex.agency/test-bsky.html",
-    "https://black-hole.ex-astris-umbra.workers.dev/api/oauth/callback",
-    "https://black-hole.ex-astris-umbra.workers.dev/test-bsky.html"
+    "https://lastnpcalex.agency/test-bsky.html"
   ],
   "scope": "atproto transition:generic",
   "grant_types": ["authorization_code", "refresh_token"],
