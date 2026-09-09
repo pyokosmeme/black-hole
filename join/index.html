@@ -253,8 +253,8 @@
      LOCAL Ising coupling, so magnetic polar caps ORDER (aurora) while the
      equator boils. Dipole field-line loops are stamped into the
      magnetosphere as coupling ridges - the sea orders ALONG the field. */
-  var OMEGA = Math.PI * 2 / 14;              /* spin period: 14 s at 1x */
-  var FLARES = (function () {
+  var SINI = 0.4067, COSI = Math.sqrt(1 - SINI * SINI);   /* view inclination of the spin axis (TUN.I = 24 deg), frozen */
+  var OMEGA = Math.PI * 2 / 14;              /* spin period: 14 s at 1x */  var FLARES = (function () {
     var a = [];
     for (var k = 0; k < 9; k++) a.push({
       th: 0.25 + Math.random() * 2.6,
