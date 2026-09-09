@@ -7,6 +7,8 @@ const SCOPE = 'atproto transition:generic';
 const BSKY_PUBLIC = 'https://public.api.bsky.app';
 const BSKY_SOCIAL = 'https://bsky.social';
 const LIKE_TYPE = 'agency.lastnpcalex.like';
+const PLAYER_TYPE = 'agency.lastnpcalex.player';
+const JOIN_HOST = 'join.lastnpcalex.agency';
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
 const STATE_TTL = 15 * 60 * 1000;
 const DEFAULT_ORIGIN = 'https://lastnpcalex.agency';
@@ -391,6 +393,38 @@ async function handleDeleteRecord(request, env) {
   return jsonResponse({ deleted: true }, 200, request);
 }
 
+/**
+ * Upsert (idempotent overwrite) restricted to the game opt-in lexicon:
+ *   agency.lastnpcalex.player / rkey "self" — one record per account,
+ *   playerCharacter: 1 (opted in) or 0 (opted out). Pressing yes/no simply
+ *   rewrites the single record via com.atproto.repo.putRecord.
+ */
+async function handlePutRecord(request, env) {
+  const session = await getSession(env, request);
+  if (!session) return jsonResponse({ error: 'Not authenticated' }, 401, request);
+  const { privateKey, publicKey } = await importKeyPair(session.privateKeyJwk, session.publicKeyJwk);
+  const body = await request.json();
+
+  if (body?.collection !== PLAYER_TYPE || body?.rkey !== 'self') {
+    return jsonResponse({ error: 'putRecord is restricted to agency.lastnpcalex.player with rkey "self"' }, 400, request);
+  }
+  const pc = body?.record?.playerCharacter;
+  if (pc !== 0 && pc !== 1) {
+    return jsonResponse({ error: 'playerCharacter must be 0 or 1' }, 400, request);
+  }
+
+  const url = `${session.pds}/xrpc/com.atproto.repo.putRecord`;
+  const result = await dpopFetch(privateKey, publicKey, session.accessToken, 'POST', url, {
+    repo: session.did, collection: PLAYER_TYPE, rkey: 'self', record: body.record,
+  });
+  if (!result.ok) return jsonResponse({ error: result.text }, result.status, request);
+  try {
+    return jsonResponse(JSON.parse(result.text), 200, request);
+  } catch {
+    return jsonResponse({ ok: true }, 200, request);
+  }
+}
+
 // ── Worker entry point ──
 
 export default {
@@ -407,6 +441,16 @@ export default {
     if (path === '/api/oauth/session') return handleSession(request, env);
     if (path === '/api/bsky/createRecord') return handleCreateRecord(request, env);
     if (path === '/api/bsky/deleteRecord') return handleDeleteRecord(request, env);
+    if (path === '/api/bsky/putRecord') return handlePutRecord(request, env);
+
+    // join.lastnpcalex.agency — game opt-in page. API routes above handle
+    // OAuth + record writes; everything else serves the opt-in page.
+    if (new URL(request.url).hostname === JOIN_HOST) {
+      if (request.method === 'GET' || request.method === 'HEAD') {
+        return env.ASSETS.fetch(new URL('https://join.lastnpcalex.agency/join/index.html'));
+      }
+      return jsonResponse({ error: 'Method not allowed' }, 405, request);
+    }
 
     const contentResponse = await handleContentRequest(request, env);
     if (contentResponse) return contentResponse;

@@ -121,6 +121,86 @@ test('the URL-based session-cookie bridge is no longer an API route', async () =
   assert.equal(response.headers.get('set-cookie'), null);
 });
 
+test('putRecord writes the player opt-in lexicon and nothing else', async () => {
+  const keyPair = await crypto.subtle.generateKey({ name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']);
+  const privateKeyJwk = await crypto.subtle.exportKey('jwk', keyPair.privateKey);
+  const publicKeyJwk = await crypto.subtle.exportKey('jwk', keyPair.publicKey);
+  const env = makeEnv({
+    'session:player-session': JSON.stringify({
+      did: 'did:plc:player', handle: 'player.bsky.social', pds: 'https://pds.example',
+      authServer: 'https://auth.example', privateKeyJwk, publicKeyJwk, createdAt: Date.now(),
+    }),
+  });
+  const originalFetch = globalThis.fetch;
+  let captured;
+  globalThis.fetch = async (url, init = {}) => {
+    const u = String(url);
+    if (u === 'https://pds.example/xrpc/com.atproto.repo.putRecord') {
+      captured = { body: JSON.parse(init.body) };
+      return Response.json({ uri: 'at://did:plc:player/agency.lastnpcalex.player/self', cid: 'bafy-test' });
+    }
+    throw new Error(`Unexpected fetch: ${u}`);
+  };
+  try {
+    const good = await worker.fetch(new Request('https://join.lastnpcalex.agency/api/bsky/putRecord', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: 'session=player-session' },
+      body: JSON.stringify({
+        collection: 'agency.lastnpcalex.player',
+        rkey: 'self',
+        record: { $type: 'agency.lastnpcalex.player', playerCharacter: 1, createdAt: '2026-09-09T22:00:00.000Z' },
+      }),
+    }), env);
+    assert.equal(good.status, 200);
+    const goodData = await good.json();
+    assert.equal(goodData.uri, 'at://did:plc:player/agency.lastnpcalex.player/self');
+    assert.equal(captured.body.repo, 'did:plc:player');
+    assert.equal(captured.body.collection, 'agency.lastnpcalex.player');
+    assert.equal(captured.body.rkey, 'self');
+    assert.equal(captured.body.record.playerCharacter, 1);
+
+    // Off-lexicon collection is refused
+    const badCollection = await worker.fetch(new Request('https://join.lastnpcalex.agency/api/bsky/putRecord', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: 'session=player-session' },
+      body: JSON.stringify({
+        collection: 'agency.lastnpcalex.comment',
+        rkey: 'self',
+        record: { message: 'nope' },
+      }),
+    }), env);
+    assert.equal(badCollection.status, 400);
+
+    // Off-domain value is refused
+    const badValue = await worker.fetch(new Request('https://join.lastnpcalex.agency/api/bsky/putRecord', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: 'session=player-session' },
+      body: JSON.stringify({
+        collection: 'agency.lastnpcalex.player',
+        rkey: 'self',
+        record: { $type: 'agency.lastnpcalex.player', playerCharacter: 2, createdAt: '2026-09-09T22:00:00.000Z' },
+      }),
+    }), env);
+    assert.equal(badValue.status, 400);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('the join host serves the opt-in page and leaves other paths alone', async () => {
+  let fetchedUrl = '';
+  const env = makeEnv();
+  env.ASSETS = {
+    async fetch(input) { fetchedUrl = String(input instanceof URL ? input : input.url); return new Response('join page', { status: 200 }); },
+  };
+  const page = await worker.fetch(new Request('https://join.lastnpcalex.agency/'), env);
+  assert.equal(page.status, 200);
+  assert.equal(fetchedUrl, 'https://join.lastnpcalex.agency/join/index.html');
+
+  const apiSession = await worker.fetch(new Request('https://join.lastnpcalex.agency/api/oauth/session'), env);
+  assert.equal(apiSession.status, 401);
+});
+
 test('login refuses cross-origin return targets instead of bridging a session', async () => {
   const env = makeEnv();
   const originalFetch = globalThis.fetch;

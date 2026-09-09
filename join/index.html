@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JOIN — lastnpcalex.agency</title>
+<style>
+  :root {
+    --cyan: #00ffff;
+    --purple: #bf00ff;
+    --green: #00ff88;
+    --dark: #000000;
+    --panel: rgba(5, 5, 15, 0.92);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    background: var(--dark);
+    color: #cfcfcf;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow-x: hidden;
+  }
+  /* black hole backdrop */
+  #bh {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(circle at 50% 55%, rgba(0,0,0,0) 0 9vmin, rgba(0,0,0,.9) 9vmin 10vmin, transparent 10vmin),
+      radial-gradient(circle at 50% 55%, transparent 0 10vmin, rgba(191,0,255,.18) 10vmin 13vmin, rgba(0,255,255,.10) 13vmin 16vmin, transparent 17vmin),
+      radial-gradient(circle at 50% 55%, rgba(0,255,255,.06) 17vmin 22vmin, transparent 24vmin);
+  }
+  #bh::after {
+    content: '';
+    position: absolute; inset: -20%;
+    background: conic-gradient(from 0deg, transparent 0deg, rgba(0,255,255,.05) 40deg, transparent 90deg, rgba(191,0,255,.06) 200deg, transparent 260deg);
+    animation: spin 24s linear infinite;
+  }
+  @keyframes bh-spin { to { transform: rotate(360deg); } }
+  #bh::after { animation-name: bh-spin; }
+  @media (prefers-reduced-motion: reduce) { #bh::after { animation: none; } }
+
+  main { position: relative; z-index: 1; width: min(560px, 92vw); }
+
+  .panel {
+    border: 1px solid rgba(0, 255, 255, 0.35);
+    background: var(--panel);
+    padding: 28px;
+    box-shadow: 0 0 32px rgba(0, 255, 255, 0.08), inset 0 0 60px rgba(0, 0, 0, 0.6);
+  }
+  .panel::before {
+    content: '';
+    position: absolute; top: -1px; left: -1px; right: -1px; height: 2px;
+    background: linear-gradient(90deg, transparent, var(--cyan), var(--purple), transparent);
+  }
+  header {
+    display: flex; justify-content: space-between; align-items: baseline;
+    color: var(--cyan); letter-spacing: 0.2em; font-size: 12px;
+    margin-bottom: 22px; text-shadow: 0 0 8px rgba(0,255,255,.5);
+  }
+  header .dim { color: #556; }
+  h1 {
+    font-size: clamp(18px, 4vw, 26px);
+    color: #eee; letter-spacing: 2px; margin-bottom: 8px;
+    text-shadow: 0 0 10px rgba(0,255,255,.35);
+  }
+  .sub { color: #889; font-size: 13px; margin-bottom: 26px; line-height: 1.6; }
+  .sub b { color: var(--cyan); font-weight: normal; }
+
+  .status { font-size: 13px; margin-bottom: 26px; }
+  .status .tag { color: var(--purple); }
+  .status .val { color: var(--green); }
+  .status .val.zero { color: #f66; }
+
+  .choice { display: flex; gap: 16px; }
+  button {
+    flex: 1;
+    font: inherit;
+    font-size: 16px;
+    letter-spacing: 3px;
+    color: var(--cyan);
+    background: rgba(0, 255, 255, 0.06);
+    border: 1px solid rgba(0, 255, 255, 0.45);
+    padding: 14px 10px;
+    cursor: pointer;
+    transition: background .15s, color .15s, box-shadow .15s;
+  }
+  button:hover { background: rgba(0, 255, 255, 0.18); box-shadow: 0 0 18px rgba(0,255,255,.25); }
+  button:disabled { opacity: .4; cursor: wait; }
+  #no {
+    color: var(--purple);
+    border-color: rgba(191, 0, 255, 0.45);
+    background: rgba(191, 0, 255, 0.05);
+  }
+  #no:hover { background: rgba(191, 0, 255, 0.16); box-shadow: 0 0 18px rgba(191,0,255,.25); }
+
+  .loginrow { display: none; margin-top: 18px; }
+  .loginrow.visible { display: flex; gap: 8px; }
+  .loginrow input {
+    flex: 1; font: inherit; font-size: 14px;
+    background: #050510; color: var(--cyan);
+    border: 1px solid rgba(0,255,255,.35); padding: 10px 12px;
+  }
+  .loginrow button { flex: 0 0 auto; font-size: 13px; padding: 10px 18px; }
+  .hint { color: #556; font-size: 12px; margin-top: 10px; }
+
+  .result { display: none; margin-top: 24px; border-top: 1px dashed rgba(0,255,255,.25); padding-top: 16px; font-size: 13px; line-height: 1.8; }
+  .result.visible { display: block; }
+  .result .ok { color: var(--green); text-shadow: 0 0 8px rgba(0,255,136,.5); }
+  .result .uri { color: #667; word-break: break-all; font-size: 12px; }
+  .result .flip { display: inline-block; margin-top: 8px; color: #889; cursor: pointer; text-decoration: underline dotted; }
+
+  .err { display: none; margin-top: 16px; color: #ff5566; font-size: 13px; }
+  .err.visible { display: block; }
+
+  footer { margin-top: 20px; font-size: 12px; color: #556; display: flex; justify-content: space-between; align-items: center; }
+  footer a { color: var(--cyan); text-decoration: none; }
+  footer .who { color: #889; }
+  footer .signout { cursor: pointer; color: #667; text-decoration: underline dotted; background: none; border: 0; padding: 0; flex: 0 0 auto; font-size: 12px; letter-spacing: 1px; }
+</style>
+</head>
+<body>
+<div id="bh"></div>
+<main>
+  <div class="panel">
+    <header>
+      <span>[ OPT-IN TERMINAL ]</span>
+      <span class="dim">node: join</span>
+    </header>
+
+    <h1>OPT IN TO THE GAME?</h1>
+    <p class="sub">
+      a record is written to <b>your</b> repo —
+      <span style="color:#667">agency.lastnpcalex.player/self</span> —<br>
+      playerCharacter <b>1</b> if you enter, <b>0</b> if you refuse.
+      no record means you were never asked.
+    </p>
+
+    <div class="status" id="status">checking node...</div>
+
+    <div class="choice">
+      <button id="yes">YES</button>
+      <button id="no">NO</button>
+    </div>
+
+    <div class="loginrow" id="loginrow">
+      <input id="handle" type="text" placeholder="your.handle" autocomplete="username" spellcheck="false">
+      <button id="gologin">continue</button>
+    </div>
+    <div class="hint" id="hint">sign in with your ATProto handle (bluesky, blacksky, your own PDS)</div>
+
+    <div class="result" id="result"></div>
+    <div class="err" id="err"></div>
+
+    <footer>
+      <a href="https://lastnpcalex.agency/" target="_blank" rel="noopener">lastnpcalex.agency</a>
+      <span class="who" id="who"></span>
+      <span class="signout" id="signout" style="display:none">sign out</span>
+    </footer>
+  </div>
+</main>
+
+<script>
+const PLAYER_TYPE = 'agency.lastnpcalex.player';
+const RKEY = 'self';
+const BSKY_SOCIAL = 'https://bsky.social';
+const PENDING_KEY = 'join.pendingChoice';
+
+const statusEl = document.getElementById('status');
+const resultEl = document.getElementById('result');
+const errEl = document.getElementById('err');
+const whoEl = document.getElementById('who');
+const signoutEl = document.getElementById('signout');
+const loginRow = document.getElementById('loginrow');
+const hintEl = document.getElementById('hint');
+const yesBtn = document.getElementById('yes');
+const noBtn = document.getElementById('no');
+const handleInput = document.getElementById('handle');
+const goLoginBtn = document.getElementById('gologin');
+
+let session = null;
+let pendingChoice = sessionStorage.getItem(PENDING_KEY);
+
+function showErr(msg) { errEl.textContent = msg; errEl.classList.add('visible'); }
+function clearErr() { errEl.textContent = ''; errEl.classList.remove('visible'); }
+
+function fmtTime(iso) {
+  return new Date(iso).toLocaleString('en-US', {
+    year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+  });
+}
+
+async function getSession() {
+  try {
+    const res = await fetch('/api/oauth/session');
+    if (!res.ok) return null;
+    return await res.json();
+  } catch { return null; }
+}
+
+async function loadCurrent(did) {
+  try {
+    const res = await fetch(
+      `${BSKY_SOCIAL}/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(did)}` +
+      `&collection=${encodeURIComponent(PLAYER_TYPE)}&rkey=${RKEY}`
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (data.value?.$type !== PLAYER_TYPE) return null;
+    return data.value;
+  } catch { return null; }
+}
+
+function renderStatus(record) {
+  statusEl.innerHTML = '';
+  if (!record) {
+    statusEl.innerHTML = '<span class="tag">[ STATUS ]</span> no record — <span class="val zero" style="color:#889">never asked</span>';
+  } else {
+    const v = record.playerCharacter;
+    statusEl.innerHTML =
+      `<span class="tag">[ STATUS ]</span> playerCharacter = ` +
+      `<span class="val${v === 0 ? ' zero' : ''}">${v}</span>` +
+      `<span style="color:#556"> // set ${fmtTime(record.createdAt)}</span>`;
+  }
+}
+
+function renderResult(value) {
+  resultEl.innerHTML =
+    `<span class="ok">[ SIGNAL ACCEPTED ]</span><br>` +
+    `playerCharacter set to <b>${value}</b> in your repo.<br>` +
+    `<span class="uri">at://${session.did}/${PLAYER_TYPE}/${RKEY}</span><br>` +
+    `<span class="flip" id="flip">change your answer</span>`;
+  document.getElementById('flip').onclick = () => {
+    resultEl.classList.remove('visible');
+    setButtonsEnabled(true);
+  };
+  resultEl.classList.add('visible');
+}
+
+function setButtonsEnabled(on) {
+  yesBtn.disabled = !on;
+  noBtn.disabled = !on;
+}
+
+async function applyChoice(value) {
+  clearErr();
+  setButtonsEnabled(false);
+  yesBtn.textContent = value === 1 ? '...' : 'YES';
+  noBtn.textContent = value === 0 ? '...' : 'NO';
+  try {
+    const res = await fetch('/api/bsky/putRecord', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        collection: PLAYER_TYPE,
+        rkey: RKEY,
+        record: {
+          $type: PLAYER_TYPE,
+          playerCharacter: value,
+          handle: session?.handle || undefined,
+          createdAt: new Date().toISOString(),
+        },
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `write failed (${res.status})`);
+    renderStatus({ playerCharacter: value, createdAt: new Date().toISOString() });
+    renderResult(value);
+  } catch (e) {
+    showErr(e.message);
+  } finally {
+    setButtonsEnabled(true);
+    yesBtn.textContent = 'YES';
+    noBtn.textContent = 'NO';
+  }
+}
+
+async function beginLogin(value) {
+  clearErr();
+  sessionStorage.setItem(PENDING_KEY, String(value));
+  const handle = handleInput.value.trim();
+  if (!handle) {
+    loginRow.classList.add('visible');
+    hintEl.style.display = '';
+    handleInput.focus();
+    showErr('handle required to write to your repo');
+    return;
+  }
+  setButtonsEnabled(false);
+  try {
+    const res = await fetch('/api/oauth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ handle, returnTo: window.location.href }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'login failed');
+    window.location.assign(data.redirect_url);
+  } catch (e) {
+    setButtonsEnabled(true);
+    showErr(e.message);
+  }
+}
+
+yesBtn.onclick = () => (session ? applyChoice(1) : beginLogin(1));
+noBtn.onclick = () => (session ? applyChoice(0) : beginLogin(0));
+
+signoutEl.onclick = async () => {
+  await fetch('/api/oauth/logout', { method: 'POST' });
+  sessionStorage.removeItem(PENDING_KEY);
+  window.location.reload();
+};
+
+goLogin.onclick = () => {
+  const value = pendingChoice !== null ? parseInt(pendingChoice, 10) : 1;
+  beginLogin(isNaN(value) ? 1 : value);
+};
+handleInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') goLogin.onclick(); });
+
+(async function init() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('auth_error')) {
+    showErr('authorization refused: ' + params.get('auth_error'));
+  }
+
+  session = await getSession();
+  whoEl.textContent = session ? '@' + session.handle : 'anonymous';
+  signoutEl.style.display = session ? '' : 'none';
+
+  if (session) {
+    const record = await loadCurrent(session.did);
+    renderStatus(record);
+    if (pendingChoice !== null) {
+      sessionStorage.removeItem(PENDING_KEY);
+      const value = parseInt(pendingChoice, 10);
+      if (value === 0 || value === 1) {
+        pendingChoice = null;
+        await applyChoice(value);
+      }
+    }
+  } else {
+    statusEl.innerHTML = '<span class="tag">[ STATUS ]</span> not signed in — a choice writes a record to your ATProto repo';
+    if (pendingChoice !== null) {
+      loginRow.classList.add('visible');
+    }
+  }
+})();
+</script>
+</body>
+</html>

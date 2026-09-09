@@ -1,0 +1,32 @@
+{
+  "lexicon": 1,
+  "id": "agency.lastnpcalex.player",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "Opt-in record for the lastnpcalex.agency game. One record per repo, always at rkey `self` (upsert semantics: the YES/NO page overwrites it via com.atproto.repo.putRecord). Absence of the record means the account has never been asked.",
+      "key": "literal:self",
+      "record": {
+        "type": "object",
+        "required": ["playerCharacter", "createdAt"],
+        "properties": {
+          "playerCharacter": {
+            "type": "integer",
+            "enum": [1, 0],
+            "description": "1 = opted in: the account is a player character in the game. 0 = explicitly opted out."
+          },
+          "handle": {
+            "type": "string",
+            "maxLength": 253,
+            "description": "Optional denormalized handle at opt-in time, for human readability in raw record listings."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "Timestamp of the most recent yes/no choice."
+          }
+        }
+      }
+    }
+  }
+}
