@@ -1,4 +1,5 @@
 import { handleContentRequest } from './worker-content.js';
+import { handleLabelerRequest } from './labeler.js';
 
 // ── Shared helpers ──
 
@@ -12,6 +13,8 @@ const CREATE_TYPES = ['agency.lastnpcalex.comment', 'agency.lastnpcalex.like', '
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
 const STATE_TTL = 15 * 60 * 1000;
 const DEFAULT_ORIGIN = 'https://lastnpcalex.agency';
+const LABELER_SERVICE_DID = 'did:web:lastnpcalex.agency';
+const LABELER_SERVICE_TYPE = 'app.bsky.labeler.service';
 
 function corsHeaders(request) {
   const requestedOrigin = request.headers.get('Origin');
@@ -445,6 +448,40 @@ async function handlePutRecord(request, env) {
   }
 }
 
+/**
+ * Admin-only: (re)write the app.bsky.labeler.service/self record in the
+ * admin's own repo, pointing it at the worker-hosted labeler service
+ * (did:web:lastnpcalex.agency). The labeler record is a normal repo
+ * record, so this flows through the admin's own OAuth session.
+ */
+async function handleLabelerRecord(request, env) {
+  const session = await getSession(env, request);
+  if (!session) return jsonResponse({ error: 'Not authenticated' }, 401, request);
+  const adminDids = String(env.ADMIN_DIDS || '').split(',').map(v => v.trim()).filter(Boolean);
+  if (!adminDids.includes(session.did)) return jsonResponse({ error: 'Admin only' }, 403, request);
+  const body = await request.json().catch(() => ({}));
+  const record = {
+    $type: LABELER_SERVICE_TYPE,
+    did: LABELER_SERVICE_DID,
+    policies: {
+      labelValues: Array.isArray(body?.labelValues)
+        ? body.labelValues.map(v => String(v).trim()).filter(Boolean).slice(0, 100)
+        : [],
+    },
+    createdAt: new Date().toISOString(),
+  };
+  if (Array.isArray(body?.labelValueDefinitions)) {
+    record.policies.labelValueDefinitions = body.labelValueDefinitions;
+  }
+  const { privateKey, publicKey } = await importKeyPair(session.privateKeyJwk, session.publicKeyJwk);
+  const url = `${session.pds}/xrpc/com.atproto.repo.putRecord`;
+  const result = await dpopFetch(privateKey, publicKey, session.accessToken, 'POST', url, {
+    repo: session.did, collection: LABELER_SERVICE_TYPE, rkey: 'self', record,
+  });
+  if (!result.ok) return jsonResponse({ error: result.text }, result.status, request);
+  return jsonResponse({ ok: true, record }, 200, request);
+}
+
 // ── Worker entry point ──
 
 export default {
@@ -462,6 +499,13 @@ export default {
     if (path === '/api/bsky/createRecord') return handleCreateRecord(request, env);
     if (path === '/api/bsky/deleteRecord') return handleDeleteRecord(request, env);
     if (path === '/api/bsky/putRecord') return handlePutRecord(request, env);
+
+    // self-hosted labeler service (did:web:lastnpcalex.agency)
+    if (path === '/.well-known/did.json' || path.startsWith('/xrpc/')) {
+      const labelerResponse = await handleLabelerRequest(request, env);
+      if (labelerResponse) return labelerResponse;
+    }
+    if (path === '/api/admin/labeler-record') return handleLabelerRecord(request, env);
 
 
     const contentResponse = await handleContentRequest(request, env);

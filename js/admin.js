@@ -160,16 +160,136 @@ function renderPlayers(players) {
   }
 }
 
+/* ── labeler ── */
+
+const labelForm = document.getElementById('label-form');
+const labelStatus = document.getElementById('label-status');
+const labelerRecordButton = document.getElementById('labeler-record-submit');
+
+function setLabelStatus(text) {
+  if (labelStatus) labelStatus.textContent = text;
+}
+
+function renderLabels(labels) {
+  if (!document.getElementById('label-list')) return;
+  document.getElementById('label-count').textContent = String(labels.length);
+  const body = document.getElementById('label-list');
+  body.replaceChildren(...labels.map(label => {
+    const row = document.createElement('tr');
+    [String(label.seq), label.val, label.neg ? 'YES' : '', label.uri,
+      label.cts ? new Date(label.cts).toLocaleString() : ''].forEach(value => {
+      const cell = document.createElement('td');
+      cell.textContent = value;
+      row.append(cell);
+    });
+    const actions = document.createElement('td');
+    const negate = document.createElement('button');
+    negate.type = 'button';
+    negate.textContent = 'Negate';
+    negate.dataset.uri = label.uri;
+    negate.dataset.val = label.val;
+    const purge = document.createElement('button');
+    purge.type = 'button';
+    purge.textContent = 'Purge';
+    purge.dataset.seq = String(label.seq);
+    actions.append(negate, ' ', purge);
+    row.append(actions);
+    return row;
+  }));
+  if (!labels.length) {
+    const row = document.createElement('tr');
+    const cell = document.createElement('td');
+    cell.colSpan = 6;
+    cell.textContent = 'No labels signed yet.';
+    row.append(cell);
+    body.append(row);
+  }
+}
+
+async function refreshLabels() {
+  try {
+    const payload = await api('/api/admin/labels');
+    renderLabels(payload.labels || []);
+  } catch {
+    renderLabels([]);
+  }
+}
+
+async function publishLabel(payload) {
+  try {
+    setLabelStatus('Signing…');
+    await api('/api/admin/labels', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    setLabelStatus('Signed & published.');
+    if (labelForm) labelForm.reset();
+    await refreshLabels();
+  } catch (error) {
+    setLabelStatus('Failed: ' + (error.message || 'unknown error'));
+  }
+}
+
+if (labelForm) {
+  labelForm.addEventListener('submit', event => {
+    event.preventDefault();
+    publishLabel({
+      uri: labelForm.querySelector('#label-uri').value.trim(),
+      val: labelForm.querySelector('#label-val').value.trim(),
+      neg: labelForm.querySelector('#label-neg').checked,
+    });
+  });
+  document.getElementById('label-list').addEventListener('click', async event => {
+    const button = event.target.closest('button');
+    if (!button) return;
+    if (button.textContent === 'Negate') {
+      await publishLabel({ uri: button.dataset.uri, val: button.dataset.val, neg: true });
+      return;
+    }
+    if (button.textContent === 'Purge') {
+      if (!confirm(`Purge label ${button.dataset.seq} locally? Subscribed clients keep it until you publish a negation.`)) return;
+      try {
+        await api('/api/admin/labels', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ seq: Number(button.dataset.seq) }),
+        });
+        await refreshLabels();
+      } catch (error) {
+        setLabelStatus('Failed: ' + (error.message || 'unknown error'));
+      }
+    }
+  });
+  labelerRecordButton.addEventListener('click', async () => {
+    const values = document.getElementById('label-values').value
+      .split(',').map(v => v.trim()).filter(Boolean);
+    try {
+      setLabelStatus('Writing labeler record…');
+      await api('/api/admin/labeler-record', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ labelValues: values }),
+      });
+      setLabelStatus('Labeler record written to your repo.');
+    } catch (error) {
+      setLabelStatus('Failed: ' + (error.message || 'unknown error'));
+    }
+  });
+}
+
 async function loadWorkspace() {
-  const [transmissions, subscribers, players] = await Promise.all([
+  const [transmissions, subscribers, players, labels] = await Promise.all([
     api('/api/admin/transmissions'),
     api('/api/admin/subscribers'),
     api('/api/admin/players').catch(() => ({ players: [] })),
+    api('/api/admin/labels').catch(() => ({ labels: [] })),
   ]);
   state.transmissions = transmissions.transmissions || [];
   renderTransmissionList();
   renderSubscribers(subscribers.subscribers || []);
   renderPlayers(players.players || []);
+  renderLabels(labels.labels || []);
   resetEditor();
 }
 

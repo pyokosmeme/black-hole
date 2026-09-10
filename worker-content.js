@@ -492,6 +492,19 @@ async function handleUnsubscribe(request, env) {
   return text('<!doctype html><meta charset="utf-8"><title>Unsubscribed</title><style>body{background:#090914;color:#bff;font:18px/1.6 monospace;max-width:42rem;margin:5rem auto;padding:1rem}a{color:#0ff}</style><h1>Signal closed.</h1><p>You have been removed from transmission emails.</p><p><a href="/">Return to lastnpcalex.agency</a></p>', 200, 'text/html; charset=utf-8');
 }
 
+function labelForAdmin(record) {
+  return {
+    seq: record.seq,
+    uri: record.uri,
+    cid: record.cid || '',
+    val: record.val,
+    neg: !!record.neg,
+    cts: record.cts,
+    exp: record.exp || '',
+    comment: record.comment || '',
+  };
+}
+
 async function listAllTransmissionsForAdmin(request, env) {
   const output = [];
   for (const section of Object.keys(SECTIONS)) {
@@ -576,6 +589,44 @@ async function handleAdmin(request, env, pathname) {
     const players = (await listKvValues(env.SESSIONS, 'player:'))
       .sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
     return json({ players });
+  }
+
+  // ── labeler admin: signed labels are served by labeler.js ──
+  if (pathname === '/api/admin/labels' && request.method === 'GET') {
+    const labels = (await listKvValues(env.SESSIONS, 'label:'))
+      .sort((a, b) => (b.seq || 0) - (a.seq || 0))
+      .map(labelForAdmin);
+    return json({ labels });
+  }
+
+  if (pathname === '/api/admin/labels' && request.method === 'POST') {
+    if (!sameOriginRequest(request)) return json({ error: 'Origin not allowed' }, 403);
+    const input = await readJson(request, 20_000);
+    const uri = String(input.uri || '').trim();
+    const val = String(input.val || '').trim();
+    if (!/^(did:[a-zA-Z0-9:.]+|at:\/\/did:[a-zA-Z0-9:.]+(?:\/.*)?)$/.test(uri)) {
+      return json({ error: 'Subject must be a DID or an at:// URI rooted at a DID' }, 400);
+    }
+    if (!/^[a-z0-9][a-z0-9-]{0,62}$/.test(val)) {
+      return json({ error: 'Label value must be lowercase letters, digits, and dashes' }, 400);
+    }
+    const seq = (parseInt(await env.SESSIONS.get('labeler:seq'), 10) || 0) + 1;
+    await env.SESSIONS.put('labeler:seq', String(seq));
+    const record = { seq, uri, val, neg: !!input.neg, cts: new Date().toISOString() };
+    if (input.cid) record.cid = String(input.cid);
+    if (input.exp) record.exp = String(input.exp);
+    if (input.comment) record.comment = String(input.comment).slice(0, 500);
+    await env.SESSIONS.put(`label:${seq}`, JSON.stringify(record));
+    return json({ ok: true, label: labelForAdmin(record) }, 201);
+  }
+
+  if (pathname === '/api/admin/labels' && request.method === 'DELETE') {
+    if (!sameOriginRequest(request)) return json({ error: 'Origin not allowed' }, 403);
+    const input = await readJson(request, 20_000);
+    const seq = parseInt(input.seq, 10);
+    if (!seq) return json({ error: 'seq required' }, 400);
+    await env.SESSIONS.delete(`label:${seq}`);
+    return json({ ok: true, purged: seq, note: 'Purged locally. Subscribed clients keep the label until you publish a negation (neg: true) with the same subject and value.' });
   }
 
   return json({ error: 'Admin endpoint not found' }, 404);

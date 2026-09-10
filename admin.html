@@ -149,7 +149,7 @@
         <div class="panel-heading section-header">
           <h2 id="player-title">// PLAYER CHARACTERS <span id="player-count">0</span></h2>
           <div class="section-line"></div>
-          <a class="button-link" href="/join/">Opt-in page ↗</a>
+          <a class="button-link" href="/">lastnpcalex.agency ↗</a>
         </div>
         <div class="table-wrap">
           <table>
@@ -159,6 +159,33 @@
         </div>
       </section>
     </div>
+
+    <section class="subscriber-panel admin-surface" aria-labelledby="labeler-title">
+      <div class="panel-heading section-header">
+        <h2 id="labeler-title">// LABELER <span id="label-count">0</span></h2>
+        <div class="section-line"></div>
+        <a class="button-link" href="/xrpc/com.atproto.label.queryLabels?uriPatterns=*">queryLabels ↗</a>
+      </div>
+      <form id="label-form" style="display:grid;gap:8px;margin-bottom:14px">
+        <input id="label-uri" required placeholder="subject — did:plc:… or at://did:plc:…/app.bsky.feed.post/…" />
+        <input id="label-val" required pattern="[a-z0-9][a-z0-9-]{0,62}" placeholder="label value — e.g. player-character" />
+        <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+          <label style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="label-neg" /> negation (retract a label)</label>
+          <button id="label-submit" class="primary" type="submit">Sign &amp; publish</button>
+          <span id="label-status" style="opacity:.7"></span>
+        </div>
+      </form>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px">
+        <input id="label-values" placeholder="comma-separated label values for the labeler record" style="flex:1;min-width:260px" />
+        <button id="labeler-record-submit" type="button">Write labeler record</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Seq</th><th>Value</th><th>Neg</th><th>Subject</th><th>Created</th><th></th></tr></thead>
+          <tbody id="label-list"></tbody>
+        </table>
+      </div>
+    </section>
   </main>
 
   <script type="module" src="/js/admin.js"></script>
