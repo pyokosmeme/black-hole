@@ -187,6 +187,40 @@ test('labeler-record endpoint is admin-only and writes the service DID', async (
     assert.equal(captured.body.rkey, 'self');
     assert.equal(captured.body.record.did, LABELER_DID);
     assert.deepEqual(captured.body.record.policies.labelValues, ['player-character', 'spam']);
+    // shipped definitions ride along with admin-supplied values
+    const identifiers = captured.body.record.policies.labelValueDefinitions.map(d => d.identifier);
+    assert.ok(identifiers.includes('non-player-character'));
+    assert.ok(identifiers.includes('player-character'));
+    const npc = captured.body.record.policies.labelValueDefinitions.find(d => d.identifier === 'non-player-character');
+    assert.equal(npc.severity, 'inform');
+    assert.equal(npc.locales[0].name, 'Non-Player Character');
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('labeler-record defaults to the two shipped values + definitions', async () => {
+  const env = makeEnv({ 'session:admin-session': JSON.stringify(await adminSession()) });
+  const originalFetch = globalThis.fetch;
+  let captured;
+  globalThis.fetch = async (url, init = {}) => {
+    if (String(url).includes('/xrpc/com.atproto.repo.putRecord')) {
+      captured = { body: JSON.parse(init.body) };
+      return Response.json({ uri: 'at://did:plc:owner/app.bsky.labeler.service/self' });
+    }
+    throw new Error('Unexpected fetch: ' + url);
+  };
+  try {
+    const res = await worker.fetch(new Request(SITE + '/api/admin/labeler-record', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Cookie: 'session=admin-session' },
+      body: JSON.stringify({}),
+    }), env);
+    assert.equal(res.status, 200);
+    assert.deepEqual(captured.body.record.policies.labelValues, ['non-player-character', 'player-character']);
+    assert.equal(captured.body.record.policies.labelValueDefinitions.length, 2);
+    const pc = captured.body.record.policies.labelValueDefinitions.find(d => d.identifier === 'player-character');
+    assert.ok(pc.locales[0].name.includes('Player Character'));
   } finally {
     globalThis.fetch = originalFetch;
   }

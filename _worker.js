@@ -454,25 +454,61 @@ async function handlePutRecord(request, env) {
  * (did:web:lastnpcalex.agency). The labeler record is a normal repo
  * record, so this flows through the admin's own OAuth session.
  */
+/**
+ * The two shipped label values. Definitions ride inside the labeler
+ * service record so subscribers get proper cards in Moderation settings:
+ * the pill icon is the labeler account's avatar; the emoji on Player
+ * Character rides in the locale name (clients render names as pill text).
+ */
+const LABEL_VALUE_DEFINITIONS = [
+  {
+    identifier: 'non-player-character',
+    severity: 'inform',
+    blurs: 'none',
+    defaultSetting: 'warn',
+    adultOnly: false,
+    locales: [{
+      lang: 'en',
+      name: 'Non-Player Character',
+      description: 'This account is an NPC on lastnpcalex.agency — part of the world, not an opted-in player.',
+    }],
+  },
+  {
+    identifier: 'player-character',
+    severity: 'inform',
+    blurs: 'none',
+    defaultSetting: 'warn',
+    adultOnly: false,
+    locales: [{
+      lang: 'en',
+      name: '🗣️ Player Character',
+      description: 'This account is an opted-in player character on lastnpcalex.agency.',
+    }],
+  },
+];
+const DEFAULT_LABEL_VALUES = ['non-player-character', 'player-character'];
+
 async function handleLabelerRecord(request, env) {
   const session = await getSession(env, request);
   if (!session) return jsonResponse({ error: 'Not authenticated' }, 401, request);
   const adminDids = String(env.ADMIN_DIDS || '').split(',').map(v => v.trim()).filter(Boolean);
   if (!adminDids.includes(session.did)) return jsonResponse({ error: 'Admin only' }, 403, request);
   const body = await request.json().catch(() => ({}));
+  const labelValues = Array.isArray(body?.labelValues)
+    ? body.labelValues.map(v => String(v).trim()).filter(Boolean).slice(0, 100)
+    : [];
+  if (!labelValues.length) labelValues.push(...DEFAULT_LABEL_VALUES);
+  const bodyDefs = Array.isArray(body?.labelValueDefinitions) ? body.labelValueDefinitions : [];
+  const shipped = LABEL_VALUE_DEFINITIONS.filter(def => !bodyDefs.some(d => d && d.identifier === def.identifier));
   const record = {
     $type: LABELER_SERVICE_TYPE,
     did: LABELER_SERVICE_DID,
     policies: {
-      labelValues: Array.isArray(body?.labelValues)
-        ? body.labelValues.map(v => String(v).trim()).filter(Boolean).slice(0, 100)
-        : [],
+      labelValues,
+      labelValueDefinitions: [...shipped, ...bodyDefs],
     },
     createdAt: new Date().toISOString(),
   };
-  if (Array.isArray(body?.labelValueDefinitions)) {
-    record.policies.labelValueDefinitions = body.labelValueDefinitions;
-  }
   const { privateKey, publicKey } = await importKeyPair(session.privateKeyJwk, session.publicKeyJwk);
   const url = `${session.pds}/xrpc/com.atproto.repo.putRecord`;
   const result = await dpopFetch(privateKey, publicKey, session.accessToken, 'POST', url, {
