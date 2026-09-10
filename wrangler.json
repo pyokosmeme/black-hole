@@ -18,7 +18,8 @@
       "/",
       "/p/*",
       "/llms.txt",
-      "/.well-known/llms.txt"
+      "/.well-known/*",
+      "/xrpc/*"
     ]
   },
   "vars": {
