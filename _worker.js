@@ -8,7 +8,7 @@ const BSKY_PUBLIC = 'https://public.api.bsky.app';
 const BSKY_SOCIAL = 'https://bsky.social';
 const LIKE_TYPE = 'agency.lastnpcalex.like';
 const PLAYER_TYPE = 'agency.lastnpcalex.player';
-const JOIN_HOST = 'join.lastnpcalex.agency';
+const CREATE_TYPES = ['agency.lastnpcalex.comment', 'agency.lastnpcalex.like', 'agency.lastnpcalex.hide', 'agency.lastnpcalex.sentiment'];
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
 const STATE_TTL = 15 * 60 * 1000;
 const DEFAULT_ORIGIN = 'https://lastnpcalex.agency';
@@ -357,6 +357,11 @@ async function handleCreateRecord(request, env) {
   const { privateKey, publicKey } = await importKeyPair(session.privateKeyJwk, session.publicKeyJwk);
   const body = await request.json();
 
+  // Only the site's own lexicon collections may be written through this proxy
+  if (!CREATE_TYPES.includes(body?.collection)) {
+    return jsonResponse({ error: 'collection not allowed' }, 400, request);
+  }
+
   // Prevent duplicate likes: check if user already liked this target
   if (body.collection === LIKE_TYPE && body.record?.targetUri) {
     const checkUrl = new URL(`${BSKY_SOCIAL}/xrpc/com.atproto.repo.listRecords`);
@@ -413,11 +418,26 @@ async function handlePutRecord(request, env) {
     return jsonResponse({ error: 'playerCharacter must be 0 or 1' }, 400, request);
   }
 
+  // Server-built record: the client chooses playerCharacter; everything else
+  // (type, handle, timestamp) comes from the session/clock, not the request.
+  const record = {
+    $type: PLAYER_TYPE, playerCharacter: pc,
+    handle: session.handle || '',
+    createdAt: new Date().toISOString(),
+  };
   const url = `${session.pds}/xrpc/com.atproto.repo.putRecord`;
   const result = await dpopFetch(privateKey, publicKey, session.accessToken, 'POST', url, {
-    repo: session.did, collection: PLAYER_TYPE, rkey: 'self', record: body.record,
+    repo: session.did, collection: PLAYER_TYPE, rkey: 'self', record,
   });
   if (!result.ok) return jsonResponse({ error: result.text }, result.status, request);
+  try {
+    await env.SESSIONS.put(`player:${session.did}`, JSON.stringify({
+      did: session.did,
+      handle: session.handle || '',
+      playerCharacter: pc,
+      updatedAt: new Date().toISOString(),
+    }));
+  } catch { /* index failure must not fail the record write */ }
   try {
     return jsonResponse(JSON.parse(result.text), 200, request);
   } catch {
@@ -443,14 +463,6 @@ export default {
     if (path === '/api/bsky/deleteRecord') return handleDeleteRecord(request, env);
     if (path === '/api/bsky/putRecord') return handlePutRecord(request, env);
 
-    // join.lastnpcalex.agency — game opt-in page. API routes above handle
-    // OAuth + record writes; everything else serves the opt-in page.
-    if (new URL(request.url).hostname === JOIN_HOST) {
-      if (request.method === 'GET' || request.method === 'HEAD') {
-        return env.ASSETS.fetch(new URL('https://join.lastnpcalex.agency/join/index.html'));
-      }
-      return jsonResponse({ error: 'Method not allowed' }, 405, request);
-    }
 
     const contentResponse = await handleContentRequest(request, env);
     if (contentResponse) return contentResponse;

@@ -572,6 +572,12 @@ async function handleAdmin(request, env, pathname) {
     });
   }
 
+  if (pathname === '/api/admin/players' && request.method === 'GET') {
+    const players = (await listKvValues(env.SESSIONS, 'player:'))
+      .sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
+    return json({ players });
+  }
+
   return json({ error: 'Admin endpoint not found' }, 404);
 }
 

@@ -9,9 +9,6 @@
   "compatibility_flags": [
     "nodejs_compat"
   ],
-  "routes": [
-    { "pattern": "join.lastnpcalex.agency", "custom_domain": true }
-  ],
   "assets": {
     "binding": "ASSETS",
     "directory": ".",

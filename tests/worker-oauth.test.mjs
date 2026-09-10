@@ -187,20 +187,6 @@ test('putRecord writes the player opt-in lexicon and nothing else', async () => 
   }
 });
 
-test('the join host serves the opt-in page and leaves other paths alone', async () => {
-  let fetchedUrl = '';
-  const env = makeEnv();
-  env.ASSETS = {
-    async fetch(input) { fetchedUrl = String(input instanceof URL ? input : input.url); return new Response('join page', { status: 200 }); },
-  };
-  const page = await worker.fetch(new Request('https://join.lastnpcalex.agency/'), env);
-  assert.equal(page.status, 200);
-  assert.equal(fetchedUrl, 'https://join.lastnpcalex.agency/join/index.html');
-
-  const apiSession = await worker.fetch(new Request('https://join.lastnpcalex.agency/api/oauth/session'), env);
-  assert.equal(apiSession.status, 401);
-});
-
 test('login refuses cross-origin return targets instead of bridging a session', async () => {
   const env = makeEnv();
   const originalFetch = globalThis.fetch;

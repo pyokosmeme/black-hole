@@ -31,11 +31,13 @@ One record per account, always at rkey `self`:
 - `playerCharacter: 0` — explicitly opted out
 - no record — never asked
 
-Upsert semantics: the join page rewrites the record with
+Upsert semantics: records are rewritten with
 `com.atproto.repo.putRecord` via the Worker's `/api/bsky/putRecord`
 (DPoP-signed, restricted server-side to this collection + rkey, and to
-`playerCharacter` ∈ {0, 1}). No delete endpoint is exposed for it, so the
-choice can be flipped but never silently erased.
+`playerCharacter` ∈ {0, 1}; the record body is built server-side). No delete
+endpoint is exposed for it, so the choice can be flipped but never silently
+erased.
 
-Live at: `https://join.lastnpcalex.agency` (served by the `black-hole` Worker
-via a custom domain; page source is `join/index.html`).
+Note: there is currently no public opt-in front end — the
+`join.lastnpcalex.agency` page was removed. The endpoint and admin readout
+remain but are dormant.

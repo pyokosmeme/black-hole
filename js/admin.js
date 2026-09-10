@@ -138,14 +138,38 @@ function renderSubscribers(subscribers) {
   }
 }
 
+function renderPlayers(players) {
+  document.getElementById('player-count').textContent = players.filter(item => item.playerCharacter === 1).length;
+  const body = document.getElementById('player-list');
+  body.replaceChildren(...players.map(player => {
+    const row = document.createElement('tr');
+    [player.handle || '', player.did, String(player.playerCharacter), player.updatedAt ? new Date(player.updatedAt).toLocaleString() : ''].forEach(value => {
+      const cell = document.createElement('td');
+      cell.textContent = value;
+      row.append(cell);
+    });
+    return row;
+  }));
+  if (!players.length) {
+    const row = document.createElement('tr');
+    const cell = document.createElement('td');
+    cell.colSpan = 4;
+    cell.textContent = 'No opt-ins recorded yet.';
+    row.append(cell);
+    body.append(row);
+  }
+}
+
 async function loadWorkspace() {
-  const [transmissions, subscribers] = await Promise.all([
+  const [transmissions, subscribers, players] = await Promise.all([
     api('/api/admin/transmissions'),
     api('/api/admin/subscribers'),
+    api('/api/admin/players').catch(() => ({ players: [] })),
   ]);
   state.transmissions = transmissions.transmissions || [];
   renderTransmissionList();
   renderSubscribers(subscribers.subscribers || []);
+  renderPlayers(players.players || []);
   resetEditor();
 }
 
