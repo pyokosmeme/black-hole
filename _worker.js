@@ -327,6 +327,64 @@ async function handleSession(request, env) {
   }, 200, request);
 }
 
+/**
+ * OAuth access tokens are short-lived (minutes). When one expires
+ * ("exp" claim timestamp check failed), rotate it via the stored
+ * refresh token and persist the rotated pair back into the session KV.
+ */
+async function refreshAccessToken(env, request, session) {
+  if (!session.refreshToken) return null;
+  const cookie = request.headers.get('Cookie') || '';
+  const match = cookie.match(/session=([^;]+)/);
+  if (!match) return null;
+  const sessionId = match[1];
+  const { privateKey, publicKey } = await importKeyPair(session.privateKeyJwk, session.publicKeyJwk);
+  const tokenUrl = (session.authServer || 'https://bsky.social') + '/oauth/token';
+  const body = new URLSearchParams({
+    grant_type: 'refresh_token',
+    refresh_token: session.refreshToken,
+    client_id: CLIENT_ID,
+  });
+  const doFetch = async (nonce) => fetch(tokenUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'DPoP': await createDpopProof(privateKey, publicKey, 'POST', tokenUrl, null, nonce),
+    },
+    body: body.toString(),
+  });
+  let res = await doFetch();
+  const nonce = res.headers.get('dpop-nonce');
+  if (!res.ok && nonce) res = await doFetch(nonce);
+  if (!res.ok) return null;
+  let data;
+  try { data = JSON.parse(await res.text()); } catch { return null; }
+  if (!data.access_token) return null;
+  session.accessToken = data.access_token;
+  session.refreshToken = data.refresh_token || session.refreshToken;
+  const raw = await env.SESSIONS.get('session:' + sessionId);
+  if (raw) {
+    try {
+      const stored = JSON.parse(raw);
+      stored.accessToken = session.accessToken;
+      stored.refreshToken = session.refreshToken;
+      await env.SESSIONS.put('session:' + sessionId, JSON.stringify(stored), { expirationTtl: SESSION_MAX_AGE });
+    } catch { /* keep going with in-memory tokens */ }
+  }
+  return session.accessToken;
+}
+
+/** dpopFetch with automatic access-token refresh + retry on expiry. */
+async function authedDpopFetch(request, env, session, method, url, bodyJson) {
+  const { privateKey, publicKey } = await importKeyPair(session.privateKeyJwk, session.publicKeyJwk);
+  let result = await dpopFetch(privateKey, publicKey, session.accessToken, method, url, bodyJson);
+  if (!result.ok && result.status === 401 && /invalid_token|"exp"|expired/i.test(result.text)) {
+    const fresh = await refreshAccessToken(env, request, session);
+    if (fresh) result = await dpopFetch(privateKey, publicKey, fresh, method, url, bodyJson);
+  }
+  return result;
+}
+
 async function dpopFetch(privateKey, publicKey, accessToken, method, url, bodyJson) {
   const doFetch = async (nonce) => {
     const proof = await createDpopProof(privateKey, publicKey, method, url, accessToken, nonce);
@@ -380,7 +438,7 @@ async function handleCreateRecord(request, env) {
   }
 
   const url = `${session.pds}/xrpc/com.atproto.repo.createRecord`;
-  const result = await dpopFetch(privateKey, publicKey, session.accessToken, 'POST', url, {
+  const result = await authedDpopFetch(request, env, session, 'POST', url, {
     repo: session.did, collection: body.collection, rkey: body.rkey, record: body.record,
   });
   if (!result.ok) return jsonResponse({ error: result.text }, result.status, request);
@@ -394,7 +452,7 @@ async function handleDeleteRecord(request, env) {
   const body = await request.json();
   const [repo, collection, rkey] = body.uri.replace('at://', '').split('/');
   const url = `${session.pds}/xrpc/com.atproto.repo.deleteRecord`;
-  const result = await dpopFetch(privateKey, publicKey, session.accessToken, 'POST', url, {
+  const result = await authedDpopFetch(request, env, session, 'POST', url, {
     repo, collection, rkey,
   });
   if (!result.ok) return jsonResponse({ error: result.text }, result.status, request);
@@ -429,7 +487,7 @@ async function handlePutRecord(request, env) {
     createdAt: new Date().toISOString(),
   };
   const url = `${session.pds}/xrpc/com.atproto.repo.putRecord`;
-  const result = await dpopFetch(privateKey, publicKey, session.accessToken, 'POST', url, {
+  const result = await authedDpopFetch(request, env, session, 'POST', url, {
     repo: session.did, collection: PLAYER_TYPE, rkey: 'self', record,
   });
   if (!result.ok) return jsonResponse({ error: result.text }, result.status, request);
@@ -511,7 +569,7 @@ async function handleLabelerRecord(request, env) {
   };
   const { privateKey, publicKey } = await importKeyPair(session.privateKeyJwk, session.publicKeyJwk);
   const url = `${session.pds}/xrpc/com.atproto.repo.putRecord`;
-  const result = await dpopFetch(privateKey, publicKey, session.accessToken, 'POST', url, {
+  const result = await authedDpopFetch(request, env, session, 'POST', url, {
     repo: session.did, collection: LABELER_SERVICE_TYPE, rkey: 'self', record,
   });
   if (!result.ok) return jsonResponse({ error: result.text }, result.status, request);
