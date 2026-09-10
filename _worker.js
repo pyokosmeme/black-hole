@@ -381,6 +381,7 @@ async function authedDpopFetch(request, env, session, method, url, bodyJson) {
   if (!result.ok && result.status === 401 && /invalid_token|"exp"|expired/i.test(result.text)) {
     const fresh = await refreshAccessToken(env, request, session);
     if (fresh) result = await dpopFetch(privateKey, publicKey, fresh, method, url, bodyJson);
+    else result = { ok: false, status: 401, text: '{"error":"session_expired","message":"OAuth tokens expired and the refresh grant is dead — sign out and back in"}' };
   }
   return result;
 }
