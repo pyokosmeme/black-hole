@@ -202,7 +202,24 @@ function streamMessage(frame) {
   return JSON.stringify({ $type: 'com.atproto.label.subscribeLabels#' + frame.name, ...frame.body });
 }
 
+/**
+ * Connection probe: records who hits the label endpoints so we can tell
+ * whether Bluesky’s AppView ever reaches the stream. Keyed by minute so
+ * it cannot fill KV.
+ */
+async function probeConnection(env, request, endpoint) {
+  try {
+    const minute = new Date().toISOString().slice(0, 16);
+    const key = `labeler:probe:${endpoint}:${minute}`;
+    const hit = JSON.parse((await env.SESSIONS.get(key)) || '{}');
+    const ua = request.headers.get('User-Agent') || '(none)';
+    hit[ua] = (hit[ua] || 0) + 1;
+    await env.SESSIONS.put(key, JSON.stringify(hit), { expirationTtl: 86400 * 7 });
+  } catch { /* probing must never break serving */ }
+}
+
 async function handleSubscribeLabels(request, env) {
+  await probeConnection(env, request, 'subscribeLabels');
   if (request.headers.get('Upgrade') !== 'websocket') {
     return new Response('websocket upgrade required', { status: 426 });
   }
@@ -258,7 +275,7 @@ async function handleDidDoc(request, env) {
 export async function handleLabelerRequest(request, env) {
   const path = new URL(request.url).pathname;
   if (path === '/.well-known/did.json') return handleDidDoc(request, env);
-  if (path === '/xrpc/com.atproto.label.queryLabels') return handleQueryLabels(request, env);
+  if (path === '/xrpc/com.atproto.label.queryLabels') { await probeConnection(env, request, 'queryLabels'); return handleQueryLabels(request, env); }
   if (path === '/xrpc/com.atproto.label.subscribeLabels') return handleSubscribeLabels(request, env);
   if (path.startsWith('/xrpc/')) {
     return new Response(JSON.stringify({ error: 'XRPCNotSupported', message: 'unknown XRPC method' }), {
