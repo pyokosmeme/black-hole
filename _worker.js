@@ -738,6 +738,12 @@ export default {
   async fetch(request, env) {
     const path = new URL(request.url).pathname;
 
+    // Scratch artifacts from a prior local deployment must never be public,
+    // even if an old static-asset manifest still contains them.
+    if (path.startsWith('/.deploy-surfaces-') || /^\/tmp_.*\.png$/.test(path)) {
+      return new Response('Not found', { status: 404 });
+    }
+
     if (request.method === 'OPTIONS' && path.startsWith('/api/')) {
       return new Response(null, { status: 204, headers: corsHeaders(request) });
     }

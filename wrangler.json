@@ -22,7 +22,9 @@
       "/p/*",
       "/llms.txt",
       "/.well-known/*",
-      "/xrpc/*"
+      "/xrpc/*",
+      "/.deploy-surfaces-*",
+      "/tmp_*.png"
     ]
   },
   "vars": {
