@@ -407,8 +407,10 @@ async function handlePublicTransmissions(request, env, pathname) {
   if (pathname === '/api/transmissions' && request.method === 'GET') {
     const section = new URL(request.url).searchParams.get('section') || 'author';
     if (!SECTIONS[section]) return json({ error: 'Unknown transmission section' }, 400);
-    const posts = (await managedPosts(env, section)).map(publicMetadata);
-    return json({ posts });
+    const records = await listKvValues(env.SESSIONS, `transmission:${section}:`);
+    const posts = records.filter(record => record.status === 'published').map(publicMetadata);
+    const archived = records.filter(record => record.status === 'archived').map(record => record.slug);
+    return json({ posts, archived });
   }
 
   const match = pathname.match(/^\/api\/transmissions\/(author|ams|futures|maps)\/([a-z0-9]+(?:-[a-z0-9]+)*)$/);

@@ -171,7 +171,7 @@
             console.error('[ACIDBURN Author] Error loading posts index:', error);
         }
 
-        let managedPosts = [];
+        let managedPosts = []; let archivedSlugs = [];
         try {
             const response = await fetch(`/api/transmissions?section=${encodeURIComponent(CONTENT_SECTION)}`, {
                 cache: 'no-store',
@@ -180,6 +180,7 @@
             if (response.ok && (response.headers.get('Content-Type') || '').includes('application/json')) {
                 const payload = await response.json();
                 managedPosts = Array.isArray(payload.posts) ? payload.posts : [];
+                archivedSlugs = Array.isArray(payload.archived) ? payload.archived : [];
             }
         } catch (error) {
             // Static hosting remains a supported fallback; managed posts simply
@@ -189,7 +190,8 @@
 
         const merged = new Map(repositoryPosts.map(post => [post.slug, post]));
         managedPosts.forEach(post => merged.set(post.slug, post));
-        POSTS = [...merged.values()].sort((a, b) =>
+        const archivedSet = new Set(archivedSlugs);
+        POSTS = [...merged.values()].filter(post => !archivedSet.has(post.slug)).sort((a, b) =>
             String(b.date || '').localeCompare(String(a.date || ''))
         );
         renderPostsList();
