@@ -13,7 +13,7 @@ const CREATE_TYPES = ['agency.lastnpcalex.comment', 'agency.lastnpcalex.like', '
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
 const STATE_TTL = 15 * 60 * 1000;
 const DEFAULT_ORIGIN = 'https://lastnpcalex.agency';
-const LABELER_SERVICE_DID = 'did:web:lastnpcalex.agency';
+const LABELER_SERVICE_DID = 'did:plc:afkapfcc65k5ptqs4tgdgdyl';
 const LABELER_SERVICE_TYPE = 'app.bsky.labeler.service';
 
 function corsHeaders(request) {

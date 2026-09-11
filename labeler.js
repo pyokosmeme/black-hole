@@ -19,7 +19,7 @@
  */
 import { secp256k1 } from '@noble/curves/secp256k1.js';
 
-export const LABELER_DID = 'did:web:lastnpcalex.agency';
+export const LABELER_DID = 'did:plc:afkapfcc65k5ptqs4tgdgdyl';
 const LABELER_ENDPOINT = 'https://lastnpcalex.agency';
 const KEY_KV = 'labeler:signing-key';
 const SEQ_KV = 'labeler:seq';
