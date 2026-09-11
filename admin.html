@@ -106,6 +106,11 @@
             <label>Markdown
               <textarea name="markdown" id="markdown-editor" rows="24" spellcheck="true" required></textarea>
             </label>
+            <div class="field-row">
+              <label>Attach image <small>png / jpg / webp / gif → inserts markdown, served from your KV</small>
+                <input type="file" id="image-input" accept="image/png,image/jpeg,image/webp,image/gif">
+              </label>
+            </div>
           </div>
 
           <section class="preview-panel" aria-labelledby="preview-title">
@@ -123,6 +128,7 @@
               <a id="share-link" class="share-link" href="#" target="_blank" rel="noopener" hidden></a>
             </div>
             <div class="editor-actions">
+              <button id="archive-button" type="button" hidden>Archive (pull offline)</button>
               <button id="delete-button" class="danger" type="button" hidden>Delete managed copy</button>
               <button id="draft-button" type="button">Save draft</button>
               <button id="publish-button" class="primary" type="button">Publish</button>

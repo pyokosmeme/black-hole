@@ -59,6 +59,7 @@ function resetEditor() {
   sourceNote.textContent = 'New managed transmission.';
   shareLink.hidden = true;
   deleteButton.hidden = true;
+  document.getElementById('archive-button').hidden = true;
   setStatus(editorStatus, '');
   renderTransmissionList();
   updatePreview();
@@ -79,6 +80,7 @@ function selectTransmission(record) {
     ? 'Repository source. Saving creates a managed override; the original file remains untouched.'
     : `Managed ${record.status || 'draft'}; last updated ${new Date(record.updatedAt).toLocaleString()}.`;
   deleteButton.hidden = record.source !== 'admin';
+  document.getElementById('archive-button').hidden = record.status !== 'published';
   const sectionBase = record.section === 'author' ? '/p' : `/p/${record.section}`;
   shareLink.href = `${sectionBase}/${record.slug}`;
   shareLink.textContent = `${location.origin}${sectionBase}/${record.slug}`;
@@ -381,6 +383,41 @@ document.getElementById('new-button').addEventListener('click', resetEditor);
 document.getElementById('section-filter').addEventListener('change', renderTransmissionList);
 document.getElementById('draft-button').addEventListener('click', () => save('draft'));
 document.getElementById('publish-button').addEventListener('click', () => save('published'));
+document.getElementById('archive-button').addEventListener('click', async () => {
+  if (!state.active || state.active.status !== 'published') return;
+  if (!window.confirm(`Archive “${state.active.title}”? It will be pulled offline and kept as a draft.`)) return;
+  await save('draft');
+});
+
+// typographer: em/en dashes outside horizontal rules
+const markdownEditor = document.getElementById('markdown-editor');
+markdownEditor.addEventListener('input', () => {
+  const value = markdownEditor.value;
+  const fixed = value.split('\n').map(line => /^\s*-{3,}\s*$/.test(line) ? line : line.replace(/(^|\s)---(\s|$)/g, '$1—$2').replace(/(^|\s)--(\s|$)/g, '$1–$2')).join('\n');
+  if (fixed !== value) {
+    const pos = markdownEditor.selectionStart + (fixed.length - value.length);
+    markdownEditor.value = fixed;
+    markdownEditor.setSelectionRange(pos, pos);
+  }
+});
+
+// image attach → KV → markdown embed at cursor
+document.getElementById('image-input').addEventListener('change', async event => {
+  const file = event.target.files && event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+  if (file.size > 4 * 1024 * 1024) { setStatus(editorStatus, 'Image too large (max 4MB).', 'error'); return; }
+  setStatus(editorStatus, 'Uploading image…');
+  const data = await new Promise(resolve => { const r = new FileReader(); r.onload = () => resolve(String(r.result).split(',')[1] || ''); r.readAsDataURL(file); });
+  try {
+    const res = await api('/api/admin/images', { method: 'POST', body: JSON.stringify({ type: file.type, data }) });
+    const pos = markdownEditor.selectionStart || markdownEditor.value.length;
+    const embed = `![${file.name.replace(/\.[a-z0-9]+$/i, '')}](${res.url})\n`;
+    markdownEditor.value = markdownEditor.value.slice(0, pos) + embed + markdownEditor.value.slice(pos);
+    markdownEditor.dispatchEvent(new Event('input', { bubbles: true }));
+    setStatus(editorStatus, 'Image attached: ' + res.url, 'success');
+  } catch (error) { setStatus(editorStatus, 'Image upload failed: ' + error.message, 'error'); }
+});
 deleteButton.addEventListener('click', removeManagedCopy);
 form.elements.title.addEventListener('input', () => { if (state.isNew) form.elements.slug.value = slugify(form.elements.title.value); });
 form.elements.markdown.addEventListener('input', updatePreview);

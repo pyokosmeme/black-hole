@@ -542,6 +542,22 @@ async function handleAdmin(request, env, pathname) {
     return json({ authorized: true, did: admin.did, handle: admin.handle });
   }
 
+  if (pathname === '/api/admin/images' && request.method === 'POST') {
+    if (!sameOriginRequest(request)) return json({ error: 'Origin not allowed' }, 403);
+    const admin = await getAdmin(request, env);
+    if (!admin) return json({ error: 'Admin session required' }, 401);
+    const input = await readJson(request);
+    const type = String(input.type || '');
+    if (!/^image\/(png|jpeg|webp|gif)$/.test(type)) return json({ error: 'Only png, jpeg, webp, or gif allowed' }, 400);
+    const data = String(input.data || '');
+    if (!/^[A-Za-z0-9+/=]+$/.test(data) || data.length > 5600000) return json({ error: 'Bad or oversized image data (max ~4MB)' }, 400);
+    const digest = await crypto.subtle.digest('SHA-256', Uint8Array.from(atob(data), c => c.charCodeAt(0)));
+    const hash = [...new Uint8Array(digest)].slice(0, 10).map(b => b.toString(16).padStart(2, '0')).join('');
+    const ext = type.split('/')[1].replace('jpeg', 'jpg');
+    await env.SESSIONS.put(`img:${hash}`, JSON.stringify({ type, data }), { metadata: { type } });
+    return json({ ok: true, url: `/img/${hash}.${ext}` });
+  }
+
   if (pathname === '/api/admin/transmissions' && request.method === 'GET') {
     return json({ transmissions: await listAllTransmissionsForAdmin(request, env), sections: SECTIONS });
   }
@@ -643,6 +659,16 @@ export async function handleContentRequest(request, env) {
     if (pathname === '/api/subscriptions/unsubscribe') return await handleUnsubscribe(request, env);
     if (pathname.startsWith('/api/admin/')) return await handleAdmin(request, env, pathname);
     if (pathname.startsWith('/api/transmissions')) return await handlePublicTransmissions(request, env, pathname);
+    const imgMatch = pathname.match(/^\/img\/([0-9a-f]{20})\.(png|jpg|webp|gif)$/);
+    if (imgMatch && request.method === 'GET') {
+      const raw = await env.SESSIONS.get(`img:${imgMatch[1]}`);
+      if (!raw) return null;
+      try {
+        const stored = JSON.parse(raw);
+        const bytes = Uint8Array.from(atob(stored.data), c => c.charCodeAt(0));
+        return new Response(bytes, { status: 200, headers: { 'Content-Type': stored.type, 'Cache-Control': 'public, max-age=31536000, immutable' } });
+      } catch { return null; }
+    }
     return null;
   } catch (error) {
     if (error instanceof HttpError) return json({ error: error.message }, error.status);
