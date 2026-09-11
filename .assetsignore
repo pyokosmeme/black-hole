@@ -87,3 +87,6 @@ nav-menu-Kayleighbot.js
 /q1.json;
 /r1.json;
 /console.log('
+/.deploy-surfaces-*/
+/.deploy-surfaces-*.zip
+/tmp_*.png
