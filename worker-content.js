@@ -3,7 +3,7 @@ import { renderDocument } from './transmission-document.js';
 const DEFAULT_ADMIN_DIDS = 'did:plc:ccxl3ictrlvtrrgh5swvvg47,did:plc:drrstoxu4to57dhv453ziznq';
 const SITE_ORIGIN = 'https://lastnpcalex.agency';
 const ALLOWED_TOPICS = new Set(['blog', 'books', 'fiction']);
-const ALLOWED_STATUSES = new Set(['draft', 'published']);
+const ALLOWED_STATUSES = new Set(['draft', 'published', 'archived']);
 
 const SECTIONS = {
   author: {
@@ -247,6 +247,7 @@ async function resolvedPost(request, env, section, slug, includeDrafts = false) 
     try {
       const managed = JSON.parse(managedRaw);
       if (includeDrafts || managed.status === 'published') return { ...managed, source: 'admin' };
+      if (managed.status === 'archived') return null; // archived hides even the repository copy
     } catch {
       // Fall through to the repository version.
     }
@@ -274,7 +275,7 @@ function normalizeTransmission(input, previous) {
   if (!/^\d{4}\.\d{2}\.\d{2}$/.test(date)) throw new HttpError(400, 'Date must use YYYY.MM.DD');
   if (!markdown || markdown.length > 500_000) throw new HttpError(400, 'Markdown is required and must be under 500 KB');
   if (excerpt.length > 1_000) throw new HttpError(400, 'Excerpt must be under 1,000 characters');
-  if (!ALLOWED_STATUSES.has(status)) throw new HttpError(400, 'Status must be draft or published');
+  if (!ALLOWED_STATUSES.has(status)) throw new HttpError(400, 'Status must be draft, published, or archived');
   if (tags.length > 20 || tags.some(tag => tag.length > 60)) throw new HttpError(400, 'Too many tags or tag is too long');
 
   const now = new Date().toISOString();

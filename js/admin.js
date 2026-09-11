@@ -407,8 +407,8 @@ function acidConfirm(message) {
 
 document.getElementById('archive-button').addEventListener('click', async () => {
   if (!state.active || state.active.status !== 'published') return;
-  if (!(await acidConfirm(`Archive “${state.active.title}”? It will be pulled offline and kept as a draft.`))) return;
-  await save('draft');
+  if (!(await acidConfirm(`Archive “${state.active.title}”? It will be pulled offline (hidden even if a repository copy exists).`))) return;
+  await save('archived');
 });
 
 // typographer: em/en dashes outside horizontal rules
