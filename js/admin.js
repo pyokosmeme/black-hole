@@ -250,7 +250,7 @@ if (labelForm) {
       return;
     }
     if (button.textContent === 'Purge') {
-      if (!confirm(`Purge label ${button.dataset.seq} locally? Subscribed clients keep it until you publish a negation.`)) return;
+      if (!(await acidConfirm(`Purge label ${button.dataset.seq} locally? Subscribed clients keep it until you publish a negation.`))) return;
       try {
         await api('/api/admin/labels', {
           method: 'DELETE',
@@ -332,7 +332,7 @@ async function save(status) {
 
 async function removeManagedCopy() {
   if (!state.active || state.active.source !== 'admin') return;
-  if (!window.confirm(`Delete the managed copy of “${state.active.title}”? A repository version with the same slug will reappear if one exists.`)) return;
+  if (!(await acidConfirm(`Delete the managed copy of “${state.active.title}”? A repository version with the same slug will reappear if one exists.`))) return;
   try {
     await api('/api/admin/transmissions', {
       method: 'DELETE',
@@ -383,9 +383,31 @@ document.getElementById('new-button').addEventListener('click', resetEditor);
 document.getElementById('section-filter').addEventListener('change', renderTransmissionList);
 document.getElementById('draft-button').addEventListener('click', () => save('draft'));
 document.getElementById('publish-button').addEventListener('click', () => save('published'));
+// acid-styled in-page confirm (replaces system confirm popups)
+function acidConfirm(message) {
+  return new Promise(resolve => {
+    const overlay = document.getElementById('acid-confirm');
+    const msg = document.getElementById('acid-confirm-msg');
+    const ok = document.getElementById('acid-confirm-ok');
+    const cancel = document.getElementById('acid-confirm-cancel');
+    msg.textContent = message;
+    overlay.hidden = false;
+    ok.focus();
+    const done = answer => { overlay.hidden = true; ok.removeEventListener('click', onOk); cancel.removeEventListener('click', onCancel); overlay.removeEventListener('click', onOverlay); document.removeEventListener('keydown', onKey); resolve(answer); };
+    const onOk = () => done(true);
+    const onCancel = () => done(false);
+    const onOverlay = e => { if (e.target === overlay) done(false); };
+    const onKey = e => { if (e.key === 'Escape') done(false); if (e.key === 'Enter') done(true); };
+    ok.addEventListener('click', onOk);
+    cancel.addEventListener('click', onCancel);
+    overlay.addEventListener('click', onOverlay);
+    document.addEventListener('keydown', onKey);
+  });
+}
+
 document.getElementById('archive-button').addEventListener('click', async () => {
   if (!state.active || state.active.status !== 'published') return;
-  if (!window.confirm(`Archive “${state.active.title}”? It will be pulled offline and kept as a draft.`)) return;
+  if (!(await acidConfirm(`Archive “${state.active.title}”? It will be pulled offline and kept as a draft.`))) return;
   await save('draft');
 });
 

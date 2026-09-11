@@ -242,3 +242,48 @@
   .workspace-meta { flex-direction: column; }
   .editor-actions { justify-content: flex-start; }
 }
+
+/* Acid Burn in-page confirm dialog (replaces system alert/confirm) */
+.acid-confirm {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 4, 0.78);
+  backdrop-filter: blur(2px);
+}
+.acid-confirm[hidden] { display: none; }
+.acid-confirm-box {
+  width: min(440px, calc(100vw - 32px));
+  padding: 20px 22px;
+  background: #090910;
+  border: 1px solid var(--purple);
+  box-shadow: 0 0 24px rgba(191, 0, 255, 0.35), inset 0 0 18px rgba(191, 0, 255, 0.08);
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--cyan, #00ffff);
+}
+.acid-confirm-title {
+  margin: 0 0 10px;
+  color: var(--purple);
+  font-family: 'Orbitron', sans-serif;
+  font-size: var(--text-xs, 11px);
+  letter-spacing: 2px;
+}
+.acid-confirm-msg { margin: 0 0 18px; color: var(--admin-muted); line-height: 1.5; overflow-wrap: anywhere; }
+.acid-confirm-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.acid-confirm-actions button {
+  padding: 8px 18px;
+  background: transparent;
+  border: 1px solid var(--admin-line);
+  color: var(--admin-muted);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: var(--text-sm, 13px);
+  letter-spacing: 1px;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+.acid-confirm-actions button:hover { border-color: var(--cyan, #00ffff); color: var(--cyan, #00ffff); }
+.acid-confirm-actions button.primary { border-color: var(--purple); color: var(--purple); }
+.acid-confirm-actions button.primary:hover { box-shadow: 0 0 10px rgba(191, 0, 255, 0.4); color: #fff; }
