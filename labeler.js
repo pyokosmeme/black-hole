@@ -136,6 +136,7 @@ async function labelJson(record, key) {
   if (record.cid) label.cid = record.cid;
   if (record.neg) label.neg = true;
   if (record.exp) label.exp = record.exp;
+  label.uri = subjectUri(record);
   const sig = await signLabel(label, key);
   return { ...label, sig: { $bytes: bytesToB64(sig) } };
 }
@@ -157,6 +158,19 @@ async function listLabelRecords(env) {
   } while (cursor);
   records.sort((a, b) => (a.seq || 0) - (b.seq || 0));
   return records;
+}
+
+/* ── subject canonicalization ──
+ * Labels are stored with bare-DID subjects (did:plc:x). Account labels
+ * must be served as at://<did>/app.bsky.actor.profile/self — the AppView
+ * queries uriPatterns in at:// form and clients expect the label's uri
+ * field to be that full AT-URI, so normalize before matching + signing.
+ */
+function subjectUri(record) {
+  const uri = String(record.uri || '');
+  if (/^at:\/\//.test(uri)) return uri;
+  if (/^did:[a-zA-Z0-9:.]+$/.test(uri)) return `at://${uri}/app.bsky.actor.profile/self`;
+  return uri;
 }
 
 /* ── uriPatterns matching (spec: `*` wildcard globbing) ── */
@@ -186,7 +200,7 @@ async function handleQueryLabels(request, env) {
   let records = await listLabelRecords(env);
   if (cursor) records = records.filter(r => (r.seq || 0) > cursor);
   if (sources.length && !sources.includes(LABELER_DID)) records = [];
-  else records = records.filter(r => patterns.some(pattern => matchPattern(pattern, r.uri)));
+  else records = records.filter(r => patterns.some(pattern => matchPattern(pattern, subjectUri(r))));
   const page = records.slice(0, limit);
   const key = await ensureLabelerKey(env);
   const labels = await Promise.all(page.map(record => labelJson(record, key)));

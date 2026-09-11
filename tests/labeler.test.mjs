@@ -74,7 +74,7 @@ test('queryLabels serves signed labels and verifies with the published key', asy
   const label = labels[0];
   assert.equal(label.ver, 1);
   assert.equal(label.src, LABELER_DID);
-  assert.equal(label.uri, 'did:plc:victim');
+  assert.equal(label.uri, 'at://did:plc:victim/app.bsky.actor.profile/self');
   assert.equal(label.val, 'player-character');
 
   // verify the signature against the key published in did.json
@@ -89,6 +89,22 @@ test('queryLabels serves signed labels and verifies with the published key', asy
   // other subjects see nothing
   const empty = await worker.fetch(new Request(SITE + '/xrpc/com.atproto.label.queryLabels?uriPatterns=did%3Aplc%3Aother'), env);
   assert.equal((await empty.json()).labels.length, 0);
+});
+
+test('queryLabels matches AppView-style at:// uriPatterns against bare-DID subjects', async () => {
+  const env = makeEnv({ 'session:admin-session': JSON.stringify(await adminSession()) });
+  const res = await worker.fetch(new Request(SITE + '/api/admin/labels', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Origin: SITE, Cookie: 'session=admin-session' },
+    body: JSON.stringify({ uri: 'did:plc:victim', val: 'non-player-character' }),
+  }), env);
+  assert.equal(res.status, 201);
+  // This is how the Bluesky AppView polls an account label — must not be empty.
+  const pattern = encodeURIComponent('at://did:plc:victim/app.bsky.actor.profile/self');
+  const query = await (await worker.fetch(new Request(SITE + '/xrpc/com.atproto.label.queryLabels?sources=' + encodeURIComponent(LABELER_DID) + '&uriPatterns=' + pattern), env)).json();
+  assert.equal(query.labels.length, 1);
+  assert.equal(query.labels[0].uri, 'at://did:plc:victim/app.bsky.actor.profile/self');
+  assert.equal(query.labels[0].val, 'non-player-character');
 });
 
 test('queryLabels matches at:// subjects with did patterns and globs', async () => {
