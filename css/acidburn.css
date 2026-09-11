@@ -2099,3 +2099,23 @@ body.light-reading .tx-confirm-btn--danger:hover {
   background: rgba(204, 0, 102, 0.08);
   color: #cc0066;
 }
+
+/* Load-older-transmissions pager */
+.posts-load-more {
+  display: block;
+  margin: 28px auto 8px;
+  padding: 10px 22px;
+  background: transparent;
+  border: 1px solid var(--purple);
+  color: var(--purple);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: var(--text-xs, 11px);
+  letter-spacing: 2px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: box-shadow 0.15s, color 0.15s;
+}
+.posts-load-more:hover {
+  color: #fff;
+  box-shadow: 0 0 14px rgba(191, 0, 255, 0.45), inset 0 0 10px rgba(191, 0, 255, 0.15);
+}

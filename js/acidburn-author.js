@@ -42,6 +42,8 @@
 
     let CONFIG = null;
     let POSTS = [];
+    const POSTS_PAGE_SIZE = 12;
+    let postsShown = POSTS_PAGE_SIZE;
     const SEED = Date.now();
     let rngState = SEED;
     let commentsModulePromise = null;
@@ -241,7 +243,7 @@
         const list = document.getElementById('posts-list');
         if (!list) return;
         
-        list.innerHTML = POSTS.map(post => `
+        list.innerHTML = POSTS.slice(0, postsShown).map(post => `
             <a href="${STUB_BASE}/${post.slug}" class="post-card" data-slug="${post.slug}">
                 <div class="post-meta">
                     <span class="post-date">${post.date || ''}</span>
@@ -266,6 +268,15 @@
                 }
             });
         });
+        // paginate: "load more" wrap so the index never grows infinitely long
+        if (POSTS.length > postsShown) {
+            const more = document.createElement('button');
+            more.id = 'posts-load-more';
+            more.className = 'posts-load-more';
+            more.textContent = '// LOAD OLDER TRANSMISSIONS (' + (POSTS.length - postsShown) + ')';
+            more.addEventListener('click', () => { postsShown = Math.min(postsShown + POSTS_PAGE_SIZE, POSTS.length); renderPostsList(); });
+            list.appendChild(more);
+        }
     }
 
     // Typeset LaTeX in an element using MathJax, if it is loaded on this page.
