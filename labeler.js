@@ -1,8 +1,8 @@
 /**
  * Self-hosted ATProto labeler service for lastnpcalex.agency.
  *
- * The labeler identity is did:web:lastnpcalex.agency — served as
- * /.well-known/did.json with a #atproto_label Multikey (secp256k1).
+ * The labeler identity is the existing lastnpcalex.agency ATProto account.
+ * Its PLC DID document publishes #atproto_label and #atproto_labeler.
  * The private key lives in the SESSIONS KV (generated on first use) and
  * never leaves the worker. Labels are stored under `label:<seq>` and are
  * signed at serve time, exactly as app.bsky consumers expect:
@@ -10,22 +10,21 @@
  *   sig = secp256k1.sign(sha256(dagCbor(labelWithoutSig)), signingKey)  (64-byte compact)
  *
  * Endpoints (all public, per the labeler spec):
- *   /.well-known/did.json
  *   /xrpc/com.atproto.label.queryLabels
- *   /xrpc/com.atproto.label.subscribeLabels   (websocket, JSON frames)
+ *   /xrpc/com.atproto.label.subscribeLabels   (websocket, binary DAG-CBOR frames)
  *
  * Writes happen only through the admin API in worker-content.js
  * (/api/admin/labels, gated by ADMIN_DIDS + same-origin).
  */
 import { secp256k1 } from '@noble/curves/secp256k1.js';
 
-export const LABELER_DID = 'did:plc:afkapfcc65k5ptqs4tgdgdyl';
-const LABELER_ENDPOINT = 'https://lastnpcalex.agency';
+export const LABELER_DID = 'did:plc:ccxl3ictrlvtrrgh5swvvg47';
 const KEY_KV = 'labeler:signing-key';
 const SEQ_KV = 'labeler:seq';
 const LABEL_PREFIX = 'label:';
 const BATCH = 100;
-const STREAM_LIFETIME_MS = 55_000;   // replay everything, then close; consumers reconnect with their cursor
+const STREAM_LIFETIME_MS = 600_000;  // long-lived: replay, stream live events, then close so consumers reconnect with their cursor
+const STREAM_POLL_MS = 5_000;
 
 /* ── tiny byte helpers ── */
 
@@ -96,6 +95,45 @@ export function cborEncodeLabel(label) {
   return cborConcat(cborHead(5, entries.length), ...pairs);
 }
 
+/* ── subscribeLabels wire frames (spec: one binary message = two concatenated
+ *    dag-cbor objects: {"t": "#labels", "op": 1} + {"seq", "labels": [...]}) ── */
+
+export function cborEncodeFrame(frame) {
+  const parts = [];
+  const enc = (value) => {
+    if (typeof value === 'boolean') return cborValue(value);
+    if (typeof value === 'number') return cborValue(value);
+    if (typeof value === 'string') return cborValue(value);
+    if (value instanceof Uint8Array) return cborValue(value);
+    if (Array.isArray(value)) {
+      const items = value.map(enc).filter(Boolean);
+      return cborConcat(cborHead(4, items.length), ...items);
+    }
+    if (value && typeof value === 'object') {
+      const entries = Object.entries(value).filter(([, v]) => v !== undefined && v !== null && v !== false);
+      entries.sort((a, b) => {
+        const ka = new TextEncoder().encode(a[0]);
+        const kb = new TextEncoder().encode(b[0]);
+        if (ka.length !== kb.length) return ka.length - kb.length;
+        for (let i = 0; i < ka.length; i++) { if (ka[i] !== kb[i]) return ka[i] - kb[i]; }
+        return 0;
+      });
+      const pairs = entries.map(([key, v]) => {
+        const k = cborValue(key);
+        const ev = enc(v);
+        if (!k || !ev) throw new Error(`cbor: unsupported field ${key}`);
+        return cborConcat(k, ev);
+      });
+      return cborConcat(cborHead(5, pairs.length), ...pairs);
+    }
+    return null;
+  };
+  const header = enc({ t: '#' + frame.name, op: 1 });
+  const body = enc(frame.body);
+  parts.push(header, body);
+  return cborConcat(...parts);
+}
+
 /* ── signing key (secp256k1, stored in KV) ── */
 
 async function ensureLabelerKey(env) {
@@ -107,6 +145,16 @@ async function ensureLabelerKey(env) {
   const priv = secp256k1.utils.randomSecretKey();
   await env.SESSIONS.put(KEY_KV, hex(priv));
   return { priv, pub: secp256k1.getPublicKey(priv, true) };
+}
+
+// `verificationMethods` in a PLC operation uses did:key multibase values.
+// secp256k1-pub uses multicodec 0xe7 0x01 before the 33-byte compressed key.
+export async function getLabelerDidKey(env) {
+  const key = await ensureLabelerKey(env);
+  const prefixed = new Uint8Array(2 + key.pub.length);
+  prefixed.set([0xe7, 0x01]);
+  prefixed.set(key.pub, 2);
+  return `did:key:z${base58btc(prefixed)}`;
 }
 
 async function signLabel(label, key) {
@@ -125,7 +173,7 @@ function bytesToB64(bytes) {
 
 /* ── label JSON (lexicon bytes → {"$bytes": base64}) ── */
 
-async function labelJson(record, key) {
+async function signedLabel(record, key) {
   const label = {
     ver: 1,
     src: LABELER_DID,
@@ -137,8 +185,12 @@ async function labelJson(record, key) {
   if (record.neg) label.neg = true;
   if (record.exp) label.exp = record.exp;
   label.uri = subjectUri(record);
-  const sig = await signLabel(label, key);
-  return { ...label, sig: { $bytes: bytesToB64(sig) } };
+  return { ...label, sig: await signLabel(label, key) };
+}
+
+async function labelJson(record, key) {
+  const label = await signedLabel(record, key);
+  return { ...label, sig: { $bytes: bytesToB64(label.sig) } };
 }
 
 async function listLabelRecords(env) {
@@ -212,8 +264,58 @@ async function handleQueryLabels(request, env) {
   });
 }
 
-function streamMessage(frame) {
-  return JSON.stringify({ $type: 'com.atproto.label.subscribeLabels#' + frame.name, ...frame.body });
+/**
+ * Spec-correct subscribeLabels: replay from cursor as dag-cbor binary frames,
+ * then stream new label events live by polling the seq counter in KV.
+ * Long-lived socket; closes with 1001 so the consumer reconnects with its cursor.
+ */
+async function handleSubscribeLabels(request, env) {
+  await probeConnection(env, request, 'subscribeLabels');
+  if (request.headers.get('Upgrade') !== 'websocket') {
+    return new Response('websocket upgrade required', { status: 426 });
+  }
+  const cursor = parseInt(new URL(request.url).searchParams.get('cursor'), 10) || 0;
+  const key = await ensureLabelerKey(env);
+
+  const pair = new WebSocketPair();
+  const server = pair[1];
+  server.accept();
+
+  const pushRecords = async (records) => {
+    for (let i = 0; i < records.length; i += BATCH) {
+      const slice = records.slice(i, i + BATCH);
+      const labels = await Promise.all(slice.map(record => signedLabel(record, key)));
+      server.send(cborEncodeFrame({ name: 'labels', body: { seq: slice[slice.length - 1].seq, labels } }));
+    }
+  };
+
+  (async () => {
+    let lastSeq = cursor;
+    try {
+      const records = (await listLabelRecords(env)).filter(r => (r.seq || 0) > cursor);
+      await pushRecords(records);
+      if (records.length) lastSeq = records[records.length - 1].seq;
+
+      // live streaming: poll the seq counter; emit new label events as they land
+      const timer = setTimeout(() => { try { server.close(1001, 'reconnect with cursor'); } catch { /* already closed */ } }, STREAM_LIFETIME_MS);
+      timer.unref?.();
+      server.addEventListener('close', () => { clearTimeout(timer); clearInterval(poller); });
+      const poller = setInterval(async () => {
+        try {
+          const seq = parseInt(await env.SESSIONS.get('labeler:seq'), 10) || 0;
+          if (seq <= lastSeq) return;
+          const fresh = (await listLabelRecords(env)).filter(r => (r.seq || 0) > lastSeq);
+          if (!fresh.length) return;
+          await pushRecords(fresh);
+          lastSeq = fresh[fresh.length - 1].seq;
+        } catch { /* keep the socket open; the poller retries */ }
+      }, STREAM_POLL_MS);
+      poller.unref?.();
+      server.addEventListener('message', () => { /* client pings/frames ignored */ });
+    } catch { /* socket died mid-replay */ }
+  })();
+
+  return new Response(null, { status: 101, webSocket: pair[0] });
 }
 
 /**
@@ -232,63 +334,8 @@ async function probeConnection(env, request, endpoint) {
   } catch { /* probing must never break serving */ }
 }
 
-async function handleSubscribeLabels(request, env) {
-  await probeConnection(env, request, 'subscribeLabels');
-  if (request.headers.get('Upgrade') !== 'websocket') {
-    return new Response('websocket upgrade required', { status: 426 });
-  }
-  const cursor = parseInt(new URL(request.url).searchParams.get('cursor'), 10) || 0;
-  const records = (await listLabelRecords(env)).filter(r => (r.seq || 0) > cursor);
-  const key = await ensureLabelerKey(env);
-
-  const pair = new WebSocketPair();
-  const server = pair[1];
-  server.accept();
-
-  (async () => {
-    try {
-      for (let i = 0; i < records.length; i += BATCH) {
-        const slice = records.slice(i, i + BATCH);
-        const labels = await Promise.all(slice.map(record => labelJson(record, key)));
-        server.send(streamMessage({ name: 'labels', body: { seq: slice[slice.length - 1].seq, labels } }));
-      }
-      const timer = setTimeout(() => { try { server.close(1001, 'reconnect with cursor'); } catch { /* already closed */ } }, STREAM_LIFETIME_MS);
-      server.addEventListener('close', () => clearTimeout(timer));
-      server.addEventListener('message', event => {
-        if (event.data === 'ping') { try { server.send('pong'); } catch { /* closed */ } }
-      });
-    } catch { /* socket died mid-replay */ }
-  })();
-
-  return new Response(null, { status: 101, webSocket: pair[0] });
-}
-
-async function handleDidDoc(request, env) {
-  const key = await ensureLabelerKey(env);
-  const doc = {
-    '@context': ['https://www.w3.org/ns/did/v1', 'https://w3id.org/security/multikey/v1'],
-    id: LABELER_DID,
-    verificationMethod: [{
-      id: LABELER_DID + '#atproto_label',
-      type: 'Multikey',
-      controller: LABELER_DID,
-      publicKeyMultibase: 'z' + base58btc(key.pub),
-    }],
-    service: [{
-      id: '#atproto_labeler',
-      type: 'AtprotoLabeler',
-      serviceEndpoint: LABELER_ENDPOINT,
-    }],
-  };
-  return new Response(JSON.stringify(doc, null, 2), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' },
-  });
-}
-
 export async function handleLabelerRequest(request, env) {
   const path = new URL(request.url).pathname;
-  if (path === '/.well-known/did.json') return handleDidDoc(request, env);
   if (path === '/xrpc/com.atproto.label.queryLabels') { await probeConnection(env, request, 'queryLabels'); return handleQueryLabels(request, env); }
   if (path === '/xrpc/com.atproto.label.subscribeLabels') return handleSubscribeLabels(request, env);
   if (path.startsWith('/xrpc/')) {

@@ -167,6 +167,89 @@ function renderPlayers(players) {
 const labelForm = document.getElementById('label-form');
 const labelStatus = document.getElementById('label-status');
 const labelerRecordButton = document.getElementById('labeler-record-submit');
+const identityStatus = document.getElementById('labeler-identity-status');
+const identityAuthorizeButton = document.getElementById('labeler-identity-authorize');
+const identityRequestButton = document.getElementById('labeler-identity-request');
+const identityCodeInput = document.getElementById('labeler-identity-code');
+const identityConfirmButton = document.getElementById('labeler-identity-confirm');
+let adminSession = null;
+
+function renderIdentityStatus(identity) {
+  if (!identityStatus) return;
+  if (identity.configured) {
+    identityStatus.textContent = `Connected: ${identity.did} → ${identity.labelService}`;
+    identityAuthorizeButton.hidden = true;
+    identityRequestButton.hidden = true;
+    identityCodeInput.hidden = true;
+    identityConfirmButton.hidden = true;
+    return;
+  }
+  if (identity.elevated) {
+    identityStatus.textContent = 'Identity authorization granted. Send the email confirmation code to finish the repair.';
+    identityAuthorizeButton.hidden = true;
+    identityRequestButton.hidden = false;
+  } else {
+    identityStatus.textContent = 'Not connected yet. Authorize this site to update the labeler identity.';
+    identityAuthorizeButton.hidden = false;
+    identityRequestButton.hidden = true;
+  }
+}
+
+async function refreshIdentityStatus() {
+  try { renderIdentityStatus(await api('/api/admin/labeler/identity')); }
+  catch (error) { if (identityStatus) identityStatus.textContent = 'Identity status unavailable: ' + error.message; }
+}
+
+async function beginIdentityUpgrade() {
+  if (!adminSession?.handle) return;
+  identityAuthorizeButton.disabled = true;
+  identityStatus.textContent = 'Opening elevated ATProto authorization…';
+  try {
+    const response = await fetch('/api/oauth/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ handle: adminSession.handle, identityUpgrade: true, returnTo: `${location.origin}/admin.html?labelerRepair=1` }),
+    });
+    const body = await response.json();
+    if (!response.ok) throw new Error(body.error || 'Identity authorization failed');
+    location.assign(body.redirect_url);
+  } catch (error) {
+    identityStatus.textContent = 'Failed: ' + error.message;
+    identityAuthorizeButton.disabled = false;
+  }
+}
+
+async function requestIdentityCode() {
+  identityRequestButton.disabled = true;
+  identityStatus.textContent = 'Sending confirmation code…';
+  try {
+    const result = await api('/api/admin/labeler/identity/request-code', { method: 'POST' });
+    identityStatus.textContent = result.message || 'Check the account email for the confirmation code.';
+    identityCodeInput.hidden = false;
+    identityConfirmButton.hidden = false;
+    identityCodeInput.focus();
+  } catch (error) {
+    identityStatus.textContent = 'Failed: ' + error.message;
+    identityRequestButton.disabled = false;
+  }
+}
+
+async function confirmIdentityRepair() {
+  const token = identityCodeInput.value.trim();
+  if (!token) { identityStatus.textContent = 'Enter the code from the account email.'; identityCodeInput.focus(); return; }
+  identityConfirmButton.disabled = true;
+  identityStatus.textContent = 'Updating DID and publishing the labeler declaration…';
+  try {
+    await api('/api/admin/labeler/identity/confirm', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token }),
+    });
+    identityCodeInput.value = '';
+    identityStatus.textContent = 'Identity repaired. The labeler is now discoverable through this account DID.';
+    await refreshIdentityStatus();
+  } catch (error) {
+    identityStatus.textContent = 'Failed: ' + error.message;
+    identityConfirmButton.disabled = false;
+  }
+}
 
 function setLabelStatus(text) {
   if (labelStatus) labelStatus.textContent = text;
@@ -278,6 +361,9 @@ if (labelForm) {
       setLabelStatus('Failed: ' + (error.message || 'unknown error'));
     }
   });
+  identityAuthorizeButton?.addEventListener('click', beginIdentityUpgrade);
+  identityRequestButton?.addEventListener('click', requestIdentityCode);
+  identityConfirmButton?.addEventListener('click', confirmIdentityRepair);
 }
 
 async function loadWorkspace() {
@@ -358,8 +444,10 @@ async function boot() {
     authPanel.hidden = true;
     workspace.hidden = false;
     logoutButton.hidden = false;
+    adminSession = session;
     document.getElementById('admin-identity').textContent = `Authenticated: @${session.handle}`;
     await loadWorkspace();
+    await refreshIdentityStatus();
   } catch (error) {
     authPanel.hidden = false;
     workspace.hidden = true;

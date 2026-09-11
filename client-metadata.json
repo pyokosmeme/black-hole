@@ -6,7 +6,7 @@
     "https://lastnpcalex.agency/api/oauth/callback",
     "https://lastnpcalex.agency/test-bsky.html"
   ],
-  "scope": "atproto transition:generic",
+  "scope": "atproto transition:generic identity:*",
   "grant_types": ["authorization_code", "refresh_token"],
   "response_types": ["code"],
   "token_endpoint_auth_method": "none",

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import worker from '../_worker.js';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
-import { cborEncodeLabel, LABELER_DID } from '../labeler.js';
+import { cborEncodeLabel, cborEncodeFrame, getLabelerDidKey, LABELER_DID } from '../labeler.js';
 
 const SITE = 'https://lastnpcalex.agency';
 
@@ -37,23 +37,22 @@ async function adminSession() {
   };
 }
 
-test('did.json serves a stable secp256k1 labeler key', async () => {
+async function labelerSession() {
+  return { ...(await adminSession()), did: LABELER_DID };
+}
+
+async function labelerEnv() {
+  const env = makeEnv({ 'session:admin-session': JSON.stringify(await labelerSession()) });
+  env.ADMIN_DIDS = LABELER_DID;
+  return env;
+}
+
+test('labeler key is stable and encoded as a secp256k1 did:key', async () => {
   const env = makeEnv();
-  const first = await worker.fetch(new Request(SITE + '/.well-known/did.json'), env);
-  assert.equal(first.status, 200);
-  const doc = await first.json();
-  assert.equal(doc.id, LABELER_DID);
-  assert.equal(doc.verificationMethod[0].id, LABELER_DID + '#atproto_label');
-  assert.equal(doc.verificationMethod[0].type, 'Multikey');
-  const service = doc.service.find(s => s.type === 'AtprotoLabeler');
-  assert.equal(service.serviceEndpoint, SITE);
-  const pub = decodeBase58(doc.verificationMethod[0].publicKeyMultibase.slice(1));
-  assert.equal(pub.length, 33);
-  assert.ok(pub[0] === 2 || pub[0] === 3);
-  // second fetch resolves the same key from KV (stable identity)
-  const second = await worker.fetch(new Request(SITE + '/.well-known/did.json'), env);
-  const doc2 = await second.json();
-  assert.equal(doc2.verificationMethod[0].publicKeyMultibase, doc.verificationMethod[0].publicKeyMultibase);
+  const first = await getLabelerDidKey(env);
+  const second = await getLabelerDidKey(env);
+  assert.equal(first, second);
+  assert.match(first, /^did:key:zQ3/);
 });
 
 test('queryLabels serves signed labels and verifies with the published key', async () => {
@@ -77,9 +76,9 @@ test('queryLabels serves signed labels and verifies with the published key', asy
   assert.equal(label.uri, 'at://did:plc:victim/app.bsky.actor.profile/self');
   assert.equal(label.val, 'player-character');
 
-  // verify the signature against the key published in did.json
-  const doc = await (await worker.fetch(new Request(SITE + '/.well-known/did.json'), env)).json();
-  const pub = decodeBase58(doc.verificationMethod[0].publicKeyMultibase.slice(1));
+  // The same public key is placed in the account PLC DID document by the
+  // identity-repair flow; test against its did:key encoding here.
+  const pub = decodeBase58((await getLabelerDidKey(env)).slice('did:key:z'.length)).slice(2);
   const sig = Buffer.from(label.sig.$bytes, 'base64');
   assert.equal(sig.length, 64);
   const { sig: _omit, ...labelBody } = label;
@@ -169,13 +168,13 @@ test('negations carry neg: true and verify independently', async () => {
   const { labels } = await (await worker.fetch(new Request(SITE + '/xrpc/com.atproto.label.queryLabels?uriPatterns=did%3Aplc%3Avictim'), env)).json();
   assert.equal(labels[0].neg, true);
   const { sig: _omit, ...body } = labels[0];
-  const doc = await (await worker.fetch(new Request(SITE + '/.well-known/did.json'), env)).json();
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', cborEncodeLabel(body)));
-  assert.equal(secp256k1.verify(Buffer.from(labels[0].sig.$bytes, 'base64'), digest, decodeBase58(doc.verificationMethod[0].publicKeyMultibase.slice(1))), true);
+  const pub = decodeBase58((await getLabelerDidKey(env)).slice('did:key:z'.length)).slice(2);
+  assert.equal(secp256k1.verify(Buffer.from(labels[0].sig.$bytes, 'base64'), digest, pub), true);
 });
 
 test('labeler-record endpoint is admin-only and writes the service DID', async () => {
-  const env = makeEnv({ 'session:admin-session': JSON.stringify(await adminSession()) });
+  const env = await labelerEnv();
   const forbidden = await worker.fetch(new Request(SITE + '/api/admin/labeler-record', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ labelValues: ['x'] }),
@@ -198,10 +197,10 @@ test('labeler-record endpoint is admin-only and writes the service DID', async (
       body: JSON.stringify({ labelValues: ['player-character', 'spam'] }),
     }), env);
     assert.equal(res.status, 200);
-    assert.equal(captured.body.repo, 'did:plc:owner');
+    assert.equal(captured.body.repo, LABELER_DID);
     assert.equal(captured.body.collection, 'app.bsky.labeler.service');
     assert.equal(captured.body.rkey, 'self');
-    assert.equal(captured.body.record.did, LABELER_DID);
+    assert.equal(captured.body.record.did, undefined);
     assert.deepEqual(captured.body.record.policies.labelValues, ['player-character', 'spam']);
     // shipped definitions ride along with admin-supplied values
     const identifiers = captured.body.record.policies.labelValueDefinitions.map(d => d.identifier);
@@ -215,8 +214,8 @@ test('labeler-record endpoint is admin-only and writes the service DID', async (
   }
 });
 
-test('labeler-record defaults to the two shipped values + definitions', async () => {
-  const env = makeEnv({ 'session:admin-session': JSON.stringify(await adminSession()) });
+test('labeler-record defaults to the two shipped values and does not write a non-standard DID field', async () => {
+  const env = await labelerEnv();
   const originalFetch = globalThis.fetch;
   let captured;
   globalThis.fetch = async (url, init = {}) => {
@@ -228,21 +227,64 @@ test('labeler-record defaults to the two shipped values + definitions', async ()
   };
   try {
     const res = await worker.fetch(new Request(SITE + '/api/admin/labeler-record', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Cookie: 'session=admin-session' },
-      body: JSON.stringify({}),
+      method: 'POST', headers: { 'Content-Type': 'application/json', Cookie: 'session=admin-session' }, body: JSON.stringify({}),
     }), env);
     assert.equal(res.status, 200);
     assert.deepEqual(captured.body.record.policies.labelValues, ['non-player-character', 'player-character']);
-    assert.equal(captured.body.record.policies.labelValueDefinitions.length, 2);
-    const pc = captured.body.record.policies.labelValueDefinitions.find(d => d.identifier === 'player-character');
-    assert.ok(pc.locales[0].name.includes('Player Character'));
+    assert.equal(captured.body.record.did, undefined);
+    assert.deepEqual(captured.body.record.subjectTypes, ['account', 'record']);
   } finally {
     globalThis.fetch = originalFetch;
   }
 });
 
-/* base58btc decode (btc alphabet, leading zero bytes preserved as 0x00) */
+test('identity repair preserves PDS credentials, adds the labeler entries, then publishes the declaration', async () => {
+  const session = await labelerSession();
+  session.scope = 'atproto transition:generic identity:*';
+  const env = makeEnv({ 'session:admin-session': JSON.stringify(session) });
+  env.ADMIN_DIDS = LABELER_DID;
+  const originalFetch = globalThis.fetch;
+  const calls = [];
+  globalThis.fetch = async (url, init = {}) => {
+    const target = String(url);
+    calls.push({ target, body: init.body ? JSON.parse(init.body) : null });
+    if (target.endsWith('/xrpc/com.atproto.identity.requestPlcOperationSignature')) return new Response('', { status: 200 });
+    if (target.endsWith('/xrpc/com.atproto.identity.getRecommendedDidCredentials')) {
+      return Response.json({ verificationMethods: { atproto: 'did:key:zExisting' }, services: { atproto_pds: { type: 'AtprotoPersonalDataServer', endpoint: 'https://pds.example' } } });
+    }
+    if (target.endsWith('/xrpc/com.atproto.identity.signPlcOperation')) return Response.json({ operation: { type: 'plc_operation', sig: 'test' } });
+    if (target.endsWith('/xrpc/com.atproto.identity.submitPlcOperation')) return new Response('', { status: 200 });
+    if (target.endsWith('/xrpc/com.atproto.repo.putRecord')) return Response.json({ uri: 'at://did:plc:owner/app.bsky.labeler.service/self' });
+    throw new Error('Unexpected fetch: ' + target);
+  };
+  try {
+    const requestCode = await worker.fetch(new Request(SITE + '/api/admin/labeler/identity/request-code', {
+      method: 'POST', headers: { Cookie: 'session=admin-session' },
+    }), env);
+    assert.equal(requestCode.status, 200);
+    const confirm = await worker.fetch(new Request(SITE + '/api/admin/labeler/identity/confirm', {
+      method: 'POST', headers: { Cookie: 'session=admin-session', 'Content-Type': 'application/json' }, body: JSON.stringify({ token: '123456' }),
+    }), env);
+    assert.equal(confirm.status, 200);
+    const sign = calls.find(call => call.target.endsWith('/xrpc/com.atproto.identity.signPlcOperation'));
+    assert.equal(sign.body.verificationMethods.atproto, 'did:key:zExisting');
+    assert.match(sign.body.verificationMethods.atproto_label, /^did:key:zQ3/);
+    assert.deepEqual(sign.body.services.atproto_pds, { type: 'AtprotoPersonalDataServer', endpoint: 'https://pds.example' });
+    assert.deepEqual(sign.body.services.atproto_labeler, { type: 'AtprotoLabeler', endpoint: SITE });
+    const declaration = calls.find(call => call.target.endsWith('/xrpc/com.atproto.repo.putRecord'));
+    assert.equal(declaration.body.record.did, undefined);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('subscribeLabels wire frames are binary DAG-CBOR', () => {
+  const frame = cborEncodeFrame({ name: 'labels', body: { seq: 3, labels: [] } });
+  assert.ok(frame instanceof Uint8Array);
+  // First map is the subscription header: {op: 1, t: '#labels'}.
+  assert.ok(frame.includes(new TextEncoder().encode('#labels')[0]));
+});
+
 function decodeBase58(string) {
   const alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
   const bytes = [0];
@@ -250,14 +292,8 @@ function decodeBase58(string) {
     const value = alphabet.indexOf(char);
     if (value < 0) throw new Error('bad base58 char ' + char);
     let carry = value;
-    for (let i = 0; i < bytes.length; i++) {
-      carry += bytes[i] * 58;
-      bytes[i] = carry & 255;
-      carry >>= 8;
-    }
+    for (let i = 0; i < bytes.length; i++) { carry += bytes[i] * 58; bytes[i] = carry & 255; carry >>= 8; }
     while (carry) { bytes.push(carry & 255); carry >>= 8; }
   }
-  let zeros = 0;
-  for (const char of string) { if (char === '1') zeros++; else break; }
-  return new Uint8Array([...new Array(zeros).fill(0), ...bytes.reverse()]);
+  return new Uint8Array(bytes.reverse());
 }

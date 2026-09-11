@@ -224,6 +224,12 @@
 .admin-page td { padding: 11px 10px; border-top: 1px solid rgba(0, 255, 255, 0.13); text-align: left; }
 .admin-page th { color: var(--purple); font-weight: 400; font-size: var(--text-xs); letter-spacing: 0.06em; }
 .admin-page td { overflow-wrap: anywhere; color: rgba(255, 255, 255, 0.78); }
+.labeler-identity { margin: 0 0 16px; padding: 14px; border: 1px solid rgba(191, 0, 255, 0.42); background: rgba(10, 8, 18, 0.66); }
+.labeler-identity-title { margin: 0 0 8px; color: var(--purple); font: 700 11px/1.2 "Space Mono", monospace; letter-spacing: .16em; }
+.labeler-identity-copy, .labeler-identity-note { margin: 0; color: rgba(235, 230, 255, .72); font: 12px/1.55 "Space Mono", monospace; }
+.labeler-identity-note { margin-top: 10px; color: rgba(235, 230, 255, .48); }
+.labeler-identity-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+.labeler-identity-actions input { min-width: 180px; }
 
 @media (min-width: 1180px) {
   .transmission-editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(340px, 0.72fr); }

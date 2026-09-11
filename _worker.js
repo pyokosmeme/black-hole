@@ -1,10 +1,11 @@
 import { handleContentRequest } from './worker-content.js';
-import { handleLabelerRequest } from './labeler.js';
+import { getLabelerDidKey, handleLabelerRequest, LABELER_DID } from './labeler.js';
 
 // ── Shared helpers ──
 
 const CLIENT_ID = 'https://lastnpcalex.agency/client-metadata.json';
 const SCOPE = 'atproto transition:generic';
+const IDENTITY_SCOPE = 'identity:*';
 const BSKY_PUBLIC = 'https://public.api.bsky.app';
 const BSKY_SOCIAL = 'https://bsky.social';
 const LIKE_TYPE = 'agency.lastnpcalex.like';
@@ -13,7 +14,6 @@ const CREATE_TYPES = ['agency.lastnpcalex.comment', 'agency.lastnpcalex.like', '
 const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
 const STATE_TTL = 15 * 60 * 1000;
 const DEFAULT_ORIGIN = 'https://lastnpcalex.agency';
-const LABELER_SERVICE_DID = 'did:plc:afkapfcc65k5ptqs4tgdgdyl';
 const LABELER_SERVICE_TYPE = 'app.bsky.labeler.service';
 
 function corsHeaders(request) {
@@ -31,6 +31,11 @@ function corsHeaders(request) {
     'Cache-Control': 'no-store',
     'Vary': 'Origin',
   };
+}
+
+function sameOriginMutation(request) {
+  const origin = request.headers.get('Origin');
+  return !origin || origin === DEFAULT_ORIGIN;
 }
 
 function safeReturnTo(value, request) {
@@ -156,6 +161,11 @@ async function handleLogin(request, env) {
   if (!handle) return jsonResponse({ error: 'Handle required' }, 400, request);
   try {
     const { did, pds } = await resolveHandle(handle);
+    const identityUpgrade = body?.identityUpgrade === true;
+    const adminDids = String(env.ADMIN_DIDS || '').split(',').map(v => v.trim()).filter(Boolean);
+    if (identityUpgrade && !adminDids.includes(did)) {
+      return jsonResponse({ error: 'Only an administrator can authorize a labeler identity upgrade' }, 403, request);
+    }
     const authServer = await discoverAuthServer(pds);
     const { verifier, challenge } = await generatePkce();
     const keyPair = await crypto.subtle.generateKey(
@@ -179,6 +189,8 @@ async function handleLogin(request, env) {
       redirectUri: `${new URL(request.url).origin}/api/oauth/callback`,
       handle, did, pds, createdAt: Date.now(),
       returnTo: safeReturnTo(body?.returnTo, request),
+      scope: identityUpgrade ? `${SCOPE} ${IDENTITY_SCOPE}` : SCOPE,
+      identityUpgrade,
     };
     await env.SESSIONS.put(`state:${state}`, JSON.stringify(stateData), { expirationTtl: 900 });
 
@@ -189,7 +201,7 @@ async function handleLogin(request, env) {
       client_id: CLIENT_ID,
       redirect_uri: stateData.redirectUri,
       response_type: 'code',
-      scope: SCOPE,
+      scope: stateData.scope,
       state,
       code_challenge: challenge,
       code_challenge_method: 'S256',
@@ -285,6 +297,8 @@ async function handleCallback(request, env) {
       did: stateData.did, handle: stateData.handle, pds: stateData.pds,
       authServer: stateData.authServer,
       privateKeyJwk: stateData.privateKeyJwk, publicKeyJwk: stateData.publicKeyJwk,
+      scope: stateData.scope || SCOPE,
+      identityUpgrade: stateData.identityUpgrade === true,
       createdAt: Date.now(),
     };
     await env.SESSIONS.put(`session:${sessionId}`, JSON.stringify(sessionData), { expirationTtl: SESSION_MAX_AGE });
@@ -324,6 +338,8 @@ async function handleSession(request, env) {
   return jsonResponse({
     did: session.did, handle: session.handle,
     pds: session.pds, loggedInAt: session.createdAt,
+    scope: session.scope || SCOPE,
+    identityUpgrade: session.identityUpgrade === true,
   }, 200, request);
 }
 
@@ -547,34 +563,139 @@ const LABEL_VALUE_DEFINITIONS = [
 ];
 const DEFAULT_LABEL_VALUES = ['non-player-character', 'player-character'];
 
-async function handleLabelerRecord(request, env) {
-  const session = await getSession(env, request);
-  if (!session) return jsonResponse({ error: 'Not authenticated' }, 401, request);
+function isAdminSession(env, session) {
   const adminDids = String(env.ADMIN_DIDS || '').split(',').map(v => v.trim()).filter(Boolean);
-  if (!adminDids.includes(session.did)) return jsonResponse({ error: 'Admin only' }, 403, request);
-  const body = await request.json().catch(() => ({}));
-  const labelValues = Array.isArray(body?.labelValues)
+  return !!session && adminDids.includes(session.did);
+}
+
+function isLabelerOwner(session) {
+  return !!session && session.did === LABELER_DID;
+}
+
+function hasIdentityScope(session) {
+  return String(session?.scope || '').split(/\s+/).includes(IDENTITY_SCOPE);
+}
+
+function labelerDeclaration(body = {}) {
+  const labelValues = Array.isArray(body.labelValues)
     ? body.labelValues.map(v => String(v).trim()).filter(Boolean).slice(0, 100)
     : [];
   if (!labelValues.length) labelValues.push(...DEFAULT_LABEL_VALUES);
-  const bodyDefs = Array.isArray(body?.labelValueDefinitions) ? body.labelValueDefinitions : [];
+  const bodyDefs = Array.isArray(body.labelValueDefinitions) ? body.labelValueDefinitions : [];
   const shipped = LABEL_VALUE_DEFINITIONS.filter(def => !bodyDefs.some(d => d && d.identifier === def.identifier));
-  const record = {
+  return {
     $type: LABELER_SERVICE_TYPE,
-    did: LABELER_SERVICE_DID,
-    policies: {
-      labelValues,
-      labelValueDefinitions: [...shipped, ...bodyDefs],
-    },
+    policies: { labelValues, labelValueDefinitions: [...shipped, ...bodyDefs] },
+    subjectTypes: ['account', 'record'],
+    subjectCollections: ['app.bsky.actor.profile', 'app.bsky.feed.post'],
     createdAt: new Date().toISOString(),
   };
-  const { privateKey, publicKey } = await importKeyPair(session.privateKeyJwk, session.publicKeyJwk);
-  const url = `${session.pds}/xrpc/com.atproto.repo.putRecord`;
-  const result = await authedDpopFetch(request, env, session, 'POST', url, {
+}
+
+async function writeLabelerDeclaration(request, env, session, body) {
+  const record = labelerDeclaration(body);
+  const result = await authedDpopFetch(request, env, session, 'POST', `${session.pds}/xrpc/com.atproto.repo.putRecord`, {
     repo: session.did, collection: LABELER_SERVICE_TYPE, rkey: 'self', record,
   });
+  if (!result.ok) throw new Error(result.text || 'Unable to write labeler declaration');
+  return record;
+}
+
+async function handleLabelerIdentityStatus(request, env) {
+  if (request.method !== 'GET') return jsonResponse({ error: 'Method not allowed' }, 405, request);
+  const session = await getSession(env, request);
+  if (!session) return jsonResponse({ error: 'Not authenticated' }, 401, request);
+  if (!isAdminSession(env, session)) return jsonResponse({ error: 'Admin only' }, 403, request);
+  if (!isLabelerOwner(session)) return jsonResponse({ error: 'Sign in as the labeler account to repair its identity' }, 403, request);
+  let didDoc = null;
+  try {
+    const response = await fetch(`https://plc.directory/${session.did}`);
+    if (response.ok) didDoc = await response.json();
+  } catch { /* status remains useful without a network lookup */ }
+  const methods = didDoc?.verificationMethod || [];
+  const services = didDoc?.service || [];
+  const labelMethod = methods.find(item => String(item.id || '').endsWith('#atproto_label'));
+  const labelService = services.find(item => String(item.id || '').endsWith('#atproto_labeler'));
+  const expectedPublicKey = (await getLabelerDidKey(env)).slice('did:key:'.length);
+  return jsonResponse({
+    did: session.did,
+    elevated: hasIdentityScope(session),
+    configured: labelMethod?.publicKeyMultibase === expectedPublicKey && labelService?.serviceEndpoint === DEFAULT_ORIGIN,
+    labelService: labelService?.serviceEndpoint || null,
+  }, 200, request);
+}
+
+async function handleRequestPlcCode(request, env) {
+  if (request.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405, request);
+  if (!sameOriginMutation(request)) return jsonResponse({ error: 'Origin not allowed' }, 403, request);
+  const session = await getSession(env, request);
+  if (!session) return jsonResponse({ error: 'Not authenticated' }, 401, request);
+  if (!isAdminSession(env, session)) return jsonResponse({ error: 'Admin only' }, 403, request);
+  if (!isLabelerOwner(session)) return jsonResponse({ error: 'Sign in as the labeler account to repair its identity' }, 403, request);
+  if (!hasIdentityScope(session)) return jsonResponse({ error: 'Identity authorization required. Re-authorize through the repair button.' }, 403, request);
+  const result = await authedDpopFetch(request, env, session, 'POST', `${session.pds}/xrpc/com.atproto.identity.requestPlcOperationSignature`);
   if (!result.ok) return jsonResponse({ error: result.text }, result.status, request);
-  return jsonResponse({ ok: true, record }, 200, request);
+  return jsonResponse({ ok: true, message: 'A confirmation code was sent to the account email address.' }, 200, request);
+}
+
+async function handleConfirmLabelerIdentity(request, env) {
+  if (request.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405, request);
+  if (!sameOriginMutation(request)) return jsonResponse({ error: 'Origin not allowed' }, 403, request);
+  const session = await getSession(env, request);
+  if (!session) return jsonResponse({ error: 'Not authenticated' }, 401, request);
+  if (!isAdminSession(env, session)) return jsonResponse({ error: 'Admin only' }, 403, request);
+  if (!isLabelerOwner(session)) return jsonResponse({ error: 'Sign in as the labeler account to repair its identity' }, 403, request);
+  if (!hasIdentityScope(session)) return jsonResponse({ error: 'Identity authorization required. Re-authorize through the repair button.' }, 403, request);
+  const body = await request.json().catch(() => ({}));
+  const token = String(body.token || '').trim();
+  if (!token) return jsonResponse({ error: 'Email confirmation code required' }, 400, request);
+
+  // Ask the PDS for the complete credentials it expects us to preserve. We
+  // refuse to sign if it cannot provide both maps: replacing partial maps can
+  // remove the account's PDS or repository key.
+  const credentialsResult = await authedDpopFetch(request, env, session, 'GET', `${session.pds}/xrpc/com.atproto.identity.getRecommendedDidCredentials`);
+  if (!credentialsResult.ok) return jsonResponse({ error: credentialsResult.text }, credentialsResult.status, request);
+  let credentials;
+  try { credentials = JSON.parse(credentialsResult.text); } catch { return jsonResponse({ error: 'Invalid DID credentials response' }, 502, request); }
+  if (!credentials?.verificationMethods || !credentials?.services) {
+    return jsonResponse({ error: 'PDS did not provide complete DID credentials; refusing an unsafe identity update.' }, 502, request);
+  }
+
+  const signingKey = await getLabelerDidKey(env);
+  const verificationMethods = { ...credentials.verificationMethods, atproto_label: signingKey };
+  const services = { ...credentials.services, atproto_labeler: { type: 'AtprotoLabeler', endpoint: DEFAULT_ORIGIN } };
+  const signedResult = await authedDpopFetch(request, env, session, 'POST', `${session.pds}/xrpc/com.atproto.identity.signPlcOperation`, {
+    token, verificationMethods, services,
+  });
+  if (!signedResult.ok) return jsonResponse({ error: signedResult.text }, signedResult.status, request);
+  let signed;
+  try { signed = JSON.parse(signedResult.text); } catch { return jsonResponse({ error: 'Invalid signed PLC operation response' }, 502, request); }
+  if (!signed.operation) return jsonResponse({ error: 'PDS did not return a PLC operation' }, 502, request);
+  const submitResult = await authedDpopFetch(request, env, session, 'POST', `${session.pds}/xrpc/com.atproto.identity.submitPlcOperation`, { operation: signed.operation });
+  if (!submitResult.ok) return jsonResponse({ error: submitResult.text }, submitResult.status, request);
+
+  try {
+    const record = await writeLabelerDeclaration(request, env, session, body);
+    return jsonResponse({ ok: true, did: session.did, record }, 200, request);
+  } catch (error) {
+    return jsonResponse({ error: `PLC update succeeded, but labeler declaration failed: ${error.message}` }, 502, request);
+  }
+}
+
+async function handleLabelerRecord(request, env) {
+  if (request.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405, request);
+  if (!sameOriginMutation(request)) return jsonResponse({ error: 'Origin not allowed' }, 403, request);
+  const session = await getSession(env, request);
+  if (!session) return jsonResponse({ error: 'Not authenticated' }, 401, request);
+  if (!isAdminSession(env, session)) return jsonResponse({ error: 'Admin only' }, 403, request);
+  if (!isLabelerOwner(session)) return jsonResponse({ error: 'Sign in as the labeler account before writing its declaration' }, 403, request);
+  const body = await request.json().catch(() => ({}));
+  try {
+    const record = await writeLabelerDeclaration(request, env, session, body);
+    return jsonResponse({ ok: true, record }, 200, request);
+  } catch (error) {
+    return jsonResponse({ error: error.message }, 502, request);
+  }
 }
 
 // ── Worker entry point ──
@@ -595,11 +716,15 @@ export default {
     if (path === '/api/bsky/deleteRecord') return handleDeleteRecord(request, env);
     if (path === '/api/bsky/putRecord') return handlePutRecord(request, env);
 
-    // self-hosted labeler service (did:web:lastnpcalex.agency)
-    if (path === '/.well-known/did.json' || path.startsWith('/xrpc/')) {
+    // Self-hosted labeler service. Its DID document is PLC-hosted; this
+    // Worker serves only its XRPC distribution endpoints.
+    if (path.startsWith('/xrpc/')) {
       const labelerResponse = await handleLabelerRequest(request, env);
       if (labelerResponse) return labelerResponse;
     }
+    if (path === '/api/admin/labeler/identity') return handleLabelerIdentityStatus(request, env);
+    if (path === '/api/admin/labeler/identity/request-code') return handleRequestPlcCode(request, env);
+    if (path === '/api/admin/labeler/identity/confirm') return handleConfirmLabelerIdentity(request, env);
     if (path === '/api/admin/labeler-record') return handleLabelerRecord(request, env);
 
 

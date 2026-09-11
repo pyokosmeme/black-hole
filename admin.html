@@ -185,6 +185,17 @@
         <input id="label-values" placeholder="comma-separated label values for the labeler record" style="flex:1;min-width:260px" />
         <button id="labeler-record-submit" type="button">Write labeler record</button>
       </div>
+      <div class="labeler-identity" aria-live="polite">
+        <p class="labeler-identity-title">// LABELER IDENTITY</p>
+        <p id="labeler-identity-status" class="labeler-identity-copy">Checking whether this account is connected to the label service…</p>
+        <div class="labeler-identity-actions">
+          <button id="labeler-identity-authorize" type="button">Authorize identity repair</button>
+          <button id="labeler-identity-request" type="button" hidden>Send email code</button>
+          <input id="labeler-identity-code" inputmode="numeric" autocomplete="one-time-code" placeholder="email confirmation code" hidden />
+          <button id="labeler-identity-confirm" class="primary" type="button" hidden>Repair identity</button>
+        </div>
+        <p class="labeler-identity-note">This adds the label signing key and Cloudflare service endpoint to this account’s DID. It requires one OAuth approval and a code sent to the account email.</p>
+      </div>
       <div class="table-wrap">
         <table>
           <thead><tr><th>Seq</th><th>Value</th><th>Neg</th><th>Subject</th><th>Created</th><th></th></tr></thead>
