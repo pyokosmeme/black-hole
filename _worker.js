@@ -15,6 +15,8 @@ const SESSION_MAX_AGE = 30 * 24 * 60 * 60;
 const STATE_TTL = 15 * 60 * 1000;
 const DEFAULT_ORIGIN = 'https://lastnpcalex.agency';
 const LABELER_SERVICE_TYPE = 'app.bsky.labeler.service';
+const LABELER_LIKE_URI = `at://${LABELER_DID}/${LABELER_SERVICE_TYPE}/self`;
+const LABELER_LIKE_MARKER_PREFIX = 'labeler:liked-player:';
 
 function corsHeaders(request) {
   const requestedOrigin = request.headers.get('Origin');
@@ -700,6 +702,38 @@ async function handleLabelerRecord(request, env) {
 
 // ── Worker entry point ──
 
+/**
+ * A like on the labeler declaration is the public opt-in gesture. Likes are
+ * written directly to a person's repo, so Cloudflare polls AppView for them.
+ */
+async function reconcileLabelerLikes(env) {
+  let cursor;
+  let added = 0;
+  do {
+    const url = new URL(`${BSKY_PUBLIC}/xrpc/app.bsky.feed.getLikes`);
+    url.searchParams.set('uri', LABELER_LIKE_URI);
+    url.searchParams.set('limit', '100');
+    if (cursor) url.searchParams.set('cursor', cursor);
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`Unable to read labeler likes (${response.status})`);
+    const page = await response.json();
+    for (const like of page.likes || []) {
+      const did = like?.actor?.did;
+      if (!/^did:[a-zA-Z0-9:.]+$/.test(did || '')) continue;
+      const marker = `${LABELER_LIKE_MARKER_PREFIX}${did}`;
+      if (await env.SESSIONS.get(marker)) continue;
+      const seq = (parseInt(await env.SESSIONS.get('labeler:seq'), 10) || 0) + 1;
+      const record = { seq, uri: did, val: 'player-character', neg: false, cts: new Date().toISOString(), comment: 'Opted in by liking the labeler.' };
+      await env.SESSIONS.put('labeler:seq', String(seq));
+      await env.SESSIONS.put(`label:${seq}`, JSON.stringify(record));
+      await env.SESSIONS.put(marker, String(seq));
+      added++;
+    }
+    cursor = page.cursor;
+  } while (cursor);
+  return added;
+}
+
 export default {
   async fetch(request, env) {
     const path = new URL(request.url).pathname;
@@ -744,5 +778,11 @@ export default {
       });
     }
     return response;
+  },
+
+  async scheduled(_controller, env, ctx) {
+    const task = reconcileLabelerLikes(env).catch(error => console.error('[labeler likes]', error));
+    if (ctx?.waitUntil) ctx.waitUntil(task);
+    await task;
   },
 };

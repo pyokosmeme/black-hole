@@ -238,6 +238,28 @@ test('labeler-record defaults to the two shipped values and does not write a non
   }
 });
 
+test('scheduled labeler-like reconciliation labels every liker once', async () => {
+  const env = makeEnv();
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async url => {
+    assert.match(String(url), /app\.bsky\.feed\.getLikes/);
+    return Response.json({ likes: [
+      { actor: { did: 'did:plc:firstliker' } },
+      { actor: { did: 'did:plc:secondliker' } },
+    ] });
+  };
+  try {
+    await worker.scheduled({}, env, { waitUntil: promise => promise });
+    const keys = [...env.SESSIONS.values.keys()].filter(key => key.startsWith('label:'));
+    assert.equal(keys.length, 2);
+    assert.equal(JSON.parse(await env.SESSIONS.get('label:1')).val, 'player-character');
+    await worker.scheduled({}, env, { waitUntil: promise => promise });
+    assert.equal([...env.SESSIONS.values.keys()].filter(key => key.startsWith('label:')).length, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test('identity repair preserves PDS credentials, adds the labeler entries, then publishes the declaration', async () => {
   const session = await labelerSession();
   session.scope = 'atproto transition:generic identity:*';
