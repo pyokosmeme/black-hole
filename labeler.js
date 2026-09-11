@@ -212,17 +212,13 @@ async function listLabelRecords(env) {
   return records;
 }
 
-/* ── subject canonicalization ──
- * Labels are stored with bare-DID subjects (did:plc:x). Account labels
- * must be served as at://<did>/app.bsky.actor.profile/self — the AppView
- * queries uriPatterns in at:// form and clients expect the label's uri
- * field to be that full AT-URI, so normalize before matching + signing.
+/* ── subject handling ──
+ * A bare DID is the protocol subject for an account-level label. Do not
+ * rewrite it to the profile record: that changes the label's meaning and
+ * prevents consumers from treating it as an account label.
  */
 function subjectUri(record) {
-  const uri = String(record.uri || '');
-  if (/^at:\/\//.test(uri)) return uri;
-  if (/^did:[a-zA-Z0-9:.]+$/.test(uri)) return `at://${uri}/app.bsky.actor.profile/self`;
-  return uri;
+  return String(record.uri || '');
 }
 
 /* ── uriPatterns matching (spec: `*` wildcard globbing) ── */
@@ -232,6 +228,11 @@ function matchPattern(pattern, uri) {
   if (new RegExp('^' + escaped + '$').test(uri)) return true;
   // "did:plc:x" patterns also cover all of that DID's AT-URIs
   if (pattern.startsWith('did:')) return uri.startsWith('at://' + pattern.split('*')[0]);
+  // Some consumers query a profile AT-URI while looking for account labels.
+  // Keep that lookup ergonomic, but return/sign the real bare-DID subject.
+  if (/^did:[a-zA-Z0-9:.]+$/.test(uri)) {
+    return pattern === `at://${uri}/app.bsky.actor.profile/self`;
+  }
   return false;
 }
 
