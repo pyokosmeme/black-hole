@@ -31,25 +31,14 @@ cf-*.txt
 cf-*.zone
 *.log
 
-# Python scripts
+# Python scripts and notebooks
 *.py
-
-# Notebooks
 *.ipynb
 
-# Node stuff (if any)
+# Node tooling/source (the Worker bundles these separately)
 node_modules/
 package.json
 package-lock.json
-
-# Old JSX experiments
-author/acid-burn.jsx
-author/author-node.jsx
-author/cyber-landing.jsx
-author/README.md
-author/effects/
-
-# Worker source and Wrangler config — handled by Wrangler, not static assets
 _worker.bundle
 _worker.js
 worker-content.js
@@ -59,3 +48,42 @@ wrangler.toml
 functions/
 tests/
 dist/
+
+# Old JSX experiments
+author/acid-burn.jsx
+author/author-node.jsx
+author/cyber-landing.jsx
+author/README.md
+author/effects/
+
+# Local source checkouts, research, and agent scratch never belong in public assets.
+atproto-src/
+fractalmemes/
+ising2/
+pdfs/
+sentence-length/
+spinnyrock/
+surfaces/wtf/
+surfaces/spacetime/index-Kayleighbot.html
+css/acidburn-Chester.css
+css/surfaces-Kayleighbot.css
+nav-menu-Kayleighbot.js
+-Chester.gitignore
+/*.cjs
+/*.ts
+/*.rs
+/*.md
+/*.zone
+/*.json
+!/client-metadata.json
+/*.txt
+!/llms.txt
+/dir.html
+/page.html
+/st1.html
+/st2.html
+/h.json;
+/likes.json;
+/q1.json;
+/r1.json;
+/console.log('
