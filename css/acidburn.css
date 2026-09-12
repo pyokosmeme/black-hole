@@ -1037,7 +1037,9 @@ body.bh-mode .link-card {
 }
 .post-close-btn { left: var(--space-sm); padding-left: 0; }
 .post-share-btn { right: var(--space-sm); padding-right: 0; }
+.post-subscribe-btn { left: 50%; transform: translateX(-50%); }
 .post-close-btn:hover,
+.post-subscribe-btn:hover,
 .post-share-btn:hover { color: var(--purple); }
 .post-back { margin-bottom: var(--space-sm); }
 .post-view-meta {
@@ -2118,4 +2120,90 @@ body.light-reading .tx-confirm-btn--danger:hover {
 .posts-load-more:hover {
   color: #fff;
   box-shadow: 0 0 14px rgba(191, 0, 255, 0.45), inset 0 0 10px rgba(191, 0, 255, 0.15);
+}
+
+/* ─────────────────────────────────────────────────────────────
+   TRANSMISSION SUBSCRIBE POPUP
+   ───────────────────────────────────────────────────────────── */
+.subscribe-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: grid;
+    place-items: center;
+    padding: var(--space-md);
+}
+.subscribe-modal[hidden] { display: none; }
+.subscribe-modal-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(6px);
+}
+.subscribe-modal-panel {
+    position: relative;
+    width: min(640px, 100%);
+    max-height: min(86vh, 760px);
+    overflow-y: auto;
+    background: var(--panel);
+    border: 2px solid transparent;
+    border-image: linear-gradient(135deg, var(--purple), var(--cyan)) 1;
+    padding: var(--space-lg);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 0 calc(60px * var(--glow-intensity)) rgba(191, 0, 255, 0.25);
+    animation: subscribe-modal-in 0.25s ease;
+}
+/* Striped top edge, same as the transmission reader chrome */
+.subscribe-modal-panel::before {
+    content: '';
+    position: sticky;
+    top: 0;
+    display: block;
+    margin: calc(-1 * var(--space-lg)) calc(-1 * var(--space-lg)) var(--space-md);
+    height: 6px;
+    background:
+        repeating-linear-gradient(-55deg, var(--purple) 0px, var(--purple) 5px, transparent 5px, transparent 10px),
+        repeating-linear-gradient(55deg, var(--cyan) 0px, var(--cyan) 4px, transparent 4px, transparent 12px),
+        linear-gradient(90deg, var(--purple), var(--cyan), var(--purple));
+}
+@keyframes subscribe-modal-in {
+    from { opacity: 0; transform: translateY(14px) scale(0.98); }
+    to   { opacity: 1; transform: none; }
+}
+.subscribe-modal-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-sm);
+}
+.subscribe-modal-head h2 {
+    margin: 0;
+    color: var(--cyan);
+    font-family: 'Orbitron', sans-serif;
+    font-size: var(--text-lg);
+    letter-spacing: 0.08em;
+    text-shadow: 0 0 calc(14px * var(--glow-intensity)) rgba(0, 255, 255, 0.35);
+}
+.subscribe-modal-close {
+    flex: 0 0 auto;
+    background: none;
+    border: none;
+    color: var(--cyan);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: var(--text-sm);
+    cursor: pointer;
+    padding: var(--space-xs);
+    transition: color 0.2s ease;
+}
+.subscribe-modal-close:hover { color: var(--purple); }
+body.subscribe-modal-open { overflow: hidden; }
+
+body.light-mode .subscribe-modal-backdrop { background: rgba(255, 255, 255, 0.65); }
+body.light-mode .subscribe-modal-head h2 { color: var(--purple); text-shadow: none; }
+
+@media (max-width: 700px) {
+    .subscribe-modal { padding: var(--space-sm); }
+    .subscribe-modal-panel { padding: var(--space-md); }
+    .subscribe-modal-panel::before { margin: calc(-1 * var(--space-md)) calc(-1 * var(--space-md)) var(--space-md); }
+    .subscribe-modal-head { flex-direction: column; gap: 0; }
 }
