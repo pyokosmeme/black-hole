@@ -112,9 +112,13 @@
       <div class="subscribe-modal-backdrop" data-subscribe-close></div>
       <div class="subscribe-modal-panel" role="dialog" aria-modal="true" aria-labelledby="subscribe-modal-title">
         <div class="subscribe-modal-head">
-          <h2 id="subscribe-modal-title">// RECEIVE TRANSMISSIONS</h2>
+          <div class="section-header subscribe-heading">
+            <h2 id="subscribe-modal-title">// RECEIVE TRANSMISSIONS</h2>
+            <div class="section-line"></div>
+          </div>
           <button class="subscribe-modal-close" type="button" data-subscribe-close title="Close subscription panel">✕ CLOSE</button>
         </div>
+        <p class="subscribe-intro">Choose which signals reach you.</p>
         <form class="subscribe-form" novalidate>
           ${formFieldsMarkup('subscribe-modal-email')}
         </form>

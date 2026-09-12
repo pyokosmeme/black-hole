@@ -2177,14 +2177,7 @@ body.light-reading .tx-confirm-btn--danger:hover {
     justify-content: space-between;
     gap: var(--space-sm);
 }
-.subscribe-modal-head h2 {
-    margin: 0;
-    color: var(--cyan);
-    font-family: 'Orbitron', sans-serif;
-    font-size: var(--text-lg);
-    letter-spacing: 0.08em;
-    text-shadow: 0 0 calc(14px * var(--glow-intensity)) rgba(0, 255, 255, 0.35);
-}
+.subscribe-modal-head h2 { margin: 0; }
 .subscribe-modal-close {
     flex: 0 0 auto;
     background: none;
@@ -2200,7 +2193,7 @@ body.light-reading .tx-confirm-btn--danger:hover {
 body.subscribe-modal-open { overflow: hidden; }
 
 body.light-mode .subscribe-modal-backdrop { background: rgba(255, 255, 255, 0.65); }
-body.light-mode .subscribe-modal-head h2 { color: var(--purple); text-shadow: none; }
+body.light-mode .subscribe-modal-panel { background: #fdfaf5; border: 2px solid #bf00ff; border-image: none; color: #2e2a26; box-shadow: 0 0 calc(60px * var(--glow-intensity)) rgba(191, 0, 255, 0.2); }
 
 @media (max-width: 700px) {
     .subscribe-modal { padding: var(--space-sm); }
