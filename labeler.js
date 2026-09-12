@@ -326,12 +326,14 @@ async function handleSubscribeLabels(request, env) {
  */
 async function probeConnection(env, request, endpoint) {
   try {
-    const minute = new Date().toISOString().slice(0, 16);
-    const key = `labeler:probe:${endpoint}:${minute}`;
-    const hit = JSON.parse((await env.SESSIONS.get(key)) || '{}');
+    // Throttled to at most ONE write per hour per endpoint (KV write budget:
+    // minute-bucketing cost ~400 writes/day from relay reconnects + scrapers).
+    // Reads stay per-hit; only the first hit of the hour writes.
+    const hour = new Date().toISOString().slice(0, 13);
+    const key = `labeler:probe:${endpoint}:${hour}`;
+    if (await env.SESSIONS.get(key)) return;
     const ua = request.headers.get('User-Agent') || '(none)';
-    hit[ua] = (hit[ua] || 0) + 1;
-    await env.SESSIONS.put(key, JSON.stringify(hit), { expirationTtl: 86400 * 7 });
+    await env.SESSIONS.put(key, JSON.stringify({ ua, at: new Date().toISOString() }), { expirationTtl: 86400 * 7 });
   } catch { /* probing must never break serving */ }
 }
 
