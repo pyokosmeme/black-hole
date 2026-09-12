@@ -1022,7 +1022,8 @@ body.bh-mode .link-card {
 /* Tighten negative space in the transmission view and drop tags. */
 .post-view { padding: var(--space-md) var(--space-sm); padding-bottom: max(0px, calc(var(--space-md) - 10px)); }
 .post-close-btn,
-.post-share-btn {
+.post-share-btn,
+.post-subscribe-btn {
     position: absolute;
     top: var(--space-sm);
     z-index: 10;

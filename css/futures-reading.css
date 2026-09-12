@@ -770,3 +770,35 @@ body.light-reading .tag-filter-btn.active {
         font-size: 1.58rem;
     }
 }
+
+/* Subscribe button - mirrors close/share in the reader header */
+.post-subscribe-btn {
+    position: absolute;
+    top: 0.75rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    background: none;
+    border: none;
+    color: var(--rv-meta);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+}
+
+.post-subscribe-btn:hover {
+    color: var(--rv-accent);
+    text-shadow: 0 0 10px var(--rv-accent-dim);
+}
+
+@media (max-width: 600px) {
+    .post-subscribe-btn {
+        top: 0.5rem;
+    }
+}
