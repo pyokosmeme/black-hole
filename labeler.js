@@ -161,9 +161,9 @@ export async function getLabelerDidKey(env) {
 
 async function signLabel(label, key) {
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', cborEncodeLabel(label)));
-  // @noble/curves >= 2 returns the 64-byte compact signature directly;
-  // older 1.x returned a Signature object needing .toBytes('compact')
-  const sig = secp256k1.sign(digest, key.priv);
+  // AT Protocol signs SHA-256(CBOR) exactly once. Noble v2 hashes its input
+  // by default, so disable prehashing when passing this already-hashed digest.
+  const sig = secp256k1.sign(digest, key.priv, { prehash: false, lowS: true });
   return sig instanceof Uint8Array ? sig : sig.toBytes('compact');
 }
 

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createPublicKey, ECDH, verify } from 'node:crypto';
 import worker from '../_worker.js';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { cborEncodeLabel, cborEncodeFrame, getLabelerDidKey, LABELER_DID } from '../labeler.js';
@@ -83,7 +84,7 @@ test('queryLabels serves signed labels and verifies with the published key', asy
   assert.equal(sig.length, 64);
   const { sig: _omit, ...labelBody } = label;
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', cborEncodeLabel(labelBody)));
-  assert.equal(secp256k1.verify(sig, digest, pub), true);
+  assert.equal(secp256k1.verify(sig, digest, pub, { prehash: false }), true);
 
   // other subjects see nothing
   const empty = await worker.fetch(new Request(SITE + '/xrpc/com.atproto.label.queryLabels?uriPatterns=did%3Aplc%3Aother'), env);
@@ -170,7 +171,34 @@ test('negations carry neg: true and verify independently', async () => {
   const { sig: _omit, ...body } = labels[0];
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', cborEncodeLabel(body)));
   const pub = decodeBase58((await getLabelerDidKey(env)).slice('did:key:z'.length)).slice(2);
-  assert.equal(secp256k1.verify(Buffer.from(labels[0].sig.$bytes, 'base64'), digest, pub), true);
+  assert.equal(secp256k1.verify(Buffer.from(labels[0].sig.$bytes, 'base64'), digest, pub, { prehash: false }), true);
+});
+
+test('label signatures interoperate with OpenSSL over canonical CBOR hashed exactly once', async () => {
+  const labelBody = {
+    ver: 1, src: LABELER_DID, uri: 'did:plc:victim',
+    val: 'player-character', cts: '2026-09-12T00:00:00.000Z',
+  };
+  // Golden encoding independently produced with @ipld/dag-cbor, so neither
+  // serialization nor hashing is verified by repeating the signer's defaults.
+  const canonical = Buffer.from(
+    'a5636374737818323032362d30392d31325430303a30303a30302e3030305a6373726378206469643a706c633a6363786c33696374726c7674727267683573777676673437637572696e6469643a706c633a76696374696d6376616c70706c617965722d6368617261637465726376657201',
+    'hex',
+  );
+  assert.deepEqual(Buffer.from(cborEncodeLabel(labelBody)), canonical);
+  const env = makeEnv({ 'label:1': JSON.stringify({ ...labelBody, seq: 1 }) });
+  const response = await worker.fetch(new Request(SITE + '/xrpc/com.atproto.label.queryLabels?uriPatterns=*'), env);
+  const { labels: [label] } = await response.json();
+  const pub = decodeBase58((await getLabelerDidKey(env)).slice('did:key:z'.length)).slice(2);
+  const point = ECDH.convertKey(pub, 'secp256k1', undefined, undefined, 'uncompressed');
+  const publicKey = createPublicKey({ format: 'jwk', key: {
+    kty: 'EC', crv: 'secp256k1',
+    x: point.subarray(1, 33).toString('base64url'), y: point.subarray(33).toString('base64url'),
+  } });
+  const signature = Buffer.from(label.sig.$bytes, 'base64');
+  assert.equal(verify('sha256', canonical, { key: publicKey, dsaEncoding: 'ieee-p1363' }, signature), true);
+  const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', canonical));
+  assert.equal(secp256k1.verify(signature, digest, pub), false, 'reject the previous double-hashed signature format');
 });
 
 test('labeler-record endpoint is admin-only and writes the service DID', async () => {
