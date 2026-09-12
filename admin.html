@@ -13,6 +13,7 @@
   <link rel="stylesheet" href="/css/acidburn.css">
   <link rel="stylesheet" href="/css/admin.css">
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/turndown@7.2.0/dist/turndown.js"></script>
 </head>
 <body class="lite-mode admin-page">
   <a href="#admin-main" class="skip-link">Skip to admin workspace</a>
@@ -103,9 +104,6 @@
             <label>Excerpt
               <textarea name="excerpt" rows="3" maxlength="1000"></textarea>
             </label>
-            <label>Markdown
-              <textarea name="markdown" id="markdown-editor" rows="24" spellcheck="true" required></textarea>
-            </label>
             <div class="field-row">
               <label>Attach image <small>png / jpg / webp / gif → inserts markdown, served from your KV</small>
                 <input type="file" id="image-input" accept="image/png,image/jpeg,image/webp,image/gif">
@@ -113,13 +111,36 @@
             </div>
           </div>
 
-          <section class="preview-panel" aria-labelledby="preview-title">
-            <div class="preview-heading section-header">
-              <h2 id="preview-title">// LIVE PREVIEW</h2>
-              <div class="section-line"></div>
-            </div>
-            <article id="markdown-preview" class="markdown-preview post-content"></article>
-          </section>
+          <div class="wysiwyg-editor">
+              <div class="editor-toolbar" role="toolbar" aria-label="Transmission formatting">
+                <button type="button" class="tb" data-action="h2" title="Heading (##)">H2</button>
+                <button type="button" class="tb" data-action="h3" title="Heading (###)">H3</button>
+                <span class="tb-sep" aria-hidden="true"></span>
+                <button type="button" class="tb" data-action="bold" title="Bold (**…**)" aria-label="Bold"><strong>B</strong></button>
+                <button type="button" class="tb" data-action="italic" title="Italic (*…*)" aria-label="Italic"><em>I</em></button>
+                <button type="button" class="tb" data-action="strike" title="Strikethrough (~~…~~)" aria-label="Strikethrough"><s>S</s></button>
+                <button type="button" class="tb" data-action="code" title="Inline code (`…`)" aria-label="Inline code">&lt;/&gt;</button>
+                <button type="button" class="tb" data-action="codeblock" title="Code block (``` fenced)" aria-label="Code block">{ }</button>
+                <span class="tb-sep" aria-hidden="true"></span>
+                <button type="button" class="tb" data-action="ul" title="Bulleted list" aria-label="Bulleted list">• List</button>
+                <button type="button" class="tb" data-action="ol" title="Numbered list" aria-label="Numbered list">1. List</button>
+                <button type="button" class="tb" data-action="quote" title="Blockquote (>)" aria-label="Blockquote">❝</button>
+                <button type="button" class="tb" data-action="hr" title="Horizontal rule (---)" aria-label="Horizontal rule">―</button>
+                <span class="tb-sep" aria-hidden="true"></span>
+                <button type="button" class="tb" data-action="link" title="Insert link" aria-label="Insert link">🔗</button>
+                <button type="button" class="tb" data-action="image" title="Insert image (uploads to KV)" aria-label="Insert image">🖼</button>
+                <button type="button" class="tb" data-action="equation" title="Insert equation block ($$ … $$)" aria-label="Insert equation">∑</button>
+                <span class="tb-spacer" aria-hidden="true"></span>
+                <div class="view-toggle" role="group" aria-label="Editor view">
+                  <button type="button" id="view-rendered" class="view-btn active" aria-pressed="true">Rendered</button>
+                  <button type="button" id="view-markdown" class="view-btn" aria-pressed="false">Markdown</button>
+                </div>
+              </div>
+              <div id="editor-rendered" class="editor-rendered markdown-preview post-content" contenteditable="true" aria-label="Transmission body — rendered editing view"></div>
+              <label class="markdown-mode" hidden>Markdown
+                <textarea name="markdown" id="markdown-editor" rows="24" spellcheck="true" class="editor-markdown"></textarea>
+              </label>
+          </div>
 
           <div class="editor-footer">
             <div>

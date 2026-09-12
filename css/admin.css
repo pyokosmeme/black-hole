@@ -191,16 +191,95 @@
 .editor-fields { display: grid; gap: 14px; padding: var(--space-lg); }
 .field-row { display: grid; grid-template-columns: 1fr 180px; gap: 14px; }
 
-.preview-panel {
+/* ── WYSIWYG transmission editor ── */
+
+.wysiwyg-editor {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
   margin: 0 var(--space-lg) var(--space-lg);
   border: 2px solid rgba(0, 255, 255, 0.22);
   background: #090910;
 }
-.preview-heading { padding: 14px 18px; border-bottom: 1px solid var(--admin-line); }
-.preview-heading.section-header { margin-bottom: 0; }
-.markdown-preview { min-height: 180px; max-height: 520px; overflow: auto; padding: var(--space-lg); overflow-wrap: anywhere; }
-.admin-page .markdown-preview.post-content { font-size: var(--text-sm); }
-.markdown-preview img { max-width: 100%; }
+
+.editor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--admin-line);
+  background: rgba(191, 0, 255, 0.05);
+}
+
+.admin-page .editor-toolbar .tb {
+  min-width: 0;
+  padding: 5px 9px;
+  border-width: 1px;
+  border-color: rgba(191, 0, 255, 0.35);
+  background: #0c0c13;
+  font-size: var(--text-xs);
+  line-height: 1.2;
+}
+
+.admin-page .editor-toolbar .tb:hover { border-color: var(--cyan); }
+
+.tb-sep { width: 1px; height: 22px; margin: 0 4px; background: var(--admin-line); }
+.tb-spacer { flex: 1 1 auto; }
+
+.view-toggle {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid rgba(0, 255, 255, 0.3);
+}
+
+.admin-page .view-btn {
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 0;
+  background: #0c0c13;
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.admin-page .view-btn.active {
+  background: var(--purple);
+  color: #09000d;
+  font-weight: 700;
+}
+
+#editor-rendered {
+  min-height: 420px;
+  max-height: 62vh;
+  overflow: auto;
+  padding: var(--space-lg);
+  overflow-wrap: anywhere;
+  outline: none;
+  cursor: text;
+}
+
+#editor-rendered:focus { box-shadow: inset 0 0 0 1px rgba(0, 255, 255, 0.35); }
+
+.admin-page #editor-rendered.markdown-preview.post-content { font-size: var(--text-sm); }
+#editor-rendered img { max-width: 100%; cursor: default; }
+#editor-rendered blockquote { border-left: 3px solid var(--purple); padding-left: 14px; color: var(--admin-muted); }
+#editor-rendered pre {
+  overflow-x: auto;
+  padding: 12px;
+  border: 1px solid rgba(0, 255, 255, 0.18);
+  background: #08080e;
+  font-family: 'Share Tech Mono', monospace;
+}
+#editor-rendered hr { border: 0; border-top: 1px dashed rgba(0, 255, 255, 0.4); margin: 1.4em 0; }
+#editor-rendered:empty::before {
+  content: 'Begin transmission… (rendered view — toggle “Markdown” for raw source)';
+  color: rgba(255, 255, 255, 0.32);
+  font-family: 'Share Tech Mono', monospace;
+  pointer-events: none;
+}
+
+.editor-markdown { font-family: 'Share Tech Mono', monospace; }
+.admin-page textarea.editor-markdown { margin-top: 0; padding: var(--space-lg); min-height: 420px; border: 0; }
 
 .editor-footer {
   display: flex;
@@ -233,7 +312,7 @@
 
 @media (min-width: 1180px) {
   .transmission-editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(340px, 0.72fr); }
-  .preview-panel { margin: var(--space-lg) var(--space-lg) var(--space-lg) 0; }
+  .wysiwyg-editor { margin: 0 var(--space-lg) var(--space-lg) 0; }
   .editor-footer { grid-column: 1 / -1; }
 }
 

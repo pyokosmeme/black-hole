@@ -10,11 +10,22 @@ const logoutButton = document.getElementById('logout-button');
 const authStatus = document.getElementById('auth-status');
 const form = document.getElementById('transmission-form');
 const list = document.getElementById('transmission-list');
-const preview = document.getElementById('markdown-preview');
+const rendered = document.getElementById('editor-rendered');
+const markdownEditor = document.getElementById('markdown-editor');
 const editorStatus = document.getElementById('editor-status');
 const sourceNote = document.getElementById('source-note');
 const shareLink = document.getElementById('share-link');
 const deleteButton = document.getElementById('delete-button');
+const imageInput = document.getElementById('image-input');
+const viewRendered = document.getElementById('view-rendered');
+const viewMarkdown = document.getElementById('view-markdown');
+
+/* ── WYSIWYG editor state: rendered (default) ↔ raw markdown ── */
+let editorMode = 'rendered';
+
+const turndownService = window.TurndownService
+  ? new window.TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced', hr: '---', bulletListMarker: '-' })
+  : null;
 
 async function api(path, options = {}) {
   const { headers = {}, ...requestOptions } = options;
@@ -43,12 +54,92 @@ function slugify(value) {
   return value.toLowerCase().normalize('NFKD').replace(/[^a-z0-9\s-]/g, '').trim().replace(/[\s-]+/g, '-');
 }
 
-function updatePreview() {
-  const markdown = form.elements.markdown.value;
-  if (window.marked) preview.innerHTML = window.marked.parse(markdown || '*Preview waiting for signal.*');
-  else preview.textContent = markdown;
-  markProseBrackets(preview);
+function renderRendered() {
+  if (window.marked) rendered.innerHTML = window.marked.parse(markdownEditor.value || '');
+  else rendered.textContent = markdownEditor.value;
+  markProseBrackets(rendered);
 }
+
+function syncRenderedToMarkdown() {
+  if (editorMode !== 'rendered') return;
+  if (turndownService) markdownEditor.value = turndownService.turndown(rendered.innerHTML).trimEnd();
+}
+
+function setEditorMode(mode) {
+  if (mode === editorMode) return;
+  if (mode === 'markdown') syncRenderedToMarkdown();
+  editorMode = mode;
+  rendered.hidden = mode !== 'rendered';
+  document.querySelector('.markdown-mode').hidden = mode !== 'markdown';
+  viewRendered.classList.toggle('active', mode === 'rendered');
+  viewRendered.setAttribute('aria-pressed', String(mode === 'rendered'));
+  viewMarkdown.classList.toggle('active', mode === 'markdown');
+  viewMarkdown.setAttribute('aria-pressed', String(mode === 'markdown'));
+  if (mode === 'rendered') renderRendered();
+  else markdownEditor.focus();
+}
+
+viewRendered.addEventListener('click', () => setEditorMode('rendered'));
+viewMarkdown.addEventListener('click', () => setEditorMode('markdown'));
+
+function exec(command, value) {
+  rendered.focus();
+  document.execCommand(command, false, value || null);
+  markProseBrackets(rendered);
+}
+
+function wrapSelection(before, after, placeholder) {
+  const start = markdownEditor.selectionStart || 0;
+  const end = markdownEditor.selectionEnd || start;
+  const selected = markdownEditor.value.slice(start, end) || placeholder;
+  const insertion = before + selected + after;
+  markdownEditor.value = markdownEditor.value.slice(0, start) + insertion + markdownEditor.value.slice(end);
+  markdownEditor.setSelectionRange(start + before.length, start + before.length + selected.length);
+  markdownEditor.focus();
+}
+
+function prefixLines(prefix) {
+  const start = markdownEditor.value.lastIndexOf('\n', (markdownEditor.selectionStart || 0) - 1) + 1;
+  markdownEditor.value = markdownEditor.value.slice(0, start) + prefix + markdownEditor.value.slice(start);
+  markdownEditor.setSelectionRange(start + prefix.length, start + prefix.length);
+  markdownEditor.focus();
+}
+
+function insertTextAtCursor(text) {
+  if (editorMode === 'rendered') { exec('insertText', text); return; }
+  const pos = markdownEditor.selectionStart || markdownEditor.value.length;
+  markdownEditor.value = markdownEditor.value.slice(0, pos) + text + markdownEditor.value.slice(pos);
+  markdownEditor.setSelectionRange(pos + text.length, pos + text.length);
+  markdownEditor.focus();
+}
+
+const toolbarActions = {
+  bold: () => editorMode === 'rendered' ? exec('bold') : wrapSelection('**', '**', 'bold text'),
+  italic: () => editorMode === 'rendered' ? exec('italic') : wrapSelection('*', '*', 'italic text'),
+  strike: () => editorMode === 'rendered' ? exec('strikeThrough') : wrapSelection('~~', '~~', 'struck text'),
+  code: () => wrapSelection('`', '`', 'code'),
+  codeblock: () => insertTextAtCursor('```\ncode\n```\n'),
+  h2: () => editorMode === 'rendered' ? exec('formatBlock', 'h2') : prefixLines('## '),
+  h3: () => editorMode === 'rendered' ? exec('formatBlock', 'h3') : prefixLines('### '),
+  ul: () => editorMode === 'rendered' ? exec('insertUnorderedList') : prefixLines('- '),
+  ol: () => editorMode === 'rendered' ? exec('insertOrderedList') : prefixLines('1. '),
+  quote: () => editorMode === 'rendered' ? exec('formatBlock', 'blockquote') : prefixLines('> '),
+  hr: () => editorMode === 'rendered' ? exec('insertHorizontalRule') : insertTextAtCursor('\n---\n'),
+  link: () => {
+    const url = prompt('Link URL:');
+    if (!url) return;
+    if (editorMode === 'rendered') exec('createLink', url);
+    else wrapSelection('[', `](${url})`, 'link text');
+  },
+  image: () => imageInput.click(),
+  equation: () => insertTextAtCursor('$$\nE = mc^2\n$$\n'),
+};
+
+document.querySelector('.editor-toolbar').addEventListener('click', event => {
+  const button = event.target.closest('button[data-action]');
+  if (!button) return;
+  (toolbarActions[button.dataset.action] || (() => {}))();
+});
 
 function resetEditor() {
   state.active = null;
@@ -62,7 +153,7 @@ function resetEditor() {
   document.getElementById('archive-button').hidden = true;
   setStatus(editorStatus, '');
   renderTransmissionList();
-  updatePreview();
+  renderRendered();
   form.elements.title.focus();
 }
 
@@ -87,7 +178,7 @@ function selectTransmission(record) {
   shareLink.hidden = record.status !== 'published';
   setStatus(editorStatus, '');
   renderTransmissionList();
-  updatePreview();
+  renderRendered();
 }
 
 function renderTransmissionList() {
@@ -382,7 +473,9 @@ async function loadWorkspace() {
 }
 
 async function save(status) {
+  syncRenderedToMarkdown();
   if (!form.reportValidity()) return;
+  if (!markdownEditor.value.trim()) { setStatus(editorStatus, 'Transmission body is empty.', 'error'); markdownEditor.focus(); return; }
   const buttons = [document.getElementById('draft-button'), document.getElementById('publish-button')];
   buttons.forEach(button => { button.disabled = true; });
   setStatus(editorStatus, status === 'draft' ? 'Saving draft…' : 'Publishing…');
@@ -499,8 +592,7 @@ document.getElementById('archive-button').addEventListener('click', async () => 
   await save('archived');
 });
 
-// typographer: em/en dashes outside horizontal rules
-const markdownEditor = document.getElementById('markdown-editor');
+// typographer: em/en dashes outside horizontal rules (raw markdown view only)
 markdownEditor.addEventListener('input', () => {
   const value = markdownEditor.value;
   const fixed = value.split('\n').map(line => /^\s*-{3,}\s*$/.test(line) ? line : line.replace(/(^|\s)---(\s|$)/g, '$1—$2').replace(/(^|\s)--(\s|$)/g, '$1–$2')).join('\n');
@@ -521,15 +613,22 @@ document.getElementById('image-input').addEventListener('change', async event =>
   const data = await new Promise(resolve => { const r = new FileReader(); r.onload = () => resolve(String(r.result).split(',')[1] || ''); r.readAsDataURL(file); });
   try {
     const res = await api('/api/admin/images', { method: 'POST', body: JSON.stringify({ type: file.type, data }) });
-    const pos = markdownEditor.selectionStart || markdownEditor.value.length;
-    const embed = `![${file.name.replace(/\.[a-z0-9]+$/i, '')}](${res.url})\n`;
-    markdownEditor.value = markdownEditor.value.slice(0, pos) + embed + markdownEditor.value.slice(pos);
-    markdownEditor.dispatchEvent(new Event('input', { bubbles: true }));
+    const alt = file.name.replace(/\.[a-z0-9]+$/i, '');
+    if (editorMode === 'rendered') {
+      rendered.focus();
+      document.execCommand('insertHTML', false, `<img src="${res.url}" alt="${alt.replace(/"/g, '&quot;')}">`);
+      markProseBrackets(rendered);
+    } else {
+      const pos = markdownEditor.selectionStart || markdownEditor.value.length;
+      const embed = `![${alt}](${res.url})\n`;
+      markdownEditor.value = markdownEditor.value.slice(0, pos) + embed + markdownEditor.value.slice(pos);
+      markdownEditor.setSelectionRange(pos + embed.length, pos + embed.length);
+    }
     setStatus(editorStatus, 'Image attached: ' + res.url, 'success');
   } catch (error) { setStatus(editorStatus, 'Image upload failed: ' + error.message, 'error'); }
 });
 deleteButton.addEventListener('click', removeManagedCopy);
 form.elements.title.addEventListener('input', () => { if (state.isNew) form.elements.slug.value = slugify(form.elements.title.value); });
-form.elements.markdown.addEventListener('input', updatePreview);
+markdownEditor.addEventListener('input', renderRendered);
 
 boot();
