@@ -2160,7 +2160,7 @@ body.light-reading .tx-confirm-btn--danger:hover {
     position: sticky;
     top: 0;
     display: block;
-    margin: 0 calc(-1 * var(--space-lg)) var(--space-md);
+    margin: 0 calc(-1 * var(--space-lg)) 0;
     height: 6px;
     background:
         repeating-linear-gradient(-55deg, var(--purple) 0px, var(--purple) 5px, transparent 5px, transparent 10px),
@@ -2172,7 +2172,7 @@ body.light-reading .tx-confirm-btn--danger:hover {
     to   { opacity: 1; transform: none; }
 }
 .subscribe-modal-head {
-    padding-top: var(--space-lg);
+    padding-top: var(--space-md);
     display: flex;
     align-items: baseline;
     justify-content: space-between;
@@ -2199,6 +2199,6 @@ body.light-mode .subscribe-modal-panel { background: #fdfaf5; border: 2px solid 
 @media (max-width: 700px) {
     .subscribe-modal { padding: var(--space-sm); }
     .subscribe-modal-panel { padding: 0 var(--space-md) var(--space-md); }
-    .subscribe-modal-panel::before { margin: 0 calc(-1 * var(--space-md)) var(--space-md); }
+    .subscribe-modal-panel::before { margin: 0 calc(-1 * var(--space-md)) 0; }
     .subscribe-modal-head { flex-direction: column; gap: 0; padding-top: var(--space-md); }
 }

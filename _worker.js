@@ -1,5 +1,5 @@
 import { handleContentRequest } from './worker-content.js';
-import { getLabelerDidKey, handleLabelerRequest, LABELER_DID } from './labeler.js';
+import { getLabelerDidKey, handleLabelerRequest, invalidateLabelCache, LABELER_DID } from './labeler.js';
 
 // ── Shared helpers ──
 
@@ -726,6 +726,7 @@ async function reconcileLabelerLikes(env) {
       const record = { seq, uri: did, val: 'player-character', neg: false, cts: new Date().toISOString(), comment: 'Opted in by liking the labeler.' };
       await env.SESSIONS.put('labeler:seq', String(seq));
       await env.SESSIONS.put(`label:${seq}`, JSON.stringify(record));
+      await invalidateLabelCache();
       await env.SESSIONS.put(marker, String(seq));
       added++;
     }

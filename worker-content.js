@@ -1,4 +1,5 @@
 import { renderDocument } from './transmission-document.js';
+import { invalidateLabelCache } from './labeler.js';
 
 const DEFAULT_ADMIN_DIDS = 'did:plc:ccxl3ictrlvtrrgh5swvvg47,did:plc:drrstoxu4to57dhv453ziznq';
 const SITE_ORIGIN = 'https://lastnpcalex.agency';
@@ -636,6 +637,7 @@ async function handleAdmin(request, env, pathname) {
     if (input.exp) record.exp = String(input.exp);
     if (input.comment) record.comment = String(input.comment).slice(0, 500);
     await env.SESSIONS.put(`label:${seq}`, JSON.stringify(record));
+    await invalidateLabelCache();
     return json({ ok: true, label: labelForAdmin(record) }, 201);
   }
 
@@ -645,6 +647,7 @@ async function handleAdmin(request, env, pathname) {
     const seq = parseInt(input.seq, 10);
     if (!seq) return json({ error: 'seq required' }, 400);
     await env.SESSIONS.delete(`label:${seq}`);
+    await invalidateLabelCache();
     return json({ ok: true, purged: seq, note: 'Purged locally. Subscribed clients keep the label until you publish a negation (neg: true) with the same subject and value.' });
   }
 

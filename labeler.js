@@ -24,7 +24,9 @@ const SEQ_KV = 'labeler:seq';
 const LABEL_PREFIX = 'label:';
 const BATCH = 100;
 const STREAM_LIFETIME_MS = 600_000;  // long-lived: replay, stream live events, then close so consumers reconnect with their cursor
-const STREAM_POLL_MS = 5_000;
+const STREAM_POLL_MS = 60_000;
+const RECORD_CACHE_URL = 'https://lastnpcalex.agency/__labeler-cache/records-v1';
+const RECORD_CACHE_SECONDS = 300;
 
 /* ── tiny byte helpers ── */
 
@@ -194,6 +196,13 @@ async function labelJson(record, key) {
 }
 
 async function listLabelRecords(env) {
+  // Cache API operations do not consume KV's read/list allowance. The cache
+  // is shared by queries at this location and contains public label fields only.
+  const cache = globalThis.caches?.default;
+  try {
+    const cached = await cache?.match(RECORD_CACHE_URL);
+    if (cached) return await cached.json();
+  } catch { /* a cache failure must not prevent reading labels */ }
   const records = [];
   let cursor;
   do {
@@ -203,13 +212,26 @@ async function listLabelRecords(env) {
       if (!raw) continue;
       try {
         const record = JSON.parse(raw);
-        if (record && typeof record.val === 'string') records.push(record);
+        if (record && typeof record.val === 'string') {
+          const { seq, uri, val, neg, cts, cid, exp } = record;
+          records.push({ seq, uri, val, neg, cts, cid, exp });
+        }
       } catch { /* skip malformed */ }
     }
     cursor = page.list_complete ? undefined : page.cursor;
   } while (cursor);
   records.sort((a, b) => (a.seq || 0) - (b.seq || 0));
+  try {
+    await cache?.put(RECORD_CACHE_URL, new Response(JSON.stringify(records), {
+      headers: { 'Content-Type': 'application/json', 'Cache-Control': `public, max-age=${RECORD_CACHE_SECONDS}` },
+    }));
+  } catch { /* serve the result even when the cache cannot store it */ }
   return records;
+}
+
+export async function invalidateLabelCache() {
+  // Other locations expire within five minutes; mutations refresh this one.
+  try { await globalThis.caches?.default.delete(RECORD_CACHE_URL); } catch { /* best effort */ }
 }
 
 /* ── subject handling ──
@@ -250,12 +272,12 @@ async function handleQueryLabels(request, env) {
       headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' },
     });
   }
-  let records = await listLabelRecords(env);
+  let records = sources.length && !sources.includes(LABELER_DID) ? [] : await listLabelRecords(env);
   if (cursor) records = records.filter(r => (r.seq || 0) > cursor);
   if (sources.length && !sources.includes(LABELER_DID)) records = [];
   else records = records.filter(r => patterns.some(pattern => matchPattern(pattern, subjectUri(r))));
   const page = records.slice(0, limit);
-  const key = await ensureLabelerKey(env);
+  const key = page.length ? await ensureLabelerKey(env) : null;
   const labels = await Promise.all(page.map(record => labelJson(record, key)));
   const body = { labels };
   if (records.length > limit && page.length) body.cursor = String(page[page.length - 1].seq);
@@ -271,75 +293,82 @@ async function handleQueryLabels(request, env) {
  * Long-lived socket; closes with 1001 so the consumer reconnects with its cursor.
  */
 async function handleSubscribeLabels(request, env) {
-  await probeConnection(env, request, 'subscribeLabels');
   if (request.headers.get('Upgrade') !== 'websocket') {
     return new Response('websocket upgrade required', { status: 426 });
   }
-  const cursor = parseInt(new URL(request.url).searchParams.get('cursor'), 10) || 0;
+  const cursorValue = new URL(request.url).searchParams.get('cursor');
+  const cursor = cursorValue === null ? 0 : Number(cursorValue);
+  if (!Number.isSafeInteger(cursor) || cursor < 0) {
+    return new Response('cursor must be a non-negative integer', { status: 400 });
+  }
   const key = await ensureLabelerKey(env);
 
   const pair = new WebSocketPair();
   const server = pair[1];
   server.accept();
+  let closed = false;
+  let poller;
+  let lifetime;
+  let lastSeq = cursor;
+  const cleanup = () => {
+    closed = true;
+    clearTimeout(poller);
+    clearTimeout(lifetime);
+  };
+  const close = (code, reason) => {
+    cleanup();
+    try { server.close(code, reason); } catch { /* already closed */ }
+  };
+  // Register before any replay I/O, including for clients that disconnect
+  // while a KV read is pending. Never leave a poller running on a dead socket.
+  server.addEventListener('close', cleanup);
+  server.addEventListener('error', cleanup);
+  lifetime = setTimeout(() => close(1001, 'reconnect with cursor'), STREAM_LIFETIME_MS);
+  lifetime.unref?.();
 
-  const pushRecords = async (records) => {
-    for (let i = 0; i < records.length; i += BATCH) {
-      const slice = records.slice(i, i + BATCH);
-      const labels = await Promise.all(slice.map(record => signedLabel(record, key)));
-      server.send(cborEncodeFrame({ name: 'labels', body: { seq: slice[slice.length - 1].seq, labels } }));
+  const poll = async () => {
+    try {
+      if (closed) return;
+      const head = parseInt(await env.SESSIONS.get(SEQ_KV), 10) || 0;
+      // Sequential keys let a reconnect replay only its missing range, with
+      // no KV.list or reads of labels at/before the consumer's cursor.
+      for (let start = lastSeq + 1; start <= head && !closed; start += BATCH) {
+        const end = Math.min(head, start + BATCH - 1);
+        const values = await Promise.all(Array.from({ length: end - start + 1 }, (_, i) => env.SESSIONS.get(`${LABEL_PREFIX}${start + i}`)));
+        if (closed) return;
+        const records = values.flatMap(raw => {
+          try {
+            const record = JSON.parse(raw);
+            return record && typeof record.val === 'string' ? [record] : [];
+          } catch { return []; }
+        });
+        if (!records.length) continue;
+        const labels = await Promise.all(records.map(record => signedLabel(record, key)));
+        if (closed) return;
+        const seq = records[records.length - 1].seq;
+        server.send(cborEncodeFrame({ name: 'labels', body: { seq, labels } }));
+        lastSeq = seq;
+      }
+    } catch {
+      // KV errors (including exhausted quotas) must not trigger a tight retry
+      // loop. The next poll retries after the normal interval.
+    } finally {
+      if (!closed) {
+        poller = setTimeout(poll, STREAM_POLL_MS);
+        poller.unref?.();
+      }
     }
   };
-
-  (async () => {
-    let lastSeq = cursor;
-    try {
-      const records = (await listLabelRecords(env)).filter(r => (r.seq || 0) > cursor);
-      await pushRecords(records);
-      if (records.length) lastSeq = records[records.length - 1].seq;
-
-      // live streaming: poll the seq counter; emit new label events as they land
-      const timer = setTimeout(() => { try { server.close(1001, 'reconnect with cursor'); } catch { /* already closed */ } }, STREAM_LIFETIME_MS);
-      timer.unref?.();
-      server.addEventListener('close', () => { clearTimeout(timer); clearInterval(poller); });
-      const poller = setInterval(async () => {
-        try {
-          const seq = parseInt(await env.SESSIONS.get('labeler:seq'), 10) || 0;
-          if (seq <= lastSeq) return;
-          const fresh = (await listLabelRecords(env)).filter(r => (r.seq || 0) > lastSeq);
-          if (!fresh.length) return;
-          await pushRecords(fresh);
-          lastSeq = fresh[fresh.length - 1].seq;
-        } catch { /* keep the socket open; the poller retries */ }
-      }, STREAM_POLL_MS);
-      poller.unref?.();
-      server.addEventListener('message', () => { /* client pings/frames ignored */ });
-    } catch { /* socket died mid-replay */ }
-  })();
+  void poll();
 
   return new Response(null, { status: 101, webSocket: pair[0] });
 }
 
-/**
- * Connection probe: records who hits the label endpoints so we can tell
- * whether Bluesky’s AppView ever reaches the stream. Keyed by minute so
- * it cannot fill KV.
- */
-async function probeConnection(env, request, endpoint) {
-  try {
-    // Throttled to at most ONE write per hour per endpoint (KV write budget:
-    // minute-bucketing cost ~400 writes/day from relay reconnects + scrapers).
-    // Reads stay per-hit; only the first hit of the hour writes.
-    const hour = new Date().toISOString().slice(0, 13);
-    const key = `labeler:probe:${endpoint}:${hour}`;
-    if (await env.SESSIONS.get(key)) return;
-    const ua = request.headers.get('User-Agent') || '(none)';
-    await env.SESSIONS.put(key, JSON.stringify({ ua, at: new Date().toISOString() }), { expirationTtl: 86400 * 7 });
-  } catch { /* probing must never break serving */ }
-}
-
 export async function handleLabelerRequest(request, env) {
   const path = new URL(request.url).pathname;
-  if (path === '/xrpc/com.atproto.label.queryLabels') { await probeConnection(env, request, 'queryLabels'); return handleQueryLabels(request, env); }
+  // Worker observability already records requests; diagnostics must not spend
+  // the same KV budget needed for sessions, publications, and subscriptions.
+  if (path === '/xrpc/com.atproto.label.queryLabels') return handleQueryLabels(request, env);
   if (path === '/xrpc/com.atproto.label.subscribeLabels') return handleSubscribeLabels(request, env);
   if (path.startsWith('/xrpc/')) {
     return new Response(JSON.stringify({ error: 'XRPCNotSupported', message: 'unknown XRPC method' }), {
