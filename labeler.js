@@ -23,8 +23,10 @@ const KEY_KV = 'labeler:signing-key';
 const SEQ_KV = 'labeler:seq';
 const LABEL_PREFIX = 'label:';
 const BATCH = 100;
-const STREAM_LIFETIME_MS = 600_000;  // long-lived: replay, stream live events, then close so consumers reconnect with their cursor
-const STREAM_POLL_MS = 60_000;
+const STREAM_POLL_MS = 10 * 60_000;
+// Keep sockets open for several polls; reconnecting every ten minutes would
+// perform an extra signing-key read instead of allowing the next idle poll.
+const STREAM_LIFETIME_MS = 60 * 60_000;
 const RECORD_CACHE_URL = 'https://lastnpcalex.agency/__labeler-cache/records-v1';
 const RECORD_CACHE_SECONDS = 300;
 

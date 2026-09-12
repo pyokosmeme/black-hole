@@ -153,25 +153,25 @@ test('invalid requests and queries for other sources do not touch KV', async () 
   assert.deepEqual(env.calls, { gets: [], puts: [], lists: 0 });
 });
 
-test('an up-to-date stream does one head read per minute and no list scans', async t => {
+test('an up-to-date stream does one head read per ten minutes and no list scans', async t => {
   const runtime = installStreamRuntime(t);
   const env = makeEnv(100);
   assert.equal((await subscribe(env, 100)).status, 101);
   await settle();
   assert.deepEqual(env.calls.gets, ['labeler:signing-key', 'labeler:seq']);
-  await runtime.advance(59_999);
+  await runtime.advance(599_999);
   assert.equal(env.calls.gets.length, 2);
   await runtime.advance(1);
   assert.equal(env.calls.gets.length, 3);
   env.values.set('label:101', JSON.stringify(record(101)));
   env.values.set('labeler:seq', '101');
-  await runtime.advance(60_000);
+  await runtime.advance(600_000);
   assert.equal(runtime.sockets[0].frames.length, 1);
   assert.deepEqual(env.calls.gets.filter(key => key.startsWith('label:')), ['label:101']);
   assert.equal(env.calls.lists, 0);
   runtime.sockets[0].close(1000);
   const reads = env.calls.gets.length;
-  await runtime.advance(600_000);
+  await runtime.advance(3_600_000);
   assert.equal(env.calls.gets.length, reads);
   assert.equal(runtime.timers.size, 0);
 });
@@ -185,7 +185,7 @@ test('stream replay fetches only keys after its cursor and tolerates purged reco
   assert.deepEqual(env.calls.gets.filter(key => key.startsWith('label:')), ['label:3', 'label:4', 'label:5']);
   assert.equal(runtime.sockets[0].frames.length, 1);
   assert.equal(env.calls.lists, 0);
-  await runtime.advance(600_000);
+  await runtime.advance(3_600_000);
   assert.equal(runtime.sockets[0].closeCode, 1001);
   assert.equal(runtime.timers.size, 0);
 });
@@ -225,11 +225,11 @@ test('slow or failing KV reads never cause overlapping polls or rapid retries', 
   };
   await subscribe(env, 1);
   await settle();
-  await runtime.advance(120_000);
+  await runtime.advance(1_200_000);
   assert.equal(headReads, 1);
   release();
   await settle();
-  await runtime.advance(59_999);
+  await runtime.advance(599_999);
   assert.equal(headReads, 1);
   await runtime.advance(1);
   assert.equal(headReads, 2);
