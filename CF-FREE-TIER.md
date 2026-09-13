@@ -83,8 +83,8 @@ No new Cloudflare service, paid plan, or binding is required. Canonical keys are
 preserved. The additional keys use `public-index:v1:` and
 `public-index-build:v1:` prefixes.
 
-After deploying this version, initialize all five indexes through the protected
-maintenance endpoint below. Do this with the site's existing admin session,
+For future deployments into a namespace without these indexes, initialize all
+five indexes through the protected maintenance endpoint below. Do this with the site's existing admin session,
 after the KV allowance resets if necessary. Each request handles one page; a
 `complete: false` response means repeat the same prefix. Space calls for the
 same prefix by at least 60 seconds to allow KV propagation. A missing index
@@ -109,8 +109,10 @@ Verify all four `/api/transmissions?section=...` endpoints, `/llms.txt`, and
 `/xrpc/com.atproto.label.queryLabels?uriPatterns=*` return their expected data.
 Keep the ten-minute cron configured; removing it disables migration/repair and
 like reconciliation. Then compare the next complete UTC day's KV totals and
-Worker CPU errors. Production deployment and initialization were not performed
-as part of the local code change.
+Worker CPU errors. Commit `8782f2d` was deployed at 2026-09-13 04:33 UTC after
+initializing all five indexes through the authenticated KV REST API. See
+[the deployment and live audit](CF-DEPLOYMENT-2026-09-13.md) for the version,
+observed usage, and remaining CPU caveat.
 
 ## Local verification
 
