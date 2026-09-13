@@ -1,5 +1,7 @@
 /* Admin-specific layout layered on the site's shared Acid Burn system. */
 
+.admin-page [hidden] { display: none !important; }
+
 .admin-page {
   min-height: 100vh;
   background: #000;
@@ -85,6 +87,10 @@
 }
 
 .admin-page button:disabled { cursor: wait; opacity: 0.48; }
+.maintenance-tools { margin-top: var(--space-lg); }
+.maintenance-tools > summary { cursor: pointer; color: var(--cyan); padding: var(--space-sm) 0; }
+.maintenance-tools > p { color: var(--admin-muted); margin: var(--space-sm) 0; }
+#list-status { font-size: var(--text-xs); }
 .admin-page button.primary { border-color: var(--cyan); background: var(--purple); color: #09000d; font-weight: 700; }
 .admin-page button.danger { border-color: rgba(255, 0, 153, 0.65); color: var(--pink); }
 .admin-header #logout-button { padding: 6px 9px; border-width: 1px; background: transparent; }

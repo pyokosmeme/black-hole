@@ -1,7 +1,7 @@
 import * as Auth from './bsky-auth.js';
 import { markProseBrackets } from './prose-brackets.js';
 
-const state = { transmissions: [], active: null, isNew: true };
+const state = { transmissions: [], active: null, isNew: true, dirty: false, busy: false, revision: 0, sections: new Set(), pending: new Map() };
 const authPanel = document.getElementById('auth-panel');
 const workspace = document.getElementById('workspace');
 const loginButton = document.getElementById('login-button');
@@ -19,9 +19,13 @@ const deleteButton = document.getElementById('delete-button');
 const imageInput = document.getElementById('image-input');
 const viewRendered = document.getElementById('view-rendered');
 const viewMarkdown = document.getElementById('view-markdown');
+const sectionFilter = document.getElementById('section-filter');
+const listStatus = document.getElementById('list-status');
+const refreshButton = document.getElementById('refresh-transmissions');
 
 /* ── WYSIWYG editor state: rendered (default) ↔ raw markdown ── */
 let editorMode = 'rendered';
+let renderedChanged = false;
 
 const turndownService = window.TurndownService
   ? new window.TurndownService({ headingStyle: 'atx', codeBlockStyle: 'fenced', hr: '---', bulletListMarker: '-' })
@@ -29,7 +33,10 @@ const turndownService = window.TurndownService
 
 async function api(path, options = {}) {
   const { headers = {}, ...requestOptions } = options;
-  const response = await fetch(path, { ...requestOptions, headers: { Accept: 'application/json', ...headers } });
+  const response = await fetch(path, {
+    cache: 'no-store', credentials: 'same-origin', signal: AbortSignal.timeout(30_000),
+    ...requestOptions, headers: { Accept: 'application/json', ...headers },
+  });
   const contentType = response.headers.get('Content-Type') || '';
   const payload = contentType.includes('application/json') ? await response.json() : { error: await response.text() };
   if (!response.ok) {
@@ -55,17 +62,52 @@ function slugify(value) {
 }
 
 function renderRendered() {
-  if (window.marked) rendered.innerHTML = window.marked.parse(markdownEditor.value || '');
+  if (richEditorAvailable()) rendered.innerHTML = sanitizeEditorHtml(window.marked.parse(markdownEditor.value || ''));
   else rendered.textContent = markdownEditor.value;
   markProseBrackets(rendered);
+  renderedChanged = false;
 }
 
 function syncRenderedToMarkdown() {
-  if (editorMode !== 'rendered') return;
+  if (editorMode !== 'rendered' || !renderedChanged) return;
   if (turndownService) markdownEditor.value = turndownService.turndown(rendered.innerHTML).trimEnd();
+  renderedChanged = false;
+}
+
+function richEditorAvailable() {
+  return !!(window.marked && window.DOMPurify?.isSupported && turndownService);
+}
+
+function sanitizeEditorHtml(html) {
+  return window.DOMPurify.sanitize(html, {
+    USE_PROFILES: { html: true }, SANITIZE_NAMED_PROPS: true,
+    FORBID_TAGS: ['style', 'form', 'input', 'button', 'textarea', 'select'],
+    FORBID_ATTR: ['style'],
+  });
+}
+
+function markDirty() { state.dirty = true; }
+
+async function canDiscard() {
+  return !state.busy && (!state.dirty || await acidConfirm('Discard your unsaved changes?'));
+}
+
+function lockEditor() {
+  state.busy = true;
+  const controls = [...form.querySelectorAll('input, select, textarea, button'),
+    ...list.querySelectorAll('button'), document.getElementById('new-button')];
+  const disabled = controls.map(control => control.disabled);
+  controls.forEach(control => { control.disabled = true; });
+  rendered.contentEditable = 'false';
+  return () => {
+    controls.forEach((control, i) => { control.disabled = disabled[i]; });
+    rendered.contentEditable = 'true';
+    state.busy = false;
+  };
 }
 
 function setEditorMode(mode) {
+  if (state.busy || (mode === 'rendered' && !richEditorAvailable())) return;
   if (mode === editorMode) return;
   if (mode === 'markdown') syncRenderedToMarkdown();
   editorMode = mode;
@@ -83,9 +125,12 @@ viewRendered.addEventListener('click', () => setEditorMode('rendered'));
 viewMarkdown.addEventListener('click', () => setEditorMode('markdown'));
 
 function exec(command, value) {
+  if (state.busy) return;
   rendered.focus();
   document.execCommand(command, false, value || null);
   markProseBrackets(rendered);
+  renderedChanged = true;
+  markDirty();
 }
 
 function wrapSelection(before, after, placeholder) {
@@ -117,7 +162,12 @@ const toolbarActions = {
   bold: () => editorMode === 'rendered' ? exec('bold') : wrapSelection('**', '**', 'bold text'),
   italic: () => editorMode === 'rendered' ? exec('italic') : wrapSelection('*', '*', 'italic text'),
   strike: () => editorMode === 'rendered' ? exec('strikeThrough') : wrapSelection('~~', '~~', 'struck text'),
-  code: () => wrapSelection('`', '`', 'code'),
+  code: () => {
+    if (editorMode === 'markdown') return wrapSelection('`', '`', 'code');
+    const code = document.createElement('code');
+    code.textContent = window.getSelection()?.toString() || 'code';
+    exec('insertHTML', code.outerHTML);
+  },
   codeblock: () => insertTextAtCursor('```\ncode\n```\n'),
   h2: () => editorMode === 'rendered' ? exec('formatBlock', 'h2') : prefixLines('## '),
   h3: () => editorMode === 'rendered' ? exec('formatBlock', 'h3') : prefixLines('### '),
@@ -128,6 +178,7 @@ const toolbarActions = {
   link: () => {
     const url = prompt('Link URL:');
     if (!url) return;
+    if (!/^(https?:\/\/|mailto:|\/|#)/i.test(url)) { setStatus(editorStatus, 'Use an HTTPS, HTTP, mailto, or relative link.', 'error'); return; }
     if (editorMode === 'rendered') exec('createLink', url);
     else wrapSelection('[', `](${url})`, 'link text');
   },
@@ -137,8 +188,9 @@ const toolbarActions = {
 
 document.querySelector('.editor-toolbar').addEventListener('click', event => {
   const button = event.target.closest('button[data-action]');
-  if (!button) return;
+  if (!button || state.busy) return;
   (toolbarActions[button.dataset.action] || (() => {}))();
+  if (button.dataset.action !== 'image') markDirty();
 });
 
 function resetEditor() {
@@ -154,6 +206,7 @@ function resetEditor() {
   setStatus(editorStatus, '');
   renderTransmissionList();
   renderRendered();
+  state.dirty = false;
   form.elements.title.focus();
 }
 
@@ -179,6 +232,7 @@ function selectTransmission(record) {
   setStatus(editorStatus, '');
   renderTransmissionList();
   renderRendered();
+  state.dirty = false;
 }
 
 function renderTransmissionList() {
@@ -198,7 +252,10 @@ function renderTransmissionList() {
     source.textContent = record.source === 'admin' ? record.status : 'repo';
     meta.append(left, source);
     button.append(title, meta);
-    button.addEventListener('click', () => selectTransmission(record));
+    button.disabled = state.busy;
+    button.addEventListener('click', async () => {
+      if (await canDiscard()) selectTransmission(record);
+    });
     return button;
   }));
   if (!records.length) {
@@ -457,27 +514,50 @@ if (labelForm) {
   identityConfirmButton?.addEventListener('click', confirmIdentityRepair);
 }
 
-async function loadWorkspace() {
-  const [transmissions, subscribers, players, labels] = await Promise.all([
-    api('/api/admin/transmissions'),
-    api('/api/admin/subscribers'),
-    api('/api/admin/players').catch(() => ({ players: [] })),
-    api('/api/admin/labels').catch(() => ({ labels: [] })),
-  ]);
-  state.transmissions = transmissions.transmissions || [];
-  renderTransmissionList();
-  renderSubscribers(subscribers.subscribers || []);
-  renderPlayers(players.players || []);
-  renderLabels(labels.labels || []);
-  resetEditor();
+async function loadWorkspace(force = false) {
+  const section = sectionFilter.value;
+  if (!force && state.sections.has(section)) {
+    refreshButton.disabled = false;
+    renderTransmissionList();
+    setStatus(listStatus, 'Loaded this visit. Refresh to check for changes.');
+    return;
+  }
+  refreshButton.disabled = true;
+  setStatus(listStatus, 'Loading section…');
+  if (!state.pending.has(section)) {
+    const revision = state.revision;
+    const request = api(`/api/admin/transmissions?section=${encodeURIComponent(section)}`)
+      .then(payload => {
+        // A list started before a save must not overwrite the confirmed result.
+        if (revision !== state.revision) { state.sections.delete(section); return; }
+        state.transmissions = state.transmissions.filter(record => record.section !== section)
+          .concat(payload.transmissions || []);
+        state.sections.add(section);
+      }).finally(() => state.pending.delete(section));
+    state.pending.set(section, request);
+  }
+  try {
+    await state.pending.get(section);
+    if (sectionFilter.value === section) {
+      renderTransmissionList();
+      setStatus(listStatus, 'Loaded this visit. Refresh to check for changes.');
+    }
+  } catch (error) {
+    if (sectionFilter.value === section) {
+      renderTransmissionList();
+      setStatus(listStatus, `Could not load posts: ${error.message}. Your editor is unchanged. Use Refresh section to retry.`, 'error');
+    }
+  } finally {
+    refreshButton.disabled = state.pending.has(sectionFilter.value);
+  }
 }
 
 async function save(status) {
+  if (state.busy) return;
   syncRenderedToMarkdown();
   if (!form.reportValidity()) return;
   if (!markdownEditor.value.trim()) { setStatus(editorStatus, 'Transmission body is empty.', 'error'); markdownEditor.focus(); return; }
-  const buttons = [document.getElementById('draft-button'), document.getElementById('publish-button')];
-  buttons.forEach(button => { button.disabled = true; });
+  const unlock = lockEditor();
   setStatus(editorStatus, status === 'draft' ? 'Saving draft…' : 'Publishing…');
   try {
     const payload = await api('/api/admin/transmissions', {
@@ -494,33 +574,40 @@ async function save(status) {
         status,
       }),
     });
-    setStatus(editorStatus, status === 'draft' ? 'Draft saved.' : 'Transmission published.', 'success');
-    shareLink.href = payload.shareUrl;
-    shareLink.textContent = payload.shareUrl;
-    shareLink.hidden = status !== 'published';
-    await loadWorkspace();
-    const saved = state.transmissions.find(item => item.section === payload.transmission.section && item.slug === payload.transmission.slug);
-    if (saved) selectTransmission(saved);
-    setStatus(editorStatus, status === 'draft' ? 'Draft saved.' : 'Transmission published.', 'success');
+    const saved = { ...payload.transmission, source: 'admin' };
+    state.revision++;
+    state.transmissions = state.transmissions.filter(item => item.section !== saved.section || item.slug !== saved.slug).concat(saved);
+    selectTransmission(saved);
+    setStatus(editorStatus, status === 'draft' ? 'Draft saved.' : status === 'archived' ? 'Transmission archived.' : 'Transmission published.', 'success');
   } catch (error) {
-    setStatus(editorStatus, error.message, 'error');
+    setStatus(editorStatus, `Save could not be confirmed: ${error.message}. Your edits are still here.`, 'error');
   } finally {
-    buttons.forEach(button => { button.disabled = false; });
+    unlock();
+    renderTransmissionList();
   }
 }
 
 async function removeManagedCopy() {
-  if (!state.active || state.active.source !== 'admin') return;
+  if (state.busy || !state.active || state.active.source !== 'admin') return;
   if (!(await acidConfirm(`Delete the managed copy of “${state.active.title}”? A repository version with the same slug will reappear if one exists.`))) return;
+  const unlock = lockEditor();
   try {
     await api('/api/admin/transmissions', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ section: state.active.section, slug: state.active.slug }),
     });
-    await loadWorkspace();
+    const removed = state.active;
+    state.revision++;
+    state.transmissions = state.transmissions.filter(item => item.section !== removed.section || item.slug !== removed.slug);
+    state.sections.delete(removed.section);
+    resetEditor();
+    await loadWorkspace(true);
   } catch (error) {
     setStatus(editorStatus, error.message, 'error');
+  } finally {
+    unlock();
+    renderTransmissionList();
   }
 }
 
@@ -539,13 +626,13 @@ async function boot() {
     logoutButton.hidden = false;
     adminSession = session;
     document.getElementById('admin-identity').textContent = `Authenticated: @${session.handle}`;
+    resetEditor();
     await loadWorkspace();
-    await refreshIdentityStatus();
   } catch (error) {
     authPanel.hidden = false;
     workspace.hidden = true;
     logoutButton.hidden = true;
-    if (error.status === 403) setStatus(authStatus, error.message, 'error');
+    if (error.status !== 401) setStatus(authStatus, `Could not verify access: ${error.message}. Reload to retry.`, 'error');
   }
 }
 
@@ -559,9 +646,31 @@ loginButton.addEventListener('click', async () => {
     loginButton.disabled = false;
   }
 });
-logoutButton.addEventListener('click', async () => { await Auth.logout(); location.reload(); });
-document.getElementById('new-button').addEventListener('click', resetEditor);
-document.getElementById('section-filter').addEventListener('change', renderTransmissionList);
+logoutButton.addEventListener('click', async () => {
+  if (!(await canDiscard())) return;
+  try { await Auth.logout(); state.dirty = false; location.reload(); }
+  catch (error) { setStatus(editorStatus, `Could not log out: ${error.message}`, 'error'); }
+});
+document.getElementById('new-button').addEventListener('click', async () => { if (await canDiscard()) resetEditor(); });
+sectionFilter.addEventListener('change', () => { renderTransmissionList(); loadWorkspace(); });
+refreshButton.addEventListener('click', () => loadWorkspace(true));
+document.getElementById('load-maintenance').addEventListener('click', async event => {
+  const button = event.currentTarget;
+  button.disabled = true;
+  const status = document.getElementById('maintenance-status');
+  setStatus(status, 'Loading maintenance data…');
+  const jobs = [
+    ['Subscribers', '/api/admin/subscribers', payload => renderSubscribers(payload.subscribers || [])],
+    ['Players', '/api/admin/players', payload => renderPlayers(payload.players || [])],
+    ['Labels', '/api/admin/labels', payload => renderLabels(payload.labels || [])],
+    ['Identity', '/api/admin/labeler/identity', renderIdentityStatus],
+  ];
+  const results = await Promise.allSettled(jobs.map(async ([, path, render]) => render(await api(path))));
+  const failures = results.flatMap((result, i) => result.status === 'rejected' ? [`${jobs[i][0]}: ${result.reason.message}`] : []);
+  setStatus(status, failures.length ? failures.join('; ') : 'Maintenance data loaded.', failures.length ? 'error' : 'success');
+  button.disabled = false;
+  button.textContent = 'Refresh maintenance data';
+});
 document.getElementById('draft-button').addEventListener('click', () => save('draft'));
 document.getElementById('publish-button').addEventListener('click', () => save('published'));
 // acid-styled in-page confirm (replaces system confirm popups)
@@ -607,28 +716,61 @@ markdownEditor.addEventListener('input', () => {
 document.getElementById('image-input').addEventListener('change', async event => {
   const file = event.target.files && event.target.files[0];
   event.target.value = '';
-  if (!file) return;
+  if (!file || state.busy) return;
   if (file.size > 4 * 1024 * 1024) { setStatus(editorStatus, 'Image too large (max 4MB).', 'error'); return; }
   setStatus(editorStatus, 'Uploading image…');
-  const data = await new Promise(resolve => { const r = new FileReader(); r.onload = () => resolve(String(r.result).split(',')[1] || ''); r.readAsDataURL(file); });
+  const unlock = lockEditor();
   try {
-    const res = await api('/api/admin/images', { method: 'POST', body: JSON.stringify({ type: file.type, data }) });
+    const data = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result).split(',')[1] || '');
+      reader.onerror = () => reject(new Error('Could not read the image file'));
+      reader.readAsDataURL(file);
+    });
+    const res = await api('/api/admin/images', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ type: file.type, data }) });
     const alt = file.name.replace(/\.[a-z0-9]+$/i, '');
+    unlock();
     if (editorMode === 'rendered') {
-      rendered.focus();
-      document.execCommand('insertHTML', false, `<img src="${res.url}" alt="${alt.replace(/"/g, '&quot;')}">`);
-      markProseBrackets(rendered);
+      const image = document.createElement('img');
+      image.src = res.url;
+      image.alt = alt;
+      exec('insertHTML', sanitizeEditorHtml(image.outerHTML));
     } else {
       const pos = markdownEditor.selectionStart || markdownEditor.value.length;
       const embed = `![${alt}](${res.url})\n`;
       markdownEditor.value = markdownEditor.value.slice(0, pos) + embed + markdownEditor.value.slice(pos);
       markdownEditor.setSelectionRange(pos + embed.length, pos + embed.length);
     }
+    markDirty();
     setStatus(editorStatus, 'Image attached: ' + res.url, 'success');
   } catch (error) { setStatus(editorStatus, 'Image upload failed: ' + error.message, 'error'); }
+  finally { unlock(); renderTransmissionList(); }
 });
 deleteButton.addEventListener('click', removeManagedCopy);
 form.elements.title.addEventListener('input', () => { if (state.isNew) form.elements.slug.value = slugify(form.elements.title.value); });
 markdownEditor.addEventListener('input', renderRendered);
+
+form.addEventListener('input', markDirty);
+form.addEventListener('submit', event => { event.preventDefault(); save('draft'); });
+rendered.addEventListener('input', () => { renderedChanged = true; markDirty(); });
+rendered.addEventListener('click', event => { if (event.target.closest('a')) event.preventDefault(); });
+for (const type of ['paste', 'drop']) {
+  rendered.addEventListener(type, event => {
+    event.preventDefault();
+    if (state.busy || !richEditorAvailable()) return;
+    const transfer = event.clipboardData || event.dataTransfer;
+    const html = transfer?.getData('text/html');
+    if (html) exec('insertHTML', sanitizeEditorHtml(html));
+    else exec('insertText', transfer?.getData('text/plain') || '');
+  });
+}
+window.addEventListener('beforeunload', event => {
+  if (state.dirty) { event.preventDefault(); event.returnValue = ''; }
+});
+if (!richEditorAvailable()) {
+  setEditorMode('markdown');
+  viewRendered.disabled = true;
+  viewRendered.title = 'Rendered editing is unavailable. Markdown editing and saving still work.';
+}
 
 boot();

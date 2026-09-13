@@ -12,8 +12,9 @@
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=VT323&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/css/acidburn.css">
   <link rel="stylesheet" href="/css/admin.css">
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/turndown@7.2.0/dist/turndown.js"></script>
+  <script src="/js/vendor/marked-18.0.11.js"></script>
+  <script src="/js/vendor/purify-3.4.15.js"></script>
+  <script src="/js/vendor/turndown-7.2.0.js"></script>
 </head>
 <body class="lite-mode admin-page">
   <a href="#admin-main" class="skip-link">Skip to admin workspace</a>
@@ -54,7 +55,7 @@
     <div id="workspace" hidden>
       <div class="workspace-meta admin-surface">
         <p id="admin-identity"></p>
-        <p id="email-state">Subscription list and CSV export are active.</p>
+        <p id="email-state">Posts load by section. Maintenance data loads only when requested.</p>
       </div>
 
       <section class="editor-layout admin-surface" aria-labelledby="editor-title">
@@ -67,13 +68,14 @@
           <label>
             <span>Filter section</span>
             <select id="section-filter">
-              <option value="">All sections</option>
               <option value="author">Main page</option>
               <option value="ams">A Mote in Shadow</option>
               <option value="futures">Speculative futures</option>
               <option value="maps">Possible territories</option>
             </select>
           </label>
+          <button id="refresh-transmissions" type="button">Refresh section</button>
+          <p id="list-status" class="status" role="status"></p>
           <div id="transmission-list" class="transmission-list"></div>
         </aside>
 
@@ -158,9 +160,14 @@
         </form>
       </section>
 
+      <details id="maintenance-tools" class="maintenance-tools">
+        <summary>Subscriber and labeler maintenance</summary>
+        <p>Automatic signup, unsubscribe, and player-label processing run independently of this page.</p>
+        <button id="load-maintenance" type="button">Load maintenance data</button>
+        <p id="maintenance-status" class="status" role="status"></p>
       <section class="subscriber-panel admin-surface" aria-labelledby="subscriber-title">
         <div class="panel-heading section-header">
-          <h2 id="subscriber-title">// SUBSCRIBERS <span id="subscriber-count">0</span></h2>
+          <h2 id="subscriber-title">// SUBSCRIBERS <span id="subscriber-count">not loaded</span></h2>
           <div class="section-line"></div>
           <a class="button-link" href="/api/admin/subscribers.csv">Export CSV</a>
         </div>
@@ -174,7 +181,7 @@
 
       <section class="subscriber-panel admin-surface" aria-labelledby="player-title">
         <div class="panel-heading section-header">
-          <h2 id="player-title">// PLAYER CHARACTERS <span id="player-count">0</span></h2>
+          <h2 id="player-title">// PLAYER CHARACTERS <span id="player-count">not loaded</span></h2>
           <div class="section-line"></div>
           <a class="button-link" href="/">lastnpcalex.agency ↗</a>
         </div>
@@ -187,7 +194,7 @@
       </section>
     <section class="subscriber-panel admin-surface" aria-labelledby="labeler-title">
       <div class="panel-heading section-header">
-        <h2 id="labeler-title">// LABELER <span id="label-count">0</span></h2>
+        <h2 id="labeler-title">// LABELER <span id="label-count">not loaded</span></h2>
         <div class="section-line"></div>
         <a class="button-link" href="/xrpc/com.atproto.label.queryLabels?uriPatterns=*">queryLabels ↗</a>
       </div>
@@ -206,7 +213,7 @@
       </div>
       <div class="labeler-identity" aria-live="polite">
         <p class="labeler-identity-title">// LABELER IDENTITY</p>
-        <p id="labeler-identity-status" class="labeler-identity-copy">Checking whether this account is connected to the label service…</p>
+        <p id="labeler-identity-status" class="labeler-identity-copy">Identity status has not been loaded.</p>
         <div class="labeler-identity-actions">
           <button id="labeler-identity-authorize" type="button">Authorize identity repair</button>
           <button id="labeler-identity-request" type="button" hidden>Send email code</button>
@@ -222,6 +229,7 @@
         </table>
       </div>
     </section>
+      </details>
     </div>
   </main>
 

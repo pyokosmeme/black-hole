@@ -57,6 +57,55 @@ function jsonRequest(path, body, cookie) {
   });
 }
 
+test('admin section loading reads only that section and keeps authorization uncached', async () => {
+  const env = makeEnv();
+  const record = { section: 'author', slug: 'managed', title: 'Managed', status: 'draft', markdown: 'Private body' };
+  await env.SESSIONS.put('transmission:author:managed', JSON.stringify(record));
+  await env.SESSIONS.put('transmission:futures:other', JSON.stringify({ ...record, section: 'futures' }));
+  const gets = [], lists = [];
+  const get = env.SESSIONS.get.bind(env.SESSIONS);
+  const list = env.SESSIONS.list.bind(env.SESSIONS);
+  env.SESSIONS.get = key => { gets.push(key); return get(key); };
+  env.SESSIONS.list = options => { lists.push(options.prefix); return list(options); };
+  const request = () => new Request('https://lastnpcalex.agency/api/admin/transmissions?section=author', {
+    headers: { Cookie: 'session=owner-session' },
+  });
+  const response = await handleContentRequest(request(), env);
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get('cache-control'), 'no-store');
+  const payload = await response.json();
+  assert.equal(payload.transmissions.length, 2);
+  assert.ok(payload.transmissions.every(post => post.section === 'author'));
+  assert.deepEqual(gets, ['session:owner-session', 'transmission:author:managed']);
+  assert.deepEqual(lists, ['transmission:author:']);
+  await env.SESSIONS.delete('session:owner-session');
+  assert.equal((await handleContentRequest(request(), env)).status, 401);
+});
+
+test('invalid admin section never scans KV records', async () => {
+  const env = makeEnv();
+  env.SESSIONS.list = () => { throw new Error('unexpected scan'); };
+  for (const section of ['unknown', '__proto__', 'constructor']) {
+    const response = await handleContentRequest(new Request(`https://lastnpcalex.agency/api/admin/transmissions?section=${section}`, {
+      headers: { Cookie: 'session=owner-session' },
+    }), env);
+    assert.equal(response.status, 400);
+  }
+});
+
+test('admin image upload supports the advertised size with one authentication read', async () => {
+  const env = makeEnv();
+  const gets = [];
+  const get = env.SESSIONS.get.bind(env.SESSIONS);
+  env.SESSIONS.get = key => { gets.push(key); return get(key); };
+  const response = await handleContentRequest(jsonRequest('/api/admin/images', {
+    type: 'image/png', data: Buffer.alloc(700_000).toString('base64'),
+  }, 'session=owner-session'), env);
+  assert.equal(response.status, 200);
+  assert.deepEqual(gets, ['session:owner-session']);
+  assert.match((await response.json()).url, /^\/img\/[a-f0-9]{20}\.png$/);
+});
+
 test('share URL contains the complete source and a Markdown alternate', async () => {
   const env = makeEnv();
   const response = await handleContentRequest(new Request('https://lastnpcalex.agency/p/test-signal'), env);

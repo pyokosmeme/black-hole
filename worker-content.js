@@ -509,9 +509,9 @@ function labelForAdmin(record) {
   };
 }
 
-async function listAllTransmissionsForAdmin(request, env) {
+async function listAllTransmissionsForAdmin(request, env, selectedSection) {
   const output = [];
-  for (const section of Object.keys(SECTIONS)) {
+  for (const section of selectedSection ? [selectedSection] : Object.keys(SECTIONS)) {
     const repository = await repositoryPosts(request, env, section);
     const managed = await managedPosts(env, section, true);
     const merged = new Map();
@@ -548,9 +548,7 @@ async function handleAdmin(request, env, pathname) {
 
   if (pathname === '/api/admin/images' && request.method === 'POST') {
     if (!sameOriginRequest(request)) return json({ error: 'Origin not allowed' }, 403);
-    const admin = await getAdmin(request, env);
-    if (!admin) return json({ error: 'Admin session required' }, 401);
-    const input = await readJson(request);
+    const input = await readJson(request, 5_600_200);
     const type = String(input.type || '');
     if (!/^image\/(png|jpeg|webp|gif)$/.test(type)) return json({ error: 'Only png, jpeg, webp, or gif allowed' }, 400);
     const data = String(input.data || '');
@@ -563,7 +561,9 @@ async function handleAdmin(request, env, pathname) {
   }
 
   if (pathname === '/api/admin/transmissions' && request.method === 'GET') {
-    return json({ transmissions: await listAllTransmissionsForAdmin(request, env), sections: SECTIONS });
+    const section = new URL(request.url).searchParams.get('section');
+    if (section && !Object.hasOwn(SECTIONS, section)) throw new HttpError(400, 'Invalid section');
+    return json({ transmissions: await listAllTransmissionsForAdmin(request, env, section), sections: SECTIONS });
   }
 
   if (pathname === '/api/admin/transmissions' && request.method === 'POST') {
