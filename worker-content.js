@@ -1,5 +1,6 @@
 import { renderDocument } from './transmission-document.js';
 import { invalidateLabelCache } from './labeler.js';
+import { IndexUnavailable, PUBLIC_PREFIXES, readPublicIndex, refreshPublicIndex, refreshAfterMutation } from './public-index.js';
 
 const DEFAULT_ADMIN_DIDS = 'did:plc:ccxl3ictrlvtrrgh5swvvg47,did:plc:drrstoxu4to57dhv453ziznq';
 const SITE_ORIGIN = 'https://lastnpcalex.agency';
@@ -388,9 +389,9 @@ async function handleLlmsTxt(request, env) {
   const blocks = ['# lastnpcalex.agency', '', '> Hard SF, speculative fiction, book updates, and maps by A.N. Alex.', '', 'Every transmission link below returns a complete semantic HTML document. Append `.md` or request `Accept: text/markdown` for Markdown.', ''];
   for (const [section, config] of Object.entries(SECTIONS)) {
     const repository = await repositoryPosts(request, env, section);
-    const managed = await managedPosts(env, section);
+    const managed = await readPublicIndex(env, `transmission:${section}:`);
     const merged = new Map(repository.map(post => [post.slug, post]));
-    managed.forEach(post => merged.set(post.slug, post));
+    managed.forEach(post => post.status === 'archived' ? merged.delete(post.slug) : merged.set(post.slug, post));
     const posts = [...merged.values()].sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
     if (!posts.length) continue;
     blocks.push(`## ${config.label}`, '');
@@ -407,8 +408,8 @@ async function handleLlmsTxt(request, env) {
 async function handlePublicTransmissions(request, env, pathname) {
   if (pathname === '/api/transmissions' && request.method === 'GET') {
     const section = new URL(request.url).searchParams.get('section') || 'author';
-    if (!SECTIONS[section]) return json({ error: 'Unknown transmission section' }, 400);
-    const records = await listKvValues(env.SESSIONS, `transmission:${section}:`);
+    if (!Object.hasOwn(SECTIONS, section)) return json({ error: 'Unknown transmission section' }, 400);
+    const records = await readPublicIndex(env, `transmission:${section}:`);
     const posts = records.filter(record => record.status === 'published').map(publicMetadata);
     const archived = records.filter(record => record.status === 'archived').map(record => record.slug);
     return json({ posts, archived });
@@ -448,8 +449,12 @@ async function handleSubscribe(request, env) {
   try { existing = existingRaw ? JSON.parse(existingRaw) : null; } catch { existing = null; }
 
   if (existing?.status === 'active') {
+    const source = String(input.source || existing.source || '').slice(0, 100);
+    if (source === existing.source && [...topics].sort().join('|') === [...(existing.topics || [])].sort().join('|')) {
+      return json({ ok: true, message: 'Subscription preferences saved.' });
+    }
     existing.topics = topics;
-    existing.source = String(input.source || existing.source || '').slice(0, 100);
+    existing.source = source;
     existing.updatedAt = new Date().toISOString();
     await env.SESSIONS.put(key, JSON.stringify(existing));
     return json({ ok: true, message: 'Subscription preferences saved.' });
@@ -542,6 +547,12 @@ function csvCell(value) {
 
 async function handleAdmin(request, env, pathname) {
   const admin = await getAdmin(request, env);
+  if (pathname === '/api/admin/public-indexes' && request.method === 'POST') {
+    if (!sameOriginRequest(request)) return json({ error: 'Origin not allowed' }, 403);
+    const input = await readJson(request, 20_000);
+    if (!PUBLIC_PREFIXES.includes(input.prefix)) return json({ error: 'Unknown public index', prefixes: PUBLIC_PREFIXES }, 400);
+    return json(await refreshPublicIndex(env, input.prefix));
+  }
   if (pathname === '/api/admin/session' && request.method === 'GET') {
     return json({ authorized: true, did: admin.did, handle: admin.handle });
   }
@@ -575,6 +586,7 @@ async function handleAdmin(request, env, pathname) {
     try { previous = previousRaw ? JSON.parse(previousRaw) : null; } catch { previous = null; }
     const record = normalizeTransmission(input, previous);
     await env.SESSIONS.put(`transmission:${record.section}:${record.slug}`, JSON.stringify(record));
+    await refreshAfterMutation(env, `transmission:${record.section}:`, record.slug, record);
     return json({ ok: true, transmission: record, shareUrl: `${SITE_ORIGIN}${SECTIONS[record.section].stubBase}/${record.slug}` }, previous ? 200 : 201);
   }
 
@@ -588,6 +600,7 @@ async function handleAdmin(request, env, pathname) {
     const existing = await env.SESSIONS.get(key);
     if (!existing) return json({ error: 'Managed transmission not found' }, 404);
     await env.SESSIONS.delete(key);
+    await refreshAfterMutation(env, `transmission:${section}:`, slug, null);
     return json({ ok: true });
   }
 
@@ -631,12 +644,13 @@ async function handleAdmin(request, env, pathname) {
       return json({ error: 'Label value must be lowercase letters, digits, and dashes' }, 400);
     }
     const seq = (parseInt(await env.SESSIONS.get('labeler:seq'), 10) || 0) + 1;
-    await env.SESSIONS.put('labeler:seq', String(seq));
     const record = { seq, uri, val, neg: !!input.neg, cts: new Date().toISOString() };
     if (input.cid) record.cid = String(input.cid);
     if (input.exp) record.exp = String(input.exp);
     if (input.comment) record.comment = String(input.comment).slice(0, 500);
     await env.SESSIONS.put(`label:${seq}`, JSON.stringify(record));
+    await env.SESSIONS.put('labeler:seq', String(seq));
+    await refreshAfterMutation(env, 'label:', seq, record);
     await invalidateLabelCache();
     return json({ ok: true, label: labelForAdmin(record) }, 201);
   }
@@ -647,6 +661,7 @@ async function handleAdmin(request, env, pathname) {
     const seq = parseInt(input.seq, 10);
     if (!seq) return json({ error: 'seq required' }, 400);
     await env.SESSIONS.delete(`label:${seq}`);
+    await refreshAfterMutation(env, 'label:', seq, null);
     await invalidateLabelCache();
     return json({ ok: true, purged: seq, note: 'Purged locally. Subscribed clients keep the label until you publish a negation (neg: true) with the same subject and value.' });
   }
@@ -677,6 +692,7 @@ export async function handleContentRequest(request, env) {
     }
     return null;
   } catch (error) {
+    if (error instanceof IndexUnavailable) return json({ error: error.message }, 503, { 'Retry-After': '60' });
     if (error instanceof HttpError) return json({ error: error.message }, error.status);
     console.error('[content]', error);
     return json({ error: 'Internal server error' }, 500);

@@ -1,5 +1,6 @@
 import { handleContentRequest } from './worker-content.js';
-import { getLabelerDidKey, handleLabelerRequest, invalidateLabelCache, LABELER_DID } from './labeler.js';
+import { getLabelerDidKey, handleLabelerRequest, LABELER_DID } from './labeler.js';
+import { PUBLIC_PREFIXES, refreshPublicIndex, patchPublicIndex } from './public-index.js';
 
 // ── Shared helpers ──
 
@@ -707,31 +708,38 @@ async function handleLabelerRecord(request, env) {
  * written directly to a person's repo, so Cloudflare polls AppView for them.
  */
 async function reconcileLabelerLikes(env) {
-  let cursor;
+  // One AppView page per half hour and one new opt-in per run. Persist the
+  // cursor instead of rereading every liker or writing an unbounded burst.
+  const checkpointKey = 'labeler:likes-cursor';
+  const cursor = await env.SESSIONS.get(checkpointKey) || '';
   let added = 0;
-  do {
-    const url = new URL(`${BSKY_PUBLIC}/xrpc/app.bsky.feed.getLikes`);
-    url.searchParams.set('uri', LABELER_LIKE_URI);
-    url.searchParams.set('limit', '100');
-    if (cursor) url.searchParams.set('cursor', cursor);
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`Unable to read labeler likes (${response.status})`);
-    const page = await response.json();
-    for (const like of page.likes || []) {
-      const did = like?.actor?.did;
-      if (!/^did:[a-zA-Z0-9:.]+$/.test(did || '')) continue;
-      const marker = `${LABELER_LIKE_MARKER_PREFIX}${did}`;
-      if (await env.SESSIONS.get(marker)) continue;
-      const seq = (parseInt(await env.SESSIONS.get('labeler:seq'), 10) || 0) + 1;
-      const record = { seq, uri: did, val: 'player-character', neg: false, cts: new Date().toISOString(), comment: 'Opted in by liking the labeler.' };
-      await env.SESSIONS.put('labeler:seq', String(seq));
-      await env.SESSIONS.put(`label:${seq}`, JSON.stringify(record));
-      await invalidateLabelCache();
-      await env.SESSIONS.put(marker, String(seq));
-      added++;
-    }
-    cursor = page.cursor;
-  } while (cursor);
+  const url = new URL(`${BSKY_PUBLIC}/xrpc/app.bsky.feed.getLikes`);
+  url.searchParams.set('uri', LABELER_LIKE_URI);
+  url.searchParams.set('limit', '50');
+  if (cursor) url.searchParams.set('cursor', cursor);
+  const response = await fetch(url);
+  if (!response.ok) throw new Error(`Unable to read labeler likes (${response.status})`);
+  const page = await response.json();
+  let nextCursor = page.cursor || '';
+  for (const like of (page.likes || []).slice(0, 50)) {
+    const did = like?.actor?.did;
+    if (!/^did:[a-zA-Z0-9:.]+$/.test(did || '')) continue;
+    const marker = `${LABELER_LIKE_MARKER_PREFIX}${did}`;
+    if (await env.SESSIONS.get(marker)) continue;
+    const seq = (parseInt(await env.SESSIONS.get('labeler:seq'), 10) || 0) + 1;
+    const record = { seq, uri: did, val: 'player-character', neg: false, cts: new Date().toISOString(), comment: 'Opted in by liking the labeler.' };
+    await env.SESSIONS.put(`label:${seq}`, JSON.stringify(record));
+    await env.SESSIONS.put('labeler:seq', String(seq));
+    await env.SESSIONS.put(marker, String(seq));
+    added++;
+    // Repeat this page until all its likers have markers. A failed index
+    // update is repaired by maintenance without duplicating the label.
+    try { await patchPublicIndex(env, 'label:', seq, record); }
+    catch (error) { console.error('[label index]', error.message); }
+    nextCursor = cursor;
+    break;
+  }
+  if (nextCursor !== cursor) await env.SESSIONS.put(checkpointKey, nextCursor);
   return added;
 }
 
@@ -788,7 +796,15 @@ export default {
   },
 
   async scheduled(_controller, env, ctx) {
-    const task = reconcileLabelerLikes(env).catch(error => console.error('[labeler likes]', error));
+    const slot = Math.floor((_controller.scheduledTime ?? Date.now()) / 600_000);
+    const task = (async () => {
+      try { await refreshPublicIndex(env, PUBLIC_PREFIXES[slot % PUBLIC_PREFIXES.length]); }
+      catch (error) { console.error('[public index]', error.message); }
+      if (slot % 3 === 0) {
+        try { await reconcileLabelerLikes(env); }
+        catch (error) { console.error('[labeler likes]', error.message); }
+      }
+    })();
     if (ctx?.waitUntil) ctx.waitUntil(task);
     await task;
   },

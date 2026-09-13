@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { setImmediate as nextTurn } from 'node:timers/promises';
 import worker from '../_worker.js';
 import { handleLabelerRequest } from '../labeler.js';
+import { indexKey } from '../public-index.js';
 
 const SITE = 'https://lastnpcalex.agency';
 const QUERY = `${SITE}/xrpc/com.atproto.label.queryLabels?uriPatterns=*`;
@@ -13,6 +14,7 @@ function makeEnv(count = 3) {
   const values = new Map([
     ['labeler:signing-key', '1'.padStart(64, '0')],
     ['labeler:seq', String(count)],
+    [indexKey('label:'), JSON.stringify(Array.from({ length: count }, (_, i) => record(i + 1)))],
     ['session:admin', JSON.stringify({ did: 'did:plc:owner' })],
     ...Array.from({ length: count }, (_, i) => [`label:${i + 1}`, JSON.stringify(record(i + 1))]),
   ]);
@@ -112,15 +114,17 @@ test('repeated label queries reuse the public cache and never write diagnostic k
   const cache = installCache(t);
   const env = makeEnv(100);
   env.values.set('label:1', JSON.stringify({ ...record(1), comment: 'private admin note' }));
-  for (let i = 0; i < 20; i++) assert.equal((await query(env)).labels.length, 50);
-  assert.equal(env.calls.lists, 1);
-  assert.equal(env.calls.gets.filter(key => key.startsWith('label:')).length, 100);
+  for (let i = 0; i < 20; i++) assert.equal((await query(env)).labels.length, 10);
+  assert.equal(env.calls.lists, 0);
+  assert.equal(env.calls.gets.filter(key => key.startsWith('label:')).length, 0);
+  assert.equal(env.calls.gets.filter(key => key === 'labeler:signing-key').length, 1);
   assert.deepEqual(env.calls.puts, []);
   const cached = await [...cache.entries.values()][0].response.clone().text();
   assert.doesNotMatch(cached, /private admin note|signing-key|session:|comment/);
   cache.advance(300_001);
   await query(env);
-  assert.equal(env.calls.lists, 2, 'a different location picks up changes after bounded cache expiry');
+  assert.equal(env.calls.lists, 0, 'expired or absent edge caches never trigger KV scans');
+  assert.equal(env.calls.gets.filter(key => key === indexKey('label:')).length, 2);
 });
 
 test('admin creation and deletion invalidate cached labels', async t => {
@@ -138,7 +142,7 @@ test('scheduled label additions invalidate cached labels', async t => {
   const env = makeEnv(1);
   await query(env);
   t.mock.method(globalThis, 'fetch', async () => Response.json({ likes: [{ actor: { did: 'did:plc:liker' } }] }));
-  await worker.scheduled({}, env, { waitUntil() {} });
+  await worker.scheduled({ scheduledTime: 0 }, env, { waitUntil() {} });
   assert.equal((await query(env)).labels.length, 2);
 });
 
@@ -235,4 +239,37 @@ test('slow or failing KV reads never cause overlapping polls or rapid retries', 
   assert.equal(headReads, 2);
   runtime.sockets[0].dispatchEvent(new Event('error'));
   assert.equal(runtime.timers.size, 0);
+});
+
+test('large replay and purged ranges have a bounded KV read budget', async t => {
+  const runtime = installStreamRuntime(t);
+  const env = makeEnv(250);
+  for (let i = 1; i <= 100; i++) env.values.delete(`label:${i}`);
+  await subscribe(env, 0);
+  await settle();
+  assert.equal(env.calls.gets.filter(key => key.startsWith('label:')).length, 100);
+  assert.equal(runtime.sockets[0].frames.length, 0);
+  await runtime.advance(600_000);
+  assert.equal(env.calls.gets.filter(key => key.startsWith('label:')).length, 200);
+  assert.equal(runtime.sockets[0].frames.length, 1);
+  runtime.sockets[0].close(1000);
+});
+
+test('smaller label pages preserve all results through cursors and validate bounds', async () => {
+  const env = makeEnv(25);
+  const seen = [];
+  let cursor = '';
+  do {
+    const response = await handleLabelerRequest(new Request(`${QUERY}&limit=250&cursor=${cursor}`), env);
+    const body = await response.json();
+    assert.ok(body.labels.length <= 10);
+    seen.push(...body.labels.map(label => label.uri));
+    cursor = body.cursor || '';
+  } while (cursor);
+  assert.equal(seen.length, 25);
+  assert.equal(new Set(seen).size, 25);
+  for (const params of ['limit=-1', 'limit=251', 'limit=NaN', 'cursor=-1', 'cursor=1.2']) {
+    assert.equal((await handleLabelerRequest(new Request(`${QUERY}&${params}`), env)).status, 400);
+  }
+  assert.equal(env.calls.lists, 0);
 });

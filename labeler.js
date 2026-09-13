@@ -17,18 +17,20 @@
  * (/api/admin/labels, gated by ADMIN_DIDS + same-origin).
  */
 import { secp256k1 } from '@noble/curves/secp256k1.js';
+import { IndexUnavailable, readPublicIndex, invalidatePublicIndex } from './public-index.js';
 
 export const LABELER_DID = 'did:plc:ccxl3ictrlvtrrgh5swvvg47';
 const KEY_KV = 'labeler:signing-key';
 const SEQ_KV = 'labeler:seq';
 const LABEL_PREFIX = 'label:';
 const BATCH = 100;
+const MAX_REPLAY_RECORDS_PER_POLL = 100;
 const STREAM_POLL_MS = 10 * 60_000;
 // Keep sockets open for several polls; reconnecting every ten minutes would
 // perform an extra signing-key read instead of allowing the next idle poll.
 const STREAM_LIFETIME_MS = 60 * 60_000;
-const RECORD_CACHE_URL = 'https://lastnpcalex.agency/__labeler-cache/records-v1';
-const RECORD_CACHE_SECONDS = 300;
+const signingKeys = new WeakMap();
+const signatures = new WeakMap();
 
 /* ── tiny byte helpers ── */
 
@@ -141,14 +143,21 @@ export function cborEncodeFrame(frame) {
 /* ── signing key (secp256k1, stored in KV) ── */
 
 async function ensureLabelerKey(env) {
+  // Private keys stay in isolate memory, never in the public Cache API.
+  const cached = signingKeys.get(env.SESSIONS);
+  if (cached && cached.expires > Date.now()) return cached.key;
   const raw = await env.SESSIONS.get(KEY_KV);
   if (raw) {
     const priv = unhex(raw);
-    return { priv, pub: secp256k1.getPublicKey(priv, true) };
+    const key = { priv, pub: secp256k1.getPublicKey(priv, true) };
+    signingKeys.set(env.SESSIONS, { key, expires: Date.now() + 300_000 });
+    return key;
   }
   const priv = secp256k1.utils.randomSecretKey();
   await env.SESSIONS.put(KEY_KV, hex(priv));
-  return { priv, pub: secp256k1.getPublicKey(priv, true) };
+  const key = { priv, pub: secp256k1.getPublicKey(priv, true) };
+  signingKeys.set(env.SESSIONS, { key, expires: Date.now() + 300_000 });
+  return key;
 }
 
 // `verificationMethods` in a PLC operation uses did:key multibase values.
@@ -189,7 +198,17 @@ async function signedLabel(record, key) {
   if (record.neg) label.neg = true;
   if (record.exp) label.exp = record.exp;
   label.uri = subjectUri(record);
-  return { ...label, sig: await signLabel(label, key) };
+  let cache = signatures.get(key);
+  if (!cache) { cache = new Map(); signatures.set(key, cache); }
+  const id = JSON.stringify(label);
+  let signature = cache.get(id);
+  if (!signature) {
+    signature = signLabel(label, key);
+    cache.set(id, signature);
+    if (cache.size > 512) cache.delete(cache.keys().next().value);
+    try { await signature; } catch (error) { cache.delete(id); throw error; }
+  }
+  return { ...label, sig: await signature };
 }
 
 async function labelJson(record, key) {
@@ -198,42 +217,12 @@ async function labelJson(record, key) {
 }
 
 async function listLabelRecords(env) {
-  // Cache API operations do not consume KV's read/list allowance. The cache
-  // is shared by queries at this location and contains public label fields only.
-  const cache = globalThis.caches?.default;
-  try {
-    const cached = await cache?.match(RECORD_CACHE_URL);
-    if (cached) return await cached.json();
-  } catch { /* a cache failure must not prevent reading labels */ }
-  const records = [];
-  let cursor;
-  do {
-    const page = await env.SESSIONS.list({ prefix: LABEL_PREFIX, limit: 1000, ...(cursor ? { cursor } : {}) });
-    const values = await Promise.all(page.keys.map(item => env.SESSIONS.get(item.name)));
-    for (const raw of values) {
-      if (!raw) continue;
-      try {
-        const record = JSON.parse(raw);
-        if (record && typeof record.val === 'string') {
-          const { seq, uri, val, neg, cts, cid, exp } = record;
-          records.push({ seq, uri, val, neg, cts, cid, exp });
-        }
-      } catch { /* skip malformed */ }
-    }
-    cursor = page.list_complete ? undefined : page.cursor;
-  } while (cursor);
-  records.sort((a, b) => (a.seq || 0) - (b.seq || 0));
-  try {
-    await cache?.put(RECORD_CACHE_URL, new Response(JSON.stringify(records), {
-      headers: { 'Content-Type': 'application/json', 'Cache-Control': `public, max-age=${RECORD_CACHE_SECONDS}` },
-    }));
-  } catch { /* serve the result even when the cache cannot store it */ }
-  return records;
+  return readPublicIndex(env, 'label:');
 }
 
 export async function invalidateLabelCache() {
   // Other locations expire within five minutes; mutations refresh this one.
-  try { await globalThis.caches?.default.delete(RECORD_CACHE_URL); } catch { /* best effort */ }
+  await invalidatePublicIndex('label:');
 }
 
 /* ── subject handling ──
@@ -266,10 +255,12 @@ async function handleQueryLabels(request, env) {
   const url = new URL(request.url);
   const patterns = url.searchParams.getAll('uriPatterns').filter(Boolean);
   const sources = url.searchParams.getAll('sources').filter(Boolean);
-  const limit = Math.min(250, parseInt(url.searchParams.get('limit'), 10) || 50);
-  const cursor = parseInt(url.searchParams.get('cursor'), 10) || 0;
-  if (!patterns.length) {
-    return new Response(JSON.stringify({ error: 'InvalidRequest', message: 'uriPatterns required' }), {
+  const requestedLimit = Number(url.searchParams.get('limit') || 50);
+  const cursor = Number(url.searchParams.get('cursor') || 0);
+  // Return smaller protocol pages to bound cold-cache signing work.
+  const limit = Math.min(10, requestedLimit);
+  if (!patterns.length || patterns.length > 20 || !Number.isSafeInteger(requestedLimit) || requestedLimit < 1 || requestedLimit > 250 || !Number.isSafeInteger(cursor) || cursor < 0) {
+    return new Response(JSON.stringify({ error: 'InvalidRequest', message: 'Provide 1–20 uriPatterns, a limit from 1–250, and a non-negative integer cursor' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' },
     });
@@ -332,10 +323,11 @@ async function handleSubscribeLabels(request, env) {
     try {
       if (closed) return;
       const head = parseInt(await env.SESSIONS.get(SEQ_KV), 10) || 0;
+      const replayHead = Math.min(head, lastSeq + MAX_REPLAY_RECORDS_PER_POLL);
       // Sequential keys let a reconnect replay only its missing range, with
       // no KV.list or reads of labels at/before the consumer's cursor.
-      for (let start = lastSeq + 1; start <= head && !closed; start += BATCH) {
-        const end = Math.min(head, start + BATCH - 1);
+      for (let start = lastSeq + 1; start <= replayHead && !closed; start += BATCH) {
+        const end = Math.min(replayHead, start + BATCH - 1);
         const values = await Promise.all(Array.from({ length: end - start + 1 }, (_, i) => env.SESSIONS.get(`${LABEL_PREFIX}${start + i}`)));
         if (closed) return;
         const records = values.flatMap(raw => {
@@ -344,7 +336,11 @@ async function handleSubscribeLabels(request, env) {
             return record && typeof record.val === 'string' ? [record] : [];
           } catch { return []; }
         });
-        if (!records.length) continue;
+        if (!records.length) {
+          // Purged ranges must not pin a consumer to the same absent keys.
+          lastSeq = end;
+          continue;
+        }
         const labels = await Promise.all(records.map(record => signedLabel(record, key)));
         if (closed) return;
         const seq = records[records.length - 1].seq;
@@ -370,7 +366,15 @@ export async function handleLabelerRequest(request, env) {
   const path = new URL(request.url).pathname;
   // Worker observability already records requests; diagnostics must not spend
   // the same KV budget needed for sessions, publications, and subscriptions.
-  if (path === '/xrpc/com.atproto.label.queryLabels') return handleQueryLabels(request, env);
+  if (path === '/xrpc/com.atproto.label.queryLabels') {
+    try { return await handleQueryLabels(request, env); }
+    catch (error) {
+      if (!(error instanceof IndexUnavailable)) throw error;
+      return Response.json({ error: 'Unavailable', message: error.message }, {
+        status: 503, headers: { 'Retry-After': '60', 'Cache-Control': 'no-store', 'Access-Control-Allow-Origin': '*' },
+      });
+    }
+  }
   if (path === '/xrpc/com.atproto.label.subscribeLabels') return handleSubscribeLabels(request, env);
   if (path.startsWith('/xrpc/')) {
     return new Response(JSON.stringify({ error: 'XRPCNotSupported', message: 'unknown XRPC method' }), {

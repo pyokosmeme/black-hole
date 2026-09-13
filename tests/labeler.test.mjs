@@ -4,6 +4,7 @@ import { createPublicKey, ECDH, verify } from 'node:crypto';
 import worker from '../_worker.js';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { cborEncodeLabel, cborEncodeFrame, getLabelerDidKey, LABELER_DID } from '../labeler.js';
+import { refreshPublicIndex } from '../public-index.js';
 
 const SITE = 'https://lastnpcalex.agency';
 
@@ -187,6 +188,7 @@ test('label signatures interoperate with OpenSSL over canonical CBOR hashed exac
   );
   assert.deepEqual(Buffer.from(cborEncodeLabel(labelBody)), canonical);
   const env = makeEnv({ 'label:1': JSON.stringify({ ...labelBody, seq: 1 }) });
+  await refreshPublicIndex(env, 'label:');
   const response = await worker.fetch(new Request(SITE + '/xrpc/com.atproto.label.queryLabels?uriPatterns=*'), env);
   const { labels: [label] } = await response.json();
   const pub = decodeBase58((await getLabelerDidKey(env)).slice('did:key:z'.length)).slice(2);
@@ -277,11 +279,12 @@ test('scheduled labeler-like reconciliation labels every liker once', async () =
     ] });
   };
   try {
-    await worker.scheduled({}, env, { waitUntil: promise => promise });
+    await worker.scheduled({ scheduledTime: 0 }, env, { waitUntil: promise => promise });
     const keys = [...env.SESSIONS.values.keys()].filter(key => key.startsWith('label:'));
-    assert.equal(keys.length, 2);
+    assert.equal(keys.length, 1, 'each half-hour run adds at most one new liker');
     assert.equal(JSON.parse(await env.SESSIONS.get('label:1')).val, 'player-character');
-    await worker.scheduled({}, env, { waitUntil: promise => promise });
+    await worker.scheduled({ scheduledTime: 1_800_000 }, env, { waitUntil: promise => promise });
+    await worker.scheduled({ scheduledTime: 3_600_000 }, env, { waitUntil: promise => promise });
     assert.equal([...env.SESSIONS.values.keys()].filter(key => key.startsWith('label:')).length, 2);
   } finally {
     globalThis.fetch = originalFetch;

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { handleContentRequest } from '../worker-content.js';
+import { PUBLIC_PREFIXES, indexKey } from '../public-index.js';
 
 class MemoryKv {
   constructor(seed = {}) { this.values = new Map(Object.entries(seed)); }
@@ -32,6 +33,7 @@ The complete test excerpt.
   return {
     ADMIN_DIDS: 'did:plc:owner, did:plc:co-owner',
     SESSIONS: new MemoryKv({
+      ...Object.fromEntries(PUBLIC_PREFIXES.map(prefix => [indexKey(prefix), '[]'])),
       'session:owner-session': JSON.stringify({ did: 'did:plc:owner', handle: 'lastnpcalex.agency' }),
       'session:co-owner-session': JSON.stringify({ did: 'did:plc:co-owner', handle: 'spin.pyokosmeme.group' }),
       'session:reader-session': JSON.stringify({ did: 'did:plc:reader', handle: 'reader.test' }),
