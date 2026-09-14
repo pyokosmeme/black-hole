@@ -1,0 +1,19 @@
+/* Shared window geometry; Acid Burn owns panels, typography and button styling. */
+.map-window-shell,.map-window,.window-toolbar,.window-actions,.ship-viewer #stage,.ship-viewer #hud,.ship-viewer .ship-info { transition-property:background-color,border-color,box-shadow; }
+.map-window-shell { --window-gap:clamp(12px,2vmin,24px); height:100vh; height:100dvh; display:flex; flex-direction:column; padding-top:calc(50px + var(--window-gap)); padding-bottom:var(--window-gap); }
+.map-window { padding:0; margin-bottom:0; min-height:0; flex:1; display:flex; flex-direction:column; transition-property:background-color,border-color,box-shadow; }
+.window-toolbar { flex:none; padding:var(--space-sm); margin-bottom:0; gap:var(--space-sm); }
+.window-toolbar h2 { min-width:0; overflow-wrap:anywhere; }
+.window-actions { display:flex; gap:4px; margin-left:auto; flex:none; }
+.window-actions .acidburn-button { display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; padding:0; text-decoration:none; }
+.window-actions svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.7; pointer-events:none; }
+.window-actions .collapse-icon { display:none; }
+.window-actions [aria-pressed=true] .expand-icon { display:none; }
+.window-actions [aria-pressed=true] .collapse-icon { display:block; }
+.map-window .acidburn-button:focus-visible { outline:2px solid var(--cyan); outline-offset:2px; }
+.map-window .acidburn-button[aria-pressed=true] { text-decoration:underline; text-underline-offset:4px; }
+body.map-window-expanded { overflow:hidden; }
+body.map-window-expanded .main-content { z-index:2000; }
+.map-window.is-expanded { position:fixed; z-index:2000; inset:var(--window-gap,12px); bottom:calc(var(--window-gap,12px) + env(safe-area-inset-bottom,0px)); margin:0; }
+@media(max-width:600px) { .map-window-shell { padding-top:calc(44px + var(--window-gap)); } .window-toolbar .section-line { display:none; } }
+@media(max-height:600px) { .window-toolbar { padding:var(--space-xs); } }

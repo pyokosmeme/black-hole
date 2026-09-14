@@ -1,107 +1,87 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>IKSA CAT-2268 "Hackett" — heavy cargo hauler</title>
-<style>
-  :root{
-    --g:#3ECC8F; --g-dim:rgba(62,204,143,.55); --g-faint:rgba(62,204,143,.20);
-    --bg:#000; --panel:rgba(0,0,0,.72);
-  }
-  *{box-sizing:border-box}
-  html,body{width:100%;height:100%;margin:0;overflow:hidden;background:var(--bg)}
-  body{font-family:"Trebuchet MS","Segoe UI",system-ui,sans-serif;color:var(--g);
-       font-style:italic;font-weight:700;-webkit-font-smoothing:antialiased}
-  #stage{position:fixed;inset:0}
-  canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-  #stars{z-index:0}
-  #glow{z-index:1;pointer-events:none;filter:blur(22px) saturate(1.3) brightness(1.2);
-        opacity:.9;mix-blend-mode:screen}
-  #scene{z-index:2;cursor:grab;touch-action:none}
-  #scene.drag{cursor:grabbing}
-  #labels{position:absolute;inset:0;z-index:3;pointer-events:none;overflow:hidden}
-  #labels svg{position:absolute;inset:0;width:100%;height:100%}
-  .lab{position:absolute;white-space:nowrap;transform:translate(0,-50%);
-       font-size:15px;letter-spacing:.02em;text-shadow:0 0 12px rgba(0,0,0,.95);
-       text-transform:uppercase}
-  .lab i{display:block;font-size:11px;font-style:italic;font-weight:700;
-         opacity:.72;letter-spacing:.01em;text-transform:none}
-  #title{position:absolute;z-index:4;top:20px;left:24px;max-width:min(460px,calc(100vw - 48px))}
-  #title h1{margin:0;font-size:30px;line-height:1.05;letter-spacing:-.01em;
-            border-bottom:2px solid var(--g);display:inline-block;padding-bottom:4px}
-  #title p{margin:9px 0 0;font-size:13px;line-height:1.5;opacity:.85}
-  #spec{position:absolute;z-index:4;top:20px;right:24px;text-align:right;font-size:13px;line-height:1.55}
-  #spec b{display:block;font-size:14px;border-bottom:2px solid var(--g);
-          padding-bottom:3px;margin-bottom:6px}
-  #hud{position:absolute;z-index:4;left:24px;bottom:20px;
-       width:min(420px,calc(100vw - 48px));padding:13px 15px;
-       border:1px solid var(--g-faint);background:var(--panel);backdrop-filter:blur(8px)}
-  .row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
-  .row:last-of-type{margin-bottom:0}
-  button{appearance:none;border:1px solid var(--g-faint);background:rgba(62,204,143,.06);
-         color:var(--g);font:inherit;font-size:11px;padding:6px 9px;cursor:pointer;
-         letter-spacing:.04em;text-transform:uppercase}
-  button:hover{border-color:var(--g-dim);background:rgba(62,204,143,.13)}
-  button.on{border-color:var(--g);background:rgba(62,204,143,.20);
-            box-shadow:0 0 14px rgba(62,204,143,.18)}
-  #readout{margin-top:10px;padding-top:10px;border-top:1px solid var(--g-faint);
-           font-size:11px;line-height:1.65;opacity:.85;font-variant-numeric:tabular-nums}
-  #tag{position:absolute;z-index:4;right:24px;bottom:20px;text-align:right;
-       font-size:11px;line-height:1.6;opacity:.62;max-width:260px}
-  #err{display:none;position:absolute;inset:0;z-index:9;place-items:center;padding:30px;
-       background:#000;text-align:center;line-height:1.6}
-  @media (max-width:820px){
-    #spec,#tag{display:none}
-    #title h1{font-size:21px} #title p{display:none}
-    #hud{left:10px;right:10px;bottom:10px;width:auto}
-    .lab{font-size:12px} .lab i{display:none}
-  }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#000000">
+  <title>IKSA CAT-2268 "Hackett" — heavy cargo hauler</title>
+  <meta name="description" content="Interactive spacecraft schematic: HACKETT. Orbit, inspect, and explore the supplied ship model.">
+  <link rel="icon" href="img/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/acidburn.css">
+  <link rel="stylesheet" href="css/map-window.css">
+  <link rel="stylesheet" href="css/ship-viewer.css">
+  <script defer src="js/map-window.js"></script>
+  <script defer src="js-libs/three.min.js"></script>
+  <script defer src="js-libs/jquery-2.1.4.min.js"></script>
+  <script defer src="js-libs/Detector.js"></script>
+  <script defer src="js-libs/ShaderLoader.min.js"></script>
+  <script defer src="js-libs/mustache.min.js"></script>
+  <script defer src="three-js-monkey-patch.js"></script>
+  <script defer src="js/acidburn-galaxy.js"></script>
+  <script defer src="js/acidburn-mode.js"></script>
+  <script defer src="js/acidburn-blackhole.js"></script>
+  <script defer src="nav-menu.js"></script>
 </head>
-<body>
-<div id="stage">
-  <canvas id="stars"></canvas>
-  <canvas id="glow"></canvas>
-  <canvas id="scene"></canvas>
-  <div id="labels"><svg id="leaders"></svg></div>
-
-  <div id="title">
-    <h1>IKSA CAT-2268 &ldquo;Hackett&rdquo;</h1>
+<body class="ship-viewer">
+  <a class="skip-link" href="#main">Skip to schematic</a>
+  <div class="static-bg" aria-hidden="true"></div>
+  <div id="blackhole-container" aria-hidden="true"></div>
+  <header class="header-bar">
+    <div id="nav-menu"></div>
+    <div class="header-content-wrapper"><a href="/maps" class="header-brand">POSSIBLE TERRITORIES</a></div>
+  </header>
+  <main id="main" class="main-content map-window-shell">
+    <section class="author-card map-window" data-map-window aria-labelledby="chart-title">
+      <div class="section-header window-toolbar"><h2 id="chart-title">HACKETT</h2><div class="section-line"></div><div class="window-actions" role="group" aria-label="Window controls">
+  <button class="acidburn-button" type="button" data-window-expand aria-pressed="false" aria-label="Expand window" title="Expand window">
+    <svg class="expand-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/></svg>
+    <svg class="collapse-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9h6V3m6 0v6h6M9 21v-6H3m18 0h-6v6"/></svg>
+  </button>
+  <a class="acidburn-button" href="/maps" aria-label="Close window and return to Maps" title="Close window · Maps">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg>
+  </a>
+</div></div>
+      <details class="ship-info"><summary class="post-date">Ship specifications</summary>
+    <p><b>IKSA CAT-2268 &ldquo;Hackett&rdquo;</b></p>
     <p>Heavy cargo hauler. 194.10 m overall, 42.30 m across the radiators,
        37.10 m hull, 4.08 kT dry, 30 kT cargo, 24 crew + 12 passengers.</p>
-  </div>
-
   <div id="spec">
     <b>Iktomi Space &amp; Aeronautic &mdash; Licensed Schematic</b>
 4.08 kT dry | 30 kT cargo | 6 kT bioprop<br/>
     5.24 GW fusion | AL capable to 0.75 c<br/>
     33.6 m&sup3; total space per crew<br/>
     twin counter-rotating decks &mdash; hull does not spin
-  </div>
-
-  <div id="hud">
-    <div class="row" id="gbtns"></div>
-    <div class="row">
-      <button id="bCut">Cutaway</button>
-      <button id="bOrbit">Orbit cam</button>
-      <button id="bLab" class="on">Labels</button>
-      <button id="bEva" class="on">Scale figure</button>
-      <button id="bWire">Wireframe</button>
-      <button id="bFull" aria-pressed="false" title="Expand to fullscreen">⛶</button>
-      <button id="bReset">Reset view</button>
-    </div>
-    <div id="readout"></div>
-  </div>
-
-  <div id="tag">
+  </div><div id="tag">
     Drag to orbit &middot; scroll or pinch to zoom &middot; the hull holds attitude;
     only the two decks inside the whipple drum turn. Scale figure is 1.80 m.
-  </div>
+  </div></details>
+      <div id="stage">
+        <canvas id="glow" aria-hidden="true"></canvas>
+        <canvas id="scene" tabindex="0" role="img" aria-label="Interactive ship model. Drag or use arrow keys to orbit; scroll, pinch or use plus and minus to zoom."></canvas>
+        <div id="labels" aria-hidden="true"><svg id="leaders"></svg></div>
+        <div id="err" role="status"></div>
+      </div>
+      <details id="hud" open><summary class="post-date">View controls &amp; telemetry</summary>    <div class="row" id="gbtns"></div>
+    <div class="row">
+      <button type="button" id="bCut" class="acidburn-button ">Cutaway</button>
+      <button type="button" id="bOrbit" class="acidburn-button ">Orbit cam</button>
+      <button type="button" id="bLab" class="acidburn-button on">Labels</button>
+      <button type="button" id="bEva" class="acidburn-button on">Scale figure</button>
+      <button type="button" id="bWire" class="acidburn-button ">Wireframe</button>
+      <button type="button" id="bReset" class="acidburn-button ">Reset view</button>
+    </div>
+    <div id="readout"></div>
+  </details>
+    </section>
+    <noscript>This interactive schematic needs JavaScript. Ship specifications remain available above.</noscript>
+  </main>
+  <script id="vertex-shader" type="x-shader/x-vertex">void main() { gl_Position = vec4(position, 1.0); }</script>
+  <script data-src="raytracer.glsl" data-name="raytracer" type="x-shader/x-fragment"></script>
 
-  <div id="err"></div>
-</div>
-
+<script>document.getElementById('hud').open = innerHeight > 600;</script>
 <script id="obj-data" type="text/plain"># IKSA CAT-2268 Hackett + 1.80 m scale figure (no greebles)
 v 0.0000 2.5000 0.0000
 v 0.0000 2.4786 0.3263
@@ -42880,7 +42860,7 @@ function fail(m){ errEl.style.display='grid'; errEl.textContent=m; }
 
 var sceneCanvas = document.getElementById('scene');
 var glowCanvas  = document.getElementById('glow');
-var starCanvas  = document.getElementById('stars');
+var stage = document.getElementById('stage');
 var gl     = sceneCanvas.getContext('webgl',{alpha:true,antialias:true,premultipliedAlpha:true});
 var glowGL = glowCanvas.getContext('webgl',{alpha:true,antialias:true,premultipliedAlpha:true});
 if(!gl||!glowGL){ fail('This viewer needs WebGL. Open in a current browser with hardware acceleration enabled.'); return; }
@@ -43057,7 +43037,9 @@ var meshes;
 try{ meshes = parseOBJ(document.getElementById('obj-data').textContent); }
 catch(e){ fail('Could not parse the embedded geometry: '+e.message); return; }
 
-var CTX=[makeCtx(gl), makeCtx(glowGL)];
+var CTX;
+try { CTX=[makeCtx(gl), makeCtx(glowGL)]; }
+catch(e) { fail('Could not initialize the schematic: '+e.message); return; }
 CTX.forEach(function(c){
   c.g.enable(c.g.DEPTH_TEST); c.g.depthFunc(c.g.LEQUAL);
   c.g.enable(c.g.CULL_FACE); c.g.cullFace(c.g.BACK);
@@ -43092,28 +43074,10 @@ var IDENT=new Float32Array([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1]);
 var S = { az:126*Math.PI/180, el:18*Math.PI/180, dist:300, tgt:[92,0,0],
           rpm:6.0, spin:false, orbit:false, labels:true, eva:true, wire:false,
           cut:false, exp:1.05, phase:0 };
+var reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');
+S.spin = !reducedMotion.matches;
 var DEF_S = JSON.parse(JSON.stringify(S));
-
-/* ---------------- starfield ---------------- */
-var sctx=starCanvas.getContext('2d'), stars=[];
-function seedStars(){
-  stars=[]; var n=Math.round((innerWidth*innerHeight)/2600);
-  for(var i=0;i<n;i++) stars.push({x:Math.random(),y:Math.random(),
-    m:Math.pow(Math.random(),2.1), t:Math.random()});
-}
-function drawStars(){
-  var w=starCanvas.width=innerWidth*devicePixelRatio;
-  var h=starCanvas.height=innerHeight*devicePixelRatio;
-  sctx.clearRect(0,0,w,h); sctx.fillStyle='#000'; sctx.fillRect(0,0,w,h);
-  for(var i=0;i<stars.length;i++){ var s=stars[i];
-    var b=40+215*s.m, r=(0.5+1.4*s.m)*devicePixelRatio;
-    var tint = s.t<0.10 ? 'rgba('+b+','+(b*0.94)+','+(b*0.78)+',' :
-               s.t>0.90 ? 'rgba('+(b*0.80)+','+(b*0.92)+','+b+',' :
-                          'rgba('+b+','+b+','+b+',';
-    sctx.fillStyle=tint+'1)';
-    sctx.beginPath(); sctx.arc(s.x*w,s.y*h,r,0,6.2832); sctx.fill();
-  }
-}
+reducedMotion.addEventListener('change',function(e){ if(e.matches){ S.spin=false; S.orbit=false; sync(); } });
 
 /* ---------------- labels ---------------- */
 /* anchors sit on or near the spin axis so they stay put while she rotates */
@@ -43133,8 +43097,8 @@ var RINGS=[{x:5.6,ri:20.6,ro:24.4,dir:1},{x:15.4,ri:20.6,ro:24.4,dir:-1}];
 var leaders=document.getElementById('leaders');
 var ringEls=RINGS.map(function(){
   var p=document.createElementNS('http://www.w3.org/2000/svg','path');
-  p.setAttribute('fill','#3ECC8F'); p.setAttribute('opacity','.88');
-  p.setAttribute('stroke','#3ECC8F'); p.setAttribute('stroke-width','1');
+  p.setAttribute('fill','currentColor'); p.setAttribute('opacity','.88');
+  p.setAttribute('stroke','currentColor'); p.setAttribute('stroke-width','1');
   p.setAttribute('stroke-linejoin','round');
   leaders.appendChild(p);
   return {body:p};
@@ -43145,12 +43109,12 @@ LABELS.forEach(function(L){
   var d=document.createElement('div'); d.className='lab';
   d.innerHTML=L.t+'<i>'+L.s+'</i>'; labWrap.appendChild(d);
   var ln=document.createElementNS('http://www.w3.org/2000/svg','polyline');
-  ln.setAttribute('fill','none'); ln.setAttribute('stroke','#3ECC8F');
+  ln.setAttribute('fill','none'); ln.setAttribute('stroke','currentColor');
   ln.setAttribute('stroke-width','1.4'); ln.setAttribute('opacity','.75');
   leaders.appendChild(ln);
   var dot=document.createElementNS('http://www.w3.org/2000/svg','circle');
   dot.setAttribute('r','3'); dot.setAttribute('fill','none');
-  dot.setAttribute('stroke','#3ECC8F'); dot.setAttribute('stroke-width','1.4');
+  dot.setAttribute('stroke','currentColor'); dot.setAttribute('stroke-width','1.4');
   leaders.appendChild(dot);
   labEls.push({el:d,line:ln,dot:dot,def:L});
 });
@@ -43197,11 +43161,12 @@ function frame(now){
   if(S.orbit) S.az += 0.12*dt;
 
   var dpr=Math.min(devicePixelRatio||1,2);
-  var w=Math.round(innerWidth*dpr), h=Math.round(innerHeight*dpr);
+  var w=Math.round(stage.clientWidth*dpr), h=Math.round(stage.clientHeight*dpr);
   [sceneCanvas,glowCanvas].forEach(function(cv){ if(cv.width!==w){cv.width=w;} if(cv.height!==h){cv.height=h;} });
 
   var ce=Math.cos(S.el),se=Math.sin(S.el),ca=Math.cos(S.az),sa=Math.sin(S.az);
-  var eye=[S.tgt[0]+S.dist*ca*ce, S.tgt[1]+S.dist*sa*ce, S.tgt[2]+S.dist*se];
+  var fitDist=S.dist*Math.max(1,1/(w/h));
+  var eye=[S.tgt[0]+fitDist*ca*ce, S.tgt[1]+fitDist*sa*ce, S.tgt[2]+fitDist*se];
   var vp=mul(persp(38*Math.PI/180, w/h, 0.6, 2600), lookAt(eye,S.tgt,[0,0,1]));
   var model=rotX(S.phase);
 
@@ -43209,7 +43174,7 @@ function frame(now){
   drawInto(CTX[1],w,h,vp,model,true);
 
   /* labels */
-  var lw=innerWidth, lh=innerHeight;
+  var lw=stage.clientWidth, lh=stage.clientHeight;
   leaders.setAttribute('viewBox','0 0 '+lw+' '+lh);
 
   /* thick crescent spin arrows: one ahead of the bow, one astern of the drive.
@@ -43291,13 +43256,14 @@ var GPRESETS=[{g:0.7468,l:'0.75 g'},{g:0.50,l:'0.50 g'},{g:0.30,l:'0.30 g'},{g:0
 var gbtns=document.getElementById('gbtns');
 function rpmFor(g){ return Math.sqrt(g*G0/HAB_R)*60/(2*Math.PI); }
 GPRESETS.forEach(function(P){
-  var b=document.createElement('button'); b.textContent=P.l;
+  var b=document.createElement('button'); b.type='button'; b.className='acidburn-button'; b.textContent=P.l;
   b.onclick=function(){ S.rpm=rpmFor(P.g); S.spin=(P.g!==0);
     sync(); };
   gbtns.appendChild(b); P.el=b;
 });
 var read=document.getElementById('readout');
 function sync(){
+  [['bSpin','spin'],['bOrbit','orbit']].forEach(function(pair){ var b=document.getElementById(pair[0]); if(b){ b.classList.toggle('on',S[pair[1]]); b.setAttribute('aria-pressed',String(S[pair[1]])); } });
   var w=S.rpm*2*Math.PI/60, a=w*w*HAB_R;
   read.innerHTML=
     S.rpm.toFixed(2)+' rpm &nbsp;&middot;&nbsp; '+(a/G0).toFixed(3)+' g<sub>0</sub> at the 18.55 m deck floor &nbsp;&middot;&nbsp; rim '+(w*HAB_R).toFixed(2)+' m/s<br/>'+
@@ -43305,13 +43271,13 @@ function sync(){
     'cargo 24,000 m&sup3;, 30 kT &nbsp;&middot;&nbsp; ship 194.10 m &nbsp;&middot;&nbsp; span 42.30 m';
   GPRESETS.forEach(function(P){
     var on = (P.g===0) ? !S.spin : (S.spin && Math.abs(S.rpm-rpmFor(P.g))<0.02);
-    P.el.classList.toggle('on',on);
+    P.el.classList.toggle('on',on); P.el.setAttribute('aria-pressed',String(on));
   });
 }
 function tog(id,key,after){
   var b=document.getElementById(id);
-  b.onclick=function(){ S[key]=!S[key]; b.classList.toggle('on',S[key]); if(after)after(); sync(); };
-  b.classList.toggle('on',S[key]);
+  b.onclick=function(){ S[key]=!S[key]; b.classList.toggle('on',S[key]); b.setAttribute('aria-pressed',String(S[key])); if(after)after(); sync(); };
+  b.classList.toggle('on',S[key]); b.setAttribute('aria-pressed',String(S[key]));
 }
 tog('bCut','cut'); tog('bOrbit','orbit'); tog('bLab','labels');
 tog('bEva','eva'); tog('bWire','wire');
@@ -43319,24 +43285,18 @@ document.getElementById('bReset').onclick=function(){
   S.az=DEF_S.az;S.el=DEF_S.el;S.dist=DEF_S.dist;S.exp=DEF_S.exp;
   sync(); };
 
-/* fullscreen toggle */
-var bFull=document.getElementById('bFull');
-function setFullUI(on){
-  bFull.textContent='⛶';
-  bFull.classList.toggle('on',on);
-  bFull.title=on?'Collapse':'Expand to fullscreen';
-  bFull.setAttribute('aria-label',on?'Collapse':'Expand to fullscreen');
-  bFull.setAttribute('aria-pressed',String(on));
-}
-if(bFull){
-  bFull.onclick=function(){
-    if(document.fullscreenElement){ document.exitFullscreen(); }
-    else if(document.documentElement.requestFullscreen){ document.documentElement.requestFullscreen(); }
-  };
-  document.addEventListener('fullscreenchange',function(){ setFullUI(!!document.fullscreenElement); });
-  setFullUI(!!document.fullscreenElement);
-}
-
+/* Keyboard orbit and zoom complement touch/pointer controls. */
+sceneCanvas.addEventListener('keydown',function(e){
+  if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','=','-'].includes(e.key)) return;
+  e.preventDefault();
+  if(e.key==='ArrowLeft') S.az-=0.1;
+  if(e.key==='ArrowRight') S.az+=0.1;
+  if(e.key==='ArrowUp') S.el=Math.min(1.45,S.el+0.1);
+  if(e.key==='ArrowDown') S.el=Math.max(-1.45,S.el-0.1);
+  if(e.key==='+'||e.key==='=') S.dist=Math.max(DEF_S.dist/4,S.dist*0.9);
+  if(e.key==='-') S.dist=Math.min(DEF_S.dist*2,S.dist/0.9);
+  sync();
+});
 /* drag / zoom */
 var drag=false,lx=0,ly=0;
 sceneCanvas.addEventListener('pointerdown',function(e){ drag=true;lx=e.clientX;ly=e.clientY;
@@ -43357,8 +43317,7 @@ sceneCanvas.addEventListener('touchmove',function(e){
   pinch=d; },{passive:false});
 sceneCanvas.addEventListener('touchend',function(){ pinch=0; });
 
-addEventListener('resize',function(){ seedStars(); drawStars(); });
-seedStars(); drawStars(); sync();
+sync();
 requestAnimationFrame(frame);
 })();
 </script>

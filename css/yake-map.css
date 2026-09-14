@@ -43,7 +43,6 @@ body:not(.bh-mode) .atlas-scene { background:#05050f; }
 .view-controls[hidden] { display:none!important; }
 .scene-controls .acidburn-button,.world-actions .acidburn-button { min-width:44px; min-height:44px; padding:4px 8px; }
 .scene-controls [data-scene-action=labels],.scene-controls #atlas-reset { margin-inline-start:var(--space-xs); }
-.scene-controls [data-scene-action=expand] { font-size:16px; letter-spacing:0; line-height:1; }
 .world-actions[hidden] { display:none!important; }
 /* World actions live in the card heading; the map footer remains stable. */
 .world-actions-slot { display:none; }
@@ -73,12 +72,9 @@ body.yake-atlas.light-mode .scene-card { background:rgba(253,250,245,.94); }
 .card-stats { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--space-sm); margin:var(--space-md) 0; }
 .card-stats dt { font-size:var(--text-xs); opacity:.7; }
 .card-stats dd { margin:0; overflow-wrap:anywhere; }
-.atlas-chart.is-expanded { position:fixed; z-index:2000; inset:var(--atlas-gap); bottom:calc(var(--atlas-gap) + env(safe-area-inset-bottom,0px)); display:flex; flex-direction:column; margin:0; }
 .atlas-chart.is-expanded .orbital-field { flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column; }
 .atlas-chart.is-expanded .atlas-scene { height:0!important; min-height:0; flex:1 1 0; }
 .atlas-chart.is-expanded .map-actions { margin-top:auto; flex-shrink:0; }
-body.atlas-expanded { overflow:hidden; }
-body.atlas-expanded .main-content { z-index:2000; }
 /* SVG geometry and contrast inside the dark schematic viewport. */
 .orbit { fill:none; stroke:#536278; stroke-opacity:.3; stroke-width:1; }
 .atlas-node { cursor:pointer; outline:none; -webkit-tap-highlight-color:transparent; }

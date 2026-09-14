@@ -11,7 +11,9 @@
       "children": [
         { "label": "Maps Hub", "url": "/maps.html", "icon": "✦" },
         { "label": "Ya Ke System Atlas", "url": "/yake.html", "icon": "◈" },
-        { "label": "Transit Network", "url": "/exu2374.html", "icon": "→" }
+        { "label": "Transit Network", "url": "/exu2374.html", "icon": "→" },
+        { "label": "Ergo Infinitum", "url": "/ergo-viewer.html", "icon": "◈" },
+        { "label": "Hackett", "url": "/hackett-viewer.html", "icon": "◈" }
       ]
     }
   ]

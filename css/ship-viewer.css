@@ -1,0 +1,21 @@
+/* Ship geometry and canvas annotations are independent of the shared UI. */
+.ship-viewer #stage { position:relative; flex:1; min-height:100px; overflow:hidden; isolation:isolate; background:#05050f; color:var(--cyan); }
+body.ship-viewer.bh-mode #stage { background:rgba(5,5,15,.55); }
+.ship-viewer #stage canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
+.ship-viewer #glow { pointer-events:none; filter:blur(22px) saturate(1.3) brightness(1.2); opacity:.9; mix-blend-mode:screen; }
+.ship-viewer #scene { cursor:grab; touch-action:none; }
+.ship-viewer #scene.drag { cursor:grabbing; }
+.ship-viewer #scene:focus-visible { outline:2px solid var(--cyan); outline-offset:-3px; }
+.ship-viewer #labels { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+.ship-viewer #labels svg { position:absolute; inset:0; width:100%; height:100%; }
+.ship-viewer .lab { position:absolute; white-space:nowrap; transform:translate(0,-50%); font-size:var(--text-sm); text-shadow:0 0 6px #000; text-transform:uppercase; }
+.ship-viewer .lab i { display:block; font-size:var(--text-xs); opacity:.8; text-transform:none; }
+.ship-viewer .ship-info,.ship-viewer #hud { flex:none; padding:var(--space-xs) var(--space-sm); max-height:35%; overflow:auto; }
+.ship-viewer summary { cursor:pointer; min-height:32px; display:list-item; }
+.ship-viewer summary:focus-visible { outline:2px solid var(--cyan); }
+.ship-viewer .ship-info p,.ship-viewer #spec,.ship-viewer #tag,.ship-viewer #readout { font-size:var(--text-sm); line-height:1.5; margin:var(--space-xs) 0; }
+.ship-viewer .row { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:4px; }
+.ship-viewer .row .acidburn-button { min-height:44px; min-width:44px; }
+.ship-viewer #readout { font-variant-numeric:tabular-nums; }
+.ship-viewer #err { display:none; position:absolute; inset:0; place-items:center; padding:var(--space-md); color:#fff; background:#05050f; text-align:center; }
+@media(max-width:600px), (max-height:600px) { .ship-viewer .lab { font-size:var(--text-xs); } .ship-viewer .lab i { display:none; } }

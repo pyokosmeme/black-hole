@@ -18,35 +18,17 @@
     <!-- Styles -->
     <link rel="stylesheet" href="css/acidburn.css">
     <link rel="stylesheet" href="css/transit-map.css">
+    <link rel="stylesheet" href="css/map-window.css">
 
-    <!-- WebGL conditional loading -->
-    <script>
-        (function() {
-            var mode = localStorage.getItem('acidburn-mode') || 'auto';
-            var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
-            var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-            if (mode === 'lite' || (mode === 'auto' && (isMobile || reducedMotion))) {
-                document.documentElement.classList.add('skip-webgl');
-            }
-        })();
-    </script>
-    
-    <script>
-        if (!document.documentElement.classList.contains('skip-webgl')) {
-            document.write('<script src="js-libs/jquery-2.1.4.min.js"><\/script>');
-            document.write('<script src="js-libs/three.min.js"><\/script>');
-            document.write('<script src="js-libs/OrbitControls.js"><\/script>');
-            document.write('<script src="js-libs/Detector.js"><\/script>');
-            document.write('<script src="js-libs/stats.min.js"><\/script>');
-            document.write('<script src="js-libs/ShaderLoader.min.js"><\/script>');
-            document.write('<script src="js-libs/mustache.min.js"><\/script>');
-            document.write('<script src="js-libs/dat.gui.min.js"><\/script>');
-            document.write('<script src="three-js-monkey-patch.js"><\/script>');
-            document.write('<script src="js/acidburn-galaxy.js"><\/script>');
-        }
-    </script>
+  <script src="js-libs/three.min.js"></script>
+  <script src="js-libs/jquery-2.1.4.min.js"></script>
+  <script src="js-libs/Detector.js"></script>
+  <script src="js-libs/ShaderLoader.min.js"></script>
+  <script src="js-libs/mustache.min.js"></script>
+  <script src="three-js-monkey-patch.js"></script>
+  <script src="js/acidburn-galaxy.js"></script>
 </head>
-<body>
+<body class="transit-page">
     <!-- Skip Link -->
     <a href="#main" class="skip-link">Skip to main content</a>
     
@@ -71,15 +53,25 @@
         <div id="nav-menu"></div>
 
         <div class="header-content-wrapper">
-            <a href="/" class="header-brand">INHABITED SPACE</a>
+            <a href="/maps" class="header-brand">POSSIBLE TERRITORIES</a>
         </div>
 
         <!-- Mode Toggle (inserted by acidburn-mode.js) -->
     </header>
 
     <!-- Main Content -->
-    <main id="main" class="transit-container" role="main">
-        <div class="transit-grid">
+    <main id="main" class="main-content map-window-shell" role="main">
+        <section class="author-card map-window transit-window" data-map-window aria-labelledby="chart-title">
+          <div class="section-header window-toolbar"><h2 id="chart-title">TRANSIT NETWORK</h2><div class="section-line"></div><div class="window-actions" role="group" aria-label="Window controls">
+  <button class="acidburn-button" type="button" data-window-expand aria-pressed="false" aria-label="Expand window" title="Expand window">
+    <svg class="expand-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/></svg>
+    <svg class="collapse-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9h6V3m6 0v6h6M9 21v-6H3m18 0h-6v6"/></svg>
+  </button>
+  <a class="acidburn-button" href="/maps" aria-label="Close window and return to Maps" title="Close window · Maps">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg>
+  </a>
+</div></div>
+          <div class="transit-grid">
             <!-- Map -->
             <div id="map-container">
                 <svg id="transit-map" viewBox="0 0 1600 1000" role="img" aria-label="Transit map of inhabited space"></svg>
@@ -121,6 +113,7 @@
             </div>
         </div>
 
+        </section>
     </main>
 
     <!-- Black hole shaders -->
@@ -135,6 +128,7 @@
     
     <!-- Transit Map -->
     <script src="js/transit-map.js"></script>
+    <script src="js/map-window.js"></script>
     
     <!-- Navigation -->
     <script src="nav-menu.js"></script>

@@ -85,7 +85,7 @@ def run():
             page.locator('[data-scene-action=labels]').click()
             row['labelsToggle']=page.locator('[data-scene-action=labels]').get_attribute('aria-pressed')=='false'
             page.locator('[data-scene-action=labels]').click()
-            page.locator('[data-scene-action=expand]').click()
+            page.locator('[data-window-expand]').click()
             page.wait_for_timeout(250)
             row['expandedScene']=bounds(page.locator('.atlas-scene'))
             row['expandedControls']=bounds(page.locator('.scene-controls'))
@@ -114,7 +114,7 @@ def run():
             # All cards must also fit in expanded mode, including short landscape.
             # Dismiss the centered overlay before changing the underlying map frame.
             page.keyboard.press('Escape')
-            page.locator('[data-scene-action=expand]').click()
+            page.locator('[data-window-expand]').click()
             for world in ids:
                 page.evaluate('(id)=>location.hash=id',world)
                 page.wait_for_function('(id)=>document.querySelector("#scene-card h1")?.textContent===YAKE_ATLAS.worlds.find(w=>w.id===id).name',arg=world)

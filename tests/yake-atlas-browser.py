@@ -160,7 +160,7 @@ def run():
             assert not page.locator('#scene-card').is_visible()
             assert page.locator('.scene-label[aria-pressed=true]').count() == 0
             assert overview_angle()
-            page.locator('[data-scene-action=expand]').click()
+            page.locator('[data-window-expand]').click()
             page.wait_for_function("!!document.elementFromPoint(innerWidth/2,20)?.closest('.atlas-chart')")
             page.keyboard.press('Escape')
             assert page.locator('.is-expanded').count() == 0
