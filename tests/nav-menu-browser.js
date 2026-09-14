@@ -43,7 +43,22 @@ window.navTest = {
             assert(b.width >= 44 && b.height >= 44, context + ' touch target');
             assert(control.contains(doc.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2)), context + ' control covered');
           }
-          assert(home.getBoundingClientRect().right <= toggle.getBoundingClientRect().left + 1, context + ' Home beside menu');
+          assert(toggle.getBoundingClientRect().right <= home.getBoundingClientRect().left + 1, context + ' Menu left of Home');
+          if (win.AcidburnMode) {
+            const modeButton = doc.querySelector('.nav-dropdown #main-mode-toggle');
+            assert(modeButton && doc.querySelectorAll('#main-mode-toggle').length === 1, context + ' single mode control inside menu');
+            const expected = { dark: 'Dark', light: 'Light', bh: 'Black Hole' };
+            assert(modeButton.querySelector('.mode-label-value').textContent === expected[mode], context + ' mode label');
+            modeButton.scrollIntoView({ block: 'nearest' });
+            const b = modeButton.getBoundingClientRect();
+            assert(b.height >= 44 && b.left >= r.left && b.right <= r.right, context + ' mode target fits');
+            assert(modeButton.contains(doc.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2)), context + ' mode reachable');
+            modeButton.click();
+            const next = { dark: 'light', light: 'bh', bh: 'dark' }[mode];
+            assert(win.AcidburnMode.getMode() === next && win.localStorage.getItem('acidburn-mode') === next, context + ' click cycles and persists');
+            assert(modeButton.querySelector('.mode-label-value').textContent === expected[next], context + ' label follows click');
+            assert(toggle.getAttribute('aria-expanded') === 'true', context + ' menu stays open after cycle');
+          }
           assert(doc.documentElement.scrollWidth <= width, context + ' document overflow');
           checks++;
         }
@@ -66,6 +81,14 @@ window.navTest = {
       const win = await load('maps.html?config=' + scenario);
       assert(win.document.querySelectorAll('.nav-dropdown a').length === 6, scenario + ' fallback links');
       assert(win.document.querySelector('.nav-home').getAttribute('href') === '/', scenario + ' fallback Home');
+      assert(win.document.querySelectorAll('.nav-dropdown #main-mode-toggle').length === 1, scenario + ' mode survives config failure');
+    }
+    for (const query of ['config=delayed', 'navFirst']) {
+      const win = await load('maps.html?' + query);
+      await new Promise(resolve => setTimeout(resolve, 700));
+      assert(win.document.querySelectorAll('.nav-dropdown #main-mode-toggle').length === 1, query + ' mode survives script ordering/config refresh');
+      win.document.querySelector('#main-mode-toggle').click();
+      assert(win.AcidburnMode.getMode() === 'light', query + ' preserved mode listener');
     }
     frame.remove();
     return { passed: checks, pages: pages.length, sizes, modes: ['dark', 'light', 'bh'], fallbackScenarios: 5 };

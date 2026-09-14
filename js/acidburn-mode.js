@@ -23,9 +23,9 @@
     
     // Icons configuration
     const MODE_INFO = {
-        'bh': { icon: 'img/Black-Hole.svg', title: 'Black Hole Mode', next: 'dark' },
-        'dark': { icon: 'img/Dark-Mode.svg', title: 'Dark Mode', next: 'light' },
-        'light': { icon: 'img/Light-Mode.svg', title: 'Light Mode', next: 'bh' }
+        'bh': { icon: 'img/Black-Hole.svg', label: 'Black Hole', title: 'Black Hole Mode', next: 'dark' },
+        'dark': { icon: 'img/Dark-Mode.svg', label: 'Dark', title: 'Dark Mode', next: 'light' },
+        'light': { icon: 'img/Light-Mode.svg', label: 'Light', title: 'Light Mode', next: 'bh' }
     };
 
     // Sanitize stale localStorage values from previous versions
@@ -157,7 +157,13 @@
     // ═══════════════════════════════════════════════════════════════
     
     function createToggleUI() {
-        if (document.querySelector('.mode-toggle')) return;
+        const slot = document.querySelector('#nav-menu .nav-mode-slot');
+        const existing = document.querySelector('.mode-toggle');
+        if (existing) {
+            if (slot && existing.parentElement !== slot) slot.appendChild(existing);
+            updateToggleUI();
+            return;
+        }
         
         const header = document.querySelector('.header-bar');
         if (!header) return;
@@ -175,12 +181,13 @@
         toggle.className = 'mode-toggle';
         
         const btn = document.createElement('button');
+        btn.type = 'button';
         btn.className = 'mode-btn-icon cyclic-mode-btn';
         btn.id = 'main-mode-toggle';
         btn.addEventListener('click', cycleMode);
         
         toggle.appendChild(btn);
-        header.appendChild(toggle);
+        (slot || header).appendChild(toggle);
 
         // Create closing bookend if it doesn't exist
         if (!document.querySelector('.header-bookend-close')) {
@@ -205,7 +212,9 @@
         }
 
         const info = MODE_INFO[displayMode];
-        btn.title = info.title + ' (Click to Cycle)';
+        const nextMode = isReading ? (lastStaticMode === 'dark' ? 'light' : 'dark') : info.next;
+        btn.title = 'Switch to ' + MODE_INFO[nextMode].label;
+        btn.setAttribute('aria-label', 'Display: ' + info.label + '. ' + btn.title);
         
         // Find the absolute root path relative to this script
         let rootPath = '';
@@ -220,10 +229,10 @@
         
         const iconUrl = rootPath + info.icon;
 
-        btn.innerHTML = `<img src="${iconUrl}" alt="${info.title}" width="24" height="24" style="width:100%; height:100%; display:block; object-fit:contain;">`;
+        btn.innerHTML = `<img src="${iconUrl}" alt="" width="24" height="24"><span class="mode-toggle-label"><span class="mode-label-caption">Display</span><span class="mode-label-value">${info.label}</span></span>`;
         
         // Glow effect based on mode
-        btn.className = 'mode-btn-icon cyclic-mode-btn glow-' + displayMode;
+        btn.className = 'mode-btn-icon cyclic-mode-btn glow-' + displayMode + (btn.closest('.nav-mode-slot') ? ' nav-link' : '');
     }
     
     // ═══════════════════════════════════════════════════════════════
@@ -248,6 +257,9 @@
         applyMode(currentMode);
     }
     
+    // Both deferred and bottom-of-page script orders use the same control.
+    window.addEventListener('acidburn-nav-ready', createToggleUI);
+
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {

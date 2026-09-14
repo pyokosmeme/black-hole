@@ -353,6 +353,7 @@
     container.classList.add('nav-menu');
     attachEventListeners(container);
     markActivePage(container);
+    window.dispatchEvent(new CustomEvent('acidburn-nav-ready'));
 
     try {
       const response = await fetch(CONFIG_PATH);
@@ -364,7 +365,7 @@
       // Keep the visible controls and open state intact during loading.
       const dropdown = container.querySelector('.nav-dropdown');
       if (dropdown.contains(document.activeElement)) return;
-      dropdown.innerHTML = config.pages.map(page => buildMenuItem(page)).join('');
+      dropdown.querySelector('.nav-pages').innerHTML = config.pages.map(page => buildMenuItem(page)).join('');
       container.querySelector('.nav-toggle-icon').textContent = config.menuIcon || '☰';
       markActivePage(container);
     } catch (error) {
@@ -376,15 +377,16 @@
     const pagesHtml = config.pages.map(page => buildMenuItem(page)).join('');
 
     return `
-      <a class="nav-control nav-home" href="/" aria-label="Home" title="Home">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 3l9 7M5 9v12h5v-7h4v7h5V9"/></svg>
-      </a>
       <button type="button" class="nav-control nav-toggle" aria-label="Menu" aria-expanded="false" aria-controls="nav-dropdown">
         <span class="nav-toggle-icon" aria-hidden="true">${config.menuIcon || '☰'}</span>
         <span class="nav-toggle-arrow" aria-hidden="true">▼</span>
       </button>
+      <a class="nav-control nav-home" href="/" aria-label="Home" title="Home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 3l9 7M5 9v12h5v-7h4v7h5V9"/></svg>
+      </a>
       <nav class="nav-dropdown" id="nav-dropdown" aria-label="Site navigation">
-        ${pagesHtml}
+        <div class="nav-mode-slot"></div>
+        <div class="nav-pages">${pagesHtml}</div>
       </nav>
     `;
   }

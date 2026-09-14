@@ -11,7 +11,7 @@ const root = new URL('../', import.meta.url);
 const tracked = new Set(execFileSync('git', ['ls-files'], { cwd: root, encoding: 'utf8' }).trim().split('\n'));
 const ignores = await readFile(new URL('.assetsignore', root), 'utf8');
 assert(ignores.indexOf('!/pagelayout.json') > ignores.indexOf('/*.json'), 'Navigation config must be published');
-const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.ico': 'image/x-icon' };
+const types = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.ico': 'image/x-icon', '.glsl': 'text/plain' };
 createServer(async (request, response) => {
   const url = new URL(request.url, 'http://localhost');
   const path = url.pathname;
@@ -28,6 +28,11 @@ createServer(async (request, response) => {
   }
   if (path.startsWith('/__config/')) {
     const scenario = path.split('/').pop();
+    if (scenario === 'delayed') {
+      const config = await readFile(new URL('pagelayout.json', root));
+      setTimeout(() => { response.setHeader('Content-Type', 'application/json'); response.end(config); }, 500);
+      return;
+    }
     if (scenario === 'pending') { request.on('close', () => response.end()); return; }
     if (scenario === '404') { response.writeHead(404).end('Not found'); return; }
     if (scenario === 'html') { response.setHeader('Content-Type', 'text/html'); response.end('<!doctype html><h1>SPA fallback</h1>'); return; }
@@ -47,7 +52,13 @@ createServer(async (request, response) => {
       if (!url.searchParams.has('full')) body = body.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, tag =>
         /src=["'][^"']*(?:nav-menu\.js|acidburn-mode\.js)["']/.test(tag) ? tag : '');
       const scenario = url.searchParams.get('config');
-      body = body.replace('<head>', `<head><script>localStorage.setItem('acidburn-mode','dark');${scenario ? `window.NAV_CONFIG_PATH=${JSON.stringify('/__config/' + scenario)};` : ''}</script>`);
+      if (url.searchParams.has('navFirst')) {
+        body = body.replace(/<script\b[^>]*src=["'][^"']*(?:nav-menu\.js|acidburn-mode\.js)["'][^>]*><\/script>/gi, '');
+        body = body.replace('</body>', '<script src="/nav-menu.js"></script><script src="/js/acidburn-mode.js"></script></body>');
+      }
+      const mode = ['dark', 'light', 'bh'].includes(url.searchParams.get('mode')) ? url.searchParams.get('mode') : 'dark';
+      const noWebGL = url.searchParams.has('noWebGL') ? "const getContext = HTMLCanvasElement.prototype.getContext; HTMLCanvasElement.prototype.getContext = function(type,...args) { return /webgl/i.test(type) ? null : getContext.call(this,type,...args); };" : '';
+      body = body.replace('<head>', `<head><script>localStorage.setItem('acidburn-mode',${JSON.stringify(mode)});${noWebGL}${scenario ? `window.NAV_CONFIG_PATH=${JSON.stringify('/__config/' + scenario)};` : ''}</script>`);
     }
     response.setHeader('Content-Type', types[ext] + '; charset=utf-8');
     response.end(body);
