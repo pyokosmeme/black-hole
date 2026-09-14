@@ -11,7 +11,8 @@ from playwright.sync_api import sync_playwright
 ROOT = Path(__file__).resolve().parents[1]
 SHOTS = ROOT / 'attached_files' / 'map-windows'
 SHOTS.mkdir(parents=True, exist_ok=True)
-PAGES = sys.argv[1:] or ['ergo-viewer', 'hackett-viewer', 'yake', 'exu2374']
+# Ship rendering, switching and legacy links have their own browser suite.
+PAGES = sys.argv[1:] or ['yake', 'exu2374']
 FONT_CACHE = {}
 
 def serve(route):
@@ -33,8 +34,6 @@ def serve(route):
         route.fulfill(status=404, body='Not found')
         return
     body = path.read_bytes()
-    if path.name in ['ergo-viewer.html', 'hackett-viewer.html']:
-        body = body.replace(b'function frame(now){', b'function frame(now){window.__shipState=S;window.__shipFrames=(window.__shipFrames||0)+1;')
     route.fulfill(body=body, content_type=mimetypes.guess_type(path)[0] or 'application/octet-stream')
 
 def settle(page):
@@ -69,9 +68,6 @@ with sync_playwright() as p:
         assert page.evaluate('''async()=>{const s=[...document.styleSheets].find(s=>s.href?.endsWith('/css/acidburn.css'));const i=s.cssRules.length;s.insertRule('.section-header h2 {color:rgb(12,34,56)}',i);await new Promise(r=>setTimeout(r,400));const ok=getComputedStyle(document.querySelector('#chart-title')).color==='rgb(12, 34, 56)';s.deleteRule(i);return ok}''')
         for width,height in [(1366,768),(1920,1080),(320,568),(390,844),(568,320),(768,1024)]:
             page.set_viewport_size({'width':width,'height':height})
-            if 'viewer' in name:
-                page.evaluate("document.querySelector('#hud').open=innerHeight>600")
-                page.wait_for_function('window.__shipFrames>1')
             settle(page)
             bounds(page)
             page.screenshot(path=str(SHOTS/f'{name}-{width}x{height}.png'))
@@ -113,27 +109,6 @@ with sync_playwright() as p:
             assert not page.locator('#scene-card').is_visible()
             page.keyboard.press('Escape')
             assert page.locator('[data-window-expand]').get_attribute('aria-pressed')=='false'
-        if 'viewer' in name:
-            page.locator('#hud').evaluate('e=>e.open=true')
-            page.locator('#bWire').click()
-            assert page.evaluate('__shipState.wire')
-            page.locator('#bLab').click()
-            assert not page.evaluate('__shipState.labels')
-            page.locator('#scene').focus()
-            old=page.evaluate('__shipState.az')
-            page.keyboard.press('ArrowRight')
-            assert page.evaluate('__shipState.az') != old
-            page.keyboard.press('+')
-            page.locator('#bReset').click()
-            assert page.evaluate('__shipState.az') == old
-            page.locator('.ship-info summary').click()
-            assert page.locator('#spec').is_visible()
-            page.locator('.ship-info summary').click()
-            page.emulate_media(reduced_motion='reduce')
-            page.wait_for_function('!__shipState.spin&&!__shipState.orbit')
-            if name=='hackett-viewer':
-                page.locator('#bCut').click()
-                assert page.evaluate('__shipState.cut')
         for mode in ['light','bh','dark','bh']:
             page.evaluate('(m)=>AcidburnMode.setMode(m)',mode)
             if mode=='bh':
@@ -146,7 +121,7 @@ with sync_playwright() as p:
         assert page.locator('#blackhole-container canvas').count()==1
         page.locator('.window-actions a').click()
         page.wait_for_url('**/maps')
-        page.wait_for_selector('#links-grid a[href="ergo-viewer.html"]')
+        page.wait_for_selector('#links-grid a[href="ship-viewer.html"]')
         assert not errors, (name,errors)
         print(name+': sizes, expansion, keyboard, fonts, inheritance, modes, reload and hub return passed',flush=True)
         context.close()
@@ -158,8 +133,6 @@ with sync_playwright() as p:
         page.add_init_script('''localStorage.setItem('acidburn-mode','bh');const get=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(t,...a){return /webgl/.test(t)?null:get.call(this,t,...a)}''')
         page.goto(f'https://maps.test/{name}')
         page.wait_for_function('window.MapWindow')
-        if 'viewer' in name:
-            assert page.locator('#err').is_visible()
         if name=='yake':
             assert page.locator('.fallback-notice').is_visible()
         page.locator('[data-window-expand]').click()

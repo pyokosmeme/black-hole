@@ -27,18 +27,11 @@
       "desc": "Interstellar Transit Map (K-Tube Network), Circa 2370"
     },
     {
-      "id": "ergo-viewer",
-      "label": "SSV Ergo Infinitum - IKSA CT-185 'El Cajon'",
-      "url": "ergo-viewer.html",
+      "id": "ship-viewer",
+      "label": "Ship Viewer — El Cajon & Hackett",
+      "url": "ship-viewer.html",
       "icon": "",
-      "desc": "Interactive 3D schematic of the light hauler SSV Ergo Infinitum. Drag to orbit; spin, labels, wireframe, and scale-figure views."
-    },
-    {
-      "id": "hackett-viewer",
-      "label": "IKSA CAT-2268 'Hackett' - Heavy Cargo Hauler",
-      "url": "hackett-viewer.html",
-      "icon": "",
-      "desc": "Interactive 3D schematic of the heavy cargo hauler IKSA CAT-2268 Hackett. Drag to orbit; counter-rotating decks, cutaway, wireframe, and scale-figure views."
+      "desc": "Explore both ships, inspect their components, and compare models and specifications at the same scale."
     }
   ],
 

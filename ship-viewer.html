@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#000000">
+  <title>Ship Viewer — Possible Territories</title>
+  <meta name="description" content="Explore El Cajon and Hackett, inspect their components and compare both ships at the same scale.">
+  <link rel="icon" href="img/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/acidburn.css">
+  <link rel="stylesheet" href="css/map-window.css">
+  <link rel="stylesheet" href="css/ship-viewer.css">
+  <script defer src="js/map-window.js"></script>
+  <script defer src="js/scene-label-layout.js"></script>
+  <script defer src="js/ship-catalog.js"></script>
+  <script defer src="js/ship-renderer.js"></script>
+  <script defer src="js/ship-viewer.js"></script>
+  <script defer src="js-libs/three.min.js"></script>
+  <script defer src="js-libs/jquery-2.1.4.min.js"></script>
+  <script defer src="js-libs/Detector.js"></script>
+  <script defer src="js-libs/ShaderLoader.min.js"></script>
+  <script defer src="js-libs/mustache.min.js"></script>
+  <script defer src="three-js-monkey-patch.js"></script>
+  <script defer src="js/acidburn-galaxy.js"></script>
+  <script defer src="js/acidburn-mode.js"></script>
+  <script defer src="js/acidburn-blackhole.js"></script>
+  <script defer src="nav-menu.js"></script>
+</head>
+<body class="ship-viewer">
+  <a class="skip-link" href="#main">Skip to schematic</a>
+  <div class="static-bg" aria-hidden="true"></div>
+  <div id="blackhole-container" aria-hidden="true"></div>
+  <header class="header-bar">
+    <div id="nav-menu"></div>
+    <div class="header-content-wrapper"><a href="/maps" class="header-brand">POSSIBLE TERRITORIES</a></div>
+  </header>
+  <main id="main" class="main-content map-window-shell">
+    <section class="author-card map-window" data-map-window aria-labelledby="chart-title">
+      <div class="section-header window-toolbar"><h2 id="chart-title">SHIP VIEWER</h2><div class="section-line"></div><div class="window-actions" role="group" aria-label="Window controls">
+  <button class="acidburn-button" type="button" data-window-expand aria-pressed="false" aria-label="Expand window" title="Expand window">
+    <svg class="expand-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/></svg>
+    <svg class="collapse-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9h6V3m6 0v6h6M9 21v-6H3m18 0h-6v6"/></svg>
+  </button>
+  <a class="acidburn-button" href="/maps" aria-label="Close window and return to Maps" title="Close window · Maps">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg>
+  </a>
+</div></div>
+      <div class="ship-selector-row">
+        <label for="ship-select">Ship</label>
+        <select id="ship-select" class="tx-sort-select"><option value="el-cajon">El Cajon / Ergo Infinitum</option><option value="hackett">Hackett</option></select>
+        <button id="compare-ships" class="acidburn-button" type="button" aria-pressed="false">Compare ships</button>
+      </div>
+      <details class="ship-info"><summary class="post-date">Specifications</summary><div id="ship-specs"><p>El Cajon · 62.90 m / Hackett · 194.10 m</p></div></details>
+      <div id="stage">
+        <canvas id="scene" tabindex="0" role="img" aria-label="Ship model. Drag or use arrow keys to orbit; scroll, pinch or use plus and minus to zoom."></canvas>
+        <div id="labels"><svg id="leaders" aria-hidden="true"></svg></div>
+        <p id="view-caption" class="ship-caption">Drag to orbit · scroll / pinch to zoom</p>
+        <div id="err" role="status">Loading ship…</div>
+      </div>
+      <div id="part-detail" role="status" hidden></div>
+      <details id="hud"><summary class="post-date">View controls &amp; parts</summary>
+        <div class="row" id="gbtns"></div>
+        <div class="row">
+          <button type="button" id="bSpin" class="acidburn-button" aria-pressed="false">Spin</button>
+          <button type="button" id="bOrbit" class="acidburn-button" aria-pressed="false">Orbit cam</button>
+          <button type="button" id="bLab" class="acidburn-button" aria-pressed="true">Labels</button>
+          <button type="button" id="bEva" class="acidburn-button" aria-pressed="true">Scale figure</button>
+          <button type="button" id="bWire" class="acidburn-button" aria-pressed="false">Wireframe</button>
+          <button type="button" id="bCut" class="acidburn-button" aria-pressed="false">Cutaway</button>
+          <button type="button" id="bReset" class="acidburn-button">Reset view</button>
+        </div>
+        <div id="readout"></div>
+        <label for="part-select">Inspect part</label><select id="part-select" class="tx-sort-select"><option value="">Choose a part</option></select>
+      </details>
+    </section>
+    <noscript>This interactive schematic needs JavaScript. Ship specifications remain available above.</noscript>
+  </main>
+  <script id="vertex-shader" type="x-shader/x-vertex">void main() { gl_Position = vec4(position, 1.0); }</script>
+  <script data-src="raytracer.glsl" data-name="raytracer" type="x-shader/x-fragment"></script>
+
+</body>
+</html>

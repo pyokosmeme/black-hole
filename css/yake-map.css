@@ -30,6 +30,9 @@ body:not(.bh-mode) .atlas-scene { background:#05050f; }
 .scene-heading { position:absolute; z-index:3; top:var(--space-sm); left:var(--space-md); right:var(--space-md); display:flex; gap:var(--space-sm); justify-content:space-between; pointer-events:none; font-size:var(--text-xs); }
 .scene-heading small { font-size:inherit; }
 .scene-labels { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
+.atlas-scene .scene-leaders { position:absolute; inset:0; width:100%; height:100%; background:transparent; pointer-events:none; overflow:hidden; }
+.scene-leaders line { stroke:#a8b9c9; stroke-width:1; opacity:.7; }
+.scene-label,.scene-leaders,.scene-leaders * { transition:none; }
 /* World labels are the explicit exception: translucent plates without box accents.
  * These are canvas annotations, not replacement site buttons. */
 .scene-label { position:absolute; left:0; top:0; pointer-events:auto; white-space:nowrap; color:#ddd8e9; background:rgba(11,11,20,.72); border:0; border-radius:0; font-family:inherit; font-size:var(--text-sm); padding:6px 8px; min-height:30px; max-width:calc(100% - 8px); box-shadow:none; outline:none; cursor:pointer; -webkit-tap-highlight-color:transparent; }
