@@ -85,11 +85,6 @@
       outline-offset: -3px;
     }
 
-    .nav-home svg {
-      width: 20px;
-      height: 20px;
-    }
-
     body.light-reading .nav-control,
     body.light-mode .nav-control {
       background: transparent;
@@ -344,8 +339,8 @@
     container.classList.add('nav-menu');
     const header = container.closest('.header-bar');
     if (header && document.querySelector('script[src*="acidburn-mode.js"]')) {
-      header.prepend(container.querySelector('.nav-home'));
-      header.appendChild(container);
+      header.classList.add('site-nav-header');
+      header.prepend(container);
     }
     attachEventListeners(container);
     markActivePage(container);
@@ -376,9 +371,6 @@
       <button type="button" class="nav-control nav-toggle" aria-label="Menu" aria-expanded="false" aria-controls="nav-dropdown">
         <span class="nav-toggle-icon" aria-hidden="true">${config.menuIcon || '☰'}</span>
       </button>
-      <a class="nav-control nav-home" href="/" aria-label="Home" title="Home">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 3l9 7M5 9v12h5v-7h4v7h5V9"/></svg>
-      </a>
       <nav class="nav-dropdown" id="nav-dropdown" aria-label="Site navigation">
         <div class="nav-pages">${pagesHtml}</div>
         <div class="nav-mode-slot"></div>

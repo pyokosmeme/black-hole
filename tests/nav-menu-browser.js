@@ -17,9 +17,9 @@ window.navTest = {
     for (const page of pages) {
       const win = await load(page);
       const doc = win.document;
-      const home = doc.querySelector('.nav-home');
       const toggle = doc.querySelector('.nav-toggle');
-      assert(home?.getAttribute('href') === '/', page + ' Home target');
+      assert(!doc.querySelector('.nav-home'), page + ' no standalone Home icon');
+      assert(doc.querySelector('.nav-pages a')?.getAttribute('href') === '/', page + ' Home first in dropdown');
       assert(doc.querySelectorAll('.nav-dropdown a').length === 6, page + ' links');
       assert(!doc.querySelector('.nav-toggle-arrow'), page + ' no redundant triangle');
       // The title text is normally populated by the content engine.
@@ -39,16 +39,18 @@ window.navTest = {
           const r = dropdown.getBoundingClientRect();
           assert(win.getComputedStyle(dropdown).visibility === 'visible', context + ' visible');
           assert(r.left >= 0 && r.right <= width + 1 && r.top >= 0 && r.bottom <= height + 1, context + ' dropdown fits ' + JSON.stringify(r));
-          for (const control of [home, toggle]) {
+          for (const control of [toggle]) {
             const b = control.getBoundingClientRect();
             assert(b.width >= 44 && b.height >= 44, context + ' touch target');
             assert(control.contains(doc.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2)), context + ' control covered');
           }
           if (win.AcidburnMode) {
             const header = doc.querySelector('.header-bar').getBoundingClientRect();
-            assert(home.getBoundingClientRect().left < header.left + 20, context + ' Home at left edge');
-            assert(toggle.getBoundingClientRect().right > header.right - 20, context + ' Menu at right edge');
-            if (width > 768) assert(Math.abs(r.right - header.right) <= 1, context + ' dropdown anchored right');
+            assert(toggle.getBoundingClientRect().left < header.left + 20, context + ' Menu at left edge');
+            const heading = doc.querySelector('.header-content-wrapper').getBoundingClientRect();
+            assert(Math.abs(heading.x + heading.width / 2 - (header.x + header.width / 2)) < 1, context + ' page title centered in full header');
+            assert(heading.left >= toggle.getBoundingClientRect().right, context + ' title clears Menu');
+            if (width > 768) assert(Math.abs(r.left - header.left) <= 1, context + ' dropdown anchored left');
             const picker = doc.querySelector('.nav-dropdown .mode-picker');
             assert(picker && doc.querySelectorAll('[data-display-mode]').length === 3 && !doc.querySelector('#main-mode-toggle'), context + ' direct mode choices');
             assert(doc.querySelector('[data-display-mode][aria-pressed=true]').dataset.displayMode === mode, context + ' selected mode');
@@ -89,7 +91,7 @@ window.navTest = {
     for (const scenario of ['html', '404', 'empty', 'invalid', 'pending']) {
       const win = await load('maps.html?config=' + scenario);
       assert(win.document.querySelectorAll('.nav-dropdown a').length === 6, scenario + ' fallback links');
-      assert(win.document.querySelector('.nav-home').getAttribute('href') === '/', scenario + ' fallback Home');
+      assert(win.document.querySelector('.nav-pages a').getAttribute('href') === '/', scenario + ' fallback Home');
       assert(win.document.querySelectorAll('.nav-dropdown [data-display-mode]').length === 3, scenario + ' modes survive config failure');
     }
     for (const query of ['config=delayed', 'navFirst']) {
