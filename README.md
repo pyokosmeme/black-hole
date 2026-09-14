@@ -1,5 +1,11 @@
 # ACIDBURN TEMPLATE
 
+Adding or restyling a page? Start with [NEW_PAGE_WORKFLOW.md](NEW_PAGE_WORKFLOW.md)
+and [AGENTS.md](AGENTS.md). Use the actual shared components, not an independent
+recreation of the aesthetic. The current display modes are BH / Dark / Light;
+older FULL/LITE/AUTO descriptions below are historical. Deployment is configured
+as a Cloudflare Worker in `wrangler.json`, not GitHub Pages.
+
 90s hacker aesthetic meets astrophysics. A static site template with a ray-traced black hole background.
 
 ---
