@@ -78,6 +78,7 @@ nav-menu-Kayleighbot.js
 /*.zone
 /*.json
 !/client-metadata.json
+!/pagelayout.json
 /*.txt
 !/llms.txt
 /dir.html

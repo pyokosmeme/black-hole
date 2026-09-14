@@ -16,7 +16,20 @@
 (function() {
   'use strict';
 
-  const CONFIG_PATH = window.NAV_CONFIG_PATH || 'pagelayout.json';
+  const CONFIG_PATH = window.NAV_CONFIG_PATH || '/pagelayout.json';
+  // Navigation must remain usable while configuration loads or is unavailable.
+  const FALLBACK_CONFIG = {
+    pages: [
+      { label: 'HOME', url: '/', icon: '⌂' },
+      { label: 'A MOTE IN SHADOW', url: '/ams.html', icon: '◬' },
+      { label: 'SPECULATIVE FUTURES', url: '/futures.html', icon: '⌥' },
+      { label: 'MAPS', icon: '⬡', children: [
+        { label: 'Maps Hub', url: '/maps.html', icon: '✦' },
+        { label: 'Ya Ke System Atlas', url: '/yake.html', icon: '◈' },
+        { label: 'Transit Network', url: '/exu2374.html', icon: '→' }
+      ] }
+    ]
+  };
 
   // ═══════════════════════════════════════════════════════════════
   // INJECT STYLES
@@ -33,13 +46,20 @@
     /* Container Positioning */
     .nav-menu {
       position: relative;
-      display: inline-block;
+      display: inline-flex;
+      align-items: center;
+      flex-shrink: 0;
     }
 
     /* Menu Toggle Button */
-    .nav-toggle {
+    .nav-control {
       display: flex;
       align-items: center;
+      justify-content: center;
+      min-width: 44px;
+      min-height: 44px;
+      box-sizing: border-box;
+      text-decoration: none;
       gap: 10px;
       padding: 6px 10px;
       background: transparent;
@@ -53,52 +73,69 @@
       transition: all 0.2s ease;
     }
 
-    .nav-toggle:hover {
+    .nav-control:hover {
       color: #fff;
       text-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
     }
 
     /* Light Mode Overrides */
-    body.light-reading .nav-toggle,
-    body.light-mode .nav-toggle {
+    .nav-control:focus-visible,
+    .nav-link:focus-visible {
+      outline: 2px solid currentColor;
+      outline-offset: -3px;
+    }
+
+    .nav-home svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    body.light-reading .nav-control,
+    body.light-mode .nav-control {
       background: transparent;
       border: none;
       color: #bf00ff;
     }
 
-    body.light-reading .nav-toggle:hover,
-    body.light-mode .nav-toggle:hover {
+    body.light-reading .nav-control:hover,
+    body.light-mode .nav-control:hover {
       color: #6a3a72;
       text-shadow: 0 0 10px rgba(191, 0, 255, 0.3);
     }
 
     /* Light Mode Dropdown */
-    body.light-reading .nav-dropdown {
+    body.light-reading .nav-dropdown,
+    body.light-mode .nav-dropdown {
       background: rgba(253, 250, 245, 0.98);
       border-color: #bf00ff;
     }
 
-    body.light-reading .nav-link {
+    body.light-reading .nav-link,
+    body.light-mode .nav-link {
       color: #2e2a26;
       border-bottom-color: rgba(191, 0, 255, 0.1);
     }
 
-    body.light-reading .nav-link:hover {
+    body.light-reading .nav-link:hover,
+    body.light-mode .nav-link:hover {
       background: rgba(191, 0, 255, 0.05);
       color: #bf00ff;
     }
 
     /* Active page indicator in light mode */
-    body.light-reading .nav-link.active {
+    body.light-reading .nav-link.active,
+    body.light-mode .nav-link.active {
       background: rgba(191, 0, 255, 0.1);
       border-left-color: #bf00ff;
     }
 
-    body.light-reading .nav-link.active .nav-link-label {
+    body.light-reading .nav-link.active .nav-link-label,
+    body.light-mode .nav-link.active .nav-link-label {
       color: #bf00ff;
     }
 
-    body.light-reading .nav-submenu {
+    body.light-reading .nav-submenu,
+    body.light-mode .nav-submenu {
       background: rgba(0, 0, 0, 0.03);
     }
 
@@ -131,6 +168,9 @@
       left: 50%;
       transform: translateX(-50%) translateY(-10px);
       min-width: 220px;
+      max-height: calc(100vh - 70px);
+      max-height: calc(100dvh - 70px);
+      overflow-y: auto;
       background: rgba(2, 2, 8, 0.95);
       border: 2px solid #bf00ff;
       backdrop-filter: blur(15px);
@@ -177,6 +217,15 @@
       border-bottom: 1px solid rgba(191, 0, 255, 0.2);
       transition: all 0.15s ease;
       cursor: pointer;
+    }
+
+    button.nav-link {
+      width: 100%;
+      background: transparent;
+      border: 0;
+      border-bottom: 1px solid rgba(191, 0, 255, 0.2);
+      font-family: inherit;
+      text-align: left;
     }
 
     .nav-link:hover {
@@ -253,9 +302,13 @@
       border-bottom: none;
     }
 
+    @media (prefers-reduced-motion: reduce) {
+      .nav-menu * { transition: none; }
+    }
+
     /* Mobile adjustments */
     @media (max-width: 768px) {
-      .nav-toggle {
+      .nav-control {
         padding: 4px 6px;
         font-size: 11px;
       }
@@ -290,44 +343,47 @@
   // ═══════════════════════════════════════════════════════════════
 
   async function init() {
-    let config;
-    
-    try {
-      const response = await fetch(CONFIG_PATH);
-      if (!response.ok) throw new Error('Failed to load pagelayout.json');
-      config = await response.json();
-    } catch (error) {
-      console.error('[nav-menu] Error loading config:', error);
-      // Fallback config
-      config = {
-        siteName: "MENU",
-        menuIcon: "☰",
-        pages: []
-      };
-    }
-
     const container = document.getElementById('nav-menu');
     if (!container) {
       console.warn('[nav-menu] No #nav-menu container found');
       return;
     }
 
-    container.innerHTML = buildMenu(config);
+    container.innerHTML = buildMenu(FALLBACK_CONFIG);
     container.classList.add('nav-menu');
-    
     attachEventListeners(container);
     markActivePage(container);
+
+    try {
+      const response = await fetch(CONFIG_PATH);
+      if (!response.ok) throw new Error('Failed to load pagelayout.json');
+      const config = await response.json();
+      if (!Array.isArray(config.pages) || !config.pages.length) {
+        throw new Error('Navigation configuration has no pages');
+      }
+      // Keep the visible controls and open state intact during loading.
+      const dropdown = container.querySelector('.nav-dropdown');
+      if (dropdown.contains(document.activeElement)) return;
+      dropdown.innerHTML = config.pages.map(page => buildMenuItem(page)).join('');
+      container.querySelector('.nav-toggle-icon').textContent = config.menuIcon || '☰';
+      markActivePage(container);
+    } catch (error) {
+      console.warn('[nav-menu] Using fallback navigation:', error);
+    }
   }
 
   function buildMenu(config) {
     const pagesHtml = config.pages.map(page => buildMenuItem(page)).join('');
 
     return `
-      <button class="nav-toggle" aria-expanded="false" aria-controls="nav-dropdown">
-        <span class="nav-toggle-icon">${config.menuIcon || '☰'}</span>
-        <span class="nav-toggle-arrow">▼</span>
+      <a class="nav-control nav-home" href="/" aria-label="Home" title="Home">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 3l9 7M5 9v12h5v-7h4v7h5V9"/></svg>
+      </a>
+      <button type="button" class="nav-control nav-toggle" aria-label="Menu" aria-expanded="false" aria-controls="nav-dropdown">
+        <span class="nav-toggle-icon" aria-hidden="true">${config.menuIcon || '☰'}</span>
+        <span class="nav-toggle-arrow" aria-hidden="true">▼</span>
       </button>
-      <nav class="nav-dropdown" id="nav-dropdown">
+      <nav class="nav-dropdown" id="nav-dropdown" aria-label="Site navigation">
         ${pagesHtml}
       </nav>
     `;
@@ -341,12 +397,12 @@
       const childrenHtml = item.children.map(child => buildMenuItem(child)).join('');
       return `
         <div class="nav-item">
-          <div class="nav-link" data-has-children="true">
+          <button type="button" class="nav-link" data-has-children="true" aria-expanded="false">
             <span class="nav-link-icon">${icon}</span>
             <span class="nav-link-label">${item.label}</span>
             <span class="nav-link-arrow">▶</span>
-          </div>
-          <div class="nav-submenu">
+          </button>
+          <div class="nav-submenu" inert>
             ${childrenHtml}
           </div>
         </div>
@@ -374,14 +430,17 @@
     });
 
     // Toggle submenus
-    const parentLinks = container.querySelectorAll('.nav-link[data-has-children]');
-    parentLinks.forEach(link => {
-      link.addEventListener('click', (e) => {
+    container.addEventListener('click', (e) => {
+      const link = e.target.closest('.nav-link[data-has-children]');
+      if (link) {
         e.preventDefault();
         e.stopPropagation();
         const item = link.closest('.nav-item');
         item.classList.toggle('open');
-      });
+        const open = item.classList.contains('open');
+        link.setAttribute('aria-expanded', open);
+        item.querySelector('.nav-submenu').inert = !open;
+      }
     });
 
     // Close on outside click
@@ -394,9 +453,10 @@
 
     // Close on escape
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && container.classList.contains('open')) {
         container.classList.remove('open');
         toggle.setAttribute('aria-expanded', 'false');
+        toggle.focus();
       }
     });
   }
@@ -415,6 +475,8 @@
         const parentItem = link.closest('.nav-submenu')?.closest('.nav-item');
         if (parentItem) {
           parentItem.classList.add('open');
+          parentItem.querySelector('[data-has-children]').setAttribute('aria-expanded', 'true');
+          parentItem.querySelector('.nav-submenu').inert = false;
         }
       }
     });
