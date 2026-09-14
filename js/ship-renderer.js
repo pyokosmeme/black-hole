@@ -75,7 +75,7 @@ function create(canvas) {
   const gl=canvas.getContext('webgl',{alpha:true,antialias:true});
   if(!gl)throw new Error('3D is unavailable. Open Specifications for ship and comparison data.');
   const cache=new Map();
-  let vp=IDENT,compare=false,comparisonHeight=160;
+  let vp=IDENT,compare=false,comparisonHeight=160,eyeWorld=null,cw=1,ch=1,pick=null;
   function shader(type,source) { const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS)){const error=gl.getShaderInfoLog(s);gl.deleteShader(s);throw new Error(error);}return s; }
   async function load(id) {
     if(cache.has(id))return cache.get(id);
@@ -87,29 +87,41 @@ function create(canvas) {
       gl.attachShader(p,vs);gl.attachShader(p,fs);gl.linkProgram(p);gl.deleteShader(vs);gl.deleteShader(fs);
       if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw new Error('Could not initialize the ship material.');
       const uniforms=Object.fromEntries(['uMVP','uModel','uBase','uType','uExp','uWire','uGlowPass'].map(n=>[n,gl.getUniformLocation(p,n)]));
-      meshes.forEach(m=>{m.buffers={};for(const [key,data] of Object.entries({positions:m.positions,normals:m.normals,linePositions:m.linePositions,lineNormals:m.lineNormals})){const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);m.buffers[key]=b;}});
+      meshes.forEach(m=>{m.buffers={};for(const [key,data] of Object.entries({positions:m.positions,normals:m.normals,linePositions:m.linePositions,lineNormals:m.lineNormals})){const b=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,data,gl.STATIC_DRAW);m.buffers[key]=b;}
+        const stride=Math.max(1,Math.floor(m.count/120)),pts=[];
+        for(let vi=0;vi<m.count;vi+=stride){
+          const nx=m.normals[vi*3],ny=m.normals[vi*3+1],nz=m.normals[vi*3+2];
+          if(!nx&&!ny&&!nz)continue;
+          pts.push(m.positions[vi*3],m.positions[vi*3+1],m.positions[vi*3+2],nx,ny,nz);
+        }
+        m.probes=new Float32Array(pts);
+      });
       return {cfg,meshes,p,uniforms,aPos:gl.getAttribLocation(p,'aPosition'),aNor:gl.getAttribLocation(p,'aNormal')};
     })();
     cache.set(id,promise);
     promise.catch(()=>cache.delete(id));
     return promise;
   }
-  function modelMatrix(cfg,material,state) {
-    const angle=cfg.wholeSpin?(material.evaOnly?0:state.phase):state.phase*(material.spins||0);
+  function matAngle(cfg,material,state) { return cfg.wholeSpin?(material.evaOnly?0:state.phase):state.phase*(material.spins||0); }
+  function matFor(cfg,material,state) {
+    const angle=matAngle(cfg,material,state);
     return mul(translate(0,0,compare?comparisonHeight*(cfg.id==='el-cajon'?.20:-.25):0),rotX(angle));
+  }
+  function modelMatrix(cfg,material,state) {
+    return matFor(cfg,material,state);
   }
   function render(models,state) {
     const w=canvas.clientWidth,h=canvas.clientHeight,dpr=Math.min(devicePixelRatio||1,2);
     if(!w||!h)return;
     if(canvas.width!==Math.round(w*dpr)||canvas.height!==Math.round(h*dpr)){canvas.width=Math.round(w*dpr);canvas.height=Math.round(h*dpr);}
-    const aspect=w/h;compare=state.compare;
+    const aspect=w/h;compare=state.compare;cw=w;ch=h;
     if(compare){
       const worldWidth=Math.max(236,160*aspect)/state.zoom;
       comparisonHeight=worldWidth/aspect;
       vp=mul(ortho(worldWidth/2,worldWidth/aspect/2),lookAt([96,-500,0],[96,0,0],[0,0,1]));
     }else{
       const cfg=models[0].cfg,dist=cfg.distance*Math.max(1,1/aspect)/state.zoom,ce=Math.cos(state.el);
-      const eye=[cfg.target+dist*Math.cos(state.az)*ce,dist*Math.sin(state.az)*ce,dist*Math.sin(state.el)];
+      const eye=[cfg.target+dist*Math.cos(state.az)*ce,dist*Math.sin(state.az)*ce,dist*Math.sin(state.el)];eyeWorld=eye;
       vp=mul(persp(38*Math.PI/180,aspect,.1,10000),lookAt(eye,[cfg.target,0,0],[0,0,1]));
     }
     gl.viewport(0,0,canvas.width,canvas.height);gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
@@ -135,11 +147,126 @@ function create(canvas) {
     return {x:(x/w*.5+.5)*canvas.clientWidth,y:(.5-y/w*.5)*canvas.clientHeight};
   }
   function anchor(cfg,label,state) { return project(transform(label.p,modelMatrix(cfg,{evaOnly:label.t==='SCALE FIGURE'},state))); }
+  function pickTarget() {
+    const fw=Math.max(96,Math.min(320,Math.round(cw/4))),fh=Math.max(64,Math.round(fw*ch/Math.max(cw,1)));
+    if(pick&&pick.fw===fw&&pick.fh===fh)return pick;
+    if(pick){gl.deleteFramebuffer(pick.fb);gl.deleteTexture(pick.tex);gl.deleteRenderbuffer(pick.rb);gl.deleteProgram(pick.prog);gl.deleteBuffer(pick.buf);pick=null;}
+    const tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);
+    gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,fw,fh,0,gl.RGBA,gl.UNSIGNED_BYTE,null);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+    const rb=gl.createRenderbuffer();gl.bindRenderbuffer(gl.RENDERBUFFER,rb);
+    gl.renderbufferStorage(gl.RENDERBUFFER,gl.DEPTH_COMPONENT16,fw,fh);
+    const fb=gl.createFramebuffer();gl.bindFramebuffer(gl.FRAMEBUFFER,fb);
+    gl.framebufferTexture2D(gl.FRAMEBUFFER,gl.COLOR_ATTACHMENT0,gl.TEXTURE_2D,tex,0);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER,gl.DEPTH_ATTACHMENT,gl.RENDERBUFFER,rb);
+    if(gl.checkFramebufferStatus(gl.FRAMEBUFFER)!==gl.FRAMEBUFFER_COMPLETE){gl.bindFramebuffer(gl.FRAMEBUFFER,null);return null;}
+    let prog;
+    try{
+      const vs=shader(gl.VERTEX_SHADER,'attribute vec3 aP;attribute vec3 aC;uniform mat4 uVP;varying vec3 vC;void main(){vC=aC;gl_Position=uVP*vec4(aP,1.0);gl_Position.z-=0.003;gl_PointSize=2.0;}');
+      const fs2=shader(gl.FRAGMENT_SHADER,'precision mediump float;varying vec3 vC;void main(){gl_FragColor=vec4(vC,1.0);}');
+      prog=gl.createProgram();gl.attachShader(prog,vs);gl.attachShader(prog,fs2);gl.linkProgram(prog);gl.deleteShader(vs);gl.deleteShader(fs2);
+      if(!gl.getProgramParameter(prog,gl.LINK_STATUS))throw new Error('pick program');
+    }catch(e){gl.bindFramebuffer(gl.FRAMEBUFFER,null);return null;}
+    gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+    pick={fw,fh,fb,tex,rb,prog,uVP:gl.getUniformLocation(prog,'uVP'),aP:gl.getAttribLocation(prog,'aP'),aC:gl.getAttribLocation(prog,'aC'),buf:gl.createBuffer(),pix:new Uint8Array(fw*fh*4)};
+    return pick;
+  }
+  function labelAnchors(model,state,requests) {
+    const cfg=model.cfg;
+    const legacy=()=>requests.map(r=>{const p=project(transform(r.part.p,matFor(cfg,{evaOnly:r.part.t==='SCALE FIGURE'},state)));return p?{x:p.x,y:p.y,probe:-1}:null;});
+    if(!eyeWorld||state.compare)return legacy();
+    const byName=new Map(model.meshes.map(m=>[m.name,m]));
+    const visible=m=>{const mat=m.material;return !(mat.evaOnly&&!state.eva)&&!(mat.shell&&state.cut);};
+    const reqs=requests.map(r=>({part:r.part,prev:r.prev|0,force:!!r.force,
+      mesh:r.part.m?byName.get(r.part.m)||null:null,fmesh:r.part.fm?byName.get(r.part.fm)||null:null}));
+    if(!reqs.some(q=>(q.mesh&&visible(q.mesh))||(q.fmesh&&visible(q.fmesh))))return legacy();
+    const pk=pickTarget();
+    if(!pk)return legacy();
+    const {fw,fh}=pk;
+    gl.bindFramebuffer(gl.FRAMEBUFFER,pk.fb);
+    gl.viewport(0,0,fw,fh);
+    gl.clearColor(0,0,0,0);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.depthMask(true);gl.enable(gl.CULL_FACE);
+    gl.colorMask(false,false,false,false);
+    model.meshes.forEach(m=>{
+      if(!visible(m))return;
+      const matrix=matFor(cfg,m.material,state);
+      gl.useProgram(model.p);
+      gl.uniformMatrix4fv(model.uniforms.uMVP,false,mul(vp,matrix));
+      gl.uniformMatrix4fv(model.uniforms.uModel,false,matrix);
+      gl.bindBuffer(gl.ARRAY_BUFFER,m.buffers.positions);
+      gl.enableVertexAttribArray(model.aPos);gl.vertexAttribPointer(model.aPos,3,gl.FLOAT,false,0,0);
+      gl.drawArrays(gl.TRIANGLES,0,m.count);
+    });
+    gl.colorMask(true,true,true,true);gl.depthMask(false);
+    const verts=[],ranges=[];
+    reqs.forEach((q,qi)=>{
+      const m=q.mesh&&visible(q.mesh)?q.mesh:(q.fmesh&&visible(q.fmesh)?q.fmesh:null);
+      if(!m||!m.probes||!m.probes.length){ranges.push(null);return;}
+      const matrix=matFor(cfg,m.material,state),start=verts.length/6;
+      for(let vi=0;vi<m.probes.length;vi+=6){
+        const w=transform([m.probes[vi],m.probes[vi+1],m.probes[vi+2]],matrix);
+        verts.push(w[0],w[1],w[2],(qi+1)/255,0,0);
+      }
+      ranges.push({m,matrix,start,n:m.probes.length/6});
+    });
+    gl.useProgram(pk.prog);
+    gl.uniformMatrix4fv(pk.uVP,false,vp);
+    gl.bindBuffer(gl.ARRAY_BUFFER,pk.buf);
+    gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(verts),gl.DYNAMIC_DRAW);
+    gl.enableVertexAttribArray(pk.aP);gl.vertexAttribPointer(pk.aP,3,gl.FLOAT,false,24,0);
+    gl.enableVertexAttribArray(pk.aC);gl.vertexAttribPointer(pk.aC,3,gl.FLOAT,false,24,12);
+    gl.drawArrays(gl.POINTS,0,verts.length/6);
+    gl.readPixels(0,0,fw,fh,gl.RGBA,gl.UNSIGNED_BYTE,pk.pix);
+    gl.bindFramebuffer(gl.FRAMEBUFFER,null);
+    gl.depthMask(true);
+    const px=pk.pix;
+    const onSurface=(sp,ri)=>{
+      const fx=Math.round(sp.x/cw*(fw-1)),fy=Math.round((ch-sp.y)/ch*(fh-1));
+      for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){
+        const gx=fx+dx,gy=fy+dy;
+        if(gx<0||gy<0||gx>=fw||gy>=fh)continue;
+        const ii=(gy*fw+gx)*4;
+        if(px[ii]===ri+1&&px[ii+1]===0)return true;
+      }
+      return false;
+    };
+    return reqs.map((q,ri)=>{
+      const rg=ranges[ri];
+      if(!rg)return null;
+      const {m,matrix}=rg,c=Math.cos(matAngle(cfg,m.material,state)),s=Math.sin(matAngle(cfg,m.material,state));
+      let best=-1,bestScore=Infinity,keep=-1;
+      for(let pi=0;pi<rg.n;pi++){
+        const o=pi*6;
+        const w=transform([m.probes[o],m.probes[o+1],m.probes[o+2]],matrix);
+        const sp=project(w);
+        if(!sp||sp.x<0||sp.y<0||sp.x>=cw||sp.y>=ch)continue;
+        const nx0=m.probes[o+3],ny0=m.probes[o+4],nz0=m.probes[o+5];
+        const tx=eyeWorld[0]-w[0],ty=eyeWorld[1]-w[1],tz=eyeWorld[2]-w[2];
+        const tl=Math.hypot(tx,ty,tz)||1;
+        const facing=(nx0*tx+(c*ny0-s*nz0)*ty+(s*ny0+c*nz0)*tz)/tl;
+        if(facing<0.02)continue;
+        if(!(q.force||onSurface(sp,ri)))continue;
+        if(pi===q.prev&&facing>0.15){keep=pi;continue;}
+        const d=Math.hypot(m.probes[o]-q.part.p[0],m.probes[o+1]-q.part.p[1],m.probes[o+2]-q.part.p[2]);
+        if(d<bestScore){bestScore=d;best=pi;}
+      }
+      const pi=keep>=0?keep:best;
+      if(pi<0){
+        const sp=q.force?project(transform(q.part.p,matrix)):null;
+        return sp?{x:sp.x,y:sp.y,probe:-1}:null;
+      }
+      const w=transform([m.probes[pi*6],m.probes[pi*6+1],m.probes[pi*6+2]],matrix);
+      const sp=project(w);
+      return sp?{x:sp.x,y:sp.y,probe:pi}:null;
+    });
+  }
   function measure(cfg) {
     const z=comparisonHeight*(cfg.id==='el-cajon'?.20:-.25)+cfg.span/2;
     return {start:project([0,0,z]),end:project([cfg.length,0,z])};
   }
-  return {load,render,project,anchor,measure};
+  return {load,render,project,anchor,measure,labelAnchors};
 }
 return {create};
 })();

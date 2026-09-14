@@ -54,7 +54,7 @@
       if(!state.compare){el.type='button';el.setAttribute('aria-pressed','false');el.title=decode(part.s);el.addEventListener('click',()=>selectPart(index));$('part-select').add(new Option(decode(part.t),String(index)));}
       const line=document.createElementNS(svgNS,'line');line.dataset.part=index;
       const dot=document.createElementNS(svgNS,'circle');dot.setAttribute('r','2.5');
-      $('labels').appendChild(el);$('leaders').append(line,dot);labels.push({el,line,dot,part});
+      $('labels').appendChild(el);$('leaders').append(line,dot);labels.push({el,line,dot,part,probe:-1});
     });
   }
   function drawLabels() {
@@ -71,14 +71,23 @@
         l.dot.setAttribute('cx',a.x);l.dot.setAttribute('cy',a.y-8);
       });return;
     }
-    const items=[],obstacles=[];
+    const order=[],reqs=[];
     labels.forEach((l,i)=>{
-      const p=renderer.anchor(catalog[id],l.part,state);
-      l.el.hidden=!state.labels||!p||l.part.t==='SCALE FIGURE'&&!state.eva;
+      const show=state.labels&&(l.part.t!=='SCALE FIGURE'||state.eva);
       l.line.style.display=l.dot.style.display='none';
-      if(l.el.hidden)return;
-      items.push({id:i,x:p.x,y:p.y,w:l.el.offsetWidth,h:l.el.offsetHeight,r:3,priority:i===activePart?2:0});
-      obstacles.push({id:i,x:p.x,y:p.y,r:3});
+      if(!show){l.el.hidden=true;return;}
+      l.el.hidden=false;
+      order.push(i);
+      reqs.push({part:l.part,prev:l.probe??-1,force:i===activePart});
+    });
+    const got=models.length?renderer.labelAnchors(models[0],state,reqs):[];
+    const items=[],obstacles=[];
+    order.forEach((i,k)=>{
+      const l=labels[i],a=got?got[k]:null;
+      if(!a){l.el.hidden=true;return;}
+      l.probe=a.probe;
+      items.push({id:i,x:a.x,y:a.y,w:l.el.offsetWidth,h:l.el.offsetHeight,r:3,priority:i===activePart?2:0});
+      obstacles.push({id:i,x:a.x,y:a.y,r:3});
     });
     const placed=new Map(SceneLabelLayout.layout(items,{x:6,y:8,w:w-12,h:h-$('view-caption').offsetHeight-20},obstacles).map(p=>[p.id,p]));
     labels.forEach((l,i)=>{

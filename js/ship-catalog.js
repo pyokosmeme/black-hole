@@ -96,14 +96,14 @@ var FS = [
 '  gl_FragColor=vec4(lit,1.0);',
 '}'].join('\n');
 var LABELS=[
-  {p:[-2.40,0,0.0], t:'SENSOR &amp; COMMS',  s:'radio dishes, laser terminals', side:1, flat:1, dy:64},
-  {p:[4.25,0,2.9],  t:'ANGEL&rsquo;S SEAT', s:'360&deg; wire cage, pop-up airlock', side:-1},
-  {p:[10.0,0,-2.0], t:'CONTROL',            s:'storm cellar, 16 accel. flats', side:-1},
-  {p:[13.1,0,11.9], t:'SPIN HABS',          s:'2 &times; 13.11 m, 16 bays, 12 berths', side:1},
-  {p:[17.0,0,4.70], t:'CARGO CONTAINERS',   s:'8 slices, 578.9 m&sup3;, 138 kg/m&sup3; max', side:1},
-  {p:[34.0,0,7.4],  t:'RADIATORS',          s:'2 fins, 199.5 m&sup2; ea, 1650 K', side:1},
-  {p:[59.4,0,-3.4], t:'FUSION DRIVE',       s:'6.55 &times; 6.72 m, 335 MW', side:-1},
-  {p:[13.1,0,-13.8],t:'SCALE FIGURE',      s:'1.80 m', side:-1}
+  {p:[-2.40,0,0.0], t:'SENSOR &amp; COMMS',  s:'radio dishes, laser terminals', side:1, flat:1, dy:64, m:'radio_dishes'},
+  {p:[4.25,0,2.9],  t:'ANGEL&rsquo;S SEAT', s:'360&deg; wire cage, pop-up airlock', side:-1, m:'angels_seat'},
+  {p:[10.0,0,-2.0], t:'CONTROL',            s:'storm cellar, 16 accel. flats', side:-1, m:'control_storm_cellar'},
+  {p:[13.1,0,11.9], t:'SPIN HABS',          s:'2 &times; 13.11 m, 16 bays, 12 berths', side:1, m:'spin_habs'},
+  {p:[17.0,0,4.70], t:'CARGO CONTAINERS',   s:'8 slices, 578.9 m&sup3;, 138 kg/m&sup3; max', side:1, m:'cargo_wedges'},
+  {p:[34.0,0,7.4],  t:'RADIATORS',          s:'2 fins, 199.5 m&sup2; ea, 1650 K', side:1, m:'radiators'},
+  {p:[59.4,0,-3.4], t:'FUSION DRIVE',       s:'6.55 &times; 6.72 m, 335 MW', side:-1, m:'fusion_engine'},
+  {p:[13.1,0,-13.8],t:'SCALE FIGURE',      s:'1.80 m', side:-1, m:'astronaut'}
 ];
 var GPRESETS=[{g:0.90,l:'90% g'},{g:0.60,l:'60% g'},{g:0.36,l:'36% g'},{g:0,l:'Stopped'}];
 ShipCatalog["el-cajon"] = Object.assign({"name": "El Cajon / Ergo Infinitum", "length": 62.9, "span": 23.5, "dry": 148, "cargo": 80, "volume": 578.9, "berths": "12 berths", "habRadius": 11.75, "rpm": 5.234, "target": 29, "distance": 112, "wholeSpin": true}, {id:"el-cajon",materials:MAT,fragment:FS,labels:LABELS,presets:GPRESETS,info:"\n    <p><b>IKSA CT-185 &ldquo;El Cajon&rdquo;</b></p>\n    <p>SSV <b>Ergo Infinitum</b> &mdash; light hauler.\n       62.90 m overall, 23.50 m radiator-to-radiator, 148 t dry, 80 t cargo, 12 berths.</p>\n  <div>\n    <b>Iktomi Space &amp; Aeronautic &mdash; Licensed Schematic</b>\n    148 dry tonnage | 80 t cargo | 105 t bioprop<br/>\n    max accel. 1.91 m/s&sup2; | &Delta;V 44.23 km/s<br/>\n    14.83 m&sup3; active space per crew<br/>\n    full-craft spin-up &mdash; 90% / 60% / 36% g\n  </div><div>\n    Drag to orbit &middot; scroll or pinch to zoom &middot; the ship spins about her long axis.\n    Scale figure is 1.80 m.\n  </div>"});
@@ -208,16 +208,16 @@ var FS = [
 '  gl_FragColor=vec4(lit,1.0);',
 '}'].join('\n');
 var LABELS=[
-  {p:[-3.20,0,0.0],  t:'WHIPPLE BUMPER',   s:'5.0 m cone, 37.1 m &empty;', side:1, flat:1, dy:70},
-  {p:[10.5,0,19.4],  t:'SPIN DECKS',       s:'2 counter-rotating, 18.55 m floor', side:1},
-  {p:[22.0,0,-16.0], t:'RING &amp; CHOMP DECKS', s:'TECH BRACE stowage, 2 walker bays', side:-1},
-  {p:[45.0,0,21.5],  t:'CARGO',            s:'4 containers, 24,000 m&sup3;, 30 kT', side:1},
-  {p:[40.0,0,-18.5], t:'CRANE BOOMS',      s:'4 &times; 3 segments, 285 m reach', side:-1},
-  {p:[110.0,0,13.0], t:'RADIATORS',        s:'4 fins, 907 m&sup2; ea, inverse taper', side:1},
-  {p:[100.0,0,-6.5], t:'AL DRIVE SPINE',   s:'3.00 m, 0.75 c capable', side:-1},
-  {p:[168.0,0,19.5], t:'DROP SHIELD',      s:'1.0 m ice, 38.1 m &empty;', side:1},
-  {p:[184.0,0,-18.6],t:'PROPELLANT',       s:'7 tanks, 6 kT brine bioprop', side:-1},
-  {p:[44.0,0,-25.0], t:'SCALE FIGURE',     s:'1.80 m', side:-1, dy:40}
+  {p:[-3.20,0,0.0],  t:'WHIPPLE BUMPER',   s:'5.0 m cone, 37.1 m &empty;', side:1, flat:1, dy:70, m:'whipple_bumper'},
+  {p:[10.5,0,19.4],  t:'SPIN DECKS',       s:'2 counter-rotating, 18.55 m floor', side:1, m:'spin_deck_a', fm:'whipple_drum'},
+  {p:[22.0,0,-16.0], t:'RING &amp; CHOMP DECKS', s:'TECH BRACE stowage, 2 walker bays', side:-1, m:'ring_deck', fm:'whipple_drum'},
+  {p:[45.0,0,21.5],  t:'CARGO',            s:'4 containers, 24,000 m&sup3;, 30 kT', side:1, m:'cargo_containers'},
+  {p:[40.0,0,-18.5], t:'CRANE BOOMS',      s:'4 &times; 3 segments, 285 m reach', side:-1, m:'crane_booms'},
+  {p:[110.0,0,13.0], t:'RADIATORS',        s:'4 fins, 907 m&sup2; ea, inverse taper', side:1, m:'radiators'},
+  {p:[100.0,0,-6.5], t:'AL DRIVE SPINE',   s:'3.00 m, 0.75 c capable', side:-1, m:'al_spine'},
+  {p:[168.0,0,19.5], t:'DROP SHIELD',      s:'1.0 m ice, 38.1 m &empty;', side:1, m:'ice_drop_shield'},
+  {p:[184.0,0,-18.6],t:'PROPELLANT',       s:'7 tanks, 6 kT brine bioprop', side:-1, m:'propellant_tanks'},
+  {p:[44.0,0,-25.0], t:'SCALE FIGURE',     s:'1.80 m', side:-1, dy:40, m:'astronaut'}
 ];
 var GPRESETS=[{g:0.7468,l:'0.75 g'},{g:0.50,l:'0.50 g'},{g:0.30,l:'0.30 g'},{g:0,l:'Stopped'}];
 ShipCatalog["hackett"] = Object.assign({"name": "Hackett", "length": 194.1, "span": 42.3, "dry": 4080, "cargo": 30000, "volume": 24000, "berths": "24 crew + 12 passengers", "habRadius": 18.55, "rpm": 6.0, "target": 92, "distance": 300, "wholeSpin": false}, {id:"hackett",materials:MAT,fragment:FS,labels:LABELS,presets:GPRESETS,info:"\n    <p><b>IKSA CAT-2268 &ldquo;Hackett&rdquo;</b></p>\n    <p>Heavy cargo hauler. 194.10 m overall, 42.30 m across the radiators,\n       37.10 m hull, 4.08 kT dry, 30 kT cargo, 24 crew + 12 passengers.</p>\n  <div>\n    <b>Iktomi Space &amp; Aeronautic &mdash; Licensed Schematic</b>\n4.08 kT dry | 30 kT cargo | 6 kT bioprop<br/>\n    5.24 GW fusion | AL capable to 0.75 c<br/>\n    33.6 m&sup3; total space per crew<br/>\n    twin counter-rotating decks &mdash; hull does not spin\n  </div><div>\n    Drag to orbit &middot; scroll or pinch to zoom &middot; the hull holds attitude;\n    only the two decks inside the whipple drum turn. Scale figure is 1.80 m.\n  </div>"});
