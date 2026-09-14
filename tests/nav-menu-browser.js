@@ -43,8 +43,11 @@ window.navTest = {
             assert(b.width >= 44 && b.height >= 44, context + ' touch target');
             assert(control.contains(doc.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2)), context + ' control covered');
           }
-          assert(toggle.getBoundingClientRect().right <= home.getBoundingClientRect().left + 1, context + ' Menu left of Home');
           if (win.AcidburnMode) {
+            const header = doc.querySelector('.header-bar').getBoundingClientRect();
+            assert(home.getBoundingClientRect().left < header.left + 20, context + ' Home at left edge');
+            assert(toggle.getBoundingClientRect().right > header.right - 20, context + ' Menu at right edge');
+            if (width > 768) assert(Math.abs(r.right - header.right) <= 1, context + ' dropdown anchored right');
             const modeButton = doc.querySelector('.nav-dropdown #main-mode-toggle');
             assert(modeButton && doc.querySelectorAll('#main-mode-toggle').length === 1, context + ' single mode control inside menu');
             const expected = { dark: 'Dark', light: 'Light', bh: 'Black Hole' };

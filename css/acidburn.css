@@ -436,7 +436,8 @@ body.light-mode .static-bg {
 .header-bar .nav-dropdown {
     position: absolute;
     top: calc(100% + 6px);
-    left: 0;
+    left: auto;
+    right: 0;
     transform: translateY(-10px);
 }
 
@@ -446,7 +447,7 @@ body.light-mode .static-bg {
 
 @media (max-width: 768px) {
     .header-bar .nav-dropdown {
-        right: 0;
+        left: 0;
     }
 }
 

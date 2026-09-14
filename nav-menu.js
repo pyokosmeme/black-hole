@@ -351,6 +351,11 @@
 
     container.innerHTML = buildMenu(FALLBACK_CONFIG);
     container.classList.add('nav-menu');
+    const header = container.closest('.header-bar');
+    if (header && document.querySelector('script[src*="acidburn-mode.js"]')) {
+      header.prepend(container.querySelector('.nav-home'));
+      header.appendChild(container);
+    }
     attachEventListeners(container);
     markActivePage(container);
     window.dispatchEvent(new CustomEvent('acidburn-nav-ready'));
