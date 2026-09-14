@@ -108,6 +108,7 @@
     body.light-mode .nav-dropdown {
       background: rgba(253, 250, 245, 0.98);
       border-color: #bf00ff;
+      color: #2e2a26;
     }
 
     body.light-reading .nav-link,
@@ -150,17 +151,6 @@
       transform: rotate(90deg);
     }
 
-    .nav-toggle-arrow {
-      font-size: 10px;
-      transition: transform 0.3s ease;
-      -webkit-text-stroke: 0;
-      text-shadow: none;
-    }
-
-    .nav-menu.open .nav-toggle-arrow {
-      transform: rotate(180deg);
-    }
-
     /* Dropdown Panel */
     .nav-dropdown {
       position: absolute;
@@ -172,6 +162,7 @@
       max-height: calc(100dvh - 70px);
       overflow-y: auto;
       background: rgba(2, 2, 8, 0.95);
+      color: #fff;
       border: 2px solid #bf00ff;
       backdrop-filter: blur(15px);
       opacity: 0;
@@ -384,14 +375,13 @@
     return `
       <button type="button" class="nav-control nav-toggle" aria-label="Menu" aria-expanded="false" aria-controls="nav-dropdown">
         <span class="nav-toggle-icon" aria-hidden="true">${config.menuIcon || '☰'}</span>
-        <span class="nav-toggle-arrow" aria-hidden="true">▼</span>
       </button>
       <a class="nav-control nav-home" href="/" aria-label="Home" title="Home">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10 12 3l9 7M5 9v12h5v-7h4v7h5V9"/></svg>
       </a>
       <nav class="nav-dropdown" id="nav-dropdown" aria-label="Site navigation">
-        <div class="nav-mode-slot"></div>
         <div class="nav-pages">${pagesHtml}</div>
+        <div class="nav-mode-slot"></div>
       </nav>
     `;
   }

@@ -1,7 +1,7 @@
 /**
  * ACIDBURN MODE TOGGLE
  * 
- * Manages display modes in a single cyclic button: BH (Black Hole), DARK, LIGHT
+ * Shared display modes, with direct choices in navigation and a legacy cyclic button.
  */
 
 (function() {
@@ -159,8 +159,35 @@
     function createToggleUI() {
         const slot = document.querySelector('#nav-menu .nav-mode-slot');
         const existing = document.querySelector('.mode-toggle');
+        if (slot) {
+            const picker = existing || document.createElement('div');
+            if (!picker.classList.contains('mode-picker')) {
+                picker.className = 'mode-toggle mode-picker';
+                picker.innerHTML = `<span id="display-mode-label" class="mode-picker-label">Display</span>
+                    <div class="mode-options" role="group" aria-labelledby="display-mode-label">
+                        ${['dark', 'light', 'bh'].map(mode => `<button type="button" class="acidburn-button" data-display-mode="${mode}" aria-label="${MODE_INFO[mode].label}" aria-pressed="false">${mode}</button>`).join('')}
+                    </div>
+                    <p class="mode-reading-note" hidden>BH is paused while reading.</p>`;
+                picker.querySelectorAll('[data-display-mode]').forEach(button => {
+                    button.addEventListener('click', () => {
+                        const mode = button.dataset.displayMode;
+                        const isReading = document.getElementById('post-view')?.classList.contains('active');
+                        // Preserve the background preference when changing reading colors.
+                        if (isReading && currentMode === 'bh' && mode !== 'bh') {
+                            lastStaticMode = mode;
+                            localStorage.setItem('acidburn-static-mode', mode);
+                            applyMode('bh');
+                        } else {
+                            applyMode(mode);
+                        }
+                    });
+                });
+            }
+            slot.appendChild(picker);
+            updateToggleUI();
+            return;
+        }
         if (existing) {
-            if (slot && existing.parentElement !== slot) slot.appendChild(existing);
             updateToggleUI();
             return;
         }
@@ -200,9 +227,6 @@
         updateToggleUI();
     }
     function updateToggleUI() {
-        const btn = document.getElementById('main-mode-toggle');
-        if (!btn) return;
-
         const postView = document.getElementById('post-view');
         const isReading = !!(postView && postView.classList.contains('active'));
         
@@ -210,6 +234,18 @@
         if (isReading && currentMode === 'bh') {
             displayMode = lastStaticMode;
         }
+
+        document.querySelectorAll('[data-display-mode]').forEach(button => {
+            const mode = button.dataset.displayMode;
+            button.setAttribute('aria-pressed', mode === displayMode);
+            button.disabled = isReading && mode === 'bh';
+            button.title = button.disabled ? 'BH is paused while reading' : MODE_INFO[mode].title;
+        });
+        const note = document.querySelector('.mode-reading-note');
+        if (note) note.hidden = !isReading;
+
+        const btn = document.getElementById('main-mode-toggle');
+        if (!btn) return;
 
         const info = MODE_INFO[displayMode];
         const nextMode = isReading ? (lastStaticMode === 'dark' ? 'light' : 'dark') : info.next;

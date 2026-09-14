@@ -21,6 +21,7 @@ window.navTest = {
       const toggle = doc.querySelector('.nav-toggle');
       assert(home?.getAttribute('href') === '/', page + ' Home target');
       assert(doc.querySelectorAll('.nav-dropdown a').length === 6, page + ' links');
+      assert(!doc.querySelector('.nav-toggle-arrow'), page + ' no redundant triangle');
       // The title text is normally populated by the content engine.
       const title = doc.querySelector('.header-brand');
       if (title?.textContent.trim() === 'LOADING') title.textContent = 'SPECULATIVE FUTURES';
@@ -48,19 +49,24 @@ window.navTest = {
             assert(home.getBoundingClientRect().left < header.left + 20, context + ' Home at left edge');
             assert(toggle.getBoundingClientRect().right > header.right - 20, context + ' Menu at right edge');
             if (width > 768) assert(Math.abs(r.right - header.right) <= 1, context + ' dropdown anchored right');
-            const modeButton = doc.querySelector('.nav-dropdown #main-mode-toggle');
-            assert(modeButton && doc.querySelectorAll('#main-mode-toggle').length === 1, context + ' single mode control inside menu');
-            const expected = { dark: 'Dark', light: 'Light', bh: 'Black Hole' };
-            assert(modeButton.querySelector('.mode-label-value').textContent === expected[mode], context + ' mode label');
-            modeButton.scrollIntoView({ block: 'nearest' });
-            const b = modeButton.getBoundingClientRect();
-            assert(b.height >= 44 && b.left >= r.left && b.right <= r.right, context + ' mode target fits');
-            assert(modeButton.contains(doc.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2)), context + ' mode reachable');
-            modeButton.click();
+            const picker = doc.querySelector('.nav-dropdown .mode-picker');
+            assert(picker && doc.querySelectorAll('[data-display-mode]').length === 3 && !doc.querySelector('#main-mode-toggle'), context + ' direct mode choices');
+            assert(doc.querySelector('[data-display-mode][aria-pressed=true]').dataset.displayMode === mode, context + ' selected mode');
+            assert(picker.getBoundingClientRect().top >= doc.querySelector('.nav-pages').getBoundingClientRect().bottom - 1, context + ' display below navigation');
+            picker.scrollIntoView({ block: 'nearest' });
+            for (const button of picker.querySelectorAll('button')) {
+              const b = button.getBoundingClientRect();
+              assert(b.width >= 44 && b.height >= 44 && b.left >= r.left && b.right <= r.right, context + ' mode target fits');
+              assert(button.contains(doc.elementFromPoint(b.x + b.width / 2, b.y + b.height / 2)), context + ' mode reachable');
+              assert(win.getComputedStyle(button).fontFamily === win.getComputedStyle(doc.querySelector('.nav-link')).fontFamily, context + ' shared menu font');
+            }
             const next = { dark: 'light', light: 'bh', bh: 'dark' }[mode];
-            assert(win.AcidburnMode.getMode() === next && win.localStorage.getItem('acidburn-mode') === next, context + ' click cycles and persists');
-            assert(modeButton.querySelector('.mode-label-value').textContent === expected[next], context + ' label follows click');
-            assert(toggle.getAttribute('aria-expanded') === 'true', context + ' menu stays open after cycle');
+            const choice = picker.querySelector(`[data-display-mode=${next}]`);
+            choice.click();
+            choice.click();
+            assert(win.AcidburnMode.getMode() === next && win.localStorage.getItem('acidburn-mode') === next, context + ' direct choice persists without cycling');
+            assert(picker.querySelectorAll('[aria-pressed=true]').length === 1 && choice.getAttribute('aria-pressed') === 'true', context + ' exclusive selection');
+            assert(toggle.getAttribute('aria-expanded') === 'true', context + ' menu stays open after selection');
           }
           assert(doc.documentElement.scrollWidth <= width, context + ' document overflow');
           checks++;
@@ -84,15 +90,25 @@ window.navTest = {
       const win = await load('maps.html?config=' + scenario);
       assert(win.document.querySelectorAll('.nav-dropdown a').length === 6, scenario + ' fallback links');
       assert(win.document.querySelector('.nav-home').getAttribute('href') === '/', scenario + ' fallback Home');
-      assert(win.document.querySelectorAll('.nav-dropdown #main-mode-toggle').length === 1, scenario + ' mode survives config failure');
+      assert(win.document.querySelectorAll('.nav-dropdown [data-display-mode]').length === 3, scenario + ' modes survive config failure');
     }
     for (const query of ['config=delayed', 'navFirst']) {
       const win = await load('maps.html?' + query);
       await new Promise(resolve => setTimeout(resolve, 700));
-      assert(win.document.querySelectorAll('.nav-dropdown #main-mode-toggle').length === 1, query + ' mode survives script ordering/config refresh');
-      win.document.querySelector('#main-mode-toggle').click();
+      assert(win.document.querySelectorAll('.nav-dropdown [data-display-mode]').length === 3, query + ' modes survive script ordering/config refresh');
+      win.document.querySelector('[data-display-mode=light]').click();
       assert(win.AcidburnMode.getMode() === 'light', query + ' preserved mode listener');
     }
+    const reading = await load('index.html');
+    reading.AcidburnMode.setMode('bh');
+    reading.document.querySelector('#post-view').classList.add('active');
+    await pause();
+    assert(reading.document.querySelector('[data-display-mode=bh]').disabled, 'BH paused in reading view');
+    reading.document.querySelector('[data-display-mode=light]').click();
+    assert(reading.AcidburnMode.getMode() === 'bh' && reading.document.body.classList.contains('light-reading'), 'reading choice preserves background preference');
+    reading.document.querySelector('#post-view').classList.remove('active');
+    await pause();
+    assert(!reading.document.querySelector('[data-display-mode=bh]').disabled && reading.document.querySelector('[data-display-mode=bh]').getAttribute('aria-pressed') === 'true', 'BH restored after reading');
     frame.remove();
     return { passed: checks, pages: pages.length, sizes, modes: ['dark', 'light', 'bh'], fallbackScenarios: 5 };
   }
