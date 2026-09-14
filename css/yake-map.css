@@ -43,6 +43,7 @@ body:not(.bh-mode) .atlas-scene { background:#05050f; }
 .view-controls[hidden] { display:none!important; }
 .scene-controls .acidburn-button,.world-actions .acidburn-button { min-width:44px; min-height:44px; padding:4px 8px; }
 .scene-controls [data-scene-action=labels],.scene-controls #atlas-reset { margin-inline-start:var(--space-xs); }
+.scene-controls [data-scene-action=expand] { font-size:16px; letter-spacing:0; line-height:1; }
 .world-actions[hidden] { display:none!important; }
 /* World actions live in the card heading; the map footer remains stable. */
 .world-actions-slot { display:none; }

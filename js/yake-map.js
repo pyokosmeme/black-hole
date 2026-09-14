@@ -112,7 +112,7 @@
     document.querySelector('.atlas-chart').classList.remove('is-expanded');
     document.body.classList.remove('atlas-expanded');
     const button = mapActions.querySelector('[data-scene-action="expand"]');
-    if (button) { button.textContent = 'EXPAND'; button.setAttribute('aria-pressed','false'); }
+    if (button) { button.textContent = '⛶'; button.title = 'Expand to fullscreen'; button.setAttribute('aria-label','Expand to fullscreen'); button.setAttribute('aria-pressed','false'); }
   }
 
   function fallback() {
@@ -133,7 +133,7 @@
   }
 
   function init() {
-    field.innerHTML = '<div class="atlas-scene"><div class="scene-heading"><span>SYSTEM OVERVIEW</span><small>COMPRESSED DISTANCES · ILLUSTRATIVE SIZES</small></div><p class="scene-hint">DRAG: ORBIT · SCROLL / PINCH: ZOOM · DOUBLE-CLICK / TAP: FOCUS</p></div><div class="map-actions"><div class="scene-controls" role="group" aria-label="Map controls"><button class="acidburn-button" type="button" data-scene-action="home" title="Fit map">⌂<span class="atlas-sr"> Fit map</span></button><button class="acidburn-button" type="button" data-scene-action="in" aria-label="Zoom in">+</button><button class="acidburn-button" type="button" data-scene-action="out" aria-label="Zoom out">−</button><button class="acidburn-button" type="button" data-scene-action="labels" aria-pressed="true">LABELS</button><button class="acidburn-button" type="button" data-scene-action="expand" aria-pressed="false">EXPAND</button></div><div class="world-actions-slot" aria-hidden="true"></div></div>';
+    field.innerHTML = '<div class="atlas-scene"><div class="scene-heading"><span>SYSTEM OVERVIEW</span><small>COMPRESSED DISTANCES · ILLUSTRATIVE SIZES</small></div><p class="scene-hint">DRAG: ORBIT · SCROLL / PINCH: ZOOM · DOUBLE-CLICK / TAP: FOCUS</p></div><div class="map-actions"><div class="scene-controls" role="group" aria-label="Map controls"><button class="acidburn-button" type="button" data-scene-action="home" title="Fit map">⌂<span class="atlas-sr"> Fit map</span></button><button class="acidburn-button" type="button" data-scene-action="in" aria-label="Zoom in">+</button><button class="acidburn-button" type="button" data-scene-action="out" aria-label="Zoom out">−</button><button class="acidburn-button" type="button" data-scene-action="labels" aria-pressed="true">LABELS</button><button class="acidburn-button" type="button" data-scene-action="expand" aria-pressed="false" title="Expand to fullscreen" aria-label="Expand to fullscreen">⛶</button></div><div class="world-actions-slot" aria-hidden="true"></div></div>';
     mapActions = field.querySelector('.map-actions');
     field.after(mapActions);
     const group = mapActions.querySelector('.scene-controls');
@@ -182,7 +182,9 @@
       const expanded = document.querySelector('.atlas-chart').classList.toggle('is-expanded');
       document.body.classList.toggle('atlas-expanded',expanded);
       action.setAttribute('aria-pressed',expanded);
-      action.textContent = expanded ? 'COLLAPSE' : 'EXPAND';
+      action.textContent = '⛶';
+      action.title = expanded ? 'Collapse' : 'Expand to fullscreen';
+      action.setAttribute('aria-label',expanded ? 'Collapse' : 'Expand to fullscreen');
     }
   });
   field.addEventListener('keydown', event => {
