@@ -165,7 +165,7 @@
                 picker.className = 'mode-toggle mode-picker';
                 picker.innerHTML = `<span id="display-mode-label" class="mode-picker-label">Display</span>
                     <div class="mode-options" role="group" aria-labelledby="display-mode-label">
-                        ${['dark', 'light', 'bh'].map(mode => `<button type="button" class="acidburn-button" data-display-mode="${mode}" aria-label="${MODE_INFO[mode].label}" aria-pressed="false">${mode}</button>`).join('')}
+                        ${['dark', 'light', 'bh'].map(mode => `<button type="button" class="nav-link" data-display-mode="${mode}" aria-label="${MODE_INFO[mode].label}" aria-pressed="false"><span class="nav-link-label">${mode}</span></button>`).join('')}
                     </div>
                     <p class="mode-reading-note" hidden>BH is paused while reading.</p>`;
                 picker.querySelectorAll('[data-display-mode]').forEach(button => {
@@ -238,6 +238,7 @@
         document.querySelectorAll('[data-display-mode]').forEach(button => {
             const mode = button.dataset.displayMode;
             button.setAttribute('aria-pressed', mode === displayMode);
+            button.classList.toggle('active', mode === displayMode);
             button.disabled = isReading && mode === 'bh';
             button.title = button.disabled ? 'BH is paused while reading' : MODE_INFO[mode].title;
         });

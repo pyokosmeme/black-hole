@@ -548,41 +548,40 @@ body.light-mode .header-bar .header-stat-label {
     display: none;
 }
 
-/* Display preferences follow navigation and reuse the shared buttons. */
+/* Display preferences use the same links and selected state as navigation. */
 .nav-dropdown .mode-picker {
     display: block;
     width: 100%;
     height: auto;
     padding: 14px 20px;
-    border-top: 1px solid var(--purple);
+    border-top: 1px solid rgba(191, 0, 255, 0.2);
     font-size: 13px;
     letter-spacing: 1px;
 }
 
 .mode-picker-label {
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
+    opacity: 0.65;
     text-transform: uppercase;
 }
 
 .mode-options {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 6px;
+    gap: 0;
 }
 
-.mode-options .acidburn-button {
+.mode-options .nav-link {
     min-height: 44px;
     min-width: 0;
-    padding: 4px;
+    padding: 4px 8px;
+    border-bottom: 0;
+    border-left: 3px solid transparent;
     font-size: inherit;
     letter-spacing: inherit;
+    text-align: center;
     text-transform: uppercase;
-}
-
-.mode-options [aria-pressed="true"] {
-    border-color: currentColor;
-    box-shadow: inset 0 -3px 0 currentColor;
 }
 
 .mode-options button:focus-visible {
@@ -592,6 +591,7 @@ body.light-mode .header-bar .header-stat-label {
 
 .mode-options button:disabled {
     cursor: not-allowed;
+    opacity: 0.4;
 }
 
 .mode-reading-note {
