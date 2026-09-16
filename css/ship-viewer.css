@@ -23,7 +23,7 @@ body.ship-viewer.bh-mode #stage { background:rgba(5,5,15,.55); }
 .ship-selector-row select { flex:1; min-width:0; }
 .ship-selector-row .tx-sort-select,.ship-selector-row .acidburn-button { min-height:44px; }
 .ship-viewer #part-select { max-width:100%; min-height:44px; }
-.ship-viewer #part-detail { padding:var(--space-xs) var(--space-sm); font-size:var(--text-sm); max-height:64px; overflow:auto; flex:none; }
+.ship-viewer #part-detail { position:absolute; z-index:6; left:var(--space-sm); right:var(--space-sm); bottom:30px; padding:var(--space-xs) var(--space-sm); font-size:var(--text-sm); overflow:auto; background:rgba(5,5,15,.88); color:#e6f1ea; text-shadow:0 1px 2px #000; }
 .ship-viewer #part-detail[hidden],.ship-viewer #gbtns[hidden] { display:none; }
 .ship-viewer .ship-caption { position:absolute; inset:auto var(--space-sm) 4px; font-size:var(--text-xs); margin:0; color:#a8b9c9; pointer-events:none; }
 .ship-viewer #leaders line { stroke:currentColor; stroke-width:1; opacity:.45; }

@@ -69,7 +69,36 @@
       el.setAttribute('d',d+' Z');
     });
   }
-  function visible(l,on){l.el.hidden=!on;l.line.style.display=l.dot.style.display=on?'':'none';}
+  function visible(l,on){l.ta=on?1:0;}
+  function applyLabel(l){
+    if(l.cx===undefined)return;
+    l.el.style.transform=`translate(${Math.round(l.cx)}px,${Math.round(l.cy)}px)`;
+    l.el.style.opacity=l.alpha.toFixed(3);
+    l.el.style.pointerEvents=l.alpha>.5?'auto':'none';
+    l.line.style.opacity=(l.alpha*.55).toFixed(3);
+    l.dot.setAttribute('opacity',l.alpha.toFixed(3));
+    l.line.setAttribute('x1',l.kx.toFixed(1));l.line.setAttribute('y1',l.ky.toFixed(1));
+    l.line.setAttribute('x2',l.ex.toFixed(1));l.line.setAttribute('y2',l.ey.toFixed(1));
+    l.dot.setAttribute('cx',l.kx.toFixed(1));l.dot.setAttribute('cy',l.ky.toFixed(1));
+  }
+  let labelAnim=null;
+  function animateLabels(){
+    if(labelAnim!==null)return;
+    const step=()=>{
+      labelAnim=null;let maxd=0;
+      labels.forEach(l=>{
+        if(l.tx===undefined)return;
+        const e=.25;
+        maxd=Math.max(maxd,Math.abs(l.tx-l.cx),Math.abs(l.ty-l.cy),Math.abs(l.dx-l.kx),Math.abs(l.dy-l.ky),Math.abs(l.ta-l.alpha)*80);
+        l.cx+=(l.tx-l.cx)*e;l.cy+=(l.ty-l.cy)*e;
+        l.kx+=(l.dx-l.kx)*e;l.ky+=(l.dy-l.ky)*e;
+        l.alpha+=(l.ta-l.alpha)*.3;
+        applyLabel(l);
+      });
+      if(maxd>.6)labelAnim=requestAnimationFrame(step);
+    };
+    labelAnim=requestAnimationFrame(step);
+  }
   const decode=html=>{const text=document.createElement('textarea');text.innerHTML=html;return text.value;};
   const controls={bSpin:'spin',bOrbit:'orbit',bLab:'labels',bEva:'eva',bWire:'wire',bCut:'cut'};
   const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
@@ -126,10 +155,10 @@
       labels.forEach(l=>{
         const {start:a,end:b}=renderer.measure(catalog[l.part.id]);
         l.el.hidden=false;
-        const y=a?a.y-l.el.offsetHeight-12:-1;
+        const y=a?a.y-l.el.offsetHeight-12:-1;const fx=Math.min(a.x,w-l.el.offsetWidth-6);
         const fits=a&&b&&a.x>=6&&b.x<=w-6&&y>=6&&a.y<h-24;
-        visible(l,fits);if(!fits)return;
-        l.el.style.transform=`translate(${Math.min(a.x,w-l.el.offsetWidth-6)}px,${y}px)`;
+        l.el.hidden=!fits;l.line.style.display=l.dot.style.display=fits?'':'none';if(!fits)return;
+        l.el.style.transform=`translate(${fx}px,${y}px)`;
         l.line.setAttribute('x1',a.x);l.line.setAttribute('y1',a.y-8);l.line.setAttribute('x2',b.x);l.line.setAttribute('y2',b.y-8);
         l.dot.setAttribute('cx',a.x);l.dot.setAttribute('cy',a.y-8);
       });return;
@@ -138,28 +167,28 @@
     const order=[],reqs=[];
     labels.forEach((l,i)=>{
       const show=state.labels&&(l.part.t!=='SCALE FIGURE'||state.eva);
-      l.line.style.display=l.dot.style.display='none';
-      if(!show){l.el.hidden=true;return;}
-      l.el.hidden=false;
-      order.push(i);
+      if(!show){visible(l,false);return;}
+            order.push(i);
       reqs.push({part:l.part,prev:l.probe??-1,force:i===activePart});
     });
     const got=models.length?renderer.labelAnchors(models[0],state,reqs):[];
     const items=[],obstacles=[];
     order.forEach((i,k)=>{
       const l=labels[i],a=got?got[k]:null;
-      if(!a){l.el.hidden=true;return;}
+      if(!a){visible(l,false);return;}
       l.probe=a.probe;
       items.push({id:i,x:a.x,y:a.y,w:l.el.offsetWidth,h:l.el.offsetHeight,r:3,priority:i===activePart?2:0});
       obstacles.push({id:i,x:a.x,y:a.y,r:3});
     });
     const placed=new Map(SceneLabelLayout.layout(items,{x:6,y:8,w:w-12,h:h-$('view-caption').offsetHeight-20},obstacles).map(p=>[p.id,p]));
     labels.forEach((l,i)=>{
-      const p=placed.get(i);visible(l,!!p);if(!p)return;
-      l.el.style.transform=`translate(${p.box.x}px,${p.box.y}px)`;
-      l.line.setAttribute('x1',p.start.x);l.line.setAttribute('y1',p.start.y);l.line.setAttribute('x2',p.end.x);l.line.setAttribute('y2',p.end.y);
-      l.dot.setAttribute('cx',p.start.x);l.dot.setAttribute('cy',p.start.y);
+      const p=placed.get(i);
+      if(!p){visible(l,false);return;}
+      l.tx=p.box.x;l.ty=p.box.y;l.dx=p.start.x;l.dy=p.start.y;l.ex=p.end.x;l.ey=p.end.y;l.ta=1;
+      if(l.cx===undefined){l.cx=l.tx;l.cy=l.ty;l.kx=l.dx;l.ky=l.dy;l.alpha=0;}
+      applyLabel(l);
     });
+    animateLabels();
   }
   function draw() {
     if(frame!==null||!renderer||!models.length||document.hidden)return;

@@ -120,7 +120,7 @@ function create(canvas) {
       comparisonHeight=worldWidth/aspect;
       vp=mul(ortho(worldWidth/2,worldWidth/aspect/2),lookAt([96,-500,0],[96,0,0],[0,0,1]));
     }else{
-      const cfg=models[0].cfg,dist=cfg.distance*Math.max(1,1/aspect)/state.zoom,ce=Math.cos(state.el);
+      const cfg=models[0].cfg,dist=cfg.distance*0.78*Math.max(1,1/aspect)/state.zoom,ce=Math.cos(state.el);
       const eye=[cfg.target+dist*Math.cos(state.az)*ce,dist*Math.sin(state.az)*ce,dist*Math.sin(state.el)];eyeWorld=eye;
       vp=mul(persp(38*Math.PI/180,aspect,.1,10000),lookAt(eye,[cfg.target,0,0],[0,0,1]));
     }
