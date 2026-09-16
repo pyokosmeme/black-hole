@@ -7,7 +7,7 @@ body.ship-viewer.bh-mode #stage { background:rgba(5,5,15,.55); }
 .ship-viewer #scene:focus-visible { outline:2px solid var(--cyan); outline-offset:-3px; }
 .ship-viewer #labels { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
 .ship-viewer #labels svg { position:absolute; inset:0; width:100%; height:100%; }
-.ship-viewer .lab { position:absolute; white-space:nowrap; font:inherit; font-size:var(--text-sm); color:inherit; background:rgba(5,5,15,.86); border:0; padding:5px 7px; text-align:left; text-transform:uppercase; cursor:pointer; pointer-events:auto; max-width:calc(100% - 16px); overflow:hidden; text-overflow:ellipsis; }
+.ship-viewer .lab { position:absolute; white-space:nowrap; font:inherit; font-size:var(--text-xs); color:#e6f1ea; background:none; border:0; padding:2px 3px; text-align:left; text-transform:uppercase; letter-spacing:.05em; cursor:pointer; pointer-events:auto; max-width:calc(100% - 16px); overflow:hidden; text-overflow:ellipsis; text-shadow:0 1px 2px #000,0 0 9px rgba(0,0,0,.95),0 0 3px rgba(0,0,0,.9); }
 .ship-viewer .lab:hover,.ship-viewer .lab:focus-visible,.ship-viewer .lab[aria-pressed=true] { outline:1px solid currentColor; outline-offset:1px; }
 .ship-viewer #labels,.ship-viewer #labels * { transition:none; }
 .ship-viewer .ship-info,.ship-viewer #hud { flex:none; padding:var(--space-xs) var(--space-sm); max-height:35%; overflow:auto; }
@@ -26,7 +26,8 @@ body.ship-viewer.bh-mode #stage { background:rgba(5,5,15,.55); }
 .ship-viewer #part-detail { padding:var(--space-xs) var(--space-sm); font-size:var(--text-sm); max-height:64px; overflow:auto; flex:none; }
 .ship-viewer #part-detail[hidden],.ship-viewer #gbtns[hidden] { display:none; }
 .ship-viewer .ship-caption { position:absolute; inset:auto var(--space-sm) 4px; font-size:var(--text-xs); margin:0; color:#a8b9c9; pointer-events:none; }
-.ship-viewer #leaders line { stroke:currentColor; stroke-width:1; opacity:.7; }
+.ship-viewer #leaders line { stroke:currentColor; stroke-width:1; opacity:.45; }
+.ship-viewer #leaders path { opacity:.8; }
 .ship-viewer #leaders circle { fill:currentColor; }
 .ship-viewer .comparison-label { position:absolute; font-size:var(--text-sm); color:inherit; white-space:nowrap; }
 .ship-comparison { width:100%; border-collapse:collapse; font-size:var(--text-sm); }

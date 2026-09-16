@@ -28,10 +28,10 @@
     },
     {
       "id": "ship-viewer",
-      "label": "Ship Viewer — El Cajon & Hackett",
+      "label": "Ex Astris Umbra — Spacecraft Viewer",
       "url": "ship-viewer.html",
       "icon": "",
-      "desc": "Explore both ships, inspect their components, and compare models and specifications at the same scale."
+      "desc": "Ex Astris Umbra hull charts — El Cajon and Hackett now, more spacecraft to come. Drag to orbit; compare at true scale."
     }
   ],
 

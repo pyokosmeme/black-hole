@@ -35,7 +35,7 @@ body:not(.bh-mode) .atlas-scene { background:#05050f; }
 .scene-label,.scene-leaders,.scene-leaders * { transition:none; }
 /* World labels are the explicit exception: translucent plates without box accents.
  * These are canvas annotations, not replacement site buttons. */
-.scene-label { position:absolute; left:0; top:0; pointer-events:auto; white-space:nowrap; color:#ddd8e9; background:rgba(11,11,20,.72); border:0; border-radius:0; font-family:inherit; font-size:var(--text-sm); padding:6px 8px; min-height:30px; max-width:calc(100% - 8px); box-shadow:none; outline:none; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+.scene-label { position:absolute; left:0; top:0; pointer-events:auto; white-space:nowrap; color:#ddd8e9; background:none; border:0; border-radius:0; font-family:inherit; font-size:var(--text-xs); padding:2px 3px; max-width:calc(100% - 8px); box-shadow:none; outline:none; cursor:pointer; letter-spacing:.04em; text-shadow:0 1px 2px #000,0 0 9px rgba(0,0,0,.95),0 0 3px rgba(0,0,0,.9); -webkit-tap-highlight-color:transparent; }
 .scene-label[aria-pressed=true] { color:#ff83cd; }
 .scene-label:hover,.scene-label:focus-visible { color:var(--cyan); }
 .scene-label:focus-visible { outline:none; text-decoration:underline; text-underline-offset:4px; }

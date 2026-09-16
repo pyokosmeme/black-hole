@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#000000">
-  <title>Ship Viewer — Possible Territories</title>
-  <meta name="description" content="Explore El Cajon and Hackett, inspect their components and compare both ships at the same scale.">
+  <title>Ex Astris Umbra — Spacecraft Viewer · Possible Territories</title>
+  <meta name="description" content="Ex Astris Umbra spacecraft charts: inspect El Cajon and Hackett, compare at the same scale; more hulls to come.">
   <link rel="icon" href="img/favicon.ico">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -39,7 +39,7 @@
   </header>
   <main id="main" class="main-content map-window-shell">
     <section class="author-card map-window" data-map-window aria-labelledby="chart-title">
-      <div class="section-header window-toolbar"><h2 id="chart-title">SHIP VIEWER</h2><div class="section-line"></div><div class="window-actions" role="group" aria-label="Window controls">
+      <div class="section-header window-toolbar"><h2 id="chart-title">SPACECRAFT VIEWER</h2><div class="section-line"></div><div class="window-actions" role="group" aria-label="Window controls">
   <button class="acidburn-button" type="button" data-window-expand aria-pressed="false" aria-label="Expand window" title="Expand window">
     <svg class="expand-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/></svg>
     <svg class="collapse-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9h6V3m6 0v6h6M9 21v-6H3m18 0h-6v6"/></svg>
@@ -54,7 +54,7 @@
         <button id="compare-ships" class="acidburn-button" type="button" aria-pressed="false">Compare ships</button>
       </div>
       <details class="ship-info"><summary class="post-date">Specifications</summary><div id="ship-specs"><p>El Cajon · 62.90 m / Hackett · 194.10 m</p></div></details>
-      <div id="stage">
+      <div id="stage"><canvas id="stars" aria-hidden="true"></canvas>
         <canvas id="scene" tabindex="0" role="img" aria-label="Ship model. Drag or use arrow keys to orbit; scroll, pinch or use plus and minus to zoom."></canvas>
         <div id="labels"><svg id="leaders" aria-hidden="true"></svg></div>
         <p id="view-caption" class="ship-caption">Drag to orbit · scroll / pinch to zoom</p>

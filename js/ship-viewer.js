@@ -6,6 +6,69 @@
   let state=defaults(),id='el-cajon',models=[],renderer,request=0,frame=null,last=0,activePart=-1,singleState=null;
   const memory=new Map(),svgNS='http://www.w3.org/2000/svg';
   let labels=[];
+  /* starfield backdrop, ported from the original standalone viewers */
+  const starsCanvas=document.getElementById('stars');
+  let stars=[];
+  function drawStars(){
+    if(!starsCanvas)return;
+    const dpr=Math.min(devicePixelRatio||1,2),w=stage.clientWidth*dpr,h=stage.clientHeight*dpr;
+    if(!w||!h)return;
+    const ctx=starsCanvas.getContext('2d');
+    starsCanvas.width=w;starsCanvas.height=h;
+    ctx.clearRect(0,0,w,h);ctx.fillStyle='#000';ctx.fillRect(0,0,w,h);
+    for(let i=0;i<stars.length;i++){const st=stars[i];
+      const b=40+215*st.m,r=(0.5+1.4*st.m)*dpr;
+      const tint=st.t<0.10?'rgba('+b+','+(b*0.94)+','+(b*0.78)+',':st.t>0.90?'rgba('+(b*0.80)+','+(b*0.92)+','+b+',':'rgba('+b+','+b+','+b+',';
+      ctx.fillStyle=tint+'1)';
+      ctx.beginPath();ctx.arc(st.x*w,st.y*h,r,0,6.2832);ctx.fill();
+    }
+  }
+  function seedStars(){
+    stars=[];const n=Math.round((stage.clientWidth*stage.clientHeight)/2600);
+    for(let i=0;i<n;i++)stars.push({x:Math.random(),y:Math.random(),m:Math.pow(Math.random(),2.1),t:Math.random()});
+    drawStars();
+  }
+  /* crescent spin-direction rings, ported from the original viewers */
+  let ringEls=null;
+  function initRings(){
+    if(ringEls)return;
+    const svg=$('leaders');ringEls=[0,1].map(()=>{
+      const p=document.createElementNS(svgNS,'path');
+      p.setAttribute('fill','#3ECC8F');p.setAttribute('opacity','.85');
+      p.setAttribute('stroke','#3ECC8F');p.setAttribute('stroke-width','1');
+      p.setAttribute('stroke-linejoin','round');
+      svg.insertBefore(p,svg.firstChild);return p;
+    });
+  }
+  function clearRings(){initRings();ringEls.forEach(el=>el.setAttribute('d',''));}
+  function drawRings(){
+    initRings();
+    const cfg=catalog[id],rings=cfg.rings||[];
+    const stopped=!(state.spin&&(state.rpm??cfg.rpm)>0);
+    ringEls.forEach((el,i)=>{
+      const R2=rings[i];
+      if(!R2||!stopped||state.compare){el.setAttribute('d','');return;}
+      const N=40,span=232*Math.PI/180,lead=(state.phase+2.1)*R2.dir;
+      const proj=(x,y,z)=>{const p=renderer.project([x,y,z]);return p?[p.x,p.y]:null;};
+      let ok=true;const outer=[],inner=[];
+      for(let k=0;k<=N;k++){
+        const f=k/N,t=lead-span*R2.dir*(1.0-f);
+        const wd=1.0-0.45*f,rm=(R2.ri+R2.ro)/2,hw=(R2.ro-R2.ri)/2*wd;
+        const qo=proj(R2.x,(rm+hw)*Math.cos(t),(rm+hw)*Math.sin(t)),qi=proj(R2.x,(rm-hw)*Math.cos(t),(rm-hw)*Math.sin(t));
+        if(!qo||!qi){ok=false;break;}
+        outer.push(qo);inner.push(qi);
+      }
+      if(!ok){el.setAttribute('d','');return;}
+      const th=lead,rm2=(R2.ri+R2.ro)/2,flare=(R2.ro-R2.ri)*0.95,tipT=th+18*Math.PI/180*R2.dir;
+      const pTip=proj(R2.x,rm2*Math.cos(tipT),rm2*Math.sin(tipT)),pOut=proj(R2.x,(rm2+flare)*Math.cos(th),(rm2+flare)*Math.sin(th)),pIn=proj(R2.x,(rm2-flare)*Math.cos(th),(rm2-flare)*Math.sin(th));
+      if(!pTip||!pOut||!pIn){el.setAttribute('d','');return;}
+      let d='M'+outer[0][0].toFixed(1)+','+outer[0][1].toFixed(1);
+      for(let k=1;k<outer.length;k++)d+=' L'+outer[k][0].toFixed(1)+','+outer[k][1].toFixed(1);
+      d+=' L'+pOut[0].toFixed(1)+','+pOut[1].toFixed(1)+' L'+pTip[0].toFixed(1)+','+pTip[1].toFixed(1)+' L'+pIn[0].toFixed(1)+','+pIn[1].toFixed(1);
+      for(let k=inner.length-1;k>=0;k--)d+=' L'+inner[k][0].toFixed(1)+','+inner[k][1].toFixed(1);
+      el.setAttribute('d',d+' Z');
+    });
+  }
   function visible(l,on){l.el.hidden=!on;l.line.style.display=l.dot.style.display=on?'':'none';}
   const decode=html=>{const text=document.createElement('textarea');text.innerHTML=html;return text.value;};
   const controls={bSpin:'spin',bOrbit:'orbit',bLab:'labels',bEva:'eva',bWire:'wire',bCut:'cut'};
@@ -53,13 +116,13 @@
       const el=document.createElement(state.compare?'span':'button');el.className=state.compare?'comparison-label':'lab';el.textContent=decode(part.t);
       if(!state.compare){el.type='button';el.setAttribute('aria-pressed','false');el.title=decode(part.s);el.addEventListener('click',()=>selectPart(index));$('part-select').add(new Option(decode(part.t),String(index)));}
       const line=document.createElementNS(svgNS,'line');line.dataset.part=index;
-      const dot=document.createElementNS(svgNS,'circle');dot.setAttribute('r','2.5');
+      const dot=document.createElementNS(svgNS,'circle');dot.setAttribute('r','2');
       $('labels').appendChild(el);$('leaders').append(line,dot);labels.push({el,line,dot,part,probe:-1});
     });
   }
   function drawLabels() {
     const w=stage.clientWidth,h=stage.clientHeight;$('leaders').setAttribute('viewBox',`0 0 ${w} ${h}`);
-    if(state.compare){
+    if(state.compare){clearRings();
       labels.forEach(l=>{
         const {start:a,end:b}=renderer.measure(catalog[l.part.id]);
         l.el.hidden=false;
@@ -71,6 +134,7 @@
         l.dot.setAttribute('cx',a.x);l.dot.setAttribute('cy',a.y-8);
       });return;
     }
+    drawRings();
     const order=[],reqs=[];
     labels.forEach((l,i)=>{
       const show=state.labels&&(l.part.t!=='SCALE FIGURE'||state.eva);
@@ -155,9 +219,9 @@
   });
   for(const type of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(type,event=>pointers.delete(event.pointerId));
   canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();++request;models=[];renderer=null;$('err').textContent='3D context was interrupted. Reload the page to restore it.';$('err').style.display='grid';sync();});
-  new ResizeObserver(draw).observe(stage);document.fonts.ready.then(draw);
+  new ResizeObserver(()=>{seedStars();draw();}).observe(stage);document.fonts.ready.then(draw);
   document.addEventListener('visibilitychange',draw);
   function fromLocation(){const params=new URLSearchParams(location.search);id=catalog[params.get('ship')]?params.get('ship'):'el-cajon';state=defaults();singleState=null;if(params.get('compare')==='1'){singleState=defaults();state.compare=true;}$('ship-select').value=id;load();}
   addEventListener('popstate',fromLocation);
-  $('hud').open=innerHeight>600;fromLocation();
+  $('hud').open=innerHeight>600;seedStars();fromLocation();
 })();
