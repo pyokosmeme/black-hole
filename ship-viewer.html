@@ -57,12 +57,10 @@
       <div id="stage"><canvas id="stars" aria-hidden="true"></canvas>
         <canvas id="scene" tabindex="0" role="img" aria-label="Ship model. Drag or use arrow keys to orbit; scroll, pinch or use plus and minus to zoom."></canvas>
         <div id="labels"><svg id="leaders" aria-hidden="true"></svg></div>
-        <div id="part-detail" role="status" hidden></div>
         <p id="view-caption" class="ship-caption">Drag to orbit · scroll / pinch to zoom</p>
         <div id="err" role="status">Loading ship…</div>
       </div>
-      <div id="part-detail" role="status" hidden></div>
-      <details id="hud"><summary class="post-date">View controls &amp; parts</summary>
+      <details id="hud"><summary class="post-date">View controls</summary>
         <div class="row" id="gbtns"></div>
         <div class="row">
           <button type="button" id="bSpin" class="acidburn-button" aria-pressed="false">Spin</button>
@@ -74,8 +72,7 @@
           <button type="button" id="bReset" class="acidburn-button">Reset view</button>
         </div>
         <div id="readout"></div>
-        <label for="part-select">Inspect part</label><select id="part-select" class="tx-sort-select"><option value="">Choose a part</option></select>
-      </details>
+              </details>
     </section>
     <noscript>This interactive schematic needs JavaScript. Ship specifications remain available above.</noscript>
   </main>

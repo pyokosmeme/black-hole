@@ -125,10 +125,30 @@ body.yake-atlas.light-mode .scene-card { background:rgba(253,250,245,.94); }
  * the close button dismisses the window without leaving the atlas. */
 .atlas-scene.moon-window {
   margin: var(--space-md);
-  border: 2px solid transparent;
-  border-image: linear-gradient(135deg, var(--cyan), var(--purple)) 1;
-  box-shadow: 0 0 calc(28px * var(--glow-intensity)) rgba(0,255,255,.16), 0 0 10px rgba(191,0,255,.25);
+  border: 1px solid rgba(0,255,255,.34);
+  outline: 1px solid rgba(191,0,255,.20);
+  outline-offset: 3px;
+  background: rgba(3,3,10,.35);
+  box-shadow: 0 18px 44px rgba(0,0,0,.55), 0 4px 14px rgba(0,0,0,.4), 0 0 calc(18px * var(--glow-intensity)) rgba(0,255,255,.10);
 }
+
+/* Scene loading spinner: shown while the WebGL chart initializes. */
+.scene-loading {
+  position:absolute; inset:0; z-index:4; display:grid; place-items:center;
+  pointer-events:none; background:transparent;
+}
+.scene-loading::before {
+  content:''; width:44px; height:44px; border-radius:50%;
+  border:3px solid rgba(0,255,255,.18); border-top-color:var(--cyan);
+  animation:scene-spin .9s linear infinite;
+}
+.scene-loading::after {
+  content:'LOADING'; position:absolute; margin-top:74px;
+  font-family:'Share Tech Mono',monospace; font-size:var(--text-xs);
+  letter-spacing:.3em; color:var(--cyan); opacity:.8;
+}
+@keyframes scene-spin { to { transform:rotate(360deg); } }
+.scene-loading[hidden] { display:none; }
 .moon-close {
   pointer-events: auto;
   min-width: 44px;

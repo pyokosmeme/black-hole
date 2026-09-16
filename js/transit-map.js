@@ -1432,8 +1432,30 @@
             if (hits.length) addStationToRoute(hits[0].object.userData.name);
         });
 
+        // Fit the initial view to the whole network so nothing loads clipped
+        // or bunched in a corner: center on the stations, back off to enclose
+        // every sphere at the camera's 55-degree field of view.
+        const fitCenter = new THREE.Vector3();
+        const fitMin = new THREE.Vector3(1e9, 1e9, 1e9);
+        const fitMax = new THREE.Vector3(-1e9, -1e9, -1e9);
+        Object.keys(pos).forEach(function(name) {
+            fitMin.min(pos[name]);
+            fitMax.max(pos[name]);
+        });
+        fitCenter.copy(fitMin).add(fitMax).multiplyScalar(0.5);
+        let fitRadius = 0;
+        Object.keys(pos).forEach(function(name) {
+            fitRadius = Math.max(fitRadius, pos[name].distanceTo(fitCenter));
+        });
+        controls.target.copy(fitCenter);
+        controls.radius = Math.max(150, fitRadius / Math.sin(27.5 * Math.PI / 180) * 1.12);
+        controls.theta = Math.PI * 0.25;
+        controls.phi = Math.PI * 0.42;
+        controls.positionCamera();
+
         t3 = {
             active: false,
+            labelEase: {},
             wrap: wrap, canvas: canvas,
             renderer: renderer, scene: scene, camera: camera, controls: controls,
             meshObjs: meshObjs, haloObjs: haloObjs, lineObjs: lineObjs, glowObjs: glowObjs,
@@ -1466,7 +1488,10 @@
 
         t3.renderer.render(t3.scene, t3.camera);
 
-        // Project labels
+        // Project labels, then declutter them in screen space so names never
+        // stack on the crowded Sol neighbourhood. Targets are eased per frame
+        // so orbiting moves labels smoothly instead of snapping.
+        const projected = [];
         Object.keys(t3.labelEls).forEach(function(name) {
             const el = t3.labelEls[name];
             t3.tmp.copy(t3.pos[name]);
@@ -1476,11 +1501,42 @@
                 return;
             }
             el.style.display = 'block';
-            const sx = (t3.tmp.x * 0.5 + 0.5) * t3.width;
-            const sy = (-t3.tmp.y * 0.5 + 0.5) * t3.height;
+            projected.push({
+                name: name,
+                x: (t3.tmp.x * 0.5 + 0.5) * t3.width,
+                y: (-t3.tmp.y * 0.5 + 0.5) * t3.height
+            });
+        });
+        const placedNames = {};
+        if (projected.length) {
+            const bounds = {x: 8, y: 8, w: t3.width - 16, h: t3.height - 16};
+            if (window.SceneLabelLayout) {
+                const measured = projected.map(function(p) {
+                    const el = t3.labelEls[p.name];
+                    return {id: p.name, x: p.x, y: p.y, w: el.offsetWidth || 70, h: el.offsetHeight || 20};
+                });
+                const anchors = measured.map(function(m) { return {id: m.id, x: m.x, y: m.y, r: 3}; });
+                window.SceneLabelLayout.layout(measured, bounds, anchors).forEach(function(p) {
+                    placedNames[p.id] = p.box;
+                });
+            } else {
+                projected.forEach(function(p) {
+                    const el = t3.labelEls[p.name];
+                    placedNames[p.name] = {x: p.x - (el.offsetWidth || 70) / 2, y: p.y - 26};
+                });
+            }
+        }
+        Object.keys(t3.labelEls).forEach(function(name) {
+            const el = t3.labelEls[name];
+            const box = placedNames[name];
+            if (!box) { el.style.display = 'none'; return; }
             const dist = t3.camera.position.distanceTo(t3.pos[name]);
-            el.style.transform = 'translate(' + sx.toFixed(1) + 'px,' + sy.toFixed(1) + 'px) translate(-50%,-130%)';
-            el.style.opacity = Math.max(0.35, Math.min(1, 1.7 - dist / 600)).toFixed(2);
+            const cur = t3.labelEase[name] || (t3.labelEase[name] = {x: box.x, y: box.y, a: 0});
+            cur.x += (box.x - cur.x) * 0.3;
+            cur.y += (box.y - cur.y) * 0.3;
+            cur.a += (1 - cur.a) * 0.3;
+            el.style.transform = 'translate(' + cur.x.toFixed(1) + 'px,' + cur.y.toFixed(1) + 'px)';
+            el.style.opacity = (Math.max(0.35, Math.min(1, 1.7 - dist / 600)) * cur.a).toFixed(2);
         });
     }
 

@@ -3,7 +3,7 @@
   'use strict';
   const $=id=>document.getElementById(id),catalog=window.ShipCatalog,canvas=$('scene'),stage=$('stage');
   const defaults=()=>({az:126*Math.PI/180,el:20*Math.PI/180,zoom:1,phase:0,spin:false,orbit:false,labels:true,eva:true,wire:false,cut:false,compare:false});
-  let state=defaults(),id='el-cajon',models=[],renderer,request=0,frame=null,last=0,activePart=-1,singleState=null;
+  let state=defaults(),id='el-cajon',models=[],renderer,request=0,frame=null,last=0,singleState=null;
   const memory=new Map(),svgNS='http://www.w3.org/2000/svg';
   let labels=[];
   /* starfield backdrop, ported from the original standalone viewers */
@@ -110,7 +110,6 @@
     $('compare-ships').setAttribute('aria-pressed',String(state.compare));
     $('compare-ships').textContent=state.compare?'Exit comparison':'Compare ships';
     $('view-caption').textContent=state.compare?'SAME SCALE · SIDE ELEVATION':'DRAG / ARROWS: ORBIT · SCROLL / PINCH / + −: ZOOM';
-    $('part-select').disabled=state.compare;
     $('gbtns').hidden=state.compare;
     if(state.compare) $('readout').textContent='Hackett is '+(catalog.hackett.length/catalog['el-cajon'].length).toFixed(2)+'× as long. Both models use the same metre scale.';
     else {
@@ -129,21 +128,12 @@
     const rows=[['Length','length',' m',2],['Radiator span','span',' m',2],['Dry mass','dry',' t',0],['Cargo capacity','cargo',' t',0],['Cargo volume','volume',' m³',1],['Accommodation','berths','',null]];
     $('ship-specs').innerHTML='<table class="ship-comparison"><caption>Supplied ship specifications</caption><thead><tr><th scope="col">Measure</th><th scope="col">El Cajon</th><th scope="col">Hackett</th></tr></thead><tbody>'+rows.map(([label,key,unit,digits])=>'<tr><th scope="row">'+label+'</th>'+['el-cajon','hackett'].map(k=>'<td>'+(digits===null?catalog[k][key]:catalog[k][key].toLocaleString('en-US',{minimumFractionDigits:digits,maximumFractionDigits:digits}))+unit+'</td>').join('')+'</tr>').join('')+'</tbody></table>';
   }
-  function selectPart(index) {
-    activePart=index;$('part-select').value=index<0?'':String(index);
-    const part=catalog[id].labels[index];
-    $('part-detail').hidden=!part;
-    $('part-detail').textContent=part?decode(part.t)+' — '+decode(part.s):'';
-    labels.forEach((l,i)=>l.el.setAttribute('aria-pressed',String(i===index)));
-    draw();
-  }
   function createLabels() {
-    $('labels').querySelectorAll('.lab,.comparison-label').forEach(e=>e.remove());$('leaders').replaceChildren();labels=[];selectPart(-1);
-    $('part-select').replaceChildren(new Option('Choose a part',''));
+    $('labels').querySelectorAll('.lab,.comparison-label').forEach(e=>e.remove());$('leaders').replaceChildren();labels=[];
     const entries=state.compare?['el-cajon','hackett'].map(k=>({t:(k==='el-cajon'?'El Cajon':'Hackett')+' · '+catalog[k].length.toFixed(2)+' m',id:k})):catalog[id].labels;
     entries.forEach((part,index)=>{
-      const el=document.createElement(state.compare?'span':'button');el.className=state.compare?'comparison-label':'lab';el.textContent=decode(part.t);
-      if(!state.compare){el.type='button';el.setAttribute('aria-pressed','false');el.title=decode(part.s);el.addEventListener('click',()=>selectPart(index));$('part-select').add(new Option(decode(part.t),String(index)));}
+      const el=document.createElement('span');el.className=state.compare?'comparison-label':'lab';el.textContent=decode(part.t);
+      if(!state.compare)el.title=decode(part.s);
       const line=document.createElementNS(svgNS,'line');line.dataset.part=index;
       const dot=document.createElementNS(svgNS,'circle');dot.setAttribute('r','2');
       $('labels').appendChild(el);$('leaders').append(line,dot);labels.push({el,line,dot,part,probe:-1});
@@ -169,7 +159,7 @@
       const show=state.labels&&(l.part.t!=='SCALE FIGURE'||state.eva);
       if(!show){visible(l,false);return;}
             order.push(i);
-      reqs.push({part:l.part,prev:l.probe??-1,force:i===activePart});
+      reqs.push({part:l.part,prev:l.probe??-1});
     });
     const got=models.length?renderer.labelAnchors(models[0],state,reqs):[];
     const items=[],obstacles=[];
@@ -177,7 +167,7 @@
       const l=labels[i],a=got?got[k]:null;
       if(!a){visible(l,false);return;}
       l.probe=a.probe;
-      items.push({id:i,x:a.x,y:a.y,w:l.el.offsetWidth,h:l.el.offsetHeight,r:3,priority:i===activePart?2:0});
+      items.push({id:i,x:a.x,y:a.y,w:l.el.offsetWidth,h:l.el.offsetHeight,r:3});
       obstacles.push({id:i,x:a.x,y:a.y,r:3});
     });
     const placed=new Map(SceneLabelLayout.layout(items,{x:6,y:8,w:w-12,h:h-$('view-caption').offsetHeight-20},obstacles).map(p=>[p.id,p]));
@@ -217,7 +207,7 @@
   }
   function choose(next) {
     memory.set(id,state.compare?singleState:state);id=next;state={...(memory.get(id)||defaults())};singleState=null;
-    $('ship-select').value=id;document.title=catalog[id].name+' — Ship Viewer';writeLocation();load();
+    $('ship-select').value=id;document.title=catalog[id].name+' · Spacecraft View';writeLocation();load();
   }
   $('ship-select').addEventListener('change',()=>choose($('ship-select').value));
   $('compare-ships').addEventListener('click',()=>{
@@ -225,9 +215,8 @@
     else{singleState={...state};state={...defaults(),compare:true};}
     writeLocation();load();
   });
-  $('part-select').addEventListener('change',()=>selectPart($('part-select').value===''?-1:Number($('part-select').value)));
   for(const [button,key] of Object.entries(controls))$(button).addEventListener('click',()=>{state[key]=!state[key];sync();draw();});
-  $('bReset').addEventListener('click',()=>{state.az=defaults().az;state.el=defaults().el;state.zoom=1;selectPart(-1);if(!models.length)load();else draw();});
+  $('bReset').addEventListener('click',()=>{state.az=defaults().az;state.el=defaults().el;state.zoom=1;if(!models.length)load();else draw();});
   reducedMotion.addEventListener('change',e=>{if(e.matches){state.spin=state.orbit=false;sync();draw();}});
   canvas.addEventListener('keydown',event=>{
     const key=event.key;if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','=','-'].includes(key))return;event.preventDefault();
@@ -252,5 +241,5 @@
   document.addEventListener('visibilitychange',draw);
   function fromLocation(){const params=new URLSearchParams(location.search);id=catalog[params.get('ship')]?params.get('ship'):'el-cajon';state=defaults();singleState=null;if(params.get('compare')==='1'){singleState=defaults();state.compare=true;}$('ship-select').value=id;load();}
   addEventListener('popstate',fromLocation);
-  $('hud').open=innerHeight>600;seedStars();fromLocation();
+  $('hud').open=false;seedStars();fromLocation();
 })();

@@ -933,11 +933,54 @@ body:not(.transit-page) #map-container::before {
     stroke-width: 5;
 }
 
-/* Keep the whole subway diagram visible in the windowed page: letterbox the
-   viewBox into the available height instead of crowding out the planner. */
+/* Windowed page: the diagram is the star. The subway map letterboxes into a
+   wide 8/5 canvas and the planner collapses to a compact strip below it. */
+.transit-window #map-container.mode-subway:not(.mode-3d) {
+    aspect-ratio: 8 / 5;
+    min-height: 0;
+}
+
 .transit-window #map-container.mode-subway:not(.mode-3d) #transit-map {
     height: 100%;
     aspect-ratio: auto;
+}
+
+/* The faction legend sits on top of station labels in the windowed 2D maps;
+ * colors are redundant there, so drop it outside 3D. */
+.transit-window #map-container:not(.mode-3d) .legend {
+    display: none;
+}
+
+/* Compact planner: header, priority buttons and route list in a short strip
+ * with its own scroll, so the map keeps most of the window. */
+.transit-window .route-planner {
+    max-height: 250px;
+}
+
+.transit-window .planner-header {
+    padding: 12px 16px 8px;
+}
+
+.transit-window .route-priority {
+    padding: 10px 16px 8px;
+}
+
+.transit-window .route-priority-btn {
+    min-height: 40px;
+    padding: 4px 6px;
+}
+
+.transit-window #route-content {
+    padding: 12px 16px;
+}
+
+.transit-window .empty-state {
+    padding: 16px 12px;
+}
+
+.transit-window .empty-state-icon {
+    font-size: 28px;
+    margin-bottom: 6px;
 }
 
 #map-container.mode-subway:not(.mode-3d) .station-circle.sol-station {
@@ -1026,6 +1069,10 @@ body:not(.transit-page) #map-container::before {
 .subway-lane-label-swi { fill: var(--swi); }
 
 @media (max-width: 768px) {
+    .transit-window #map-container.mode-subway:not(.mode-3d) {
+        aspect-ratio: 12 / 29;
+    }
+
     #map-container.mode-subway:not(.mode-3d) #transit-map {
         aspect-ratio: 12 / 29;
         min-height: 0;

@@ -7,8 +7,8 @@ body.ship-viewer.bh-mode #stage { background:rgba(5,5,15,.55); }
 .ship-viewer #scene:focus-visible { outline:2px solid var(--cyan); outline-offset:-3px; }
 .ship-viewer #labels { position:absolute; inset:0; pointer-events:none; overflow:hidden; }
 .ship-viewer #labels svg { position:absolute; inset:0; width:100%; height:100%; }
-.ship-viewer .lab { position:absolute; white-space:nowrap; font:inherit; font-size:var(--text-xs); color:#fff; background:none; border:0; padding:2px 3px; text-align:left; text-transform:uppercase; letter-spacing:.05em; cursor:pointer; pointer-events:auto; max-width:calc(100% - 16px); overflow:hidden; text-overflow:ellipsis; text-shadow:0 0 2px #000,0 0 2px #000,0 0 5px #000,0 1px 3px #000,0 0 14px rgba(0,0,0,.9); }
-.ship-viewer .lab:hover,.ship-viewer .lab:focus-visible,.ship-viewer .lab[aria-pressed=true] { outline:1px solid currentColor; outline-offset:1px; }
+.ship-viewer .lab { position:absolute; white-space:nowrap; font:inherit; font-size:var(--text-xs); color:#fff; background:none; border:0; padding:2px 3px; text-align:left; text-transform:uppercase; letter-spacing:.05em; pointer-events:auto; max-width:calc(100% - 16px); overflow:hidden; cursor:default; text-overflow:ellipsis; text-shadow:0 0 2px #000,0 0 2px #000,0 0 5px #000,0 1px 3px #000,0 0 14px rgba(0,0,0,.9); }
+.ship-viewer .lab:hover,.ship-viewer .lab:focus-visible { outline:1px solid currentColor; outline-offset:1px; }
 .ship-viewer #labels,.ship-viewer #labels * { transition:none; }
 .ship-viewer .ship-info,.ship-viewer #hud { flex:none; padding:var(--space-xs) var(--space-sm); max-height:35%; overflow:auto; }
 .ship-viewer summary { cursor:pointer; min-height:32px; display:list-item; }
@@ -22,9 +22,7 @@ body.ship-viewer.bh-mode #stage { background:rgba(5,5,15,.55); }
 .ship-selector-row label { font-size:var(--text-sm); }
 .ship-selector-row select { flex:1; min-width:0; }
 .ship-selector-row .tx-sort-select,.ship-selector-row .acidburn-button { min-height:44px; }
-.ship-viewer #part-select { max-width:100%; min-height:44px; }
-.ship-viewer #part-detail { position:absolute; z-index:6; left:var(--space-sm); right:var(--space-sm); bottom:30px; padding:var(--space-xs) var(--space-sm); font-size:var(--text-sm); overflow:auto; background:rgba(5,5,15,.88); color:#e6f1ea; text-shadow:0 1px 2px #000; }
-.ship-viewer #part-detail[hidden],.ship-viewer #gbtns[hidden] { display:none; }
+.ship-viewer #gbtns[hidden] { display:none; }
 .ship-viewer .ship-caption { position:absolute; inset:auto var(--space-sm) 4px; font-size:var(--text-xs); margin:0; color:#a8b9c9; pointer-events:none; }
 .ship-viewer #leaders line { stroke:currentColor; stroke-width:1; opacity:.45; }
 .ship-viewer #leaders path { opacity:.8; }
@@ -36,15 +34,14 @@ body.ship-viewer.bh-mode #stage { background:rgba(5,5,15,.55); }
 .ship-viewer .map-window { overflow:auto; }
 .ship-viewer .window-toolbar { position:sticky; top:0; z-index:5; background:inherit; }
 @media(max-height:450px) and (min-width:500px) {
-  .ship-viewer .map-window { display:grid; grid-template-columns:minmax(160px,36%) minmax(0,1fr); grid-template-rows:auto auto auto auto 1fr; }
+  .ship-viewer .map-window { display:grid; grid-template-columns:minmax(160px,36%) minmax(0,1fr); grid-template-rows:auto auto auto 1fr; }
   .ship-viewer .window-toolbar { grid-column:1 / -1; }
   .ship-viewer .ship-selector-row { grid-column:1; grid-row:2; display:grid; grid-template-columns:1fr; }
   .ship-viewer .ship-selector-row label { position:absolute; width:1px; height:1px; clip-path:inset(50%); overflow:hidden; }
   .ship-viewer .ship-selector-row select { width:100%; }
   .ship-viewer .ship-info { grid-column:1; grid-row:3; }
   .ship-viewer #hud { grid-column:1; grid-row:4; }
-  .ship-viewer #part-detail { grid-column:1; grid-row:5; max-height:60px; }
-  .ship-viewer #stage { grid-column:2; grid-row:2 / 6; min-height:180px; }
+  .ship-viewer #stage { grid-column:2; grid-row:2 / 5; min-height:180px; }
   .ship-viewer .ship-info,.ship-viewer #hud { max-height:140px; }
   .ship-viewer .ship-info:not([open]),.ship-viewer #hud:not([open]) { min-height:calc(32px + 2*var(--space-xs)); }
   .ship-viewer .ship-caption { display:none; }

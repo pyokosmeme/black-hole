@@ -51,6 +51,7 @@ let systemHint = 'COMPRESSED DISTANCES';
     view = name; cfg = data.views[view]; plotted = members(cfg); selected = null; region = null;
     if (scene) scene.setView(view, null);
     else fallback();
+    field.querySelector('.atlas-scene')?.classList.toggle('moon-window', view !== 'system');
     document.getElementById('chart-title').textContent = view === 'system' ? 'YA KE / 野雞' : cfg.title;
     document.getElementById('atlas-system-back').hidden = view === 'system';
     document.getElementById('system-summary').hidden = view !== 'system';
@@ -159,11 +160,20 @@ let systemHint = 'COMPRESSED DISTANCES';
     const cardLayout = new ResizeObserver(fitCard);
     cardLayout.observe(mapActions); cardLayout.observe(popup);
     window.addEventListener('resize',fitCard);
-    try {
-      scene = window.YakeScene.create(field.querySelector('.atlas-scene'), id => id ? selectWorld(id) : closeCard(), fallback, id => { selectWorld(id); scene.select(id); scene.focus(); });
-      scene.setView('system', null);
-    } catch (error) { fallback(); }
-    readLocation();
+    const sceneHost = field.querySelector('.atlas-scene');
+    const spinner = document.createElement('div');
+    spinner.className = 'scene-loading';
+    sceneHost.appendChild(spinner);
+    // Yield a frame so the spinner paints before the (synchronous) scene
+    // build hogs the main thread, then swap it out once the first view is set.
+    requestAnimationFrame(() => setTimeout(() => {
+      try {
+        scene = window.YakeScene.create(sceneHost, id => id ? selectWorld(id) : closeCard(), fallback, id => { selectWorld(id); scene.select(id); scene.focus(); });
+        scene.setView('system', null);
+      } catch (error) { console.error('[yake] scene create failed:', error && error.stack || error); fallback(); }
+      spinner.remove();
+      readLocation();
+    }, 40));
   }
 
   document.addEventListener('click', event => {
