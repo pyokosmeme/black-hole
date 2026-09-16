@@ -933,6 +933,13 @@ body:not(.transit-page) #map-container::before {
     stroke-width: 5;
 }
 
+/* Keep the whole subway diagram visible in the windowed page: letterbox the
+   viewBox into the available height instead of crowding out the planner. */
+.transit-window #map-container.mode-subway:not(.mode-3d) #transit-map {
+    height: 100%;
+    aspect-ratio: auto;
+}
+
 #map-container.mode-subway:not(.mode-3d) .station-circle.sol-station {
     fill: #ffd166;
     stroke: #fff4b5;

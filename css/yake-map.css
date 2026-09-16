@@ -120,3 +120,21 @@ body.yake-atlas.light-mode .scene-card { background:rgba(253,250,245,.94); }
   .scene-card .card-stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .scene-card .card-intro,.scene-card .card-detail { line-height:1.4; }
 }
+
+/* Moon and Five Islands views open as a framed window over the system chart;
+ * the close button dismisses the window without leaving the atlas. */
+.atlas-scene.moon-window {
+  margin: var(--space-md);
+  border: 2px solid transparent;
+  border-image: linear-gradient(135deg, var(--cyan), var(--purple)) 1;
+  box-shadow: 0 0 calc(28px * var(--glow-intensity)) rgba(0,255,255,.16), 0 0 10px rgba(191,0,255,.25);
+}
+.moon-close {
+  pointer-events: auto;
+  min-width: 44px;
+  height: 44px;
+  padding: 0 var(--space-sm);
+  font-size: var(--text-lg);
+  line-height: 1;
+}
+.moon-close:hover, .moon-close:focus-visible { color: #ff83cd; }

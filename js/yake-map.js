@@ -3,6 +3,7 @@
   'use strict';
   const data = window.YAKE_ATLAS;
   const worlds = new Map(data.worlds.filter(w => !w.hidden).map(w => [w.id, w]));
+let systemHint = 'COMPRESSED DISTANCES';
   const moonViews = ['jin','shu','xuan','five'];
   const members = cfg => {
     const ids = [cfg.parent, ...cfg.nodes.map(n => n[0]), ...(cfg.locals || []).map(n => n[0]), ...(cfg.ezLocals || []).map(n => n.id)];
@@ -55,6 +56,22 @@
     document.getElementById('system-summary').hidden = view !== 'system';
     const heading = field.querySelector('.scene-heading span');
     if (heading) heading.textContent = cfg.title.toUpperCase();
+    const headWrap = field.querySelector('.scene-heading');
+    if (headWrap) {
+      let closeBtn = headWrap.querySelector('.moon-close');
+      if (view !== 'system' && !closeBtn) {
+        closeBtn = document.createElement('button');
+        closeBtn.type = 'button';
+        closeBtn.className = 'acidburn-button moon-close';
+        closeBtn.setAttribute('data-close-view','');
+        closeBtn.setAttribute('aria-label','Close ' + cfg.title + ' and return to the system map');
+        closeBtn.title = 'Close view \u00b7 returns to system map';
+        closeBtn.textContent = '\u00d7';
+        headWrap.appendChild(closeBtn);
+      } else if (view === 'system' && closeBtn) closeBtn.remove();
+      const small = headWrap.querySelector('small');
+      if (small) small.textContent = view === 'system' ? systemHint : 'CLOSE \u00d7 RETURNS TO SYSTEM MAP';
+    }
     renderCard(); writeLocation();
     document.getElementById('selection-status').textContent = cfg.title + ' opened. Select a destination.';
   }
@@ -132,6 +149,7 @@
   function init() {
     field.innerHTML = '<div class="atlas-scene"><div class="scene-heading"><span>SYSTEM OVERVIEW</span><small>COMPRESSED DISTANCES · ILLUSTRATIVE SIZES</small></div><p class="scene-hint">DRAG: ORBIT · SCROLL / PINCH: ZOOM · DOUBLE-CLICK / TAP: FOCUS</p></div><div class="map-actions"><div class="scene-controls" role="group" aria-label="Map controls"><button class="acidburn-button" type="button" data-scene-action="home" title="Fit map">⌂<span class="atlas-sr"> Fit map</span></button><button class="acidburn-button" type="button" data-scene-action="in" aria-label="Zoom in">+</button><button class="acidburn-button" type="button" data-scene-action="out" aria-label="Zoom out">−</button><button class="acidburn-button" type="button" data-scene-action="labels" aria-pressed="true">LABELS</button></div><div class="world-actions-slot" aria-hidden="true"></div></div>';
     mapActions = field.querySelector('.map-actions');
+    systemHint = field.querySelector('.scene-heading small').textContent;
     field.after(mapActions);
     const group = mapActions.querySelector('.scene-controls');
     viewControls = document.createElement('div');
@@ -159,6 +177,11 @@
       field.querySelector('.atlas-scene, svg')?.scrollIntoView({block:'nearest'});
       return;
     }
+    if (event.target.closest('[data-close-view]')) {
+      setView('system');
+      field.querySelector('canvas, g[data-world]')?.focus({preventScroll:true});
+      return;
+    }
     if (event.target.closest('[data-close-card]')) {
       closeCard();
       field.querySelector('canvas, g[data-world]')?.focus({preventScroll:true});
@@ -184,6 +207,7 @@
   document.addEventListener('keydown', event => {
     if (event.key !== 'Escape') return;
     if (selected) { event.preventDefault(); closeCard(); field.querySelector('canvas, g[data-world]')?.focus({preventScroll:true}); }
+    else if (view !== 'system') { event.preventDefault(); setView('system'); field.querySelector('canvas, g[data-world]')?.focus({preventScroll:true}); }
   });
   function readLocation() {
     const id = location.hash.slice(1);

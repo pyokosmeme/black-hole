@@ -1250,7 +1250,7 @@
         for (let i = 0; i < 700; i++) {
             const v = new THREE.Vector3(
                 Math.random() * 1800 - 900,
-                Math.random() * 700 - 280,
+                Math.random() * 1800 - 900,
                 Math.random() * 1800 - 900
             );
             if (v.length() > 220) starGeo.vertices.push(v);

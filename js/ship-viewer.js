@@ -88,7 +88,7 @@
       labelAnim=null;let maxd=0;
       labels.forEach(l=>{
         if(l.tx===undefined)return;
-        const e=.25;
+        const e=.14;
         maxd=Math.max(maxd,Math.abs(l.tx-l.cx),Math.abs(l.ty-l.cy),Math.abs(l.dx-l.kx),Math.abs(l.dy-l.ky),Math.abs(l.ta-l.alpha)*80);
         l.cx+=(l.tx-l.cx)*e;l.cy+=(l.ty-l.cy)*e;
         l.kx+=(l.dx-l.kx)*e;l.ky+=(l.dy-l.ky)*e;
