@@ -47,7 +47,7 @@
     const stopped=!(state.spin&&(state.rpm??cfg.rpm)>0);
     ringEls.forEach((el,i)=>{
       const R2=rings[i];
-      if(!R2||!stopped||state.compare){el.setAttribute('d','');return;}
+      if(!R2||stopped||state.compare){el.setAttribute('d','');return;}
       const N=40,span=232*Math.PI/180,lead=(state.phase+2.1)*R2.dir;
       const proj=(x,y,z)=>{const p=renderer.project([x,y,z]);return p?[p.x,p.y]:null;};
       let ok=true;const outer=[],inner=[];
