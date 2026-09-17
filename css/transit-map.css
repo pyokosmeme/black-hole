@@ -933,10 +933,13 @@ body:not(.transit-page) #map-container::before {
 }
 
 /* Windowed page: the diagram is the star. The subway map letterboxes into a
-   wide 8/5 canvas and the planner collapses to a compact strip below it. */
+   wide 8/5 canvas and the planner collapses to a compact strip below it.
+   max-height keeps the 8/5 box from exceeding the grid row on wide windows —
+   otherwise the bottom of the diagram (SWI lane) slides under the planner. */
 .transit-window #map-container.mode-subway:not(.mode-3d) {
     aspect-ratio: 8 / 5;
     min-height: 0;
+    max-height: 100%;
 }
 
 .transit-window #map-container.mode-subway:not(.mode-3d) #transit-map {
