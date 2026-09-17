@@ -1488,10 +1488,8 @@
 
         t3.renderer.render(t3.scene, t3.camera);
 
-        // Project labels, then declutter them in screen space so names never
-        // stack on the crowded Sol neighbourhood. Targets are eased per frame
-        // so orbiting moves labels smoothly instead of snapping.
-        const projected = [];
+        // Labels are glued to their station: project the point, sit above it,
+        // fade only for camera-facing distance. No screen-space re-layout.
         Object.keys(t3.labelEls).forEach(function(name) {
             const el = t3.labelEls[name];
             t3.tmp.copy(t3.pos[name]);
@@ -1500,50 +1498,12 @@
                 el.style.display = 'none';
                 return;
             }
-            el.style.display = 'block';
-            projected.push({
-                name: name,
-                x: (t3.tmp.x * 0.5 + 0.5) * t3.width,
-                y: (-t3.tmp.y * 0.5 + 0.5) * t3.height
-            });
-        });
-        const placedNames = {};
-        if (projected.length) {
-            const bounds = {x: 8, y: 8, w: t3.width - 16, h: t3.height - 16};
-            if (window.SceneLabelLayout) {
-                const measured = projected.map(function(p) {
-                    const el = t3.labelEls[p.name];
-                    return {id: p.name, x: p.x, y: p.y, w: el.offsetWidth || 70, h: el.offsetHeight || 20};
-                });
-                const anchors = measured.map(function(m) { return {id: m.id, x: m.x, y: m.y, r: 3}; });
-                window.SceneLabelLayout.layout(measured, bounds, anchors).forEach(function(p) {
-                    placedNames[p.id] = p.box;
-                });
-            } else {
-                projected.forEach(function(p) {
-                    const el = t3.labelEls[p.name];
-                    placedNames[p.name] = {x: p.x - (el.offsetWidth || 70) / 2, y: p.y - 26};
-                });
-            }
-        }
-        Object.keys(t3.labelEls).forEach(function(name) {
-            const el = t3.labelEls[name];
-            const box = placedNames[name];
-            const cur = t3.labelEase[name] || (t3.labelEase[name] = {x: null, y: null, a: 0});
-            if (!box) {
-                // fade out gracefully instead of vanishing
-                cur.a += (0 - cur.a) * 0.18;
-                if (cur.a < 0.02) { el.style.display = 'none'; cur.x = null; return; }
-            } else {
-                if (cur.x === null) { cur.x = box.x; cur.y = box.y; }
-                cur.x += (box.x - cur.x) * 0.12;
-                cur.y += (box.y - cur.y) * 0.12;
-                cur.a += (1 - cur.a) * 0.15;
-            }
+            const sx = (t3.tmp.x * 0.5 + 0.5) * t3.width;
+            const sy = (-t3.tmp.y * 0.5 + 0.5) * t3.height;
             const dist = t3.camera.position.distanceTo(t3.pos[name]);
             el.style.display = 'block';
-            el.style.transform = 'translate(' + cur.x.toFixed(1) + 'px,' + cur.y.toFixed(1) + 'px)';
-            el.style.opacity = (Math.max(0.35, Math.min(1, 1.7 - dist / 600)) * cur.a).toFixed(2);
+            el.style.transform = 'translate(' + sx.toFixed(1) + 'px,' + sy.toFixed(1) + 'px) translate(-50%,-150%)';
+            el.style.opacity = Math.max(0.35, Math.min(1, 1.7 - dist / 600)).toFixed(2);
         });
     }
 

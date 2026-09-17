@@ -179,7 +179,7 @@ body:not(.transit-page) #map-container::before {
 }
 
 .station-sublabel {
-    font-family: 'VT323', monospace;
+    font-family: 'Share Tech Mono', monospace;
     font-size: 12px;
     fill: var(--cyan);
     opacity: 0.8;
@@ -564,7 +564,7 @@ body:not(.transit-page) #map-container::before {
 
 .leg-time-value {
     color: var(--green);
-    font-family: 'VT323', monospace;
+    font-family: 'Share Tech Mono', monospace;
     font-size: 14px;
     margin-left: 5px;
 }
@@ -674,7 +674,7 @@ body:not(.transit-page) #map-container::before {
     bottom: 8px;
     left: 12px;
     z-index: 20;
-    font-family: 'VT323', monospace;
+    font-family: 'Share Tech Mono', monospace;
     font-size: 11px;
     letter-spacing: 1px;
     color: rgba(0, 255, 255, 0.45);
@@ -686,7 +686,7 @@ body:not(.transit-page) #map-container::before {
    ═══════════════════════════════════════════════════════════════ */
 
 .station-reallabel {
-    font-family: 'VT323', monospace;
+    font-family: 'Share Tech Mono', monospace;
     font-size: 13px;
     fill: var(--cyan);
     opacity: 0.85;
@@ -741,9 +741,8 @@ body:not(.transit-page) #map-container::before {
     cursor: pointer;
     text-align: center;
     white-space: nowrap;
-    font-family: 'Orbitron', sans-serif;
-    font-size: 11px;
-    font-weight: 700;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
     color: #fff;
     text-shadow: 0 0 6px #000, 0 0 2px #000;
     will-change: transform;
@@ -756,7 +755,7 @@ body:not(.transit-page) #map-container::before {
 
 .t3d-real {
     display: block;
-    font-family: 'VT323', monospace;
+    font-family: 'Share Tech Mono', monospace;
     font-size: 11px;
     font-weight: 400;
     color: var(--cyan);
@@ -949,6 +948,12 @@ body:not(.transit-page) #map-container::before {
  * colors are redundant there, so drop it outside 3D. */
 .transit-window #map-container:not(.mode-3d) .legend {
     display: none;
+}
+
+.transit-window #map-container:not(.mode-3d) #transit-map {
+    height: 100%;
+    aspect-ratio: auto;
+    min-height: 0;
 }
 
 /* Compact planner: header, priority buttons and route list in a short strip

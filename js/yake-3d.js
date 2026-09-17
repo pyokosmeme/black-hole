@@ -436,39 +436,30 @@ window.YakeScene = (function () {
         const p=b.position.clone().project(camera);
         return {id:b.id,x:(p.x*.5+.5)*width,y:(-p.y*.5+.5)*height,z:p.z,r:Math.max(5,b.size*height/(2*Math.tan(camera.fov*Math.PI/360)*camera.position.distanceTo(b.position)))};
       }).filter(p=>p.z>-1&&p.z<1);
-      // Text must not steal clicks from another world's visible sphere.
-      const clear=box=>!occupied.some(o=>box.x<o.x+o.w+4&&box.x+box.w+4>o.x&&box.y<o.y+o.h+3&&box.y+box.h+3>o.y)&&!markers.some(p=>Math.hypot(Math.max(box.x-p.x,0,p.x-box.x-box.w),Math.max(box.y-p.y,0,p.y-box.y-box.h))<p.r+3);
-      // A short leader makes each displaced name unambiguously belong to its world.
-      const labelItems=[];
-      bodies.forEach(b=>{
-        if(b.id==='yake')return;
-        const p=b.position.clone().project(camera), x=(p.x*.5+.5)*width,y=(-p.y*.5+.5)*height;
-        const visible=labelsOn&&p.z>-1&&p.z<1&&x>0&&x<width&&y>0&&y<height;
-        b.label.hidden=!visible;
-        if(!visible)return;
-        const w=b.label.offsetWidth,h=b.label.offsetHeight;
-        if(height-labelTop-labelBottom<h){b.label.hidden=true;return;}
-        const r=b.size*height/(2*Math.tan(camera.fov*Math.PI/360)*camera.position.distanceTo(b.position));
-        labelItems.push({id:b.id,x,y,w,h,r,priority:b.id===selected?2:worlds.get(b.id).mapLabel?-1:0});
-      });
-      const placements=SceneLabelLayout.layout(labelItems,{x:4,y:labelTop,w:width-8,h:height-labelTop-labelBottom},markers);
-      const byId=new Map(placements.map(p=>[p.id,p]));
+      // Names stay glued to their worlds: project the body, float just above
+      // it, fade only when off-screen. A short leader tick marks the anchor.
       leaders.setAttribute('viewBox',`0 0 ${width} ${height}`);
       leaders.replaceChildren();
       bodies.forEach(b=>{
-        const p=byId.get(b.id);b.label.hidden=!p;if(!p)return;
-        occupied.push(p.box);b.label.style.transform=`translate(${p.box.x}px,${p.box.y}px)`;
+        if(b.id==='yake')return;
+        const p=b.position.clone().project(camera),x=(p.x*.5+.5)*width,y=(-p.y*.5+.5)*height;
+        const visible=labelsOn&&p.z>-1&&p.z<1&&x>0&&x<width&&y>0&&y<height;
+        b.label.hidden=!visible;
+        if(!visible)return;
+        const r=b.size*height/(2*Math.tan(camera.fov*Math.PI/360)*camera.position.distanceTo(b.position));
+        b.label.style.transform=`translate(${x}px,${y}px) translate(-50%,-100%) translate(0,${-(r+14)}px)`;
         const line=document.createElementNS('http://www.w3.org/2000/svg','line');
-        line.dataset.world=b.id;line.setAttribute('x1',p.start.x);line.setAttribute('y1',p.start.y);line.setAttribute('x2',p.end.x);line.setAttribute('y2',p.end.y);leaders.appendChild(line);
+        line.dataset.world=b.id;
+        line.setAttribute('x1',x);line.setAttribute('y1',y-r-2);
+        line.setAttribute('x2',x);line.setAttribute('y2',y-r-12);
+        leaders.appendChild(line);
       });
       annotations.forEach(({label,position})=>{
         const p=position.clone().project(camera),x=(p.x*.5+.5)*width,y=(-p.y*.5+.5)*height;
         label.hidden=!labelsOn||p.z<=-1||p.z>=1||x<0||x>width||y<labelTop||y>height-labelBottom;
         if(label.hidden)return;
-        const w=label.offsetWidth,h=label.offsetHeight,bx=Math.max(4,Math.min(width-w-4,x+8));
-        const box=[0,h+4,-h-4,2*h+8,-2*h-8].map(d=>({x:bx,y:y+d,w,h})).find(b=>b.y>=labelTop&&b.y+h<=height-labelBottom&&clear(b)&&!placements.some(p=>SceneLabelLayout.throughBox(p.start,p.end,b)));
-        if(!box){label.hidden=true;return;}
-        occupied.push(box);label.style.transform=`translate(${box.x}px,${box.y}px)`;
+        const w=label.offsetWidth;
+        label.style.transform=`translate(${Math.max(4,Math.min(width-w-4,x+8))}px,${y}px)`;
       });
       if(flight)draw();
     }

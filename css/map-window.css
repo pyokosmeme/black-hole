@@ -11,7 +11,8 @@
 .window-actions [aria-pressed=true] .expand-icon { display:none; }
 .window-actions [aria-pressed=true] .collapse-icon { display:block; }
 .map-window .acidburn-button:focus-visible { outline:2px solid var(--cyan); outline-offset:2px; }
-.map-window .acidburn-button[aria-pressed=true] { text-decoration:underline; text-underline-offset:4px; }
+.map-window .window-actions .acidburn-button[aria-pressed=true] { text-decoration:underline; text-underline-offset:4px; }
+.map-window .acidburn-button[aria-pressed=true] { background:rgba(0,255,255,.12); border-color:var(--cyan); color:#fff; }
 body.map-window-expanded { overflow:hidden; }
 body.map-window-expanded .main-content { z-index:2000; }
 .map-window.is-expanded { position:fixed; z-index:2000; inset:var(--window-gap,12px); bottom:calc(var(--window-gap,12px) + env(safe-area-inset-bottom,0px)); margin:0; }

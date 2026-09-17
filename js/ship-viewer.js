@@ -47,7 +47,10 @@
     const stopped=!(state.spin&&(state.rpm??cfg.rpm)>0);
     ringEls.forEach((el,i)=>{
       const R2=rings[i];
-      if(!R2||stopped||state.compare){el.setAttribute('d','');return;}
+      // arrows belong to the schematic: visible whenever labels are on,
+      // dimmed while the spin is stopped
+      if(!R2||state.compare||!state.labels){el.setAttribute('d','');return;}
+      el.setAttribute('opacity',stopped?'0.4':'0.85');
       const N=40,span=232*Math.PI/180,lead=(state.phase+2.1)*R2.dir;
       const proj=(x,y,z)=>{const p=renderer.project([x,y,z]);return p?[p.x,p.y]:null;};
       let ok=true;const outer=[],inner=[];
@@ -154,28 +157,29 @@
       });return;
     }
     drawRings();
-    const order=[],reqs=[];
-    labels.forEach((l,i)=>{
+    // Labels stay glued to their object: project the mesh anchor, offset to
+    // its marked side, fade only for occlusion. No screen-space re-layout.
+    const reqs=[],active=[];
+    labels.forEach((l)=>{
       const show=state.labels&&(l.part.t!=='SCALE FIGURE'||state.eva);
       if(!show){visible(l,false);return;}
-            order.push(i);
+      active.push(l);
       reqs.push({part:l.part,prev:l.probe??-1});
     });
     const got=models.length?renderer.labelAnchors(models[0],state,reqs):[];
-    const items=[],obstacles=[];
-    order.forEach((i,k)=>{
-      const l=labels[i],a=got?got[k]:null;
-      if(!a){visible(l,false);return;}
-      l.probe=a.probe;
-      items.push({id:i,x:a.x,y:a.y,w:l.el.offsetWidth,h:l.el.offsetHeight,r:3});
-      obstacles.push({id:i,x:a.x,y:a.y,r:3});
-    });
-    const placed=new Map(SceneLabelLayout.layout(items,{x:6,y:8,w:w-12,h:h-$('view-caption').offsetHeight-20},obstacles).map(p=>[p.id,p]));
-    labels.forEach((l,i)=>{
-      const p=placed.get(i);
+    active.forEach((l,k)=>{
+      const occ=got?got[k]:null;
+      const p=occ?renderer.anchor(models[0].cfg,l.part,state):null;
       if(!p){visible(l,false);return;}
-      l.tx=p.box.x;l.ty=p.box.y;l.dx=p.start.x;l.dy=p.start.y;l.ex=p.end.x;l.ey=p.end.y;l.ta=1;
+      l.probe=occ.probe;
+      const s=l.part.side??1,lw=l.el.offsetWidth,lh=l.el.offsetHeight;
+      const lx=Math.max(6,Math.min(w-lw-6,p.x+(s>0?16:-16-lw)));
+      const ly=Math.max(8,Math.min(h-lh-8,p.y-10));
+      l.tx=lx;l.ty=ly;l.dx=p.x;l.dy=p.y-8;
+      l.ex=Math.max(lx,Math.min(lx+lw,p.x));l.ey=Math.max(ly,Math.min(ly+lh,p.y));
+      l.ta=1;
       if(l.cx===undefined){l.cx=l.tx;l.cy=l.ty;l.kx=l.dx;l.ky=l.dy;l.alpha=0;}
+      l.cx=l.tx;l.cy=l.ty;l.kx=l.dx;l.ky=l.dy; // glue: track the anchor exactly
       applyLabel(l);
     });
     animateLabels();
