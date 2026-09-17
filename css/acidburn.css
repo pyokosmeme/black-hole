@@ -2280,3 +2280,11 @@ body.light-mode .subscribe-modal-panel { background: #fdfaf5; border: 2px solid 
     .subscribe-modal-panel::before { margin: 0 calc(-1 * var(--space-md)) 0; }
     .subscribe-modal-head { flex-direction: column; gap: 0; padding-top: var(--space-md); }
 }
+
+/* ── SCROLLBARS: acid burn instead of native chrome ── */
+* { scrollbar-color: var(--cyan) rgba(0,0,0,.6); scrollbar-width: thin; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: rgba(0,0,0,.6); border-left: 1px solid rgba(0,255,255,.12); }
+::-webkit-scrollbar-thumb { background: linear-gradient(180deg, var(--cyan), var(--purple)); border: 2px solid #05050f; }
+::-webkit-scrollbar-thumb:hover { background: var(--cyan); }
+::-webkit-scrollbar-corner { background: transparent; }

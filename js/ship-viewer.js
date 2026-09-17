@@ -198,6 +198,8 @@
       }
       ty=Math.max(8,Math.min(h-lh-8,ty));
       l.ty=ty;l.cy=ty;
+      // re-attach the leader line to the moved box (nearest corner to probe)
+      l.ey=Math.max(ty,Math.min(ty+lh,l.dy+8));
       placed.push({x:l.tx,y:ty,w:lw,h:lh});
     });
     active.forEach(applyLabel);
