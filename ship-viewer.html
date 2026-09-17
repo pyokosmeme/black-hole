@@ -40,6 +40,9 @@
   <main id="main" class="main-content map-window-shell">
     <section class="author-card map-window" data-map-window aria-labelledby="chart-title">
       <div class="section-header window-toolbar"><h2 id="chart-title">SPACECRAFT VIEW</h2><div class="section-line"></div><div class="window-actions" role="group" aria-label="Window controls">
+  <label class="ship-select-label" for="ship-select">Spacecraft</label>
+  <select id="ship-select" class="tx-sort-select ship-select" aria-label="Choose spacecraft"><option value="el-cajon">El Cajon / Ergo Infinitum</option><option value="hackett">Hackett</option></select>
+  <button id="compare-ships" class="acidburn-button" type="button" aria-pressed="false">Compare spacecraft</button>
   <button class="acidburn-button" type="button" data-window-expand aria-pressed="false" aria-label="Expand window" title="Expand window">
     <svg class="expand-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/></svg>
     <svg class="collapse-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9h6V3m6 0v6h6M9 21v-6H3m18 0h-6v6"/></svg>
@@ -48,14 +51,9 @@
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg>
   </a>
 </div></div>
-      <div class="ship-selector-row">
-        <label for="ship-select">Ship</label>
-        <select id="ship-select" class="tx-sort-select"><option value="el-cajon">El Cajon / Ergo Infinitum</option><option value="hackett">Hackett</option></select>
-        <button id="compare-ships" class="acidburn-button" type="button" aria-pressed="false">Compare ships</button>
-      </div>
       <details class="ship-info"><summary class="post-date">Specifications</summary><div id="ship-specs"><p>El Cajon · 62.90 m / Hackett · 194.10 m</p></div></details>
       <div id="stage"><canvas id="stars" aria-hidden="true"></canvas>
-        <canvas id="scene" tabindex="0" role="img" aria-label="Ship model. Drag or use arrow keys to orbit; scroll, pinch or use plus and minus to zoom."></canvas>
+        <canvas id="scene" tabindex="0" role="img" aria-label="Spacecraft model. Drag or use arrow keys to orbit; scroll, pinch or use plus and minus to zoom."></canvas>
         <div id="labels"><svg id="leaders" aria-hidden="true"></svg></div>
         <p id="view-caption" class="ship-caption">Drag to orbit · scroll / pinch to zoom</p>
         <div id="err" role="status">Loading ship…</div>

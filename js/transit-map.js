@@ -1529,12 +1529,19 @@
         Object.keys(t3.labelEls).forEach(function(name) {
             const el = t3.labelEls[name];
             const box = placedNames[name];
-            if (!box) { el.style.display = 'none'; return; }
+            const cur = t3.labelEase[name] || (t3.labelEase[name] = {x: null, y: null, a: 0});
+            if (!box) {
+                // fade out gracefully instead of vanishing
+                cur.a += (0 - cur.a) * 0.18;
+                if (cur.a < 0.02) { el.style.display = 'none'; cur.x = null; return; }
+            } else {
+                if (cur.x === null) { cur.x = box.x; cur.y = box.y; }
+                cur.x += (box.x - cur.x) * 0.12;
+                cur.y += (box.y - cur.y) * 0.12;
+                cur.a += (1 - cur.a) * 0.15;
+            }
             const dist = t3.camera.position.distanceTo(t3.pos[name]);
-            const cur = t3.labelEase[name] || (t3.labelEase[name] = {x: box.x, y: box.y, a: 0});
-            cur.x += (box.x - cur.x) * 0.3;
-            cur.y += (box.y - cur.y) * 0.3;
-            cur.a += (1 - cur.a) * 0.3;
+            el.style.display = 'block';
             el.style.transform = 'translate(' + cur.x.toFixed(1) + 'px,' + cur.y.toFixed(1) + 'px)';
             el.style.opacity = (Math.max(0.35, Math.min(1, 1.7 - dist / 600)) * cur.a).toFixed(2);
         });

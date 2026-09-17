@@ -18,10 +18,11 @@ body.ship-viewer.bh-mode #stage { background:rgba(5,5,15,.55); }
 .ship-viewer .row .acidburn-button { min-height:44px; min-width:44px; }
 .ship-viewer #readout { font-variant-numeric:tabular-nums; }
 .ship-viewer #err { display:none; position:absolute; inset:0; place-items:center; padding:var(--space-md); color:#fff; background:#05050f; text-align:center; }
-.ship-selector-row { display:flex; gap:var(--space-xs); align-items:center; padding:var(--space-xs) var(--space-sm); flex:none; flex-wrap:wrap; }
-.ship-selector-row label { font-size:var(--text-sm); }
-.ship-selector-row select { flex:1; min-width:0; }
-.ship-selector-row .tx-sort-select,.ship-selector-row .acidburn-button { min-height:44px; }
+.ship-viewer .window-actions { align-items:center; gap:6px; flex-wrap:wrap; }
+.ship-viewer .ship-select-label { font-size:var(--text-xs); color:#a8b9c9; letter-spacing:.08em; text-transform:uppercase; }
+.ship-viewer .ship-select { width:200px; min-width:0; min-height:36px; font-size:var(--text-sm); }
+.ship-viewer .window-actions .acidburn-button { min-height:36px; padding:0 var(--space-sm); width:auto; }
+.ship-viewer .window-actions .acidburn-button:has(svg) { width:44px; padding:0; }
 .ship-viewer #gbtns[hidden] { display:none; }
 .ship-viewer .ship-caption { position:absolute; inset:auto var(--space-sm) 4px; font-size:var(--text-xs); margin:0; color:#a8b9c9; pointer-events:none; }
 .ship-viewer #leaders line { stroke:currentColor; stroke-width:1; opacity:.45; }
@@ -36,9 +37,6 @@ body.ship-viewer.bh-mode #stage { background:rgba(5,5,15,.55); }
 @media(max-height:450px) and (min-width:500px) {
   .ship-viewer .map-window { display:grid; grid-template-columns:minmax(160px,36%) minmax(0,1fr); grid-template-rows:auto auto auto 1fr; }
   .ship-viewer .window-toolbar { grid-column:1 / -1; }
-  .ship-viewer .ship-selector-row { grid-column:1; grid-row:2; display:grid; grid-template-columns:1fr; }
-  .ship-viewer .ship-selector-row label { position:absolute; width:1px; height:1px; clip-path:inset(50%); overflow:hidden; }
-  .ship-viewer .ship-selector-row select { width:100%; }
   .ship-viewer .ship-info { grid-column:1; grid-row:3; }
   .ship-viewer #hud { grid-column:1; grid-row:4; }
   .ship-viewer #stage { grid-column:2; grid-row:2 / 5; min-height:180px; }

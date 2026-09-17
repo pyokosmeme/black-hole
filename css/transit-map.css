@@ -880,12 +880,12 @@ body:not(.transit-page) #map-container::before {
 }
 
 /* Window content scrolls independently; close/expand stay in its title bar. */
-.transit-window .transit-grid { overflow:auto; min-height:0; flex:1; gap:var(--space-sm); }
+.transit-window .transit-grid { overflow:auto; min-height:0; flex:1; gap:var(--space-sm); grid-template-rows:minmax(0,1fr) auto; }
 .transit-window .route-planner { flex-shrink:0; }
 .transit-window #map-container { min-height:360px; }
 .transit-window #transit-map { min-height:360px; }
 @media(min-width:1100px) {
-    .transit-window.is-expanded .transit-grid { grid-template-columns:minmax(0,1fr) 320px; }
+    .transit-window.is-expanded .transit-grid { grid-template-columns:minmax(0,1fr) 320px; grid-template-rows:minmax(0,1fr); }
     .transit-window.is-expanded #map-container { min-height:100%; }
     .transit-window.is-expanded #transit-map { height:100%; min-height:360px; }
     .transit-window.is-expanded .route-planner { max-height:none; min-height:0; }
@@ -954,11 +954,20 @@ body:not(.transit-page) #map-container::before {
 /* Compact planner: header, priority buttons and route list in a short strip
  * with its own scroll, so the map keeps most of the window. */
 .transit-window .route-planner {
-    max-height: 250px;
+    max-height: 290px;
 }
 
 .transit-window .planner-header {
     padding: 12px 16px 8px;
+    flex-shrink: 0;
+}
+
+.transit-window .route-priority {
+    flex-shrink: 0;
+}
+
+.transit-window #route-content {
+    min-height: 0;
 }
 
 .transit-window .route-priority {
