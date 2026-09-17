@@ -34,8 +34,8 @@
     if(ringEls)return;
     const svg=$('leaders');ringEls=[0,1].map(()=>{
       const p=document.createElementNS(svgNS,'path');
-      p.setAttribute('fill','#3ECC8F');p.setAttribute('opacity','.85');
-      p.setAttribute('stroke','#3ECC8F');p.setAttribute('stroke-width','1');
+      p.setAttribute('fill','rgba(62,204,143,.35)');p.setAttribute('opacity','.9');
+      p.setAttribute('stroke','#4ee89e');p.setAttribute('stroke-width','2.6');
       p.setAttribute('stroke-linejoin','round');
       svg.insertBefore(p,svg.firstChild);return p;
     });
@@ -50,25 +50,36 @@
       // arrows belong to the schematic: visible whenever labels are on,
       // dimmed while the spin is stopped
       if(!R2||state.compare||!state.labels){el.setAttribute('d','');return;}
-      el.setAttribute('opacity',stopped?'0.4':'0.85');
+      el.style.opacity=stopped?'0.4':'0.9';
       const N=40,span=232*Math.PI/180,lead=(state.phase+2.1)*R2.dir;
       const proj=(x,y,z)=>{const p=renderer.project([x,y,z]);return p?[p.x,p.y]:null;};
-      let ok=true;const outer=[],inner=[];
+      let ok=false;const outer=[],inner=[];
       for(let k=0;k<=N;k++){
         const f=k/N,t=lead-span*R2.dir*(1.0-f);
         const wd=1.0-0.45*f,rm=(R2.ri+R2.ro)/2,hw=(R2.ro-R2.ri)/2*wd;
         const qo=proj(R2.x,(rm+hw)*Math.cos(t),(rm+hw)*Math.sin(t)),qi=proj(R2.x,(rm-hw)*Math.cos(t),(rm-hw)*Math.sin(t));
-        if(!qo||!qi){ok=false;break;}
-        outer.push(qo);inner.push(qi);
+        if(!qo||!qi){if(ok){outer.push(null);inner.push(null);}continue;}
+        ok=true;outer.push(qo);inner.push(qi);
       }
       if(!ok){el.setAttribute('d','');return;}
       const th=lead,rm2=(R2.ri+R2.ro)/2,flare=(R2.ro-R2.ri)*0.95,tipT=th+18*Math.PI/180*R2.dir;
       const pTip=proj(R2.x,rm2*Math.cos(tipT),rm2*Math.sin(tipT)),pOut=proj(R2.x,(rm2+flare)*Math.cos(th),(rm2+flare)*Math.sin(th)),pIn=proj(R2.x,(rm2-flare)*Math.cos(th),(rm2-flare)*Math.sin(th));
       if(!pTip||!pOut||!pIn){el.setAttribute('d','');return;}
-      let d='M'+outer[0][0].toFixed(1)+','+outer[0][1].toFixed(1);
-      for(let k=1;k<outer.length;k++)d+=' L'+outer[k][0].toFixed(1)+','+outer[k][1].toFixed(1);
-      d+=' L'+pOut[0].toFixed(1)+','+pOut[1].toFixed(1)+' L'+pTip[0].toFixed(1)+','+pTip[1].toFixed(1)+' L'+pIn[0].toFixed(1)+','+pIn[1].toFixed(1);
-      for(let k=inner.length-1;k>=0;k--)d+=' L'+inner[k][0].toFixed(1)+','+inner[k][1].toFixed(1);
+      let d='',pen=false;
+      for(let k=0;k<outer.length;k++){
+        const q=outer[k];
+        if(!q){pen=false;continue;}
+        d+=(pen?' L':' M')+q[0].toFixed(1)+','+q[1].toFixed(1);pen=true;
+      }
+      if(pTip&&pOut&&pIn)d+=' L'+pOut[0].toFixed(1)+','+pOut[1].toFixed(1)+' L'+pTip[0].toFixed(1)+','+pTip[1].toFixed(1)+' L'+pIn[0].toFixed(1)+','+pIn[1].toFixed(1);
+      pen=false;
+      for(let k=inner.length-1;k>=0;k--){
+        const q=inner[k];
+        if(!q){pen=false;continue;}
+        d+=(pen?' L':' L'+q[0].toFixed(1)+','+q[1].toFixed(1)+' L');
+        if(pen)d+=q[0].toFixed(1)+','+q[1].toFixed(1);
+        pen=true;
+      }
       el.setAttribute('d',d+' Z');
     });
   }
@@ -168,13 +179,14 @@
     });
     const got=models.length?renderer.labelAnchors(models[0],state,reqs):[];
     active.forEach((l,k)=>{
-      const occ=got?got[k]:null;
-      const p=occ?renderer.anchor(models[0].cfg,l.part,state):null;
-      if(!p){visible(l,false);return;}
-      l.probe=occ.probe;
+      const a=got?got[k]:null; // projected probe on the visible surface
+      if(!a){visible(l,false);return;}
+      const p={x:a.x,y:a.y};
+      l.probe=a.probe;
       const s=l.part.side??1,lw=l.el.offsetWidth,lh=l.el.offsetHeight;
       const lx=Math.max(6,Math.min(w-lw-6,p.x+(s>0?16:-16-lw)));
-      const ly=Math.max(8,Math.min(h-lh-8,p.y-10));
+      const ly=Math.max(8,Math.min(h-lh-8,p.y-10+(l.part.dy||0)));
+      l.dy0=l.part.dy||0;
       l.tx=lx;l.ty=ly;l.dx=p.x;l.dy=p.y-8;
       l.ex=Math.max(lx,Math.min(lx+lw,p.x));l.ey=Math.max(ly,Math.min(ly+lh,p.y));
       l.ta=1;

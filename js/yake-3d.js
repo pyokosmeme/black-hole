@@ -446,8 +446,10 @@ window.YakeScene = (function () {
         const visible=labelsOn&&p.z>-1&&p.z<1&&x>0&&x<width&&y>0&&y<height;
         b.label.hidden=!visible;
         if(!visible)return;
-        const r=b.size*height/(2*Math.tan(camera.fov*Math.PI/360)*camera.position.distanceTo(b.position));
+        const dist=camera.position.distanceTo(b.position);
+        const r=b.size*height/(2*Math.tan(camera.fov*Math.PI/360)*dist);
         b.label.style.transform=`translate(${x}px,${y}px) translate(-50%,-100%) translate(0,${-(r+14)}px)`;
+        b.label.style.zIndex=String(20000-Math.round(dist*10)); // nearest name on top
         const line=document.createElementNS('http://www.w3.org/2000/svg','line');
         line.dataset.world=b.id;
         line.setAttribute('x1',x);line.setAttribute('y1',y-r-2);

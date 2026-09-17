@@ -1488,8 +1488,9 @@
 
         t3.renderer.render(t3.scene, t3.camera);
 
-        // Labels are glued to their station: project the point, sit above it,
-        // fade only for camera-facing distance. No screen-space re-layout.
+        // Labels are glued to their station: project the point, sit above it.
+        // Crowded names never move; they fade (eased) under the nearer label.
+        const vis = [];
         Object.keys(t3.labelEls).forEach(function(name) {
             const el = t3.labelEls[name];
             t3.tmp.copy(t3.pos[name]);
@@ -1498,12 +1499,31 @@
                 el.style.display = 'none';
                 return;
             }
-            const sx = (t3.tmp.x * 0.5 + 0.5) * t3.width;
-            const sy = (-t3.tmp.y * 0.5 + 0.5) * t3.height;
-            const dist = t3.camera.position.distanceTo(t3.pos[name]);
+            vis.push({
+                name: name,
+                x: (t3.tmp.x * 0.5 + 0.5) * t3.width,
+                y: (-t3.tmp.y * 0.5 + 0.5) * t3.height,
+                d: t3.camera.position.distanceTo(t3.pos[name])
+            });
+        });
+        vis.sort(function(a, b) { return a.d - b.d; });
+        const taken = [];
+        vis.forEach(function(v) {
+            const el = t3.labelEls[v.name];
+            const w = el.offsetWidth || 70, h = el.offsetHeight || 18;
+            const box = {x: v.x - w / 2, y: v.y - h * 1.5, w: w, h: h};
+            const crowded = taken.some(function(o) {
+                return box.x < o.x + o.w + 4 && box.x + box.w + 4 > o.x &&
+                       box.y < o.y + o.h + 2 && box.y + box.h + 2 > o.y;
+            });
+            if (!crowded) taken.push(box);
+            const cur = t3.labelEase[v.name] || (t3.labelEase[v.name] = {a: 1});
+            const target = crowded ? 0.15 : Math.max(0.35, Math.min(1, 1.7 - v.d / 600));
+            cur.a += (target - cur.a) * 0.2;
             el.style.display = 'block';
-            el.style.transform = 'translate(' + sx.toFixed(1) + 'px,' + sy.toFixed(1) + 'px) translate(-50%,-150%)';
-            el.style.opacity = Math.max(0.35, Math.min(1, 1.7 - dist / 600)).toFixed(2);
+            el.style.transform = 'translate(' + v.x.toFixed(1) + 'px,' + v.y.toFixed(1) + 'px) translate(-50%,-150%)';
+            el.style.opacity = cur.a.toFixed(2);
+            el.style.zIndex = String(20000 - Math.round(v.d * 10));
         });
     }
 
