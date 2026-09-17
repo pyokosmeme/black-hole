@@ -183,6 +183,24 @@
       l.cx=l.tx;l.cy=l.ty;l.kx=l.dx;l.ky=l.dy; // glue: track the anchor exactly
       applyLabel(l);
     });
+    // Keep labels from crowding each other, whichever side they're on: walk
+    // top-to-bottom by anchor and push any box that intersects an earlier one
+    // below it. The nudge derives from the anchors alone, so it stays smooth
+    // while spinning — no snapping.
+    const gap=6, placed=[];
+    active.slice().sort((a,b)=>a.dy-b.dy).forEach(l=>{
+      let ty=l.ty;
+      const lw=l.el.offsetWidth,lh=l.el.offsetHeight;
+      for(let i=0;i<24;i++){
+        const hit=placed.find(o=>o.x<l.tx+lw&&o.x+o.w>l.tx&&o.y<ty+lh&&o.y+o.h>ty);
+        if(!hit)break;
+        ty=hit.y+hit.h+gap;
+      }
+      ty=Math.max(8,Math.min(h-lh-8,ty));
+      l.ty=ty;l.cy=ty;
+      placed.push({x:l.tx,y:ty,w:lw,h:lh});
+    });
+    active.forEach(applyLabel);
     animateLabels();
   }
   function draw() {

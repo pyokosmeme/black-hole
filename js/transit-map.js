@@ -1453,6 +1453,41 @@
         controls.phi = Math.PI * 0.42;
         controls.positionCamera();
 
+        // Second framing pass, in screen space: a bounding-sphere fit alone
+        // leaves lopsided dead space (a mostly-flat network seen at an angle
+        // projects into a small, off-center blob). Recenter the target on the
+        // projected bounding box and back off / close in so it fills ~78% of
+        // the tighter canvas dimension, evenly on all sides.
+        const vw = container.clientWidth || 800, vh = container.clientHeight || 600;
+        camera.aspect = vw / vh;
+        camera.updateProjectionMatrix();
+        const halfTan = Math.tan(55 * Math.PI / 360); // camera fov is 55 (three r73: no MathUtils)
+        const v = new THREE.Vector3(), right = new THREE.Vector3(), up = new THREE.Vector3();
+        for (let iter = 0; iter < 3; iter++) {
+            controls.positionCamera();
+            camera.updateMatrixWorld();
+            const e = camera.matrixWorld.elements; // three r73: no reliable setFromMatrixColumn
+            right.set(e[0], e[1], e[2]);
+            up.set(e[4], e[5], e[6]);
+            let nx0 = 1e9, ny0 = 1e9, nx1 = -1e9, ny1 = -1e9, bad = false;
+            Object.keys(pos).forEach(function(name) {
+                v.copy(pos[name]).project(camera);
+                if (!isFinite(v.x) || !isFinite(v.y)) { bad = true; return; }
+                nx0 = Math.min(nx0, v.x); nx1 = Math.max(nx1, v.x);
+                ny0 = Math.min(ny0, v.y); ny1 = Math.max(ny1, v.y);
+            });
+            if (bad || nx1 <= nx0 || ny1 <= ny0) break;
+            // recentre: move the target TOWARD the projected offset — orbiting
+            // the target shifts the scene the opposite way on screen
+            const k = controls.radius * halfTan;
+            controls.target.addScaledVector(right, ((nx0 + nx1) / 2) * k * camera.aspect);
+            controls.target.addScaledVector(up, ((ny0 + ny1) / 2) * k);
+            // zoom: bbox (in NDC, [-1..1]) should cover ~78% of the tighter axis
+            const f = Math.min(1.56 / (nx1 - nx0), 1.56 / (ny1 - ny0));
+            controls.radius = Math.max(150, Math.min(900, controls.radius / f));
+        }
+        controls.positionCamera();
+
         t3 = {
             active: false,
             labelEase: {},
