@@ -932,14 +932,23 @@ body:not(.transit-page) #map-container::before {
     stroke-width: 5;
 }
 
-/* Windowed page: the diagram is the star. The subway map letterboxes into a
-   wide 8/5 canvas and the planner collapses to a compact strip below it.
-   max-height keeps the 8/5 box from exceeding the grid row on wide windows —
-   otherwise the bottom of the diagram (SWI lane) slides under the planner. */
+/* Windowed page: the subway diagram takes its FULL width at its native 8/5
+   aspect (large, letterbox-free), and the window scrolls down to the planner —
+   no clipping under the planner, no shrunken box with dead space beside it. */
 .transit-window #map-container.mode-subway:not(.mode-3d) {
     aspect-ratio: 8 / 5;
     min-height: 0;
-    max-height: 100%;
+    max-height: none;
+}
+
+/* While the subway is up, lay the window out as a simple flow: the map takes
+   its full 8/5 height at full width, the planner flows below, and the window
+   scrolls between them. (Auto grid tracks don't honor the aspect height.) */
+.transit-window:not(.is-expanded):has(#map-container.mode-subway:not(.mode-3d)) .transit-grid {
+    display: block;
+}
+.transit-window:not(.is-expanded):has(#map-container.mode-subway:not(.mode-3d)) .route-planner {
+    margin-top: var(--space-sm);
 }
 
 .transit-window #map-container.mode-subway:not(.mode-3d) #transit-map {

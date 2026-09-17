@@ -132,7 +132,7 @@
     $('ship-specs').innerHTML='<table class="ship-comparison"><caption>Supplied spacecraft specifications</caption><thead><tr><th scope="col">Measure</th><th scope="col">El Cajon</th><th scope="col">Hackett</th></tr></thead><tbody>'+rows.map(([label,key,unit,digits])=>'<tr><th scope="row">'+label+'</th>'+['el-cajon','hackett'].map(k=>'<td>'+(digits===null?catalog[k][key]:catalog[k][key].toLocaleString('en-US',{minimumFractionDigits:digits,maximumFractionDigits:digits}))+unit+'</td>').join('')+'</tr>').join('')+'</tbody></table>';
   }
   function createLabels() {
-    $('labels').querySelectorAll('.lab,.comparison-label').forEach(e=>e.remove());$('leaders').replaceChildren();labels=[];
+    $('labels').querySelectorAll('.lab,.comparison-label').forEach(e=>e.remove());$('leaders').replaceChildren();labels=[];ringEls=null;
     const entries=state.compare?['el-cajon','hackett'].map(k=>({t:(k==='el-cajon'?'El Cajon':'Hackett')+' · '+catalog[k].length.toFixed(2)+' m',id:k})):catalog[id].labels;
     entries.forEach((part,index)=>{
       const el=document.createElement('span');el.className=state.compare?'comparison-label':'lab';el.textContent=decode(part.t);
