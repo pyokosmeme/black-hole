@@ -200,8 +200,27 @@ function visible(l,on){l.ta=on?1:0;}
     pairs.forEach(({l,a})=>{
       const lw=l.el.offsetWidth,lh=l.el.offsetHeight;
       let ux,uy;
-      if(a.nx!==undefined){ux=a.nx;uy=a.ny;}
-      else{ux=a.x-C.x;uy=a.y-C.y;const m2=Math.hypot(ux,uy);if(m2>4){ux/=m2;uy/=m2;}else{ux=(l.part.side??1)>0?1:-1;uy=0;}}
+      // nose/tail parts point along the axis away from the hull; the
+      // scale figure always hangs below; everything else follows its
+      // surface normal
+      if(l.part.t==='SCALE FIGURE'){ux=0;uy=1;}
+      else{
+        let axial=false;
+        if(prof){
+          let x0=-1,x1=-1;
+          for(let b=0;b<256;b++)if(prof[b]){if(x0<0)x0=b*2;x1=b*2;}
+          const mid=(x0+x1)/2,f=(l.part.p[0]-x0)/Math.max(1,x1-x0);
+          if(f<0.16||f>0.84){
+            const pa=renderer.project([l.part.p[0],0,0]),pm=renderer.project([mid,0,0]);
+            if(pa&&pm){const dx=pa.x-pm.x,dy=pa.y-pm.y,dl=Math.hypot(dx,dy);
+              if(dl>4){ux=dx/dl;uy=dy/dl;axial=true;}}
+          }
+        }
+        if(!axial){
+          if(a.nx!==undefined){ux=a.nx;uy=a.ny;}
+          else{ux=a.x-C.x;uy=a.y-C.y;const m2=Math.hypot(ux,uy);if(m2>4){ux/=m2;uy/=m2;}else{ux=(l.part.side??1)>0?1:-1;uy=0;}}
+        }
+      }
       // support radius measured from this label's own station axis, so
       // the box lands just past the outline near its part
       const c0=renderer.project([l.part.p[0],0,0])||C;
