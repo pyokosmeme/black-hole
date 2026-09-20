@@ -28,22 +28,19 @@
     for(let i=0;i<n;i++)stars.push({x:Math.random(),y:Math.random(),m:Math.pow(Math.random(),2.1),t:Math.random()});
     drawStars();
   }
-  /* Spin-direction rings: one halo per ring entry, split into a bright
-     near-side pass and a ghosted far-side pass so the crescent reads as
-     wrapping in front of and behind the hull. */
+    /* crescent spin-direction rings, ported from the original viewers */
   let ringEls=null;
   function initRings(){
     if(ringEls)return;
-    const svg=$('leaders');
-    const make=()=>{
+    const svg=$('leaders');ringEls=[0,1].map(()=>{
       const p=document.createElementNS(svgNS,'path');
-      p.setAttribute('fill','#3ECC8F');p.setAttribute('stroke','#3ECC8F');
-      p.setAttribute('stroke-width','1');p.setAttribute('stroke-linejoin','round');
+      p.setAttribute('fill','#3ECC8F');p.setAttribute('opacity','.85');
+      p.setAttribute('stroke','#3ECC8F');p.setAttribute('stroke-width','1');
+      p.setAttribute('stroke-linejoin','round');
       svg.insertBefore(p,svg.firstChild);return p;
-    };
-    ringEls=[0,1].map(()=>{const front=make();const back=make();return{front,back};});
+    });
   }
-  function clearRings(){initRings();ringEls.forEach(el=>{el.front.setAttribute('d','');el.back.setAttribute('d','');});}
+  function clearRings(){initRings();ringEls.forEach(el=>el.setAttribute('d',''));}
   function drawRings(){
     initRings();
     const cfg=catalog[id],rings=cfg.rings||[];
@@ -52,44 +49,27 @@
       const R2=rings[i];
       // arrows belong to the schematic: visible whenever labels are on,
       // dimmed while the spin is stopped
-      if(!R2||state.compare||!state.labels){el.front.setAttribute('d','');el.back.setAttribute('d','');return;}
-      el.front.setAttribute('opacity',stopped?'0.4':'0.9');
-      el.back.setAttribute('opacity',stopped?'0.12':'0.3');
-      const N=48,span=(R2.span??232)*Math.PI/180,lead=(state.phase+(R2.lead??2.1))*R2.dir;
-      const ax=renderer.project([R2.x,0,0]),axD=ax?ax.d:0;
-      const proj=(x,y,z)=>{const p=renderer.project([x,y,z]);return p?[p.x,p.y,p.d]:null;};
-      const pts=[];let ok=true;
+      if(!R2||state.compare||!state.labels){el.setAttribute('d','');return;}
+      el.setAttribute('opacity',stopped?'0.4':'0.85');
+      const N=40,span=232*Math.PI/180,lead=(state.phase+2.1)*R2.dir;
+      const proj=(x,y,z)=>{const p=renderer.project([x,y,z]);return p?[p.x,p.y]:null;};
+      let ok=true;const outer=[],inner=[];
       for(let k=0;k<=N;k++){
         const f=k/N,t=lead-span*R2.dir*(1.0-f);
         const wd=1.0-0.45*f,rm=(R2.ri+R2.ro)/2,hw=(R2.ro-R2.ri)/2*wd;
         const qo=proj(R2.x,(rm+hw)*Math.cos(t),(rm+hw)*Math.sin(t)),qi=proj(R2.x,(rm-hw)*Math.cos(t),(rm-hw)*Math.sin(t));
         if(!qo||!qi){ok=false;break;}
-        pts.push({o:qo,n:qi,far:qo[2]>axD});
+        outer.push(qo);inner.push(qi);
       }
-      if(!ok){el.front.setAttribute('d','');el.back.setAttribute('d','');return;}
-      // Split the ring at the view-depth boundary: contiguous far-side
-      // runs ghost behind the hull, near-side runs draw bright on top.
-      const runs=[];pts.forEach((s,k)=>{
-        const last=runs[runs.length-1];
-        if(!last||last.far!==s.far)runs.push({far:s.far,pts:[s],head:k===0});
-        else last.pts.push(s);
-      });
-      const ribbon=run=>{
-        const O=run.pts.map(s=>s.o),I=run.pts.map(s=>s.n);
-        let d='M'+O[0][0].toFixed(1)+','+O[0][1].toFixed(1);
-        for(let k=1;k<O.length;k++)d+=' L'+O[k][0].toFixed(1)+','+O[k][1].toFixed(1);
-        if(run.head){
-          const th=lead,rm2=(R2.ri+R2.ro)/2,flare=(R2.ro-R2.ri)*0.95,tipT=lead+18*Math.PI/180*R2.dir;
-          const pTip=proj(R2.x,rm2*Math.cos(tipT),rm2*Math.sin(tipT)),pOut=proj(R2.x,(rm2+flare)*Math.cos(th),(rm2+flare)*Math.sin(th)),pIn=proj(R2.x,(rm2-flare)*Math.cos(th),(rm2-flare)*Math.sin(th));
-          if(!pTip||!pOut||!pIn)return null;
-          d+=' L'+pOut[0].toFixed(1)+','+pOut[1].toFixed(1)+' L'+pTip[0].toFixed(1)+','+pTip[1].toFixed(1)+' L'+pIn[0].toFixed(1)+','+pIn[1].toFixed(1);
-        }
-        for(let k=I.length-1;k>=0;k--)d+=' L'+I[k][0].toFixed(1)+','+I[k][1].toFixed(1);
-        return d+' Z';
-      };
-      let dF='',dB='';
-      runs.forEach(run=>{const d=ribbon(run);if(!d)return;if(run.far)dB+=d;else dF+=d;});
-      el.front.setAttribute('d',dF);el.back.setAttribute('d',dB);
+      if(!ok){el.setAttribute('d','');return;}
+      const th=lead,rm2=(R2.ri+R2.ro)/2,flare=(R2.ro-R2.ri)*0.95,tipT=th+18*Math.PI/180*R2.dir;
+      const pTip=proj(R2.x,rm2*Math.cos(tipT),rm2*Math.sin(tipT)),pOut=proj(R2.x,(rm2+flare)*Math.cos(th),(rm2+flare)*Math.sin(th)),pIn=proj(R2.x,(rm2-flare)*Math.cos(th),(rm2-flare)*Math.sin(th));
+      if(!pTip||!pOut||!pIn){el.setAttribute('d','');return;}
+      let d='M'+outer[0][0].toFixed(1)+','+outer[0][1].toFixed(1);
+      for(let k=1;k<outer.length;k++)d+=' L'+outer[k][0].toFixed(1)+','+outer[k][1].toFixed(1);
+      d+=' L'+pOut[0].toFixed(1)+','+pOut[1].toFixed(1)+' L'+pTip[0].toFixed(1)+','+pTip[1].toFixed(1)+' L'+pIn[0].toFixed(1)+','+pIn[1].toFixed(1);
+      for(let k=inner.length-1;k>=0;k--)d+=' L'+inner[k][0].toFixed(1)+','+inner[k][1].toFixed(1);
+      el.setAttribute('d',d+' Z');
     });
   }
 function visible(l,on){l.ta=on?1:0;}
@@ -177,11 +157,12 @@ function visible(l,on){l.ta=on?1:0;}
       });return;
     }
     drawRings();
-    // Column callout layout: every label docks in a fixed column just
-    // outside the widest hull silhouette on its marked side, stacked
-    // top-to-bottom in anchor order, so placement follows one rule and
-    // leader lines stay short and never cross.
-    const reqs=[],active=[],cols={r:[],l:[]};
+    // Radial callouts: each label sits just outside the projected hull
+    // outline (support function over every station and spin arrow) in
+    // the direction of its part. Overlaps slide vertically, and a slide
+    // that would drag a label too far from its anchor flips to the
+    // opposite side of the anchor stack instead.
+    const reqs=[],active=[];
     labels.forEach((l)=>{
       const show=state.labels&&(l.part.t!=='SCALE FIGURE'||state.eva);
       if(!show){visible(l,false);return;}
@@ -189,45 +170,91 @@ function visible(l,on){l.ta=on?1:0;}
       reqs.push({part:l.part,prev:l.probe??-1});
     });
     const got=models.length?renderer.labelAnchors(models[0],state,reqs):[];
-    const ext=renderer.hullExtent(models[0]);
-    const colMid=ext?(ext.x0+ext.x1)/2:w/2;
+    // hull silhouette stations on screen: axis point + projected radius
+    const stats=[];
+    const prof=models.length?models[0].profile:null;
+    if(prof)for(let b=0;b<256;b+=4){
+      const R=prof[b];if(!R)continue;
+      const ax=renderer.project([b*2,0,0]);if(!ax)continue;
+      const pe=renderer.project([b*2,0,R]);
+      stats.push({x:ax.x,y:ax.y,r:pe?Math.hypot(pe.x-ax.x,pe.y-ax.y):0});
+    }
+    // spin arrows float clear of the hull: keep callouts outside them too
+    (catalog[id].rings||[]).forEach(R2=>{
+      const rc=renderer.project([R2.x,0,0]);
+      if(rc){const re=renderer.project([R2.x,0,R2.ro]);
+        stats.push({x:rc.x,y:rc.y,r:re?Math.hypot(re.x-rc.x,re.y-rc.y):0});}
+    });
+    const pairs=[];
+    const C=stats.length?stats.reduce((o,st)=>{o.x+=st.x;o.y+=st.y;return o;},{x:0,y:0}):{x:stage.clientWidth/2,y:stage.clientHeight/2};
+    if(stats.length){C.x/=stats.length;C.y/=stats.length;}
     active.forEach((l,k)=>{
       const a=got?got[k]:null;
       if(!a){visible(l,false);return;}
       l.probe=a.probe;
       l.dx=a.x;l.dy=a.y-8;l.ta=1;
-      if(l.cx===undefined)l.alpha=0;
-      cols[a.x<colMid?'l':'r'].push(l);
+      pairs.push({l,a});
     });
-    const gap=6;
-    const dockR=ext?ext.x1+30:w-24,dockL=ext?ext.x0-30:24;
-    [['r',true],['l',false]].forEach(([key,right])=>{
-      const list=cols[key];
-      if(!list.length)return;
-      list.sort((a,b)=>(a.dy+(a.part.dy||0))-(b.dy+(b.part.dy||0)));
-      // One shared column x per side, from the widest label in the column:
-      // boxes align exactly and the vertical stack can never collide.
-      const maxLw=Math.max(...list.map(l=>l.el.offsetWidth));
-      const colX=right?Math.min(dockR,w-maxLw-6):Math.max(dockL-maxLw,6);
-      let prevBot=-Infinity;
-      list.forEach(l=>{
-        const lw=l.el.offsetWidth,lh=l.el.offsetHeight;
-        l.tx=colX;
-        let ty=Math.max(l.dy+10,prevBot+gap);
-        ty=Math.max(8,Math.min(h-lh-8,ty));
-        l.ty=ty;
-        // Snap into the column on first placement; after that, glue to the
-        // target so reflow while orbiting stays crisp.
-        if(l.cx===undefined){l.cx=l.tx;l.kx=l.dx;l.ky=l.dy;}
-        l.cy=ty;
-        // Leader runs from the anchor to the hull-facing edge of the box.
-        l.ex=right?l.tx:l.tx+lw;
-        l.ey=Math.max(ty+2,Math.min(ty+lh-2,l.dy));
-        prevBot=ty+lh;
-      });
+    pairs.sort((p,q)=>p.a.y-q.a.y);
+    const placed=[],bottomPad=30;
+    pairs.forEach(({l,a})=>{
+      const lw=l.el.offsetWidth,lh=l.el.offsetHeight;
+      let ux,uy;
+      if(a.nx!==undefined){ux=a.nx;uy=a.ny;}
+      else{ux=a.x-C.x;uy=a.y-C.y;const m2=Math.hypot(ux,uy);if(m2>4){ux/=m2;uy/=m2;}else{ux=(l.part.side??1)>0?1:-1;uy=0;}}
+      // support radius measured from this label's own station axis, so
+      // the box lands just past the outline near its part
+      const c0=renderer.project([l.part.p[0],0,0])||C;
+      let rDir=0;
+      for(const st of stats)rDir=Math.max(rDir,(st.x-c0.x)*ux+(st.y-c0.y)*uy+st.r);
+      const off=rDir+24;
+      const horiz=Math.abs(ux)>=Math.abs(uy);
+      const wantY=Math.max(8,Math.min(stage.clientHeight-lh-bottomPad,a.y-lh/2));
+      let bx,by;
+      if(horiz){
+        bx=ux>=0?c0.x+ux*off:c0.x+ux*off-lw;
+        by=wantY;
+      }else{
+        by=uy>0?c0.y+uy*off:c0.y+uy*off-lh;
+        bx=Math.max(4,Math.min(stage.clientWidth-lw-4,a.x-lw/2));
+      }
+      // separate overlapping boxes with the least movement, so labels
+      // stay near their parts instead of cascading across the stage
+      for(let i=0;i<24;i++){
+        const hit=placed.find(o=>bx<o.x+o.w+6&&bx+lw+6>o.x&&by<o.y+o.h+6&&by+lh+6>o.y);
+        if(!hit)break;
+        const ox=Math.min(bx+lw,hit.x+hit.w)-Math.max(bx,hit.x)+6;
+        const oy=Math.min(by+lh,hit.y+hit.h)-Math.max(by,hit.y)+6;
+        if(ox<oy)bx+=bx+lw/2<hit.x+hit.w/2?-ox:ox;
+        else by+=by+lh/2<hit.y+hit.h/2?-oy:oy;
+      }
+      by=Math.max(8,Math.min(stage.clientHeight-lh-bottomPad,by));
+      bx=Math.max(4,Math.min(stage.clientWidth-lw-4,bx));
+      for(let i=0;i<6;i++){
+        const hit2=placed.find(o=>bx<o.x+o.w+6&&bx+lw+6>o.x&&by<o.y+o.h+6&&by+lh+6>o.y);
+        if(!hit2)break;
+        const ox2=Math.min(bx+lw,hit2.x+hit2.w)-Math.max(bx,hit2.x)+6;
+        const oy2=Math.min(by+lh,hit2.y+hit2.h)-Math.max(by,hit2.y)+6;
+        if(ox2<oy2)bx+=bx+lw/2<hit2.x+hit2.w/2?-ox2:ox2;
+        else by+=by+lh/2<hit2.y+hit2.h/2?-oy2:oy2;
+      }
+      // slides/clamps must never pull the box back inside the outline
+      const rMin=rDir+16+Math.min(lw,lh)/2;
+      for(let i=0;i<3;i++){
+        const cx=bx+lw/2,cy=by+lh/2,dx=cx-c0.x,dy=cy-c0.y,d=Math.hypot(dx,dy)||1;
+        if(d>=rMin)break;
+        bx+=dx/d*(rMin-d);by+=dy/d*(rMin-d);
+        bx=Math.max(4,Math.min(stage.clientWidth-lw-4,bx));
+        by=Math.max(8,Math.min(stage.clientHeight-lh-bottomPad,by));
+      }
+      l.tx=bx;l.ty=by;
+      if(l.cx===undefined){l.kx=l.dx;l.ky=l.dy;l.alpha=1;}
+      l.cx=bx;l.cy=by;
+      l.ex=Math.max(bx,Math.min(bx+lw,l.dx));
+      l.ey=Math.max(by,Math.min(by+lh,l.dy));
+      placed.push({x:bx,y:by,w:lw,h:lh});
     });
-
-    active.forEach(applyLabel);
+    active.forEach(applyLabel);    active.forEach(applyLabel);    active.forEach(applyLabel);active.forEach(applyLabel);
     animateLabels();
   }
   function draw() {
@@ -289,7 +316,7 @@ function visible(l,on){l.ta=on?1:0;}
   canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();++request;models=[];renderer=null;$('err').textContent='3D context was interrupted. Reload the page to restore it.';$('err').style.display='grid';sync();});
   new ResizeObserver(()=>{seedStars();draw();}).observe(stage);document.fonts.ready.then(draw);
   document.addEventListener('visibilitychange',draw);
-  function fromLocation(){const params=new URLSearchParams(location.search);id=catalog[params.get('ship')]?params.get('ship'):'el-cajon';state=defaults();singleState=null;if(params.get('compare')==='1'){singleState=defaults();state.compare=true;}$('ship-select').value=id;load();}
+  function fromLocation(){const params=new URLSearchParams(location.search);id=catalog[params.get('ship')]?params.get('ship'):'el-cajon';state=defaults();const az=parseFloat(params.get('az'));if(isFinite(az))state.az=az*Math.PI/180;singleState=null;if(params.get('compare')==='1'){singleState=defaults();state.compare=true;}$('ship-select').value=id;load();}
   addEventListener('popstate',fromLocation);
   $('hud').open=false;seedStars();fromLocation();
 })();

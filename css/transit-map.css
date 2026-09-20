@@ -194,7 +194,8 @@ body:not(.transit-page) #map-container::before {
 .legend {
     position: absolute;
     top: 20px;
-    left: 20px;
+    left: auto;
+    right: 20px;
     background: var(--panel);
     border: 2px solid var(--purple);
     padding: 15px 20px;

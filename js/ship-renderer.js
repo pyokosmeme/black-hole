@@ -130,11 +130,7 @@ function create(canvas) {
       comparisonHeight=worldWidth/aspect;
       vp=mul(ortho(worldWidth/2,worldWidth/aspect/2),lookAt([96,-500,0],[96,0,0],[0,0,1]));
     }else{
-      const cfg=models[0].cfg,
-      // widen the default framing when callouts are on, so the docking
-      // columns on either side stay clear of the hull
-      gutter=!compare&&state.labels?1.3:1,
-      dist=cfg.distance*0.78*Math.max(1,1/aspect)*gutter/state.zoom,ce=Math.cos(state.el);
+      const cfg=models[0].cfg,gut=!compare&&state.labels?1.2:1,dist=cfg.distance*0.78*Math.max(1,1/aspect)*gut/state.zoom,ce=Math.cos(state.el);
       const eye=[cfg.target+dist*Math.cos(state.az)*ce,dist*Math.sin(state.az)*ce,dist*Math.sin(state.el)];eyeWorld=eye;
       vp=mul(persp(38*Math.PI/180,aspect,.1,10000),lookAt(eye,[cfg.target,0,0],[0,0,1]));
     }
@@ -158,7 +154,7 @@ function create(canvas) {
     const x=vp[0]*point[0]+vp[4]*point[1]+vp[8]*point[2]+vp[12],y=vp[1]*point[0]+vp[5]*point[1]+vp[9]*point[2]+vp[13];
     const z=vp[2]*point[0]+vp[6]*point[1]+vp[10]*point[2]+vp[14],w=vp[3]*point[0]+vp[7]*point[1]+vp[11]*point[2]+vp[15];
     if(w<=0||z/w<-1||z/w>1)return null;
-    return {x:(x/w*.5+.5)*canvas.clientWidth,y:(.5-y/w*.5)*canvas.clientHeight,d:z/w};
+    return {x:(x/w*.5+.5)*canvas.clientWidth,y:(.5-y/w*.5)*canvas.clientHeight};
   }
   function anchor(cfg,label,state) { return project(transform(label.p,modelMatrix(cfg,{evaOnly:label.t==='SCALE FIGURE'},state))); }
   function pickTarget() {
@@ -190,7 +186,7 @@ function create(canvas) {
     const cfg=model.cfg;
     const meshR=m=>{if(m.maxR===undefined){m.maxR=0;for(let i=0;i<m.count;i++){const r=Math.hypot(m.positions[i*3+1],m.positions[i*3+2]);if(r>m.maxR)m.maxR=r;}}return m.maxR;};
     const silh=(x,mesh)=>{const c=project([x,0,0]);if(!c)return 0;const b0=Math.min(255,Math.max(0,Math.round(x/2)));let R=mesh?meshR(mesh):0;if(model.profile)for(let db=-8;db<=8;db++){const b=Math.min(255,Math.max(0,b0+db));R=Math.max(R,model.profile[b]);}if(!R)return 0;let w=0;for(const s of [1,-1]){const pp=project([x,0,s*R]);if(pp)w=Math.max(w,Math.hypot(pp.x-c.x,pp.y-c.y));}return w;};
-    const legacy=()=>requests.map(rq=>{const p=project(transform(rq.part.p,matFor(cfg,{evaOnly:rq.part.t==='SCALE FIGURE'},state)));return p?{x:p.x,y:p.y,probe:-1,r:silh(rq.part.p[0])}:null;});
+    const legacy=()=>requests.map(rq=>{const p=project(transform(rq.part.p,matFor(cfg,{evaOnly:rq.part.t==='SCALE FIGURE'},state)));return p?{x:p.x,y:p.y,probe:-1,r:silh(rq.part.p[0]),p0:p}:null;});
     if(!eyeWorld||state.compare)return legacy();
     const byName=new Map(model.meshes.map(m=>[m.name,m]));
     const visible=m=>{const mat=m.material;return !(mat.evaOnly&&!state.eva)&&!(mat.shell&&state.cut);};
@@ -274,31 +270,25 @@ function create(canvas) {
         // standard angles). Fall back to the annotated point itself so the
         // label keeps a real anchor instead of vanishing to (0,0).
         const sp=project(transform(q.part.p,matrix));
-        return sp?{x:sp.x,y:sp.y,probe:-1,r:silh(q.part.p[0],q.mesh||q.fmesh)}:null;
+        return sp?{x:sp.x,y:sp.y,probe:-1,r:silh(q.part.p[0],q.mesh||q.fmesh),p0:project(transform(q.part.p,matrix))}:null;
       }
       const w=transform([m.probes[pi*6],m.probes[pi*6+1],m.probes[pi*6+2]],matrix);
       const sp=project(w);
-      return sp?{x:sp.x,y:sp.y,probe:pi,r:silh(q.part.p[0],m)}:null;
+      if(!sp)return null;
+      const nx0=m.probes[pi*6+3],ny0=m.probes[pi*6+4],nz0=m.probes[pi*6+5];
+      const nw=[nx0,c*ny0-s*nz0,s*ny0+c*nz0];
+      // screen-space normal direction via the view-projection linear part
+      const sx=vp[0]*nw[0]+vp[4]*nw[1]+vp[8]*nw[2],sy=vp[1]*nw[0]+vp[5]*nw[1]+vp[9]*nw[2];
+      const dl=Math.hypot(sx,sy);
+      const ndx=dl>1e-4?sx/dl:0,ndy=dl>1e-4?-sy/dl:-1;
+      return {x:sp.x,y:sp.y,probe:pi,r:silh(q.part.p[0],m),p0:project(transform(q.part.p,matrix)),nx:ndx,ny:ndy};
     });
-  }
-  // Screen-space horizontal extent of the hull silhouette, so callout
-  // columns can dock just outside the outline on either side.
-  function hullExtent(model) {
-    if(!model||!model.profile)return null;
-    let x0=Infinity,x1=-Infinity;
-    for(let b=0;b<256;b+=4){
-      const R=model.profile[b];if(!R)continue;
-      const c=project([b*2,0,0]);if(!c)continue;
-      x0=Math.min(x0,c.x);x1=Math.max(x1,c.x);
-      for(const ss of [1,-1]){const pp=project([b*2,0,ss*R]);if(pp){x0=Math.min(x0,pp.x);x1=Math.max(x1,pp.x);}}
-    }
-    return x0<x1?{x0,x1}:null;
   }
   function measure(cfg) {
     const z=comparisonHeight*(cfg.id==='el-cajon'?.20:-.25)+cfg.span/2;
     return {start:project([0,0,z]),end:project([cfg.length,0,z])};
   }
-  return {load,render,project,anchor,measure,labelAnchors,hullExtent};
+  return {load,render,project,anchor,measure,labelAnchors};
 }
 return {create};
 })();

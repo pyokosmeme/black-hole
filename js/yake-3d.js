@@ -503,6 +503,7 @@ window.YakeScene = (function () {
         if(label.hidden)return;
         const w=label.offsetWidth||90,h=label.offsetHeight||18;
         const cands=candidates(x,y,7,w,h).map(c=>({...c,y:Math.max(labelTop,Math.min(height-labelBottom-h,c.y))}));
+        cands.sort((p,q)=>Math.hypot(p.x+w/2-x,p.y+h/2-y)-Math.hypot(q.x+w/2-x,q.y+h/2-y));
         attach(label,[x,y],cands,true);
       });
       if(flight)draw();
