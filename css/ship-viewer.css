@@ -34,8 +34,36 @@ body.ship-viewer.bh-mode #stage { background:rgba(5,5,15,.55); }
 .ship-comparison th,.ship-comparison td { text-align:left; padding:var(--space-xs); border-bottom:1px solid var(--purple); overflow-wrap:anywhere; }
 .ship-viewer .map-window { overflow:auto; }
 .ship-viewer .window-toolbar { position:sticky; top:0; z-index:5; background:inherit; }
+/* The toolbar used one uninterrupted flex row, which forced the title into
+ * one character per line and pushed the close control outside the viewport.
+ * Give the application controls a deliberate second row before that happens. */
+@media(max-width:900px) {
+  .ship-viewer .window-toolbar { display:grid; grid-template-columns:minmax(0,1fr); align-items:center; }
+  .ship-viewer .window-toolbar .section-line { display:none; }
+  .ship-viewer .window-toolbar h2 { white-space:nowrap; font-size:var(--text-lg); }
+  .ship-viewer .window-actions {
+    width:100%;
+    min-width:0;
+    margin-left:0;
+    display:grid;
+    grid-template-columns:auto minmax(0,1fr) 44px 44px;
+    align-items:center;
+    gap:4px;
+  }
+  .ship-viewer .ship-select-label { grid-column:1; white-space:nowrap; }
+  .ship-viewer .ship-select { grid-column:2; width:100%; min-width:0; }
+  .ship-viewer #compare-ships { grid-column:1 / 3; grid-row:2; justify-self:start; }
+  .ship-viewer .window-actions [data-window-expand] { grid-column:3; grid-row:1; }
+  .ship-viewer .window-actions a.acidburn-button { grid-column:4; grid-row:1; }
+}
 @media(max-height:450px) and (min-width:500px) {
-  .ship-viewer .map-window { display:grid; grid-template-columns:minmax(160px,36%) minmax(0,1fr); grid-template-rows:auto auto auto 1fr; }
+  .ship-viewer .window-toolbar { display:grid; grid-template-columns:minmax(0,1fr); padding:var(--space-xs); gap:4px; }
+  .ship-viewer .window-toolbar h2 { font-size:var(--text-sm); line-height:1.1; }
+  .ship-viewer .window-actions { display:flex; flex-wrap:nowrap; width:100%; margin-left:0; gap:4px; }
+  .ship-viewer .ship-select-label { flex:none; }
+  .ship-viewer .ship-select { flex:1 1 120px; width:auto; }
+  .ship-viewer #compare-ships { flex:none; min-width:0; }
+  .ship-viewer .map-window { display:grid; grid-template-columns:minmax(160px,36%) minmax(0,1fr); grid-template-rows:auto minmax(0,1fr) auto auto; overflow:hidden; }
   .ship-viewer .window-toolbar { grid-column:1 / -1; }
   .ship-viewer .ship-info { grid-column:1; grid-row:3; }
   .ship-viewer #hud { grid-column:1; grid-row:4; }
@@ -43,5 +71,12 @@ body.ship-viewer.bh-mode #stage { background:rgba(5,5,15,.55); }
   .ship-viewer .ship-info,.ship-viewer #hud { max-height:140px; }
   .ship-viewer .ship-info:not([open]),.ship-viewer #hud:not([open]) { min-height:calc(32px + 2*var(--space-xs)); }
   .ship-viewer .ship-caption { display:none; }
+}
+@media(max-height:360px) and (min-width:500px) {
+  /* At 320px high the model is the primary task. Collapsible secondary
+     panels would otherwise consume the entire stage; desktop/portrait keep
+     their full specification and view-control panels. */
+  .ship-viewer .ship-info,.ship-viewer #hud { display:none; }
+  .ship-viewer #stage { min-height:0; }
 }
 @media(max-width:600px), (max-height:600px) { .ship-viewer .lab { font-size:var(--text-xs); } }

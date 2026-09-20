@@ -199,9 +199,13 @@
     let routeLines = {};
     let dragState = {pointers: new Map(), moved: 0, lastDist: 0, lastMid: null, active: false};
     let view = {x: 0, y: 0, k: 1};
+    const usePortraitSubway = () => window.innerWidth <= 768 && window.innerHeight > window.innerWidth;
     let mapMode = localStorage.getItem('transit-map-mode') || '2d';
-    let layout = localStorage.getItem('transit-map-layout') || 'classic';
-    let subwayMobile = window.innerWidth <= 768;
+    // A first-time phone visitor starts in the operational diagram. Explicit
+    // prior choices remain respected, including the geographic overview.
+    let layout = localStorage.getItem('transit-map-layout') || (window.innerWidth <= 768 ? 'subway' : 'classic');
+    let subwayMobile = usePortraitSubway();
+    let classicCompact = window.innerWidth <= 768;
     let routingMode = localStorage.getItem('transit-routing-mode') || 'fastest';
     if (['fastest', 'transfers', 'burn'].indexOf(routingMode) === -1) routingMode = 'fastest';
 
@@ -250,9 +254,14 @@
 
     function onResize() {
         if (t3 && t3.active) resize3d();
-        const nextSubwayMobile = window.innerWidth <= 768;
-        if (mapMode === '2d' && layout === 'subway' && nextSubwayMobile !== subwayMobile) {
+        const nextSubwayMobile = usePortraitSubway();
+        const nextClassicCompact = window.innerWidth <= 768;
+        if (mapMode === '2d' && (
+            (layout === 'subway' && nextSubwayMobile !== subwayMobile) ||
+            (layout === 'classic' && nextClassicCompact !== classicCompact)
+        )) {
             subwayMobile = nextSubwayMobile;
+            classicCompact = nextClassicCompact;
             applyLayout();
         }
     }
@@ -292,7 +301,9 @@
             ? 'CLICK STATIONS TO PLAN ROUTE · 3D: DRAG ROTATES · PINCH OR SCROLL ZOOMS · RIGHT-DRAG PANS'
             : (layout === 'subway'
                 ? 'CLICK STATIONS TO PLAN ROUTE · DRAG PANS · SCROLL / PINCH ZOOMS'
-                : 'CLICK STATIONS TO PLAN ROUTE');
+                : (window.innerWidth <= 768
+                    ? 'CLICK STATIONS TO PLAN ROUTE · DRAG PANS · PINCH ZOOMS'
+                    : 'CLICK STATIONS TO PLAN ROUTE'));
     }
 
     function updateModeButtons() {
@@ -413,11 +424,15 @@
 
     function applyLayout() {
         const container = document.getElementById('map-container');
-        subwayMobile = window.innerWidth <= 768;
+        subwayMobile = usePortraitSubway();
+        classicCompact = window.innerWidth <= 768;
         svg.setAttribute('viewBox', layout === 'subway'
             ? (subwayMobile ? '0 0 600 1450' : '0 0 1600 1000')
             : '0 0 1600 1000');
-        if (container) container.classList.toggle('mode-subway', layout === 'subway');
+        if (container) {
+            container.classList.toggle('mode-subway', layout === 'subway');
+            container.classList.toggle('mode-classic', layout === 'classic');
+        }
         world.innerHTML = '';
         routeCircles = {};
         routeLines = {};
@@ -427,7 +442,7 @@
         updateRouteDisplay();
         view = {x: 0, y: 0, k: 1};
         applyView();
-        svg.style.touchAction = 'auto'; // 2D maps are static
+        svg.style.touchAction = (layout === 'subway' || classicCompact) ? 'none' : 'auto';
     }
 
     function applyView() {
@@ -459,14 +474,14 @@
         svg.style.touchAction = 'none';
 
         svg.addEventListener('wheel', function(e) {
-            if (layout === 'classic') return; // classic map is static
+            if (layout === 'classic' && !classicCompact) return;
             e.preventDefault();
             const p = clientToSvg(e.clientX, e.clientY);
             zoomBy(e.deltaY < 0 ? 1.15 : 1 / 1.15, p.x, p.y);
         }, {passive: false});
 
         svg.addEventListener('pointerdown', function(e) {
-            if (layout === 'classic') return; // classic map is static
+            if (layout === 'classic' && !classicCompact) return;
             dragState.pointers.set(e.pointerId, {x: e.clientX, y: e.clientY});
             dragState.moved = 0;
             dragState.captured = false;
@@ -480,7 +495,7 @@
         });
 
         svg.addEventListener('pointermove', function(e) {
-            if (layout === 'classic') return;
+            if (layout === 'classic' && !classicCompact) return;
             if (!dragState.pointers.has(e.pointerId)) return;
             const prev = dragState.pointers.get(e.pointerId);
             dragState.moved += Math.hypot(e.clientX - prev.x, e.clientY - prev.y);
@@ -738,12 +753,16 @@
 
             const hitArea = document.createElementNS(SVG_NS, 'rect');
             hitArea.classList.add('station-hit-area');
-            const hitX = pos.x - 30 + Math.min(0, labelOffset.x);
-            const hitY = pos.y - 30 + Math.min(0, labelOffset.y);
+            // At a phone overview scale the old 60-unit target became a
+            // 13px square. Keep the visible station precise but make its
+            // semantic target a reliable thumb-sized region.
+            const hitPad = layout === 'classic' && classicCompact ? 78 : 30;
+            const hitX = pos.x - hitPad + Math.min(0, labelOffset.x);
+            const hitY = pos.y - hitPad + Math.min(0, labelOffset.y);
             hitArea.setAttribute('x', hitX);
             hitArea.setAttribute('y', hitY);
-            hitArea.setAttribute('width', 60 + Math.abs(labelOffset.x));
-            hitArea.setAttribute('height', 60 + Math.abs(labelOffset.y));
+            hitArea.setAttribute('width', hitPad * 2 + Math.abs(labelOffset.x));
+            hitArea.setAttribute('height', hitPad * 2 + Math.abs(labelOffset.y));
 
             const circle = document.createElementNS(SVG_NS, 'circle');
             circle.classList.add('station-circle', 'faction-' + data.faction.toLowerCase());
@@ -1244,10 +1263,11 @@
         const wrap = document.createElement('div');
         wrap.className = 't3d-wrap';
         wrap.style.display = 'none';
-        wrap.innerHTML = '<canvas class="t3d-canvas"></canvas><div class="t3d-labels"></div>';
+        wrap.innerHTML = '<canvas class="t3d-canvas"></canvas><svg class="t3d-leaders" aria-hidden="true"></svg><div class="t3d-labels"></div>';
         container.appendChild(wrap);
 
         const canvas = wrap.querySelector('canvas');
+        const leaders = wrap.querySelector('.t3d-leaders');
         const labelsWrap = wrap.querySelector('.t3d-labels');
 
         const renderer = new THREE.WebGLRenderer({canvas: canvas, antialias: true, alpha: true});
@@ -1511,7 +1531,7 @@
             routeHighlightColor: routeHighlightColor,
             selectionGlowObjs: selectionGlowObjs,
             labelEls: labelEls, pos: pos,
-            width: 1, height: 1, rafId: null, tmp: new THREE.Vector3()
+            width: 1, height: 1, rafId: null, tmp: new THREE.Vector3(), leaders: leaders
         };
 
         resize3d();
@@ -1537,8 +1557,9 @@
 
         t3.renderer.render(t3.scene, t3.camera);
 
-        // Labels are glued to their station: project the point, sit above it.
-        // Crowded names never move; they fade (eased) under the nearer label.
+        // Project labels into the same collision-aware layout used by the
+        // other maps. The former one-above/one-below fallback made names blink
+        // in and out as the network rotated, with no visual link to a star.
         const vis = [];
         Object.keys(t3.labelEls).forEach(function(name) {
             const el = t3.labelEls[name];
@@ -1555,34 +1576,59 @@
                 d: t3.camera.position.distanceTo(t3.pos[name])
             });
         });
-        vis.sort(function(a, b) { return a.d - b.d; });
-        const taken = [];
-        const hits = (a, b) => a.x < b.x + b.w + 4 && a.x + a.w + 4 > b.x &&
-                              a.y < b.y + b.h + 2 && a.y + a.h + 2 > b.y;
+        const items = [], itemById = Object.create(null);
         vis.forEach(function(v) {
             const el = t3.labelEls[v.name];
-            const w = el.offsetWidth || 70, h = el.offsetHeight || 18;
-            let box = {x: v.x - w / 2, y: v.y - h * 1.5, w: w, h: h};
-            let crowded = taken.some(function(o) { return hits(box, o); });
-            if (crowded) {
-                // One dodge below the blocking label before hiding the name.
-                const o = taken.find(function(t) { return hits(box, t); });
-                if (o) {
-                    const alt = {x: box.x, y: o.y + o.h + 4, w: w, h: h};
-                    if (!taken.some(function(t) { return hits(alt, t); })) { box = alt; crowded = false; }
-                }
+            el.style.display = 'block';
+            el.style.visibility = 'hidden';
+            const prior = t3.labelEase[v.name];
+            const item = {
+                id: v.name, x: v.x, y: v.y, r: 7,
+                w: el.offsetWidth || 70, h: el.offsetHeight || 18,
+                priority: (plannedRoute.indexOf(v.name) !== -1 ? 100000 : (v.name === 'Sol' ? 50000 : 10000)) - v.d,
+                previous: prior && prior.target ? prior.target : null
+            };
+            items.push(item);
+            itemById[v.name] = {item: item, visual: v};
+        });
+        const placements = window.SceneLabelLayout
+            ? window.SceneLabelLayout.layout(items, {x:4,y:4,w:Math.max(1,t3.width-8),h:Math.max(1,t3.height-8)}, vis.map(function(v) {
+                return {id:v.name,x:v.x,y:v.y,r:7};
+            }))
+            : [];
+        Object.keys(t3.labelEls).forEach(function(name) {
+            const el = t3.labelEls[name];
+            el.style.display = 'none';
+            el.style.visibility = '';
+            el.style.pointerEvents = 'none';
+        });
+        t3.leaders.setAttribute('viewBox', '0 0 ' + t3.width + ' ' + t3.height);
+        t3.leaders.replaceChildren();
+        placements.forEach(function(placement) {
+            const record = itemById[placement.id];
+            if (!record) return;
+            const el = t3.labelEls[placement.id];
+            const cur = t3.labelEase[placement.id] || (t3.labelEase[placement.id] = {});
+            if (cur.x == null) {
+                cur.x = placement.box.x;
+                cur.y = placement.box.y;
+            } else {
+                cur.x += (placement.box.x - cur.x) * 0.24;
+                cur.y += (placement.box.y - cur.y) * 0.24;
             }
-            if (!crowded) taken.push(box);
-            const cur = t3.labelEase[v.name] || (t3.labelEase[v.name] = {a: 1});
-            // Crowded names hide cleanly instead of printing illegible
-            // double-vision ghost text on top of each other.
-            const target = crowded ? 0 : Math.max(0.55, Math.min(1, 1.7 - v.d / 600));
-            cur.a += (target - cur.a) * 0.2;
-            el.style.display = (crowded && cur.a < 0.05) ? 'none' : 'block';
-            el.style.pointerEvents = crowded ? 'none' : 'auto';
-            el.style.transform = 'translate(' + box.x.toFixed(1) + 'px,' + box.y.toFixed(1) + 'px)';
-            el.style.opacity = cur.a.toFixed(2);
-            el.style.zIndex = String(20000 - Math.round(v.d * 10));
+            cur.target = {x:placement.box.x,y:placement.box.y};
+            el.style.display = 'block';
+            el.style.visibility = '';
+            el.style.pointerEvents = 'auto';
+            el.style.transform = 'translate(' + cur.x.toFixed(1) + 'px,' + cur.y.toFixed(1) + 'px)';
+            el.style.opacity = '1';
+            el.style.zIndex = String(20000 - Math.round(record.visual.d * 10));
+            const line = document.createElementNS(SVG_NS, 'line');
+            line.setAttribute('x1', placement.start.x.toFixed(1));
+            line.setAttribute('y1', placement.start.y.toFixed(1));
+            line.setAttribute('x2', placement.end.x.toFixed(1));
+            line.setAttribute('y2', placement.end.y.toFixed(1));
+            t3.leaders.appendChild(line);
         });
     }
 
@@ -1636,7 +1682,9 @@
         if (!t3) return;
         t3.wrap.style.display = 'block';
         svg.style.display = 'none';
-        document.getElementById('map-container').classList.add('mode-3d');
+        const mapContainer = document.getElementById('map-container');
+        mapContainer.classList.remove('mode-classic', 'mode-subway');
+        mapContainer.classList.add('mode-3d');
         t3.active = true;
         resize3d();
         apply3dSelection();

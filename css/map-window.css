@@ -15,6 +15,11 @@
 .map-window .acidburn-button[aria-pressed=true] { background:rgba(0,255,255,.12); border-color:var(--cyan); color:#fff; }
 body.map-window-expanded { overflow:hidden; }
 body.map-window-expanded .main-content { z-index:2000; }
-.map-window.is-expanded { position:fixed; z-index:2000; inset:var(--window-gap,12px); bottom:calc(var(--window-gap,12px) + env(safe-area-inset-bottom,0px)); margin:0; }
+.map-window.is-expanded { position:fixed; z-index:2000; inset:var(--window-gap,12px); bottom:calc(var(--window-gap,12px) + env(safe-area-inset-bottom,0px)); margin:0; isolation:isolate; background:#12121a; }
+/* A translucent normal panel belongs over the site background. An expanded
+ * application window should read as its own surface, not reveal the header
+ * stripes through its toolbar. */
+body.bh-mode .map-window.is-expanded { background:rgba(5,5,15,.98); }
+body.light-mode .map-window.is-expanded { background:#fdfaf5; }
 @media(max-width:600px) { .map-window-shell { padding-top:calc(44px + var(--window-gap)); } .window-toolbar .section-line { display:none; } }
 @media(max-height:600px) { .window-toolbar { padding:var(--space-xs); } }

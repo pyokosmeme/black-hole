@@ -72,16 +72,24 @@
       el.setAttribute('d',d+' Z');
     });
   }
-function visible(l,on){l.ta=on?1:0;}
+function visible(l,on){
+    l.ta=on?1:0;
+    if(!on&&l.cx===undefined){l.el.hidden=true;l.line.style.display=l.dot.style.display='none';}
+  }
   function applyLabel(l){
     if(l.cx===undefined)return;
+    const w=l.w||l.el.offsetWidth||0,h=l.h||l.el.offsetHeight||0;
+    const ex=Math.max(l.cx,Math.min(l.cx+w,l.kx));
+    const ey=Math.max(l.cy,Math.min(l.cy+h,l.ky));
+    l.el.hidden=l.alpha<.02;
+    l.line.style.display=l.dot.style.display=l.alpha<.02?'none':'';
     l.el.style.transform=`translate(${Math.round(l.cx)}px,${Math.round(l.cy)}px)`;
     l.el.style.opacity=l.alpha.toFixed(3);
     l.el.style.pointerEvents=l.alpha>.5?'auto':'none';
     l.line.style.opacity=(l.alpha*.55).toFixed(3);
     l.dot.setAttribute('opacity',l.alpha.toFixed(3));
     l.line.setAttribute('x1',l.kx.toFixed(1));l.line.setAttribute('y1',l.ky.toFixed(1));
-    l.line.setAttribute('x2',l.ex.toFixed(1));l.line.setAttribute('y2',l.ey.toFixed(1));
+    l.line.setAttribute('x2',ex.toFixed(1));l.line.setAttribute('y2',ey.toFixed(1));
     l.dot.setAttribute('cx',l.kx.toFixed(1));l.dot.setAttribute('cy',l.ky.toFixed(1));
   }
   let labelAnim=null;
@@ -90,7 +98,13 @@ function visible(l,on){l.ta=on?1:0;}
     const step=()=>{
       labelAnim=null;let maxd=0;
       labels.forEach(l=>{
-        if(l.tx===undefined)return;
+        if(l.tx===undefined){
+          if(l.cx===undefined)return;
+          maxd=Math.max(maxd,Math.abs(l.ta-l.alpha)*80);
+          l.alpha+=(l.ta-l.alpha)*.3;
+          applyLabel(l);
+          return;
+        }
         const e=.14;
         maxd=Math.max(maxd,Math.abs(l.tx-l.cx),Math.abs(l.ty-l.cy),Math.abs(l.dx-l.kx),Math.abs(l.dy-l.ky),Math.abs(l.ta-l.alpha)*80);
         l.cx+=(l.tx-l.cx)*e;l.cy+=(l.ty-l.cy)*e;
@@ -166,6 +180,7 @@ function visible(l,on){l.ta=on?1:0;}
     labels.forEach((l)=>{
       const show=state.labels&&(l.part.t!=='SCALE FIGURE'||state.eva);
       if(!show){visible(l,false);return;}
+      l.el.hidden=false;l.line.style.display=l.dot.style.display='';
       active.push(l);
       reqs.push({part:l.part,prev:l.probe??-1});
     });
@@ -196,9 +211,25 @@ function visible(l,on){l.ta=on?1:0;}
       pairs.push({l,a});
     });
     pairs.sort((p,q)=>p.a.y-q.a.y);
-    const placed=[],bottomPad=30;
+    const placed=[],requests=[],bottomPad=30;
+    const boxOverlap=(a,b,p=5)=>a.x<b.x+b.w+p&&a.x+a.w+p>b.x&&a.y<b.y+b.h+p&&a.y+a.h+p>b.y;
+    const cross=(a,b,c)=>(b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x);
+    const segmentsCross=(a,b,c,d)=>{
+      if(Math.max(a.x,b.x)<Math.min(c.x,d.x)||Math.max(c.x,d.x)<Math.min(a.x,b.x)||Math.max(a.y,b.y)<Math.min(c.y,d.y)||Math.max(c.y,d.y)<Math.min(a.y,b.y))return false;
+      return cross(a,b,c)*cross(a,b,d)<=.001&&cross(c,d,a)*cross(c,d,b)<=.001;
+    };
+    const pointInBox=(p,b)=>p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h;
+    const lineHitsBox=(a,b,box)=>{
+      if(pointInBox(a,box)||pointInBox(b,box))return true;
+      const corners=[{x:box.x,y:box.y},{x:box.x+box.w,y:box.y},{x:box.x+box.w,y:box.y+box.h},{x:box.x,y:box.y+box.h}];
+      return corners.some((p,i)=>segmentsCross(a,b,p,corners[(i+1)%4]));
+    };
     pairs.forEach(({l,a})=>{
-      const lw=l.el.offsetWidth,lh=l.el.offsetHeight;
+      // The visible callout can be wider than offsetWidth after inherited
+      // letter spacing and responsive font sizing resolve. Lay out against
+      // its painted box, the same geometry users see.
+      const labelRect=l.el.getBoundingClientRect();
+      const lw=labelRect.width||l.el.offsetWidth,lh=labelRect.height||l.el.offsetHeight;
       let ux,uy;
       // nose/tail parts point along the axis away from the hull; the
       // scale figure always hangs below; everything else follows its
@@ -266,14 +297,60 @@ function visible(l,on){l.ta=on?1:0;}
         bx=Math.max(4,Math.min(stage.clientWidth-lw-4,bx));
         by=Math.max(8,Math.min(stage.clientHeight-lh-bottomPad,by));
       }
-      l.tx=bx;l.ty=by;
-      if(l.cx===undefined){l.kx=l.dx;l.ky=l.dy;l.alpha=1;}
-      l.cx=bx;l.cy=by;
-      l.ex=Math.max(bx,Math.min(bx+lw,l.dx));
-      l.ey=Math.max(by,Math.min(by+lh,l.dy));
+      // Preserve the radial callout's preferred position, then resolve every
+      // label together below. A single global pass can reject crossed leaders
+      // instead of accepting a local fallback that collides later in the list.
+      requests.push({l,anchor:{x:l.dx,y:l.dy},box:{x:bx,y:by,w:lw,h:lh}});
       placed.push({x:bx,y:by,w:lw,h:lh});
     });
-    active.forEach(applyLabel);    active.forEach(applyLabel);    active.forEach(applyLabel);active.forEach(applyLabel);
+    const requestById=new Map(),layoutItems=requests.map((request,index)=>{
+      const id=String(index),box=request.box;
+      requestById.set(id,request);
+      return {
+        id,x:box.x+box.w/2,y:box.y+box.h/2,r:0,w:box.w,h:box.h,
+        anchorX:request.anchor.x,anchorY:request.anchor.y,maxLeader:300,
+        ignoreLeaderObstacles:true,priority:request.l.part.t==='SCALE FIGURE'?-100:1000-index,
+        previous:request.l.layoutBox
+      };
+    });
+    const arranged=window.SceneLabelLayout
+      ? window.SceneLabelLayout.layout(layoutItems,{x:4,y:8,w:Math.max(1,stage.clientWidth-8),h:Math.max(1,stage.clientHeight-bottomPad-8)},stats)
+      : [];
+    const arrangedIds=new Set(arranged.map(item=>item.id));
+    requests.forEach((request,index)=>{
+      if(arrangedIds.has(String(index)))return;
+      request.l.el.hidden=true;request.l.line.style.display=request.l.dot.style.display='none';
+      // `applyLabel` still runs once for every active part below. Zero the
+      // current opacity as well as removing the target so that an unplaced
+      // callout cannot briefly reappear at its previous coordinates.
+      request.l.ta=0;request.l.alpha=0;delete request.l.tx;
+    });
+    arranged.forEach(placement=>{
+      const request=requestById.get(placement.id);if(!request)return;
+      const l=request.l,box=placement.box;
+      l.tx=box.x;l.ty=box.y;l.w=box.w;l.h=box.h;l.layoutBox={x:box.x,y:box.y};
+      l.dx=request.anchor.x;l.dy=request.anchor.y;l.ta=1;
+      // A moving target can make two otherwise valid callouts overlap midway
+      // through an ease. The global layout is already stable via layoutBox;
+      // apply its resolved geometry atomically and reserve easing for fades.
+      l.cx=box.x;l.cy=box.y;l.kx=l.dx;l.ky=l.dy;l.alpha=1;
+    });
+    active.forEach(applyLabel);
+    // Measure the final painted positions as a last guard. Responsive font
+    // metrics can differ fractionally from the layout estimate; suppressing a
+    // lower-priority callout for that frame is preferable to showing a crossed
+    // or overlapping annotation while the ship spins.
+    const rendered=[];
+    active.slice().sort((a,b)=>(a.part.t==='SCALE FIGURE')-(b.part.t==='SCALE FIGURE')).forEach(l=>{
+      if(l.el.hidden)return;
+      const box={x:l.cx,y:l.cy,w:l.w,h:l.h};
+      const line={start:{x:l.kx,y:l.ky},end:{x:Math.max(l.cx,Math.min(l.cx+l.w,l.kx)),y:Math.max(l.cy,Math.min(l.cy+l.h,l.ky))}};
+      const conflict=rendered.some(o=>boxOverlap(box,o.box)||lineHitsBox(line.start,line.end,o.box)||lineHitsBox(o.line.start,o.line.end,box)||segmentsCross(line.start,line.end,o.line.start,o.line.end));
+      if(conflict){
+        l.ta=0;l.alpha=0;delete l.tx;
+        l.el.hidden=true;l.line.style.display=l.dot.style.display='none';
+      }else rendered.push({box,line});
+    });
     animateLabels();
   }
   function draw() {

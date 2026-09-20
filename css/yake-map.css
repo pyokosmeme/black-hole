@@ -112,6 +112,19 @@ body.yake-atlas.light-mode .scene-card { background:rgba(253,250,245,.94); }
   .atlas-toolbar { padding:var(--space-xs); }
   #system-summary { padding:0 var(--space-sm) var(--space-xs); }
 }
+/* Keep the map usable on a short landscape phone: the system notes and
+ * duplicate reset control otherwise consume nearly the whole viewport. */
+@media(min-width:481px) and (max-height:600px) {
+  .atlas-shell { --atlas-gap:8px; padding-top:50px; padding-bottom:8px; }
+  .atlas-toolbar { min-height:44px; flex-wrap:nowrap; }
+  .atlas-toolbar .section-line { display:none; }
+  .atlas-toolbar h2 { font-size:var(--text-sm); white-space:nowrap; }
+  #atlas-reset,#system-summary { display:none; }
+  .scene-heading { top:4px; left:var(--space-sm); right:var(--space-sm); }
+  .scene-hint { display:none; }
+  .atlas-scene.moon-window { margin:4px; }
+  .map-actions { padding:4px var(--space-xs); }
+}
 /* Short landscape screens use a wide card, not tiny text or a scroll box. */
 @media(min-width:481px) and (max-height:600px) {
   .scene-card { --card-inset:var(--space-xs); width:min(860px,calc(100vw - 16px)); }
@@ -156,3 +169,4 @@ body.yake-atlas.light-mode .scene-card { background:rgba(253,250,245,.94); }
   line-height: 1;
 }
 .moon-close:hover, .moon-close:focus-visible { color: #ff83cd; }
+body.light-mode .moon-close { color:var(--purple); background:rgba(255,255,255,.88); border-color:var(--purple); }

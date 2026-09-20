@@ -37,6 +37,7 @@ window.YakeScene = (function () {
     function cancelFlight() { flight=null; }
     let content = null, currentView = null, selected = null;
     let bodies = [], tracks = [], annotations = [], frame = null, destroyed = false;
+    const labelMemory = new Map();
     let width = 1, height = 1, labelsOn = true;
     const pointers = new Map();
     let gesture = null, dragged = false;
@@ -328,7 +329,7 @@ window.YakeScene = (function () {
       cancelTap();
       if(currentView!==name) {
         if(content) {scene.remove(content);release(content);}
-        content=new T.Group();scene.add(content);bodies=[];tracks=[];annotations=[];labelLayer.textContent='';currentView=name;
+        content=new T.Group();scene.add(content);bodies=[];tracks=[];annotations=[];labelMemory.clear();labelLayer.textContent='';currentView=name;
         const cfg=data.views[name];
         {
           if(!cfg.cluster)body(cfg.parent,new T.Vector3(),cfg.parent==='yake'?24:27,false);
@@ -431,18 +432,8 @@ window.YakeScene = (function () {
       renderer.render(scene,camera);
       const heading=host.querySelector('.scene-heading'),hint=host.querySelector('.scene-hint');
       const labelTop=heading.offsetTop+heading.offsetHeight+6,labelBottom=hint.offsetHeight+16;
-      const occupied=[];
-      const markers=bodies.map(b=>{
-        const p=b.position.clone().project(camera);
-        return {id:b.id,x:(p.x*.5+.5)*width,y:(-p.y*.5+.5)*height,z:p.z,r:Math.max(5,b.size*height/(2*Math.tan(camera.fov*Math.PI/360)*camera.position.distanceTo(b.position)))};
-      }).filter(p=>p.z>-1&&p.z<1);
-      // Names stay glued to their worlds: project the body, float just above
-      // it, fade only when off-screen. A short leader tick marks the anchor.
       leaders.setAttribute('viewBox',`0 0 ${width} ${height}`);
       leaders.replaceChildren();
-      // Occupancy pass: every body's projected disc (plus the star's corona)
-      // is an obstacle, so names can dodge onto empty space instead of
-      // printing across planets, orbit rings or each other.
       const fov=Math.tan(camera.fov*Math.PI/360);
       const discs=bodies.map(b=>{
         const p=b.position.clone().project(camera);
@@ -455,56 +446,44 @@ window.YakeScene = (function () {
       }).filter(Boolean);
       const star=discs.find(d=>d.id==='yake');
       if(star){const cr=140*height/(2*fov*star.depth);star.r=Math.max(star.r,cr);}
-      const placed=[];
-      const overDiscs=box=>discs.some(d=>Math.hypot(Math.max(box.x,Math.min(box.x+box.w,d.x)),Math.max(box.y,Math.min(box.y+box.h,d.y)))<d.r+3);
-      const overPlaced=box=>placed.some(o=>box.x<o.x+o.w+4&&box.x+box.w+4>o.x&&box.y<o.y+o.h+4&&box.y+box.h+4>o.y);
-      // Two clearance rings: nearby names sit close to their world; names
-      // crowded against the star's corona can escape on the outer ring.
-      const candidates=(x,y,r,w,h)=>[12,34].flatMap(g=>[
-        {x:x-w/2,y:y-r-h-g,w,h,line:[x,y-r-2]},
-        {x:x-w/2,y:y+r+g,w,h,line:[x,y+r+2]},
-        {x:x+r+g,y:y-h/2,w,h,line:[x+r+2,y]},
-        {x:x-r-g-w,y:y-h/2,w,h,line:[x-r-2,y]}
-      ]);
-      function attach(el,lineStart,cands,required) {
-        let chosen=null;
-        for(const c of cands){
-          const box={x:Math.max(4,Math.min(width-c.w-4,c.x)),y:Math.max(4,Math.min(height-c.h-4,c.y)),w:c.w,h:c.h};
-          if(!overDiscs(box)&&!overPlaced(box)){chosen={box,line:c.line};break;}
-        }
-        if(!chosen&&!required)return false;
-        if(!chosen){const c=cands[0];chosen={box:{x:Math.max(4,Math.min(width-c.w-4,c.x)),y:Math.max(4,Math.min(height-c.h-4,c.y)),w:c.w,h:c.h},line:c.line};}
+      // Use the shared screen-space labeler for every projected body and
+      // annotation. The former local first-fit loop could force an annotation
+      // through a world name and could swap sides on each tiny camera change.
+      const bounds={x:4,y:Math.max(4,labelTop),w:Math.max(1,width-8),h:Math.max(1,height-labelBottom-Math.max(4,labelTop))};
+      const items=[],byId=new Map();
+      const hide=el=>{el.hidden=true;el.style.visibility='';};
+      function addLabel(id,el,x,y,r,priority) {
         el.hidden=false;
-        el.style.transform=`translate(${chosen.box.x}px,${chosen.box.y}px)`;
-        el.style.left=el.style.top='0';
-        placed.push(chosen.box);
-        if(lineStart){
-          const line=document.createElementNS('http://www.w3.org/2000/svg','line');
-          line.setAttribute('x1',lineStart[0].toFixed(1));line.setAttribute('y1',lineStart[1].toFixed(1));
-          line.setAttribute('x2',Math.max(chosen.box.x,Math.min(chosen.box.x+chosen.box.w,lineStart[0])).toFixed(1));
-          line.setAttribute('y2',Math.max(chosen.box.y,Math.min(chosen.box.y+chosen.box.h,lineStart[1])).toFixed(1));
-          leaders.appendChild(line);
-        }
-        return true;
+        el.style.visibility='hidden';
+        const item={id,el,x,y,r,w:el.offsetWidth||60,h:el.offsetHeight||20,priority,previous:labelMemory.get(id)};
+        items.push(item);byId.set(id,item);
       }
-      // Nearest worlds claim their space first; farther names dodge around.
       discs.slice().sort((a,b)=>a.depth-b.depth).forEach(d=>{
         const b=bodies.find(bb=>bb.id===d.id);if(!b||b.id==='yake')return;
         const visible=labelsOn&&d.x>0&&d.x<width&&d.y>0&&d.y<height;
-        b.label.hidden=!visible;
-        if(!visible)return;
+        if(!visible){hide(b.label);return;}
         b.label.style.zIndex=String(20000-Math.round(d.depth*10));
-        const w=b.label.offsetWidth||60,h=b.label.offsetHeight||20;
-        attach(b.label,[d.x,d.y],candidates(d.x,d.y,d.r,w,h),false);
+        addLabel(d.id,b.label,d.x,d.y,d.r,(d.id===selected?100000:10000)-d.depth);
       });
-      annotations.forEach(({label,position})=>{
+      annotations.forEach(({label,position},index)=>{
         const p=position.clone().project(camera),x=(p.x*.5+.5)*width,y=(-p.y*.5+.5)*height;
-        label.hidden=!labelsOn||p.z<=-1||p.z>=1||x<0||x>width||y<labelTop||y>height-labelBottom||!isFinite(x)||!isFinite(y);
-        if(label.hidden)return;
-        const w=label.offsetWidth||90,h=label.offsetHeight||18;
-        const cands=candidates(x,y,7,w,h).map(c=>({...c,y:Math.max(labelTop,Math.min(height-labelBottom-h,c.y))}));
-        cands.sort((p,q)=>Math.hypot(p.x+w/2-x,p.y+h/2-y)-Math.hypot(q.x+w/2-x,q.y+h/2-y));
-        attach(label,[x,y],cands,true);
+        if(!labelsOn||p.z<=-1||p.z>=1||x<0||x>width||y<labelTop||y>height-labelBottom||!isFinite(x)||!isFinite(y)){hide(label);return;}
+        addLabel('annotation-'+index,label,x,y,7,-100-index);
+      });
+      const placements=window.SceneLabelLayout
+        ? window.SceneLabelLayout.layout(items,bounds,discs)
+        : [];
+      items.forEach(item=>{item.el.hidden=true;});
+      placements.forEach(placement=>{
+        const item=byId.get(placement.id);if(!item)return;
+        item.el.hidden=false;item.el.style.visibility='';
+        item.el.style.transform='translate('+placement.box.x.toFixed(1)+'px,'+placement.box.y.toFixed(1)+'px)';
+        item.el.style.left=item.el.style.top='0';
+        labelMemory.set(item.id,{x:placement.box.x,y:placement.box.y});
+        const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+        line.setAttribute('x1',placement.start.x.toFixed(1));line.setAttribute('y1',placement.start.y.toFixed(1));
+        line.setAttribute('x2',placement.end.x.toFixed(1));line.setAttribute('y2',placement.end.y.toFixed(1));
+        leaders.appendChild(line);
       });
       if(flight)draw();
     }

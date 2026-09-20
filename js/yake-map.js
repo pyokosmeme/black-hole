@@ -70,6 +70,10 @@ let systemHint = 'COMPRESSED DISTANCES';
         closeBtn.textContent = '\u00d7';
         headWrap.appendChild(closeBtn);
       } else if (view === 'system' && closeBtn) closeBtn.remove();
+      if (closeBtn) {
+        closeBtn.setAttribute('aria-label','Close ' + cfg.title + ' and return to the system map');
+        closeBtn.title = 'Close ' + cfg.title + ' and return to the system map';
+      }
       const small = headWrap.querySelector('small');
       if (small) small.textContent = view === 'system' ? systemHint : 'CLOSE \u00d7 RETURNS TO SYSTEM MAP';
     }
