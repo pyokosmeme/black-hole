@@ -18,3 +18,4 @@ Every transmission link below contains the complete document. Append `.md` for M
 ## A Mote in Shadow transmissions
 
 - [DE-LISTING FROM DRAFT2DIGITAL](https://lastnpcalex.agency/p/ams/delisting-from-draft2digital) — D2D is shifting to annual fees, and most of my distribution there was free OverDrive copies. Winding down the account; existing reader libraries should be unaffected. ([Markdown](https://lastnpcalex.agency/p/ams/delisting-from-draft2digital.md))
+
