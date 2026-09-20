@@ -28,19 +28,22 @@
     for(let i=0;i<n;i++)stars.push({x:Math.random(),y:Math.random(),m:Math.pow(Math.random(),2.1),t:Math.random()});
     drawStars();
   }
-  /* crescent spin-direction rings, ported from the original viewers */
+  /* Spin-direction rings: one halo per ring entry, split into a bright
+     near-side pass and a ghosted far-side pass so the crescent reads as
+     wrapping in front of and behind the hull. */
   let ringEls=null;
   function initRings(){
     if(ringEls)return;
-    const svg=$('leaders');ringEls=[0,1].map(()=>{
+    const svg=$('leaders');
+    const make=()=>{
       const p=document.createElementNS(svgNS,'path');
-      p.setAttribute('fill','#3ECC8F');p.setAttribute('opacity','.85');
-      p.setAttribute('stroke','#3ECC8F');p.setAttribute('stroke-width','1');
-      p.setAttribute('stroke-linejoin','round');
+      p.setAttribute('fill','#3ECC8F');p.setAttribute('stroke','#3ECC8F');
+      p.setAttribute('stroke-width','1');p.setAttribute('stroke-linejoin','round');
       svg.insertBefore(p,svg.firstChild);return p;
-    });
+    };
+    ringEls=[0,1].map(()=>{const front=make();const back=make();return{front,back};});
   }
-  function clearRings(){initRings();ringEls.forEach(el=>el.setAttribute('d',''));}
+  function clearRings(){initRings();ringEls.forEach(el=>{el.front.setAttribute('d','');el.back.setAttribute('d','');});}
   function drawRings(){
     initRings();
     const cfg=catalog[id],rings=cfg.rings||[];
@@ -49,30 +52,47 @@
       const R2=rings[i];
       // arrows belong to the schematic: visible whenever labels are on,
       // dimmed while the spin is stopped
-      if(!R2||state.compare||!state.labels){el.setAttribute('d','');return;}
-      el.setAttribute('opacity',stopped?'0.4':'0.85');
-      const N=40,span=(R2.span??232)*Math.PI/180,lead=(state.phase+(R2.lead??2.1))*R2.dir;
-      const proj=(x,y,z)=>{const p=renderer.project([x,y,z]);return p?[p.x,p.y]:null;};
-      let ok=true;const outer=[],inner=[];
+      if(!R2||state.compare||!state.labels){el.front.setAttribute('d','');el.back.setAttribute('d','');return;}
+      el.front.setAttribute('opacity',stopped?'0.4':'0.9');
+      el.back.setAttribute('opacity',stopped?'0.12':'0.3');
+      const N=48,span=(R2.span??232)*Math.PI/180,lead=(state.phase+(R2.lead??2.1))*R2.dir;
+      const ax=renderer.project([R2.x,0,0]),axD=ax?ax.d:0;
+      const proj=(x,y,z)=>{const p=renderer.project([x,y,z]);return p?[p.x,p.y,p.d]:null;};
+      const pts=[];let ok=true;
       for(let k=0;k<=N;k++){
         const f=k/N,t=lead-span*R2.dir*(1.0-f);
         const wd=1.0-0.45*f,rm=(R2.ri+R2.ro)/2,hw=(R2.ro-R2.ri)/2*wd;
         const qo=proj(R2.x,(rm+hw)*Math.cos(t),(rm+hw)*Math.sin(t)),qi=proj(R2.x,(rm-hw)*Math.cos(t),(rm-hw)*Math.sin(t));
         if(!qo||!qi){ok=false;break;}
-        outer.push(qo);inner.push(qi);
+        pts.push({o:qo,n:qi,far:qo[2]>axD});
       }
-      if(!ok){el.setAttribute('d','');return;}
-      const th=lead,rm2=(R2.ri+R2.ro)/2,flare=(R2.ro-R2.ri)*0.95,tipT=th+18*Math.PI/180*R2.dir;
-      const pTip=proj(R2.x,rm2*Math.cos(tipT),rm2*Math.sin(tipT)),pOut=proj(R2.x,(rm2+flare)*Math.cos(th),(rm2+flare)*Math.sin(th)),pIn=proj(R2.x,(rm2-flare)*Math.cos(th),(rm2-flare)*Math.sin(th));
-      if(!pTip||!pOut||!pIn){el.setAttribute('d','');return;}
-      let d='M'+outer[0][0].toFixed(1)+','+outer[0][1].toFixed(1);
-      for(let k=1;k<outer.length;k++)d+=' L'+outer[k][0].toFixed(1)+','+outer[k][1].toFixed(1);
-      d+=' L'+pOut[0].toFixed(1)+','+pOut[1].toFixed(1)+' L'+pTip[0].toFixed(1)+','+pTip[1].toFixed(1)+' L'+pIn[0].toFixed(1)+','+pIn[1].toFixed(1);
-      for(let k=inner.length-1;k>=0;k--)d+=' L'+inner[k][0].toFixed(1)+','+inner[k][1].toFixed(1);
-      el.setAttribute('d',d+' Z');
+      if(!ok){el.front.setAttribute('d','');el.back.setAttribute('d','');return;}
+      // Split the ring at the view-depth boundary: contiguous far-side
+      // runs ghost behind the hull, near-side runs draw bright on top.
+      const runs=[];pts.forEach((s,k)=>{
+        const last=runs[runs.length-1];
+        if(!last||last.far!==s.far)runs.push({far:s.far,pts:[s],head:k===0});
+        else last.pts.push(s);
+      });
+      const ribbon=run=>{
+        const O=run.pts.map(s=>s.o),I=run.pts.map(s=>s.n);
+        let d='M'+O[0][0].toFixed(1)+','+O[0][1].toFixed(1);
+        for(let k=1;k<O.length;k++)d+=' L'+O[k][0].toFixed(1)+','+O[k][1].toFixed(1);
+        if(run.head){
+          const th=lead,rm2=(R2.ri+R2.ro)/2,flare=(R2.ro-R2.ri)*0.95,tipT=lead+18*Math.PI/180*R2.dir;
+          const pTip=proj(R2.x,rm2*Math.cos(tipT),rm2*Math.sin(tipT)),pOut=proj(R2.x,(rm2+flare)*Math.cos(th),(rm2+flare)*Math.sin(th)),pIn=proj(R2.x,(rm2-flare)*Math.cos(th),(rm2-flare)*Math.sin(th));
+          if(!pTip||!pOut||!pIn)return null;
+          d+=' L'+pOut[0].toFixed(1)+','+pOut[1].toFixed(1)+' L'+pTip[0].toFixed(1)+','+pTip[1].toFixed(1)+' L'+pIn[0].toFixed(1)+','+pIn[1].toFixed(1);
+        }
+        for(let k=I.length-1;k>=0;k--)d+=' L'+I[k][0].toFixed(1)+','+I[k][1].toFixed(1);
+        return d+' Z';
+      };
+      let dF='',dB='';
+      runs.forEach(run=>{const d=ribbon(run);if(!d)return;if(run.far)dB+=d;else dF+=d;});
+      el.front.setAttribute('d',dF);el.back.setAttribute('d',dB);
     });
   }
-  function visible(l,on){l.ta=on?1:0;}
+function visible(l,on){l.ta=on?1:0;}
   function applyLabel(l){
     if(l.cx===undefined)return;
     l.el.style.transform=`translate(${Math.round(l.cx)}px,${Math.round(l.cy)}px)`;
@@ -157,9 +177,11 @@
       });return;
     }
     drawRings();
-    // Labels stay glued to their object: project the mesh anchor, offset to
-    // its marked side, fade only for occlusion. No screen-space re-layout.
-    const reqs=[],active=[];
+    // Column callout layout: every label docks in a fixed column just
+    // outside the widest hull silhouette on its marked side, stacked
+    // top-to-bottom in anchor order, so placement follows one rule and
+    // leader lines stay short and never cross.
+    const reqs=[],active=[],cols={r:[],l:[]};
     labels.forEach((l)=>{
       const show=state.labels&&(l.part.t!=='SCALE FIGURE'||state.eva);
       if(!show){visible(l,false);return;}
@@ -167,63 +189,44 @@
       reqs.push({part:l.part,prev:l.probe??-1});
     });
     const got=models.length?renderer.labelAnchors(models[0],state,reqs):[];
+    const ext=renderer.hullExtent(models[0]);
+    const colMid=ext?(ext.x0+ext.x1)/2:w/2;
     active.forEach((l,k)=>{
-      const a=got?got[k]:null; // projected probe on the visible surface
+      const a=got?got[k]:null;
       if(!a){visible(l,false);return;}
-      const p={x:a.x,y:a.y};
       l.probe=a.probe;
-      const s=l.part.side??1,lw=l.el.offsetWidth,lh=l.el.offsetHeight;
-      // Push the label past the hull silhouette, not a fixed 16px: the
-      // renderer supplies the projected silhouette radius at the anchor's
-      // station (a.r), measured from the mesh's radial profile. Offset from
-      // the projected centreline so either side clears the outline.
-      const axp=renderer.project([l.part.p[0],0,0]);
-      const axX=axp?axp.x:p.x;
-      const off=Math.max(16,(a.r||0)+24);
-      const lx=Math.max(6,Math.min(w-lw-6,axX+(s>0?off:-off-lw)));
-      const ly=Math.max(8,Math.min(h-lh-8,p.y-10+(l.part.dy||0)));
-      l.dy0=l.part.dy||0;
-      l.tx=lx;l.ty=ly;l.dx=p.x;l.dy=p.y-8;
-      l.ex=Math.max(lx,Math.min(lx+lw,p.x));l.ey=Math.max(ly,Math.min(ly+lh,p.y));
-      l.ta=1;
-      if(l.cx===undefined){l.cx=l.tx;l.cy=l.ty;l.kx=l.dx;l.ky=l.dy;l.alpha=0;}
-      l.cx=l.tx;l.cy=l.ty;l.kx=l.dx;l.ky=l.dy; // glue: track the anchor exactly
-      applyLabel(l);
+      l.dx=a.x;l.dy=a.y-8;l.ta=1;
+      if(l.cx===undefined)l.alpha=0;
+      cols[a.x<colMid?'l':'r'].push(l);
     });
-    // Keep labels from crowding each other, whichever side they're on: walk
-    // top-to-bottom by anchor and push any box that intersects an earlier one
-    // below it. The nudge derives from the anchors alone, so it stays smooth
-    // while spinning — no snapping.
-    const gap=6, placed=[];
-    active.slice().sort((a,b)=>a.dy-b.dy).forEach(l=>{
-      let ty=l.ty;
-      const lw=l.el.offsetWidth,lh=l.el.offsetHeight;
-      for(let i=0;i<24;i++){
-        const hit=placed.find(o=>o.x<l.tx+lw&&o.x+o.w>l.tx&&o.y<ty+lh&&o.y+o.h>ty);
-        if(!hit)break;
-        ty=hit.y+hit.h+gap;
-      }
-      ty=Math.max(8,Math.min(h-lh-8,ty));
-      l.ty=ty;l.cy=ty;
-      // Re-attach the leader line to the moved box without crossing other
-      // callouts: try each corner and edge midpoint, keep the nearest one
-      // whose segment clears every earlier box and leader segment.
-      const S=window.SceneLabelLayout;
-      const box={x:l.tx,y:ty,w:lw,h:lh};
-      const cands=[[box.x+2,box.y+2],[box.x+lw/2,box.y+2],[box.x+lw-2,box.y+2],[box.x+2,box.y+lh/2],[box.x+lw-2,box.y+lh/2],[box.x+2,box.y+lh-2],[box.x+lw/2,box.y+lh-2],[box.x+lw-2,box.y+lh-2]];
-      let best=null,bestD=Infinity;
-      for(const c of cands){
-        const d=Math.hypot(c[0]-l.dx,c[1]-l.dy);
-        if(d>=bestD)continue;
-        const seg={x:l.dx,y:l.dy};
-        const end={x:c[0],y:c[1]};
-        if(S&&placed.some(o=>S.throughBox(seg,end,o)||S.intersects(seg,end,o.start,o.end)))continue;
-        bestD=d;best=end;
-      }
-      if(!best){const c=cands.reduce((a,c)=>Math.hypot(c[0]-l.dx,c[1]-l.dy)<Math.hypot(a[0]-l.dx,a[1]-l.dy)?c:a);best={x:c[0],y:c[1]};}
-      l.ex=best.x;l.ey=best.y;
-      placed.push({x:l.tx,y:ty,w:lw,h:lh,start:{x:l.dx,y:l.dy},end:{x:l.ex,y:l.ey}});
+    const gap=6;
+    const dockR=ext?ext.x1+30:w-24,dockL=ext?ext.x0-30:24;
+    [['r',true],['l',false]].forEach(([key,right])=>{
+      const list=cols[key];
+      if(!list.length)return;
+      list.sort((a,b)=>(a.dy+(a.part.dy||0))-(b.dy+(b.part.dy||0)));
+      // One shared column x per side, from the widest label in the column:
+      // boxes align exactly and the vertical stack can never collide.
+      const maxLw=Math.max(...list.map(l=>l.el.offsetWidth));
+      const colX=right?Math.min(dockR,w-maxLw-6):Math.max(dockL-maxLw,6);
+      let prevBot=-Infinity;
+      list.forEach(l=>{
+        const lw=l.el.offsetWidth,lh=l.el.offsetHeight;
+        l.tx=colX;
+        let ty=Math.max(l.dy+10,prevBot+gap);
+        ty=Math.max(8,Math.min(h-lh-8,ty));
+        l.ty=ty;
+        // Snap into the column on first placement; after that, glue to the
+        // target so reflow while orbiting stays crisp.
+        if(l.cx===undefined){l.cx=l.tx;l.kx=l.dx;l.ky=l.dy;}
+        l.cy=ty;
+        // Leader runs from the anchor to the hull-facing edge of the box.
+        l.ex=right?l.tx:l.tx+lw;
+        l.ey=Math.max(ty+2,Math.min(ty+lh-2,l.dy));
+        prevBot=ty+lh;
+      });
     });
+
     active.forEach(applyLabel);
     animateLabels();
   }
