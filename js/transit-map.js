@@ -275,14 +275,24 @@
 
         const hint = document.createElement('div');
         hint.className = 'map-hint';
-        hint.textContent = 'CLICK STATIONS TO PLAN ROUTE · 3D: DRAG ROTATES · PINCH OR SCROLL ZOOMS · RIGHT-DRAG PANS';
         container.appendChild(hint);
+        updateHint();
 
         document.getElementById('btn-2d').addEventListener('click', function() { setMode('2d', false, 'classic'); });
         document.getElementById('btn-sub').addEventListener('click', function() { setMode('2d', false, 'subway'); });
         document.getElementById('btn-3d').addEventListener('click', function() { setMode('3d'); });
 
         updateModeButtons();
+    }
+
+    function updateHint() {
+        const hint = document.querySelector('.map-hint');
+        if (!hint) return;
+        hint.textContent = mapMode === '3d'
+            ? 'CLICK STATIONS TO PLAN ROUTE · 3D: DRAG ROTATES · PINCH OR SCROLL ZOOMS · RIGHT-DRAG PANS'
+            : (layout === 'subway'
+                ? 'CLICK STATIONS TO PLAN ROUTE · DRAG PANS · SCROLL / PINCH ZOOMS'
+                : 'CLICK STATIONS TO PLAN ROUTE');
     }
 
     function updateModeButtons() {
@@ -364,6 +374,7 @@
         if (mode === mapMode && !silent) {
             if (layoutChanged && mode === '2d') applyLayout();
             updateModeButtons();
+            updateHint();
             return;
         }
         if (mode === '3d') {
@@ -377,12 +388,14 @@
                     localStorage.setItem('transit-map-mode', '2d');
                     applyLayout();
                     updateModeButtons();
+                    updateHint();
                     return;
                 }
                 mapMode = '3d';
                 localStorage.setItem('transit-map-mode', '3d');
                 activate3d();
                 updateModeButtons();
+                updateHint();
             });
             return;
         }
@@ -391,6 +404,7 @@
         deactivate3d();
         applyLayout();
         updateModeButtons();
+        updateHint();
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -1543,20 +1557,30 @@
         });
         vis.sort(function(a, b) { return a.d - b.d; });
         const taken = [];
+        const hits = (a, b) => a.x < b.x + b.w + 4 && a.x + a.w + 4 > b.x &&
+                              a.y < b.y + b.h + 2 && a.y + a.h + 2 > b.y;
         vis.forEach(function(v) {
             const el = t3.labelEls[v.name];
             const w = el.offsetWidth || 70, h = el.offsetHeight || 18;
-            const box = {x: v.x - w / 2, y: v.y - h * 1.5, w: w, h: h};
-            const crowded = taken.some(function(o) {
-                return box.x < o.x + o.w + 4 && box.x + box.w + 4 > o.x &&
-                       box.y < o.y + o.h + 2 && box.y + box.h + 2 > o.y;
-            });
+            let box = {x: v.x - w / 2, y: v.y - h * 1.5, w: w, h: h};
+            let crowded = taken.some(function(o) { return hits(box, o); });
+            if (crowded) {
+                // One dodge below the blocking label before hiding the name.
+                const o = taken.find(function(t) { return hits(box, t); });
+                if (o) {
+                    const alt = {x: box.x, y: o.y + o.h + 4, w: w, h: h};
+                    if (!taken.some(function(t) { return hits(alt, t); })) { box = alt; crowded = false; }
+                }
+            }
             if (!crowded) taken.push(box);
             const cur = t3.labelEase[v.name] || (t3.labelEase[v.name] = {a: 1});
-            const target = crowded ? 0.15 : Math.max(0.35, Math.min(1, 1.7 - v.d / 600));
+            // Crowded names hide cleanly instead of printing illegible
+            // double-vision ghost text on top of each other.
+            const target = crowded ? 0 : Math.max(0.55, Math.min(1, 1.7 - v.d / 600));
             cur.a += (target - cur.a) * 0.2;
-            el.style.display = 'block';
-            el.style.transform = 'translate(' + v.x.toFixed(1) + 'px,' + v.y.toFixed(1) + 'px) translate(-50%,-150%)';
+            el.style.display = (crowded && cur.a < 0.05) ? 'none' : 'block';
+            el.style.pointerEvents = crowded ? 'none' : 'auto';
+            el.style.transform = 'translate(' + box.x.toFixed(1) + 'px,' + box.y.toFixed(1) + 'px)';
             el.style.opacity = cur.a.toFixed(2);
             el.style.zIndex = String(20000 - Math.round(v.d * 10));
         });

@@ -193,8 +193,8 @@ body:not(.transit-page) #map-container::before {
 
 .legend {
     position: absolute;
-    bottom: 20px;
-    right: 20px;
+    top: 20px;
+    left: 20px;
     background: var(--panel);
     border: 2px solid var(--purple);
     padding: 15px 20px;
@@ -974,8 +974,12 @@ body:not(.transit-page) #map-container::before {
     max-height: 290px;
 }
 
+.transit-window .route-planner::before {
+    display: none;
+}
+
 .transit-window .planner-header {
-    padding: 12px 16px 8px;
+    padding: 18px 16px 8px;
     flex-shrink: 0;
 }
 
@@ -985,6 +989,12 @@ body:not(.transit-page) #map-container::before {
 
 .transit-window #route-content {
     min-height: 0;
+    overflow-y: auto;
+    flex: 1 1 auto;
+}
+
+.transit-window .route-planner {
+    overflow-y: hidden;
 }
 
 .transit-window .route-priority {

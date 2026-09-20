@@ -96,7 +96,17 @@ function create(canvas) {
         }
         m.probes=new Float32Array(pts);
       });
-      return {cfg,meshes,p,uniforms,aPos:gl.getAttribLocation(p,'aPosition'),aNor:gl.getAttribLocation(p,'aNormal')};
+      // Coarse radial profile of the whole model: max hull radius per 2 m
+      // station, so callouts can be pushed outside the projected silhouette.
+      const profile=new Float32Array(256);
+      meshes.forEach(m=>{
+        for(let i=0;i<m.count;i++){
+          const x=m.positions[i*3],r=Math.hypot(m.positions[i*3+1],m.positions[i*3+2]);
+          const b=Math.min(255,Math.max(0,Math.round(x/2)));
+          if(r>profile[b])profile[b]=r;
+        }
+      });
+      return {cfg,meshes,p,uniforms,aPos:gl.getAttribLocation(p,'aPosition'),aNor:gl.getAttribLocation(p,'aNormal'),profile};
     })();
     cache.set(id,promise);
     promise.catch(()=>cache.delete(id));
@@ -174,7 +184,9 @@ function create(canvas) {
   }
   function labelAnchors(model,state,requests) {
     const cfg=model.cfg;
-    const legacy=()=>requests.map(r=>{const p=project(transform(r.part.p,matFor(cfg,{evaOnly:r.part.t==='SCALE FIGURE'},state)));return p?{x:p.x,y:p.y,probe:-1}:null;});
+    const meshR=m=>{if(m.maxR===undefined){m.maxR=0;for(let i=0;i<m.count;i++){const r=Math.hypot(m.positions[i*3+1],m.positions[i*3+2]);if(r>m.maxR)m.maxR=r;}}return m.maxR;};
+    const silh=(x,mesh)=>{const c=project([x,0,0]);if(!c)return 0;const b0=Math.min(255,Math.max(0,Math.round(x/2)));let R=mesh?meshR(mesh):0;if(model.profile)for(let db=-8;db<=8;db++){const b=Math.min(255,Math.max(0,b0+db));R=Math.max(R,model.profile[b]);}if(!R)return 0;let w=0;for(const s of [1,-1]){const pp=project([x,0,s*R]);if(pp)w=Math.max(w,Math.hypot(pp.x-c.x,pp.y-c.y));}return w;};
+    const legacy=()=>requests.map(rq=>{const p=project(transform(rq.part.p,matFor(cfg,{evaOnly:rq.part.t==='SCALE FIGURE'},state)));return p?{x:p.x,y:p.y,probe:-1,r:silh(rq.part.p[0])}:null;});
     if(!eyeWorld||state.compare)return legacy();
     const byName=new Map(model.meshes.map(m=>[m.name,m]));
     const visible=m=>{const mat=m.material;return !(mat.evaOnly&&!state.eva)&&!(mat.shell&&state.cut);};
@@ -254,12 +266,15 @@ function create(canvas) {
       }
       const pi=keep>=0?keep:best;
       if(pi<0){
-        const sp=q.force?project(transform(q.part.p,matrix)):null;
-        return sp?{x:sp.x,y:sp.y,probe:-1}:null;
+        // No probe passed facing/occlusion (e.g. the drive spine edge-on at
+        // standard angles). Fall back to the annotated point itself so the
+        // label keeps a real anchor instead of vanishing to (0,0).
+        const sp=project(transform(q.part.p,matrix));
+        return sp?{x:sp.x,y:sp.y,probe:-1,r:silh(q.part.p[0],q.mesh||q.fmesh)}:null;
       }
       const w=transform([m.probes[pi*6],m.probes[pi*6+1],m.probes[pi*6+2]],matrix);
       const sp=project(w);
-      return sp?{x:sp.x,y:sp.y,probe:pi}:null;
+      return sp?{x:sp.x,y:sp.y,probe:pi,r:silh(q.part.p[0],m)}:null;
     });
   }
   function measure(cfg) {

@@ -156,7 +156,9 @@ let systemHint = 'COMPRESSED DISTANCES';
     viewControls = document.createElement('div');
     viewControls.className = 'view-controls';
     while (group.firstChild) viewControls.appendChild(group.firstChild);
-    group.append(viewControls, document.getElementById('atlas-system-back'), resetButton);
+    // Reset stays in the window toolbar (its authored home); only the view
+    // controls and the back button live in the floating pill.
+    group.append(viewControls, document.getElementById('atlas-system-back'));
     const cardLayout = new ResizeObserver(fitCard);
     cardLayout.observe(mapActions); cardLayout.observe(popup);
     window.addEventListener('resize',fitCard);

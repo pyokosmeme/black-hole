@@ -51,7 +51,7 @@
       // dimmed while the spin is stopped
       if(!R2||state.compare||!state.labels){el.setAttribute('d','');return;}
       el.setAttribute('opacity',stopped?'0.4':'0.85');
-      const N=40,span=232*Math.PI/180,lead=(state.phase+2.1)*R2.dir;
+      const N=40,span=(R2.span??232)*Math.PI/180,lead=(state.phase+(R2.lead??2.1))*R2.dir;
       const proj=(x,y,z)=>{const p=renderer.project([x,y,z]);return p?[p.x,p.y]:null;};
       let ok=true;const outer=[],inner=[];
       for(let k=0;k<=N;k++){
@@ -173,7 +173,14 @@
       const p={x:a.x,y:a.y};
       l.probe=a.probe;
       const s=l.part.side??1,lw=l.el.offsetWidth,lh=l.el.offsetHeight;
-      const lx=Math.max(6,Math.min(w-lw-6,p.x+(s>0?16:-16-lw)));
+      // Push the label past the hull silhouette, not a fixed 16px: the
+      // renderer supplies the projected silhouette radius at the anchor's
+      // station (a.r), measured from the mesh's radial profile. Offset from
+      // the projected centreline so either side clears the outline.
+      const axp=renderer.project([l.part.p[0],0,0]);
+      const axX=axp?axp.x:p.x;
+      const off=Math.max(16,(a.r||0)+24);
+      const lx=Math.max(6,Math.min(w-lw-6,axX+(s>0?off:-off-lw)));
       const ly=Math.max(8,Math.min(h-lh-8,p.y-10+(l.part.dy||0)));
       l.dy0=l.part.dy||0;
       l.tx=lx;l.ty=ly;l.dx=p.x;l.dy=p.y-8;
@@ -198,9 +205,24 @@
       }
       ty=Math.max(8,Math.min(h-lh-8,ty));
       l.ty=ty;l.cy=ty;
-      // re-attach the leader line to the moved box (nearest corner to probe)
-      l.ey=Math.max(ty,Math.min(ty+lh,l.dy+8));
-      placed.push({x:l.tx,y:ty,w:lw,h:lh});
+      // Re-attach the leader line to the moved box without crossing other
+      // callouts: try each corner and edge midpoint, keep the nearest one
+      // whose segment clears every earlier box and leader segment.
+      const S=window.SceneLabelLayout;
+      const box={x:l.tx,y:ty,w:lw,h:lh};
+      const cands=[[box.x+2,box.y+2],[box.x+lw/2,box.y+2],[box.x+lw-2,box.y+2],[box.x+2,box.y+lh/2],[box.x+lw-2,box.y+lh/2],[box.x+2,box.y+lh-2],[box.x+lw/2,box.y+lh-2],[box.x+lw-2,box.y+lh-2]];
+      let best=null,bestD=Infinity;
+      for(const c of cands){
+        const d=Math.hypot(c[0]-l.dx,c[1]-l.dy);
+        if(d>=bestD)continue;
+        const seg={x:l.dx,y:l.dy};
+        const end={x:c[0],y:c[1]};
+        if(S&&placed.some(o=>S.throughBox(seg,end,o)||S.intersects(seg,end,o.start,o.end)))continue;
+        bestD=d;best=end;
+      }
+      if(!best){const c=cands.reduce((a,c)=>Math.hypot(c[0]-l.dx,c[1]-l.dy)<Math.hypot(a[0]-l.dx,a[1]-l.dy)?c:a);best={x:c[0],y:c[1]};}
+      l.ex=best.x;l.ey=best.y;
+      placed.push({x:l.tx,y:ty,w:lw,h:lh,start:{x:l.dx,y:l.dy},end:{x:l.ex,y:l.ey}});
     });
     active.forEach(applyLabel);
     animateLabels();

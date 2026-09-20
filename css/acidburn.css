@@ -1446,7 +1446,7 @@ body.bh-mode .link-card {
   background: rgba(255, 255, 255, 0.1);
   color: #fff;
 }
-.acidburn-button:disabled, .tx-auth-btn:disabled, .tx-form-submit:disabled { opacity: 0.4; cursor: wait; }
+.acidburn-button:disabled, .tx-auth-btn:disabled, .tx-form-submit:disabled { opacity: 0.55; cursor: not-allowed; }
 .tx-admin-badge { color: var(--cyan); font-weight: 700; font-size: 12px; }
 .tx-auth-err { color: rgba(255, 255, 255, 0.8); font-size: 12px; }
 .tx-auth-status { color: var(--cyan); }

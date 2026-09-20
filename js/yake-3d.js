@@ -440,28 +440,70 @@ window.YakeScene = (function () {
       // it, fade only when off-screen. A short leader tick marks the anchor.
       leaders.setAttribute('viewBox',`0 0 ${width} ${height}`);
       leaders.replaceChildren();
-      bodies.forEach(b=>{
-        if(b.id==='yake')return;
-        const p=b.position.clone().project(camera),x=(p.x*.5+.5)*width,y=(-p.y*.5+.5)*height;
-        const visible=labelsOn&&p.z>-1&&p.z<1&&x>0&&x<width&&y>0&&y<height;
+      // Occupancy pass: every body's projected disc (plus the star's corona)
+      // is an obstacle, so names can dodge onto empty space instead of
+      // printing across planets, orbit rings or each other.
+      const fov=Math.tan(camera.fov*Math.PI/360);
+      const discs=bodies.map(b=>{
+        const p=b.position.clone().project(camera);
+        if(p.z<=-1||p.z>=1)return null;
+        const dist=camera.position.distanceTo(b.position);
+        const r=Math.max(5,b.size*height/(2*fov*dist));
+        const x=(p.x*.5+.5)*width,y=(-p.y*.5+.5)*height;
+        if(!isFinite(r)||!isFinite(x)||!isFinite(y))return null;
+        return {id:b.id,x,y,r,depth:dist};
+      }).filter(Boolean);
+      const star=discs.find(d=>d.id==='yake');
+      if(star){const cr=140*height/(2*fov*star.depth);star.r=Math.max(star.r,cr);}
+      const placed=[];
+      const overDiscs=box=>discs.some(d=>Math.hypot(Math.max(box.x,Math.min(box.x+box.w,d.x)),Math.max(box.y,Math.min(box.y+box.h,d.y)))<d.r+3);
+      const overPlaced=box=>placed.some(o=>box.x<o.x+o.w+4&&box.x+box.w+4>o.x&&box.y<o.y+o.h+4&&box.y+box.h+4>o.y);
+      // Two clearance rings: nearby names sit close to their world; names
+      // crowded against the star's corona can escape on the outer ring.
+      const candidates=(x,y,r,w,h)=>[12,34].flatMap(g=>[
+        {x:x-w/2,y:y-r-h-g,w,h,line:[x,y-r-2]},
+        {x:x-w/2,y:y+r+g,w,h,line:[x,y+r+2]},
+        {x:x+r+g,y:y-h/2,w,h,line:[x+r+2,y]},
+        {x:x-r-g-w,y:y-h/2,w,h,line:[x-r-2,y]}
+      ]);
+      function attach(el,lineStart,cands,required) {
+        let chosen=null;
+        for(const c of cands){
+          const box={x:Math.max(4,Math.min(width-c.w-4,c.x)),y:Math.max(4,Math.min(height-c.h-4,c.y)),w:c.w,h:c.h};
+          if(!overDiscs(box)&&!overPlaced(box)){chosen={box,line:c.line};break;}
+        }
+        if(!chosen&&!required)return false;
+        if(!chosen){const c=cands[0];chosen={box:{x:Math.max(4,Math.min(width-c.w-4,c.x)),y:Math.max(4,Math.min(height-c.h-4,c.y)),w:c.w,h:c.h},line:c.line};}
+        el.hidden=false;
+        el.style.transform=`translate(${chosen.box.x}px,${chosen.box.y}px)`;
+        el.style.left=el.style.top='0';
+        placed.push(chosen.box);
+        if(lineStart){
+          const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+          line.setAttribute('x1',lineStart[0].toFixed(1));line.setAttribute('y1',lineStart[1].toFixed(1));
+          line.setAttribute('x2',Math.max(chosen.box.x,Math.min(chosen.box.x+chosen.box.w,lineStart[0])).toFixed(1));
+          line.setAttribute('y2',Math.max(chosen.box.y,Math.min(chosen.box.y+chosen.box.h,lineStart[1])).toFixed(1));
+          leaders.appendChild(line);
+        }
+        return true;
+      }
+      // Nearest worlds claim their space first; farther names dodge around.
+      discs.slice().sort((a,b)=>a.depth-b.depth).forEach(d=>{
+        const b=bodies.find(bb=>bb.id===d.id);if(!b||b.id==='yake')return;
+        const visible=labelsOn&&d.x>0&&d.x<width&&d.y>0&&d.y<height;
         b.label.hidden=!visible;
         if(!visible)return;
-        const dist=camera.position.distanceTo(b.position);
-        const r=b.size*height/(2*Math.tan(camera.fov*Math.PI/360)*dist);
-        b.label.style.transform=`translate(${x}px,${y}px) translate(-50%,-100%) translate(0,${-(r+14)}px)`;
-        b.label.style.zIndex=String(20000-Math.round(dist*10)); // nearest name on top
-        const line=document.createElementNS('http://www.w3.org/2000/svg','line');
-        line.dataset.world=b.id;
-        line.setAttribute('x1',x);line.setAttribute('y1',y-r-2);
-        line.setAttribute('x2',x);line.setAttribute('y2',y-r-12);
-        leaders.appendChild(line);
+        b.label.style.zIndex=String(20000-Math.round(d.depth*10));
+        const w=b.label.offsetWidth||60,h=b.label.offsetHeight||20;
+        attach(b.label,[d.x,d.y],candidates(d.x,d.y,d.r,w,h),false);
       });
       annotations.forEach(({label,position})=>{
         const p=position.clone().project(camera),x=(p.x*.5+.5)*width,y=(-p.y*.5+.5)*height;
-        label.hidden=!labelsOn||p.z<=-1||p.z>=1||x<0||x>width||y<labelTop||y>height-labelBottom;
+        label.hidden=!labelsOn||p.z<=-1||p.z>=1||x<0||x>width||y<labelTop||y>height-labelBottom||!isFinite(x)||!isFinite(y);
         if(label.hidden)return;
-        const w=label.offsetWidth;
-        label.style.transform=`translate(${Math.max(4,Math.min(width-w-4,x+8))}px,${y}px)`;
+        const w=label.offsetWidth||90,h=label.offsetHeight||18;
+        const cands=candidates(x,y,7,w,h).map(c=>({...c,y:Math.max(labelTop,Math.min(height-labelBottom-h,c.y))}));
+        attach(label,[x,y],cands,true);
       });
       if(flight)draw();
     }
