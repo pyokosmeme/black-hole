@@ -770,6 +770,15 @@ body:not(.transit-page) #map-container::before {
     will-change: transform;
 }
 
+/* 3D labels sit above glowing route lines; a translucent plate keeps the
+   mono text readable without hiding the network beneath it. */
+.t3d-label .t3d-name {
+    background: rgba(5, 8, 18, 0.66);
+    padding: 1px 5px 2px;
+    border-radius: 2px;
+    box-shadow: 0 0 0 1px rgba(184, 204, 224, 0.14);
+}
+
 .t3d-label:hover .t3d-name {
     color: var(--cyan);
     text-shadow: 0 0 10px var(--cyan);

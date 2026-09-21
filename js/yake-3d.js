@@ -283,7 +283,20 @@ window.YakeScene = (function () {
       const label=document.createElement('button');label.type='button';label.className='scene-label';label.dataset.pick=id;
       label.textContent=w.mapLabel || w.name;label.setAttribute('aria-label','Select '+w.name);label.setAttribute('aria-pressed','false');if(id!=='yake')labelLayer.appendChild(label);
       label.addEventListener('click',e=>{ if(e.detail===0) onSelect(id); });
-      bodies.push({id,mesh,marker,label,position,size});
+      // Cluster glyphs (Five Islands group, station rings) extend past the
+      // nominal body size; measure the real local bounding sphere so labels
+      // clear the drawn geometry instead of touching its edges.
+      mesh.updateMatrixWorld(true);
+      let bradius=size;
+      mesh.traverse(o=>{
+        if(o.geometry&&o.geometry.computeBoundingSphere){
+          if(!o.geometry.boundingSphere)o.geometry.computeBoundingSphere();
+          const wp=new T.Vector3().setFromMatrixPosition(o.matrixWorld);
+          const ps=new T.Vector3().setFromMatrixScale(o.matrixWorld);
+          bradius=Math.max(bradius,(o.geometry.boundingSphere.radius||0)*Math.max(ps.x,ps.y,ps.z)+wp.distanceTo(position));
+        }
+      });
+      bodies.push({id,mesh,marker,label,position,size,bradius});
     }
 
     function point(r,angle,inc) {
@@ -439,13 +452,19 @@ window.YakeScene = (function () {
         const p=b.position.clone().project(camera);
         if(p.z<=-1||p.z>=1)return null;
         const dist=camera.position.distanceTo(b.position);
-        const r=Math.max(5,b.size*height/(2*fov*dist));
+        const r=Math.max(5,Math.max(b.size,b.bradius||b.size)*height/(2*fov*dist));
         const x=(p.x*.5+.5)*width,y=(-p.y*.5+.5)*height;
         if(!isFinite(r)||!isFinite(x)||!isFinite(y))return null;
-        return {id:b.id,x,y,r,depth:dist};
+        return {id:b.id,x,y,r,depth:dist,arc:1};
       }).filter(Boolean);
       const star=discs.find(d=>d.id==='yake');
-      if(star){const cr=140*height/(2*fov*star.depth);star.r=Math.max(star.r,cr);}
+      if(star){
+        const cr=140*height/(2*fov*star.depth);
+        star.r=Math.min(Math.max(star.r,cr),Math.min(width,height)*.34);
+        // The glow is translucent: it pushes labels outward but callouts
+        // may cross it, so inner worlds keep readable names at close range.
+        star.ghost=1;
+      }
       // Use the shared screen-space labeler for every projected body and
       // annotation. The former local first-fit loop could force an annotation
       // through a world name and could swap sides on each tiny camera change.
@@ -455,19 +474,24 @@ window.YakeScene = (function () {
       function addLabel(id,el,x,y,r,priority) {
         el.hidden=false;
         el.style.visibility='hidden';
-        const item={id,el,x,y,r,w:el.offsetWidth||60,h:el.offsetHeight||20,priority,previous:labelMemory.get(id)};
+        const item={id,el,x,y,r,w:el.offsetWidth||60,h:el.offsetHeight||20,priority,previous:labelMemory.get(id),anchorX:x,anchorY:y,clampAnchor:true};
         items.push(item);byId.set(id,item);
       }
+      // The star's glow disc is a boundary for everything near it, not a
+      // cull test: bodies inside the lit core keep their names, with callout
+      // leaders emerging at the glow rim (arc handling in the labeler).
       discs.slice().sort((a,b)=>a.depth-b.depth).forEach(d=>{
         const b=bodies.find(bb=>bb.id===d.id);if(!b||b.id==='yake')return;
-        const visible=labelsOn&&d.x>0&&d.x<width&&d.y>0&&d.y<height;
+        const visible=labelsOn&&(d.x>-40&&d.x<width+40&&d.y>-40&&d.y<height+40);
         if(!visible){hide(b.label);return;}
         b.label.style.zIndex=String(20000-Math.round(d.depth*10));
         addLabel(d.id,b.label,d.x,d.y,d.r,(d.id===selected?100000:10000)-d.depth);
       });
       annotations.forEach(({label,position},index)=>{
         const p=position.clone().project(camera),x=(p.x*.5+.5)*width,y=(-p.y*.5+.5)*height;
-        if(!labelsOn||p.z<=-1||p.z>=1||x<0||x>width||y<labelTop||y>height-labelBottom||!isFinite(x)||!isFinite(y)){hide(label);return;}
+        if(!labelsOn||p.z<=-1||p.z>=1||!isFinite(x)||!isFinite(y)){hide(label);return;}
+        // Annotations for knot areas (station clusters) must remain findable
+        // near the frame edge; the shared layouter clamps instead of culling.
         addLabel('annotation-'+index,label,x,y,7,-100-index);
       });
       const placements=window.SceneLabelLayout

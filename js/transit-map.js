@@ -1591,8 +1591,14 @@
             items.push(item);
             itemById[v.name] = {item: item, visual: v};
         });
+        // Legend panel occupies the map's right edge in this layout; treat
+        // it as out of bounds so labels cannot ride over it.
+        const legendEl = document.querySelector('#map-container .legend');
+        const legendW = (legendEl && legendEl.offsetHeight > 0 && mapMode === '3d')
+            ? Math.min(t3.width * 0.34, (t3.width - (legendEl.getBoundingClientRect().left - document.getElementById('map-container').getBoundingClientRect().left)) + 8)
+            : 0;
         const placements = window.SceneLabelLayout
-            ? window.SceneLabelLayout.layout(items, {x:4,y:4,w:Math.max(1,t3.width-8),h:Math.max(1,t3.height-8)}, vis.map(function(v) {
+            ? window.SceneLabelLayout.layout(items, {x:4,y:4,w:Math.max(1,t3.width-8-legendW),h:Math.max(1,t3.height-8)}, vis.map(function(v) {
                 return {id:v.name,x:v.x,y:v.y,r:7};
             }))
             : [];
@@ -1612,9 +1618,18 @@
             if (cur.x == null) {
                 cur.x = placement.box.x;
                 cur.y = placement.box.y;
+            } else if (Math.abs(placement.box.x - cur.x) < 2.5 && Math.abs(placement.box.y - cur.y) < 2.5) {
+                // Snap when the layout has essentially settled. Easing every
+                // frame meant the painted boxes lagged the geometry the
+                // leaders were computed from (painted leaders tangling at
+                // dense clusters) and kept squirming after the camera
+                // stopped. Below 2.5px the ease reads as rounding jitter,
+                // not motion.
+                cur.x = placement.box.x;
+                cur.y = placement.box.y;
             } else {
-                cur.x += (placement.box.x - cur.x) * 0.24;
-                cur.y += (placement.box.y - cur.y) * 0.24;
+                cur.x += (placement.box.x - cur.x) * 0.3;
+                cur.y += (placement.box.y - cur.y) * 0.3;
             }
             cur.target = {x:placement.box.x,y:placement.box.y};
             el.style.display = 'block';

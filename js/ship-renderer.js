@@ -221,7 +221,13 @@ function create(canvas) {
         const w=transform([m.probes[vi],m.probes[vi+1],m.probes[vi+2]],matrix);
         verts.push(w[0],w[1],w[2],(qi+1)/255,0,0);
       }
-      ranges.push({m,matrix,start,n:m.probes.length/6});
+      // One synthetic probe at the annotated point itself: if every real
+      // probe fails, this point's survival in the depth-tested pick buffer
+      // tells us whether the part is genuinely visible. An occluded part
+      // loses its label instead of pointing a leader through the hull.
+      const nw=transform(q.part.p,matrix);
+      ranges.push({m,matrix,start,n:m.probes.length/6,nw});
+      verts.push(nw[0],nw[1],nw[2],(qi+1)/255,0,0);
     });
     gl.useProgram(pk.prog);
     gl.uniformMatrix4fv(pk.uVP,false,vp);
@@ -267,10 +273,13 @@ function create(canvas) {
       const pi=keep>=0?keep:best;
       if(pi<0){
         // No probe passed facing/occlusion (e.g. the drive spine edge-on at
-        // standard angles). Fall back to the annotated point itself so the
-        // label keeps a real anchor instead of vanishing to (0,0).
-        const sp=project(transform(q.part.p,matrix));
-        return sp?{x:sp.x,y:sp.y,probe:-1,r:silh(q.part.p[0],q.mesh||q.fmesh),p0:project(transform(q.part.p,matrix))}:null;
+        // standard angles). The synthetic nominal probe survived depth
+        // testing only when the annotated point is genuinely visible;
+        // occluded parts lose their label rather than pointing through
+        // the hull from an invisible anchor.
+        const sp=project(rg.nw);
+        if(!sp||!onSurface(sp,ri))return null;
+        return {x:sp.x,y:sp.y,probe:-1,r:silh(q.part.p[0],q.mesh||q.fmesh),p0:sp};
       }
       const w=transform([m.probes[pi*6],m.probes[pi*6+1],m.probes[pi*6+2]],matrix);
       const sp=project(w);

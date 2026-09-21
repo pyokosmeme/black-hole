@@ -62,6 +62,14 @@
         outer.push(qo);inner.push(qi);
       }
       if(!ok){el.setAttribute('d','');return;}
+      // A crescent sliced by the stage edge reads as a broken glyph. When
+      // most of the projected ring has left the frame, drop it for this
+      // frame instead of hard-clipping it.
+      const w2=stage.clientWidth,h2=stage.clientHeight;
+      let out=0;const total=outer.length+inner.length;
+      for(const p of outer)if(p[0]<0||p[0]>w2||p[1]<0||p[1]>h2)out++;
+      for(const p of inner)if(p[0]<0||p[0]>w2||p[1]<0||p[1]>h2)out++;
+      if(out>total*.3){el.setAttribute('d','');return;}
       const th=lead,rm2=(R2.ri+R2.ro)/2,flare=(R2.ro-R2.ri)*0.95,tipT=th+18*Math.PI/180*R2.dir;
       const pTip=proj(R2.x,rm2*Math.cos(tipT),rm2*Math.sin(tipT)),pOut=proj(R2.x,(rm2+flare)*Math.cos(th),(rm2+flare)*Math.sin(th)),pIn=proj(R2.x,(rm2-flare)*Math.cos(th),(rm2-flare)*Math.sin(th));
       if(!pTip||!pOut||!pIn){el.setAttribute('d','');return;}
@@ -185,20 +193,22 @@ function visible(l,on){
       reqs.push({part:l.part,prev:l.probe??-1});
     });
     const got=models.length?renderer.labelAnchors(models[0],state,reqs):[];
-    // hull silhouette stations on screen: axis point + projected radius
+    // Hull silhouette stations on screen: axis point + projected radius.
+    // Passed as arc discs so the shared layouter keeps boxes off the hull
+    // and stops leaders from piercing it.
     const stats=[];
     const prof=models.length?models[0].profile:null;
     if(prof)for(let b=0;b<256;b+=4){
       const R=prof[b];if(!R)continue;
       const ax=renderer.project([b*2,0,0]);if(!ax)continue;
       const pe=renderer.project([b*2,0,R]);
-      stats.push({x:ax.x,y:ax.y,r:pe?Math.hypot(pe.x-ax.x,pe.y-ax.y):0});
+      stats.push({x:ax.x,y:ax.y,r:pe?Math.hypot(pe.x-ax.x,pe.y-ax.y):0,arc:1});
     }
     // spin arrows float clear of the hull: keep callouts outside them too
     (catalog[id].rings||[]).forEach(R2=>{
       const rc=renderer.project([R2.x,0,0]);
       if(rc){const re=renderer.project([R2.x,0,R2.ro]);
-        stats.push({x:rc.x,y:rc.y,r:re?Math.hypot(re.x-rc.x,re.y-rc.y):0});}
+        stats.push({x:rc.x,y:rc.y,r:re?Math.hypot(re.x-rc.x,re.y-rc.y):0,arc:1});}
     });
     const pairs=[];
     const C=stats.length?stats.reduce((o,st)=>{o.x+=st.x;o.y+=st.y;return o;},{x:0,y:0}):{x:stage.clientWidth/2,y:stage.clientHeight/2};
@@ -208,6 +218,10 @@ function visible(l,on){
       if(!a){visible(l,false);return;}
       l.probe=a.probe;
       l.dx=a.x;l.dy=a.y-8;l.ta=1;
+      // The anchor is the probe on the hull surface, so the measured
+      // leader length is exactly what users perceive. Far candidates are
+      // bounded by maxLeader below; hull clearance itself is enforced by
+      // the arc obstacles handed to the layouter.
       pairs.push({l,a});
     });
     pairs.sort((p,q)=>p.a.y-q.a.y);
@@ -308,8 +322,15 @@ function visible(l,on){
       requestById.set(id,request);
       return {
         id,x:box.x+box.w/2,y:box.y+box.h/2,r:0,w:box.w,h:box.h,
-        anchorX:request.anchor.x,anchorY:request.anchor.y,maxLeader:300,
-        ignoreLeaderObstacles:true,priority:request.l.part.t==='SCALE FIGURE'?-100:1000-index,
+        anchorX:request.anchor.x,anchorY:request.anchor.y,
+        // Hull discs are arc obstacles: label boxes may hug their own
+        // hull's rim but never cover its center, and leaders must not
+        // pierce any hull disc (ignoreLeaderObstacles only relaxes the
+        // legacy square test; ignoreArcLeaders stays off). The 180px cap
+        // kills the far-side placements that read as 200px stabs.
+        maxLeader:180,
+        ignoreLeaderObstacles:true,
+        priority:request.l.part.t==='SCALE FIGURE'?-100:1000-index,
         previous:request.l.layoutBox
       };
     });
