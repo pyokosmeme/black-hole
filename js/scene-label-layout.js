@@ -146,7 +146,11 @@
         }
         if(Math.hypot(end.x-start.x,end.y-start.y)>(item.maxLeader||70))continue;
         if(placed.some(p=>throughBox(start,end,p.box)||throughBox(p.start,p.end,box)||intersects(start,end,p.start,p.end)))continue;
-        if(!item.ignoreLeaderObstacles&&obstacles.some(p=>p.id!==item.id&&throughBox(start,end,{x:p.x-(p.r||3),y:p.y-(p.r||3),w:2*(p.r||3),h:2*(p.r||3)})))continue;
+        // Square leader test covers point obstacles only; arc discs are
+        // handled exactly by leaderHitsArcs below. Testing a large disc's
+        // bounding square here would reject leaders that never touch the
+        // circle and starve labels anchored just inside big glow discs.
+        if(!item.ignoreLeaderObstacles&&obstacles.some(p=>!p.arc&&p.id!==item.id&&throughBox(start,end,{x:p.x-(p.r||3),y:p.y-(p.r||3),w:2*(p.r||3),h:2*(p.r||3)})))continue;
         // Leaders must not pierce hull discs / route knots either. The
         // anchor's own disc allows an exit toward its own side only.
         // (ignoreArcLeaders lets a caller keep the legacy square-leader

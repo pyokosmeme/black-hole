@@ -201,9 +201,10 @@
     let view = {x: 0, y: 0, k: 1};
     const usePortraitSubway = () => window.innerWidth <= 768 && window.innerHeight > window.innerWidth;
     let mapMode = localStorage.getItem('transit-map-mode') || '2d';
-    // A first-time phone visitor starts in the operational diagram. Explicit
-    // prior choices remain respected, including the geographic overview.
-    let layout = localStorage.getItem('transit-map-layout') || (window.innerWidth <= 768 ? 'subway' : 'classic');
+    // The subway diagram is the map's front door on every screen size;
+    // geographic and 3D views are picked explicitly from the planner
+    // dropdown. Explicit prior choices remain respected.
+    let layout = localStorage.getItem('transit-map-layout') || 'subway';
     let subwayMobile = usePortraitSubway();
     let classicCompact = window.innerWidth <= 768;
     let routingMode = localStorage.getItem('transit-routing-mode') || 'fastest';
@@ -274,22 +275,12 @@
         const container = document.getElementById('map-container');
         if (!container) return;
 
-        const bar = document.createElement('div');
-        bar.className = 'map-toolbar';
-        bar.innerHTML =
-            '<button id="btn-2d" class="map-btn" type="button" aria-pressed="false">▦ 2D MAP</button>' +
-            '<button id="btn-sub" class="map-btn" type="button" aria-pressed="false">◌ SUBWAY</button>' +
-            '<button id="btn-3d" class="map-btn" type="button" aria-pressed="false">◈ 3D MAP</button>';
-        container.appendChild(bar);
-
+        // Map selection lives in the route planner dropdown; the toolbar
+        // carries only the interaction hint.
         const hint = document.createElement('div');
         hint.className = 'map-hint';
         container.appendChild(hint);
         updateHint();
-
-        document.getElementById('btn-2d').addEventListener('click', function() { setMode('2d', false, 'classic'); });
-        document.getElementById('btn-sub').addEventListener('click', function() { setMode('2d', false, 'subway'); });
-        document.getElementById('btn-3d').addEventListener('click', function() { setMode('3d'); });
 
         updateModeButtons();
     }
@@ -307,16 +298,12 @@
     }
 
     function updateModeButtons() {
-        const b2 = document.getElementById('btn-2d');
-        const b3 = document.getElementById('btn-3d');
-        const bs = document.getElementById('btn-sub');
-        if (!b2 || !b3) return;
-        b2.classList.toggle('active', mapMode === '2d' && layout === 'classic');
-        bs.classList.toggle('active', mapMode === '2d' && layout === 'subway');
-        b3.classList.toggle('active', mapMode === '3d');
-        b2.setAttribute('aria-pressed', mapMode === '2d' && layout === 'classic');
-        bs.setAttribute('aria-pressed', mapMode === '2d' && layout === 'subway');
-        b3.setAttribute('aria-pressed', mapMode === '3d');
+        // The planner dropdown is now the only map switcher; keep it in
+        // sync with whatever mode/layout is actually showing.
+        const sel = document.getElementById('map-view-select');
+        if (!sel) return;
+        const value = mapMode === '3d' ? '3d' : layout;
+        if (sel.value !== value) sel.value = value;
     }
 
     function buildRoutingControls() {
@@ -328,7 +315,14 @@
         controls.id = 'route-priority';
         controls.className = 'route-priority';
         controls.innerHTML =
-            '<div class="route-priority-heading">OPTIMIZE ROUTE</div>' +
+            '<div class="route-priority-heading">MAP</div>' +
+            '<div class="map-picker-row">' +
+            '<select id="map-view-select" class="map-select" aria-label="Map view">' +
+            '<option value="subway">◌ SUBWAY DIAGRAM</option>' +
+            '<option value="classic">▦ GEOGRAPHIC CHART</option>' +
+            '<option value="3d">◈ 3D GALACTIC</option>' +
+            '</select></div>' +
+            '<div class="route-priority-heading route-priority-heading-gap">OPTIMIZE ROUTE</div>' +
             '<div class="route-priority-options" role="group" aria-label="Route optimization priority">' +
             '<button class="route-priority-btn" type="button" data-routing-mode="fastest" aria-pressed="false">' +
             '<span class="route-priority-name">FASTEST</span><span class="route-priority-detail">proper time</span></button>' +
@@ -345,7 +339,12 @@
                 setRoutingMode(button.dataset.routingMode);
             });
         });
+        controls.querySelector('#map-view-select').addEventListener('change', function() {
+            const picked = this.value;
+            if (picked === '3d') setMode('3d'); else setMode('2d', false, picked);
+        });
         updateRoutingControls();
+        updateModeButtons();
     }
 
     function setRoutingMode(mode) {
@@ -389,10 +388,10 @@
             return;
         }
         if (mode === '3d') {
-            const b3 = document.getElementById('btn-3d');
-            if (b3) { b3.textContent = '◈ LOADING…'; b3.disabled = true; }
+            const sel = document.getElementById('map-view-select');
+            if (sel) { sel.disabled = true; }
             init3d(function(err) {
-                if (b3) { b3.textContent = '◈ 3D MAP'; b3.disabled = false; }
+                if (sel) { sel.disabled = false; }
                 if (err) {
                     console.error('[TransitMap] 3D mode unavailable:', err);
                     mapMode = '2d';

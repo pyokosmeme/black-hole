@@ -288,6 +288,55 @@ body:not(.transit-page) #map-container::before {
     border-bottom: 1px solid rgba(0, 255, 255, 0.18);
 }
 
+.route-priority-heading-gap {
+    margin-top: 14px;
+}
+
+/* Map picker: one dropdown, three maps, subway first */
+.map-picker-row {
+    padding-bottom: 2px;
+}
+
+.map-select {
+    width: 100%;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    padding: 10px 10px;
+    background: rgba(5, 5, 15, 0.72);
+    border: 1px solid rgba(0, 255, 255, 0.36);
+    color: var(--cyan);
+    cursor: pointer;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--cyan) 50%), linear-gradient(135deg, var(--cyan) 50%, transparent 50%);
+    background-position: calc(100% - 16px) 50%, calc(100% - 11px) 50%;
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+}
+
+.map-select:hover:not(:disabled) {
+    border-color: var(--cyan);
+    box-shadow: 0 0 8px rgba(0, 255, 255, 0.18);
+}
+
+.map-select:focus-visible {
+    outline: 2px solid var(--cyan);
+    outline-offset: 2px;
+}
+
+.map-select:disabled {
+    opacity: 0.5;
+    cursor: wait;
+}
+
+.map-select option {
+    background: #05050f;
+    color: #9fe8ff;
+    letter-spacing: 1px;
+}
+
 .route-priority-heading {
     margin-bottom: 8px;
     color: rgba(255, 255, 255, 0.58);

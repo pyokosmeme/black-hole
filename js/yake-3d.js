@@ -39,6 +39,11 @@ window.YakeScene = (function () {
     let bodies = [], tracks = [], annotations = [], frame = null, destroyed = false;
     const labelMemory = new Map();
     let width = 1, height = 1, labelsOn = true;
+    // Painted label positions ease toward the layout geometry each frame.
+    // Without this a candidate flip teleports a name 10–30px between draws,
+    // which reads as jank during a slow orbit. Snap when settled so the
+    // boxes stop squirming once the camera is still.
+    const labelEase = new Map();
     const pointers = new Map();
     let gesture = null, dragged = false;
     let pendingTap = null;
@@ -342,7 +347,7 @@ window.YakeScene = (function () {
       cancelTap();
       if(currentView!==name) {
         if(content) {scene.remove(content);release(content);}
-        content=new T.Group();scene.add(content);bodies=[];tracks=[];annotations=[];labelMemory.clear();labelLayer.textContent='';currentView=name;
+        content=new T.Group();scene.add(content);bodies=[];tracks=[];annotations=[];labelMemory.clear();labelEase.clear();labelLayer.textContent='';currentView=name;
         const cfg=data.views[name];
         {
           if(!cfg.cluster)body(cfg.parent,new T.Vector3(),cfg.parent==='yake'?24:27,false);
@@ -498,18 +503,27 @@ window.YakeScene = (function () {
         ? window.SceneLabelLayout.layout(items,bounds,discs)
         : [];
       items.forEach(item=>{item.el.hidden=true;});
+      let unsettled=false;
       placements.forEach(placement=>{
         const item=byId.get(placement.id);if(!item)return;
         item.el.hidden=false;item.el.style.visibility='';
-        item.el.style.transform='translate('+placement.box.x.toFixed(1)+'px,'+placement.box.y.toFixed(1)+'px)';
+        // Ease the painted box toward the layout geometry; leaders follow
+        // the eased box so callouts stay attached while gliding.
+        const cur=labelEase.get(placement.id)||{x:placement.box.x,y:placement.box.y};
+        labelEase.set(placement.id,cur);
+        if(Math.abs(placement.box.x-cur.x)<2.5&&Math.abs(placement.box.y-cur.y)<2.5){cur.x=placement.box.x;cur.y=placement.box.y;}
+        else{cur.x+=(placement.box.x-cur.x)*.35;cur.y+=(placement.box.y-cur.y)*.35;unsettled=true;}
+        item.el.style.transform='translate('+cur.x.toFixed(1)+'px,'+cur.y.toFixed(1)+'px)';
         item.el.style.left=item.el.style.top='0';
         labelMemory.set(item.id,{x:placement.box.x,y:placement.box.y});
+        const ex=Math.max(cur.x,Math.min(cur.x+item.w,item.anchorX));
+        const ey=Math.max(cur.y,Math.min(cur.y+item.h,item.anchorY));
         const line=document.createElementNS('http://www.w3.org/2000/svg','line');
         line.setAttribute('x1',placement.start.x.toFixed(1));line.setAttribute('y1',placement.start.y.toFixed(1));
-        line.setAttribute('x2',placement.end.x.toFixed(1));line.setAttribute('y2',placement.end.y.toFixed(1));
+        line.setAttribute('x2',ex.toFixed(1));line.setAttribute('y2',ey.toFixed(1));
         leaders.appendChild(line);
       });
-      if(flight)draw();
+      if(flight||unsettled)draw();
     }
     function resize() {
       const oldAspect=width/height;
