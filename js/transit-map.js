@@ -200,7 +200,13 @@
     let dragState = {pointers: new Map(), moved: 0, lastDist: 0, lastMid: null, active: false};
     let view = {x: 0, y: 0, k: 1};
     const usePortraitSubway = () => window.innerWidth <= 768 && window.innerHeight > window.innerWidth;
-    let mapMode = localStorage.getItem('transit-map-mode') || '2d';
+    // A host page can pin the map to one view (the standalone galaxy page
+    // is the 3D map; exu2374 keeps the dropdown picker). Config must be
+    // set before this script loads.
+    const pageConfig = window.TRANSIT_MAP_CONFIG || {};
+    const always3d = pageConfig.always3d === true;
+    const showMapPicker = !always3d && pageConfig.mapPicker !== false;
+    let mapMode = always3d ? '3d' : (localStorage.getItem('transit-map-mode') || '2d');
     // The subway diagram is the map's front door on every screen size;
     // geographic and 3D views are picked explicitly from the planner
     // dropdown. Explicit prior choices remain respected.
@@ -298,8 +304,8 @@
     }
 
     function updateModeButtons() {
-        // The planner dropdown is now the only map switcher; keep it in
-        // sync with whatever mode/layout is actually showing.
+        // The planner dropdown is now the only map switcher on pages that
+        // have one; keep it in sync with whatever mode/layout is showing.
         const sel = document.getElementById('map-view-select');
         if (!sel) return;
         const value = mapMode === '3d' ? '3d' : layout;
@@ -315,13 +321,15 @@
         controls.id = 'route-priority';
         controls.className = 'route-priority';
         controls.innerHTML =
-            '<div class="route-priority-heading">MAP</div>' +
-            '<div class="map-picker-row">' +
-            '<select id="map-view-select" class="map-select" aria-label="Map view">' +
-            '<option value="subway">◌ SUBWAY DIAGRAM</option>' +
-            '<option value="classic">▦ GEOGRAPHIC CHART</option>' +
-            '<option value="3d">◈ 3D GALACTIC</option>' +
-            '</select></div>' +
+            (showMapPicker
+                ? '<div class="route-priority-heading">MAP</div>' +
+                  '<div class="map-picker-row">' +
+                  '<select id="map-view-select" class="map-select" aria-label="Map view">' +
+                  '<option value="subway">◌ SUBWAY DIAGRAM</option>' +
+                  '<option value="classic">▦ GEOGRAPHIC CHART</option>' +
+                  '<option value="3d">◈ 3D GALACTIC</option>' +
+                  '</select></div>'
+                : '') +
             '<div class="route-priority-heading route-priority-heading-gap">OPTIMIZE ROUTE</div>' +
             '<div class="route-priority-options" role="group" aria-label="Route optimization priority">' +
             '<button class="route-priority-btn" type="button" data-routing-mode="fastest" aria-pressed="false">' +
@@ -339,7 +347,8 @@
                 setRoutingMode(button.dataset.routingMode);
             });
         });
-        controls.querySelector('#map-view-select').addEventListener('change', function() {
+        const select = controls.querySelector('#map-view-select');
+        if (select) select.addEventListener('change', function() {
             const picked = this.value;
             if (picked === '3d') setMode('3d'); else setMode('2d', false, picked);
         });
