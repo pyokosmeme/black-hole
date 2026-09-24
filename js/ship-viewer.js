@@ -332,7 +332,7 @@
     });
   }
   async function load() {
-    const token=++request;models=[];$('err').textContent='Loading ship…';$('err').style.display='grid';
+    const token=++request;models=[];$('err').textContent='loading...';$('err').style.display='grid';
     createLabels();specs();sync();
     $('gbtns').replaceChildren();
     catalog[id].presets.forEach(p=>{

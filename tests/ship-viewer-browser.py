@@ -123,7 +123,7 @@ with sync_playwright() as p:
         if failure=='webgl':page.add_init_script('''const get=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(t,...a){return /webgl/.test(t)?null:get.call(this,t,...a)}''')
         else:page.route('**/maps/ships/*.obj',lambda route:route.fulfill(status=503,body='Unavailable'))
         page.goto('https://maps.test/ship-viewer?compare=1')
-        page.wait_for_function("!document.querySelector('#err').textContent.includes('Loading')")
+        page.wait_for_function("!document.querySelector('#err').textContent.toLowerCase().includes('loading')")
         page.locator('[data-pane-toggle=specs-pane]').click();assert page.locator('.ship-comparison').is_visible()
         page.locator('[data-window-expand]').click();page.locator('.map-window > .window-toolbar a').click();page.wait_for_url('**/maps');context.close()
     browser.close()
