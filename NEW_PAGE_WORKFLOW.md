@@ -23,6 +23,8 @@ Content and novel interactions come afterward. Do not approximate the aesthetic.
 | --- | --- |
 | Fonts, tokens, panels, buttons, header, responsive width | `css/acidburn.css` |
 | Standalone interactive page shell | `yake.html` |
+| Map window: viewport, corner HUD overlays, closable panes | `css/map-window.css`, `js/map-window.js` (see their header comments) |
+| Labels on a moving 3D scene | `js/scene-label-layout.js` (`createTracker`) |
 | Content-hub markup and `PAGE_CONFIG` | `maps.html`, `index.html`, `js/acidburn-author.js` |
 | Shared display modes and toggle | `js/acidburn-mode.js` |
 | Real black-hole background and dependencies | `js/acidburn-blackhole.js`, `js/acidburn-galaxy.js`, `yake.html` |
@@ -137,8 +139,10 @@ Source inspection and `node --check` alone are not visual verification.
 
 Existing Playwright examples: `tests/yake-atlas-browser.py` (shared-style probe,
 local asset routing, mode and fallback checks), `tests/yake-floating-window.py`
-(`--webfonts`, responsive bounds), and `tests/yake-ux-workflow.py` (interaction
-flow). Adapt tests to the new page; passing Ya Ke's tests does not test a new page.
+(`--webfonts`, responsive bounds), `tests/yake-ux-workflow.py` (interaction
+flow), and `tests/map-windows-browser.py` (every map window: HUD and pane
+geometry, labels clear of overlays; add a new map page to its `PAGES`). Adapt
+tests to the new page; passing Ya Ke's tests does not test a new page.
 Use available test tooling; do not install dependencies without appropriate
 permission. If a browser check is blocked, report that limitation explicitly.
 

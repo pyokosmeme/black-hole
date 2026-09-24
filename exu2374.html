@@ -17,8 +17,8 @@
     
     <!-- Styles -->
     <link rel="stylesheet" href="css/acidburn.css?v=10">
-    <link rel="stylesheet" href="css/transit-map.css?v=16">
-    <link rel="stylesheet" href="css/map-window.css?v=8">
+    <link rel="stylesheet" href="css/transit-map.css?v=17">
+    <link rel="stylesheet" href="css/map-window.css?v=9">
 
   <script src="js-libs/three.min.js"></script>
   <script src="js-libs/jquery-2.1.4.min.js"></script>
@@ -71,48 +71,38 @@
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg>
   </a>
 </div></div>
-          <div class="transit-grid">
-            <!-- Map -->
-            <div id="map-container">
-                <svg id="transit-map" viewBox="0 0 1600 1000" role="img" aria-label="Transit map of inhabited space"></svg>
-                
-                <div class="legend">
-                    <h3>FACTION ROUTES</h3>
-                    <div class="legend-item">
-                        <div class="legend-line uplb-route"></div>
-                        <span>UPLB</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-line swi-route"></div>
-                        <span>SWI</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-line hw-route"></div>
-                        <span>Homeworlds</span>
-                    </div>
-                    <div class="legend-item">
-                        <div class="legend-line inter-route"></div>
-                        <span>Inter-faction</span>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Route Planner Panel -->
-            <div class="route-planner">
-                <div class="planner-header">
-                    <h2>ROUTE PLANNER</h2>
-                    <button class="clear-btn" onclick="clearRoute()">CLEAR ROUTE</button>
-                </div>
-                
-                <div id="route-content">
-                    <div class="empty-state">
-                        <div class="empty-state-icon">✧</div>
-                        <div class="empty-state-text">Click stations on the map to plan your route</div>
-                    </div>
-                </div>
-            </div>
-        </div>
+          <!-- The map fills the window; overlays and the route planner float over it. -->
+          <div class="map-viewport" id="map-container">
+            <svg id="transit-map" viewBox="0 0 1600 1000" role="img" aria-label="Transit map of inhabited space"></svg>
 
+            <div class="map-hud map-hud-tl" data-label-avoid>
+              <div class="map-picker" id="map-picker"></div>
+              <ul class="legend" aria-label="Faction routes">
+                <li><span class="legend-line uplb-route"></span>UPLB</li>
+                <li><span class="legend-line swi-route"></span>SWI</li>
+                <li><span class="legend-line hw-route"></span>Homeworlds</li>
+                <li><span class="legend-line inter-route"></span>Inter-faction</li>
+              </ul>
+            </div>
+            <div class="map-hud map-hud-bl"><p class="map-hint"></p></div>
+            <div class="map-hud map-hud-br" data-label-avoid>
+              <div class="map-controls" role="group" aria-label="Map controls">
+                <button class="acidburn-button" type="button" data-pane-toggle="route-pane" aria-controls="route-pane" aria-expanded="false"><span class="route-button-label">route</span></button>
+                <button class="acidburn-button icon" type="button" data-map-action="fit" aria-label="Fit map" title="Fit map"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><circle cx="12" cy="12" r="2.5"/></svg></button>
+                <button class="acidburn-button icon" type="button" data-map-action="in" aria-label="Zoom in" title="Zoom in"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+                <button class="acidburn-button icon" type="button" data-map-action="out" aria-label="Zoom out" title="Zoom out"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg></button>
+              </div>
+            </div>
+
+            <aside class="author-card map-pane" id="route-pane" data-map-pane data-label-avoid hidden aria-labelledby="route-pane-title">
+              <div class="section-header window-toolbar"><h2 id="route-pane-title">ROUTE PLANNER</h2><div class="section-line"></div><div class="window-actions">
+                <button class="acidburn-button" type="button" data-pane-close aria-label="Close route planner" title="Close route planner"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button>
+              </div></div>
+              <div class="map-pane-body route-planner" id="route-planner-body">
+                <div id="route-content"></div>
+              </div>
+            </aside>
+          </div>
         </section>
     </main>
 
@@ -127,9 +117,9 @@
     <script src="js/acidburn-blackhole.js"></script>
     
     <!-- Transit Map -->
-    <script src="js/scene-label-layout.js?v=5"></script>
-    <script src="js/transit-map.js?v=16"></script>
-    <script src="js/map-window.js"></script>
+    <script src="js/scene-label-layout.js?v=6"></script>
+    <script src="js/transit-map.js?v=17"></script>
+    <script src="js/map-window.js?v=9"></script>
     
     <!-- Navigation -->
     <script src="nav-menu.js"></script>

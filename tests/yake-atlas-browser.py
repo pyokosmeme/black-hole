@@ -72,7 +72,7 @@ def run():
             page.wait_for_selector('#nav-menu a[href="/yake.html"]', state='attached')
             assert page.locator('main > section').count() == 1
             assert page.locator('.chart-caption,#chart-scale').count() == 0
-            assert page.locator('.scene-controls').evaluate('e=>document.querySelector(".atlas-chart").getBoundingClientRect().bottom-e.getBoundingClientRect().bottom<=20')
+            assert page.locator('.map-controls').evaluate('e=>{const r=e.getBoundingClientRect(),s=document.querySelector(".atlas-scene").getBoundingClientRect();return r.top>=s.top&&r.bottom<=s.bottom&&r.left>=s.left&&r.right<=s.right}')
             assert page.locator('[data-view],[data-presentation],#world-detail,#destination-list,.atlas-breadcrumb,.footer').count() == 0
             assert page.locator('.atlas-shell button:not(.acidburn-button):not(.scene-label)').count() == 0
             assert page.locator('#blackhole-container canvas').count() == 0
@@ -100,22 +100,22 @@ def run():
                 label.focus()
                 page.keyboard.press('Enter')
                 rendered(page)
-                assert page.locator('#scene-card h1').text_content() == page.evaluate(f"YAKE_ATLAS.worlds.find(w=>w.id==='{world}').name")
+                assert page.locator('#world-pane-title').text_content() == page.evaluate(f"YAKE_ATLAS.worlds.find(w=>w.id==='{world}').name")
                 style = label.evaluate('(e)=>{const s=getComputedStyle(e);return [s.borderLeftWidth,s.outlineStyle,s.backgroundColor]}')
-                assert style == ['0px', 'none', 'rgba(11, 11, 20, 0.72)'], style
-                assert page.locator('[data-show-detail],#scene-card img').count() == 0
-                assert page.locator('#world-actions [data-open-view]').count() == (1 if world in ['jin','shu','xuan','five'] else 0)
-                assert page.locator('#scene-card details').count() == 0
-                assert page.locator('#scene-card .card-heading [data-scene-action=focus]').count() == 1
+                assert style == ['0px', 'none', 'rgba(5, 5, 15, 0.62)'], style
+                assert page.locator('[data-show-detail],#world-pane img').count() == 0
+                assert page.locator('#world-pane [data-open-view]').count() == (1 if world in ['jin','shu','xuan','five'] else 0)
+                assert page.locator('#world-pane details').count() == 0
+                assert page.locator('#world-pane [data-scene-action=focus]').count() == 1
                 assert page.evaluate('__sceneTest.currentView') == 'system'
                 if world == 'celosia':
-                    assert page.locator('#world-actions button').count() == 1
+                    assert page.locator('#world-pane .world-actions button').count() == 1
                     assert page.locator('[data-scene-action^="surface-"]').count() == 0
                 if world == 'five':
-                    assert 'in-universe' not in page.locator('#scene-card').inner_text()
-                    assert 'first known natural hierarchical binary resonance.' in page.locator('#scene-card').inner_text()
+                    assert 'in-universe' not in page.locator('#world-pane').inner_text()
+                    assert 'first known natural hierarchical binary resonance.' in page.locator('#world-pane').inner_text()
                 camera_before=page.evaluate('JSON.stringify([__sceneTest.camera.position.toArray(),__sceneTest.camera.quaternion.toArray(),__sceneTest.target.toArray(),__sceneTest.radius])')
-                page.locator('[data-close-card]').click()
+                page.locator('#world-pane [data-pane-close]').click()
                 rendered(page)
                 assert page.evaluate('JSON.stringify([__sceneTest.camera.position.toArray(),__sceneTest.camera.quaternion.toArray(),__sceneTest.target.toArray(),__sceneTest.radius])')==camera_before
                 page.locator('[data-scene-action=home]').click()
@@ -133,7 +133,7 @@ def run():
             page.mouse.up()
             rendered(page)
             assert page.evaluate('__sceneTest.camera.position.toArray()') != before
-            assert not page.locator('#scene-card').is_visible()
+            assert not page.locator('#world-pane').is_visible()
             if width < 600:
                 canvas.scroll_into_view_if_needed()
                 rendered(page)
@@ -152,12 +152,12 @@ def run():
             pos = page.evaluate("""() => {const s=__sceneTest,p=s.bodies.find(b=>b.id==='celosia').position.clone().project(s.camera),r=document.querySelector('canvas.scene-canvas').getBoundingClientRect();return [r.x+(p.x*.5+.5)*r.width,r.y+(-p.y*.5+.5)*r.height]}""")
             pick_target = page.evaluate('(p)=>document.elementFromPoint(...p).outerHTML',pos)
             page.mouse.click(*pos)
-            page.locator('#scene-card').wait_for(state='visible')
-            assert page.locator('#scene-card h1').text_content() == 'Celosia',(pick_target,page.locator('#scene-card h1').text_content())
+            page.locator('#world-pane').wait_for(state='visible')
+            assert page.locator('#world-pane-title').text_content() == 'Celosia',(pick_target,page.locator('#world-pane-title').text_content())
             page.screenshot(path=str(SHOTS / f'yake-overview-card-{width}.png'))
-            # Reset stays clickable while the card and contextual actions are open.
-            page.locator('#atlas-reset').click()
-            assert not page.locator('#scene-card').is_visible()
+            # Reset stays clickable while the world pane and its actions are open.
+            page.locator('[data-scene-action=home]').click()
+            assert not page.locator('#world-pane').is_visible()
             assert page.locator('.scene-label[aria-pressed=true]').count() == 0
             assert overview_angle()
             page.locator('[data-window-expand]').click()
@@ -174,25 +174,26 @@ def run():
             page.on('request', lambda request: references.append(request.url) if '/img/yake/' in request.url else None)
             for view, count, local_ids in [('jin',9,['plomo','suseong','peng','marassa','buka','chawkee']),('shu',5,['jouki','mizu','pani','buz']),('xuan',2,['kaau']),('five',5,['mun','in','sin','island-mu','yong'])]:
                 page.evaluate('(id)=>location.hash=id', view)
-                page.locator(f'#world-actions [data-open-view={view}]').click()
+                page.locator(f'#world-pane [data-open-view={view}]').click()
                 page.wait_for_function('(name)=>__sceneTest.currentView===name', arg=view)
                 assert page.evaluate('__sceneTest.bodies.length') == count
                 assert page.evaluate("!__sceneTest.bodies.some(b=>b.id==='fengsheng')")
                 assert page.locator('[data-pick=fengsheng]').count() == 0
-                assert not page.locator('#scene-card').is_visible()
-                assert page.locator('#atlas-system-back').is_visible()
-                assert page.locator('#atlas-system-back').text_content() == '← BACK TO SYSTEM VIEW'
-                assert page.locator('.scene-heading span').text_content() == page.evaluate(f'YAKE_ATLAS.views.{view}.title.toUpperCase()')
+                assert not page.locator('#world-pane').is_visible()
+                # Moon systems open as a framed window with its own close button.
+                assert page.locator('.moon-close').is_visible()
+                assert page.locator('.moon-close').get_attribute('aria-label') == page.evaluate(f"'Close '+YAKE_ATLAS.views.{view}.title+' and return to the system map'")
+                assert page.locator('#view-title').text_content() == page.evaluate(f'YAKE_ATLAS.views.{view}.title')
                 for world in local_ids:
                     page.evaluate('(id)=>location.hash=id', world)
-                    page.wait_for_function('(id)=>document.querySelector("#scene-card h1")?.textContent===YAKE_ATLAS.worlds.find(w=>w.id===id).name', arg=world)
-                    assert page.locator('#scene-card img').count() == 0
+                    page.wait_for_function('(id)=>!document.querySelector("#world-pane").hidden&&document.querySelector("#world-pane-title").textContent===YAKE_ATLAS.worlds.find(w=>w.id===id).name', arg=world)
+                    assert page.locator('#world-pane img').count() == 0
                     assert page.locator('[data-scene-action=focus]').count() == 1
                     page.locator('[data-scene-action=focus]').click()
                     rendered(page)
-                    assert not page.locator('#scene-card').is_visible()
+                    assert not page.locator('#world-pane').is_visible()
                     assert page.evaluate('location.hash') == '#view=' + view
-                page.locator('#atlas-reset').click()
+                page.locator('[data-scene-action=home]').click()
                 assert page.evaluate('__sceneTest.currentView') == view
                 assert page.evaluate('__sceneTest.tracks.filter(t=>t.ez).every(t=>t.line.material.color.getHex()===0xc57b4a)')
                 page.wait_for_timeout(200)
@@ -200,11 +201,11 @@ def run():
                 page.screenshot(path=str(SHOTS / f'yake-restored-{view}-{width}.png'))
                 if view == 'jin':
                     page.reload()
-                    page.wait_for_function('__sceneTest.currentView==="jin"')
-                    assert not page.locator('#scene-card').is_visible()
-                page.locator('#atlas-system-back').click()
+                    page.wait_for_function('window.__sceneTest?.currentView==="jin"')
+                    assert not page.locator('#world-pane').is_visible()
+                page.locator('.moon-close').click()
                 page.wait_for_function('__sceneTest.currentView==="system"')
-                assert not page.locator('#atlas-system-back').is_visible()
+                assert not page.locator('.moon-close').is_visible()
                 assert page.locator('canvas.scene-canvas').count() == 1
                 assert page.locator('main > section').count() == 1
             assert not references, references
@@ -295,29 +296,30 @@ def run():
         page.route('**/*', serve)
         page.add_init_script("const original=HTMLCanvasElement.prototype.getContext;HTMLCanvasElement.prototype.getContext=function(kind,...args){return /webgl/i.test(kind)?null:original.call(this,kind,...args)}")
         page.goto('https://atlas.test/yake.html')
-        assert page.locator('#orbital-field svg').count() == 1
+        page.wait_for_selector('.fallback-chart svg')
+        assert page.locator('.fallback-chart svg').count() == 1
         page.locator('[data-world=celosia]').focus()
         page.keyboard.press('Enter')
-        assert page.locator('#scene-card h1').text_content() == 'Celosia'
-        assert page.locator('#scene-card').is_visible()
+        assert page.locator('#world-pane-title').text_content() == 'Celosia'
+        assert page.locator('#world-pane').is_visible()
         assert page.locator('main > section').count() == 1
-        page.locator('[data-close-card]').click()
+        page.locator('#world-pane [data-pane-close]').click()
         page.locator('[data-world=jin]').click()
-        page.locator('#world-actions [data-open-view=jin]').click()
+        page.locator('#world-pane [data-open-view=jin]').click()
         assert page.locator('[data-world=fengsheng]').count() == 0
         assert page.evaluate("(()=>{const w=YAKE_ATLAS.worlds.find(w=>w.id==='fengsheng');return w.hidden&&!w.mapLabel&&w.kind.includes('weather station')&&w.stats.some(([k,v])=>k==='Orbit type'&&v==='Polar');})()")
         page.locator('[data-world=marassa]').focus()
         page.keyboard.press('Enter')
-        assert page.locator('#scene-card h1').text_content() == 'Horizon’s Edge'
-        assert page.locator('#scene-card img').count() == 0
-        page.locator('#atlas-system-back').click()
+        assert page.locator('#world-pane-title').text_content() == 'Horizon’s Edge'
+        assert page.locator('#world-pane img').count() == 0
+        page.locator('.moon-close').click()
         assert page.locator('[data-world=celosia]').count() == 1
-        assert page.locator('.scene-controls #atlas-reset').count() == 1
+        assert page.locator('.map-controls [data-scene-action=home]:visible').count() == 1
         page.locator('[data-world=celosia]').focus()
         page.keyboard.press('Enter')
         page.keyboard.press('Escape')
-        page.locator('#atlas-reset').click()
-        assert not page.locator('#scene-card').is_visible()
+        page.locator('[data-scene-action=home]').click()
+        assert not page.locator('#world-pane').is_visible()
         assert page.locator('[data-world][aria-pressed=true]').count() == 0
         print('PASS WebGL-unavailable system chart and world-card fallback', flush=True)
         browser.close()

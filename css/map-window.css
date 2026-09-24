@@ -1,18 +1,27 @@
-/* Shared window geometry; Acid Burn owns panels, typography and button styling. */
-.map-window-shell,.map-window,.window-toolbar,.window-actions,.ship-viewer #stage,.ship-viewer #hud,.ship-viewer .ship-info { transition-property:background-color,border-color,box-shadow; }
-.map-window-shell { --window-gap:clamp(12px,2vmin,24px); height:100vh; height:100dvh; display:flex; flex-direction:column; padding-top:calc(50px + var(--window-gap)); padding-bottom:var(--window-gap); }
+/* Shared window geometry; Acid Burn owns panels, typography and button styling.
+ *
+ * One design language for every map page:
+ *   window  = .author-card.map-window with a .window-toolbar (title, expand, close)
+ *   viewport= .map-viewport, the map itself, filling the rest of the window
+ *   HUD     = small overlays pinned to the viewport corners
+ *             (top-left: view title and pickers; bottom-left: hint;
+ *              bottom-right: map controls)
+ *   panes   = .author-card.map-pane, secondary windows over the map with the
+ *             same title bar and a close button (right-docked on wide screens,
+ *             a bottom sheet on phones). */
+.map-window-shell,.map-window,.window-toolbar,.window-actions,.map-viewport,.map-hud,.map-pane { transition-property:background-color,border-color,box-shadow; }
+.map-window-shell { --window-gap:clamp(12px,2vmin,24px); height:100vh; height:100dvh; display:flex; flex-direction:column; padding-top:calc(50px + var(--window-gap)); padding-bottom:calc(var(--window-gap) + env(safe-area-inset-bottom,0px)); }
 .map-window { padding:0; margin-bottom:0; min-height:0; flex:1; display:flex; flex-direction:column; transition-property:background-color,border-color,box-shadow; }
 .window-toolbar { flex:none; padding:var(--space-sm); margin-bottom:0; gap:var(--space-sm); }
 .window-toolbar h2 { min-width:0; overflow-wrap:anywhere; }
 .window-actions { display:flex; gap:4px; margin-left:auto; flex:none; }
 .window-actions .acidburn-button { display:inline-flex; align-items:center; justify-content:center; width:44px; height:44px; padding:0; text-decoration:none; }
-.window-actions svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.7; pointer-events:none; }
+.window-actions svg,.map-hud .acidburn-button svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.7; pointer-events:none; }
 .window-actions .collapse-icon { display:none; }
 .window-actions [aria-pressed=true] .expand-icon { display:none; }
 .window-actions [aria-pressed=true] .collapse-icon { display:block; }
-.map-window .acidburn-button:focus-visible { outline:2px solid var(--cyan); outline-offset:2px; }
-.map-window .window-actions .acidburn-button[aria-pressed=true] { text-decoration:underline; text-underline-offset:4px; }
-.map-window .acidburn-button[aria-pressed=true] { background:rgba(0,255,255,.12); border-color:var(--cyan); color:#fff; }
+.map-window .acidburn-button:focus-visible,.map-pane .acidburn-button:focus-visible { outline:2px solid var(--cyan); outline-offset:2px; }
+.map-window .acidburn-button[aria-pressed=true],.map-window .acidburn-button[aria-expanded=true] { background:rgba(0,255,255,.12); border-color:var(--cyan); color:#fff; }
 body.map-window-expanded { overflow:hidden; }
 body.map-window-expanded .main-content { z-index:2000; }
 .map-window.is-expanded { position:fixed; z-index:2000; inset:var(--window-gap,12px); bottom:calc(var(--window-gap,12px) + env(safe-area-inset-bottom,0px)); margin:0; isolation:isolate; background:#12121a; }
@@ -21,5 +30,103 @@ body.map-window-expanded .main-content { z-index:2000; }
  * stripes through its toolbar. */
 body.bh-mode .map-window.is-expanded { background:rgba(5,5,15,.98); }
 body.light-mode .map-window.is-expanded { background:#fdfaf5; }
-@media(max-width:600px) { .map-window-shell { padding-top:calc(44px + var(--window-gap)); } .window-toolbar .section-line { display:none; } }
-@media(max-height:600px) { .window-toolbar { padding:var(--space-xs); } }
+
+/* ── Viewport: the map is always dark space, in every display mode. ───────── */
+.map-viewport { --hud-inset:var(--space-sm); --pane-w:min(340px,calc(100% - 2 * var(--hud-inset))); position:relative; flex:1 1 0; min-height:0; overflow:hidden; isolation:isolate; background:#05050f; color:#fff; }
+body.bh-mode .map-viewport { background:rgba(5,5,15,.6); }
+
+/* ── HUD ───────────────────────────────────────────────────────────────────── */
+.map-hud { position:absolute; z-index:6; display:flex; gap:4px; pointer-events:none; max-width:calc(100% - 2 * var(--hud-inset)); }
+.map-hud > * { pointer-events:auto; }
+.map-hud[hidden],.map-hud [hidden] { display:none!important; }
+.map-hud-tl { top:var(--hud-inset); left:var(--hud-inset); flex-direction:column; align-items:flex-start; }
+.map-hud-bl { bottom:var(--hud-inset); left:var(--hud-inset); max-width:calc(100% - 2 * var(--hud-inset) - var(--hud-controls-w,240px)); }
+.map-hud-br { bottom:var(--hud-inset); right:var(--hud-inset); align-items:flex-end; }
+.map-view-title { margin:0; font-family:'Orbitron',sans-serif; font-size:var(--text-xs); font-weight:500; letter-spacing:.18em; color:var(--cyan); text-transform:uppercase; text-shadow:0 0 6px #000,0 0 2px #000; }
+.map-view-note { margin:0; font-size:var(--text-xs); letter-spacing:.06em; color:#a8b9c9; text-transform:uppercase; text-shadow:0 0 4px #000; }
+.map-hint { margin:0; font-size:var(--text-xs); line-height:1.4; letter-spacing:.06em; color:#a8b9c9; opacity:.85; pointer-events:none!important; text-shadow:0 0 4px #000; }
+.map-controls { display:flex; gap:4px; flex-wrap:wrap; justify-content:flex-end; }
+.map-hud .acidburn-button { min-width:40px; height:40px; padding:0 10px; display:inline-flex; align-items:center; justify-content:center; gap:6px; background:rgba(5,5,15,.94); text-decoration:none; white-space:nowrap; }
+.map-hud .acidburn-button:hover { background:rgba(24,24,40,.96); }
+.map-hud .acidburn-button.icon { width:40px; padding:0; }
+.map-hud .acidburn-button[disabled] { opacity:.45; }
+/* View pickers (map layout, spacecraft) share one compact select style. */
+.map-picker { display:flex; gap:4px; align-items:center; flex-wrap:wrap; }
+.map-picker select { height:40px; min-width:0; max-width:100%; padding:0 30px 0 10px; font-family:inherit; font-size:var(--text-xs); letter-spacing:.08em; color:var(--cyan); background:linear-gradient(45deg,transparent 50%,var(--cyan) 50%) no-repeat calc(100% - 16px) 50% / 5px 5px, linear-gradient(135deg,var(--cyan) 50%,transparent 50%) no-repeat calc(100% - 11px) 50% / 5px 5px, rgba(5,5,15,.94); border:1px solid rgba(255,255,255,.3); appearance:none; -webkit-appearance:none; cursor:pointer; }
+.map-picker select:hover { border-color:var(--cyan); }
+.map-picker select:focus-visible { outline:2px solid var(--cyan); outline-offset:2px; }
+.map-picker select option { background:#05050f; color:#dfe8f0; }
+/* Light mode: the map stays dark space, so overlay controls keep an opaque
+ * light plate matching the light panels and panes, and pressed states use
+ * the light theme's ink rather than white. */
+body.light-mode .map-window .acidburn-button[aria-pressed=true],body.light-mode .map-window .acidburn-button[aria-expanded=true] { background:rgba(191,0,255,.1); border-color:var(--purple); color:#1a1816; }
+body.light-mode .map-hud .acidburn-button { background:rgba(253,250,245,.94); }
+body.light-mode .map-hud .acidburn-button:hover { background:#f1e9f6; }
+body.light-mode .map-hud .acidburn-button[aria-pressed=true],body.light-mode .map-hud .acidburn-button[aria-expanded=true] { background:#efdcf7; }
+body.light-mode .map-picker select { color:#4a1868; border-color:rgba(74,24,104,.3); background:linear-gradient(45deg,transparent 50%,#4a1868 50%) no-repeat calc(100% - 16px) 50% / 5px 5px, linear-gradient(135deg,#4a1868 50%,transparent 50%) no-repeat calc(100% - 11px) 50% / 5px 5px, rgba(253,250,245,.94); }
+body.light-mode .map-picker select option { background:#fdfaf5; color:#2e2a26; }
+/* A pane tall enough to reach the bottom corner pushes the controls beside
+ * it; the hint steps aside rather than running underneath them. */
+.map-viewport.pane-reaches-bottom .map-hud-br { right:calc(var(--pane-w) + 2 * var(--hud-inset)); }
+.map-viewport.pane-reaches-bottom .map-hud-bl { display:none; }
+
+/* ── Shared canvas labels (3D worlds, stations, ship parts) ────────────────── */
+.map-label { position:absolute; left:0; top:0; white-space:nowrap; font-family:'Share Tech Mono',monospace; font-size:var(--text-xs); line-height:1.25; letter-spacing:.05em; color:#fff; padding:1px 5px 2px; margin:0; background:rgba(5,5,15,.62); border:0; border-radius:2px; box-shadow:0 0 0 1px rgba(168,185,201,.16); text-shadow:0 0 3px #000; will-change:transform,opacity; transition:none; -webkit-tap-highlight-color:transparent; }
+button.map-label { cursor:pointer; }
+.map-label:hover,.map-label:focus-visible { color:var(--cyan); box-shadow:0 0 0 1px rgba(0,255,255,.55); outline:none; }
+.map-label[aria-pressed=true],.map-label.is-route { color:#ff83cd; box-shadow:0 0 0 1px rgba(255,0,153,.6); }
+.map-leaders { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:hidden; background:transparent; }
+.map-leaders line { stroke:rgba(168,185,201,.6); stroke-width:1; }
+
+/* ── Panes: secondary windows over the map ─────────────────────────────────── */
+.author-card.map-pane { position:absolute; z-index:8; top:var(--hud-inset); right:var(--hud-inset); width:var(--pane-w); max-height:calc(100% - 2 * var(--hud-inset)); padding:0; margin:0; display:flex; flex-direction:column; box-shadow:0 14px 36px rgba(0,0,0,.6); }
+.author-card.map-pane[hidden] { display:none; }
+body.bh-mode .author-card.map-pane,body.dark-mode .author-card.map-pane { background:rgba(12,12,22,.95); }
+.map-pane .window-toolbar { padding:var(--space-xs) var(--space-xs) var(--space-xs) var(--space-sm); }
+.map-pane .window-toolbar h2 { font-size:var(--text-xs); letter-spacing:.2em; text-transform:uppercase; }
+.map-pane .window-actions .acidburn-button { width:40px; height:40px; }
+.map-pane-body { flex:1 1 auto; min-height:0; overflow:auto; overscroll-behavior:contain; padding:0 var(--space-sm) var(--space-sm); font-size:var(--text-sm); line-height:1.5; }
+.map-pane-body > :first-child { margin-top:0; }
+.map-pane-body > :last-child { margin-bottom:0; }
+
+/* A pane docked on the right leaves the title and pickers the rest of the row. */
+@media(min-width:601px), (max-height:500px) {
+  .map-viewport.has-pane .map-hud-tl { max-width:calc(100% - var(--pane-w) - 3 * var(--hud-inset)); }
+  .map-viewport.pane-reaches-bottom .map-hud-br { max-width:calc(100% - var(--pane-w) - 3 * var(--hud-inset)); }
+}
+@media(max-width:600px) {
+  .map-window-shell { padding-top:calc(44px + var(--window-gap)); }
+  .window-toolbar .section-line { display:none; }
+  .map-viewport { --hud-inset:6px; }
+}
+/* Portrait phones: panes become a bottom sheet and the controls move up
+ * beside the view title, so an open sheet never covers them. */
+@media(max-width:600px) and (min-height:501px) {
+  .author-card.map-pane { top:auto; left:var(--hud-inset); right:var(--hud-inset); bottom:var(--hud-inset); width:auto; max-height:min(62%,calc(100% - 64px)); }
+  .map-hud-br { bottom:auto; top:var(--hud-inset); }
+  .map-viewport.pane-reaches-bottom .map-hud-br { right:var(--hud-inset); }
+  .map-hud-tl { max-width:calc(100% - 2 * var(--hud-inset) - var(--hud-controls-w,140px)); }
+  .map-hud-bl { display:none; }
+  /* Too little room beside the controls: they drop to a second row. */
+  .map-viewport.hud-stack .map-hud-tl { max-width:calc(100% - 2 * var(--hud-inset)); }
+  .map-viewport.hud-stack .map-hud-br { top:calc(var(--hud-inset) + var(--hud-tl-h,44px) + 4px); }
+  /* Measuring pass (map-window.js): the title/picker row at its natural width. */
+  .map-viewport.hud-measure .map-hud-tl { max-width:none; }
+  .map-viewport.hud-measure .map-picker { flex-wrap:nowrap; }
+}
+/* Pinch replaces the zoom buttons on small touch screens. */
+@media(max-width:600px) and (pointer:coarse), (max-height:500px) and (pointer:coarse) {
+  .map-controls [data-map-action=in],.map-controls [data-map-action=out],.map-controls [data-scene-action=in],.map-controls [data-scene-action=out] { display:none; }
+}
+@media(max-height:600px) {
+  .window-toolbar { padding:var(--space-xs) var(--space-xs) var(--space-xs) var(--space-sm); }
+  .map-hud-bl { display:none; }
+}
+/* Short landscape screens: keep the map, dock panes to the side at full
+ * height, and drop secondary HUD text (view notes, legends) for room. */
+@media(max-height:500px) {
+  .window-toolbar .section-line { display:none; }
+  .map-viewport { --hud-inset:6px; --pane-w:min(300px,46%); }
+  .map-hud .map-view-note,.map-hud .legend { display:none; }
+}
+@media(prefers-reduced-motion:reduce) { .map-pane,.map-hud { transition:none; } }

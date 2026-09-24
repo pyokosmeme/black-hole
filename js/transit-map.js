@@ -194,6 +194,9 @@
 
     let svg = null;
     let world = null;          // pan/zoom transform group
+    // The windowed pages fill the viewport with the map, so 2D layouts always
+    // pan and zoom in place; the legacy page keeps its original behaviour.
+    const panZoomAlways = document.body.classList.contains('transit-page');
     let plannedRoute = [];
     let routeCircles = {};
     let routeLines = {};
@@ -247,6 +250,7 @@
 
         buildToolbar();
         buildRoutingControls();
+        if (panZoomAlways) initPanZoom();
         applyLayout();
 
         if (mapMode === '3d') {
@@ -256,6 +260,8 @@
         }
 
         window.addEventListener('resize', onResize);
+        // Opening or closing a pane changes how far the diagram may scroll.
+        document.addEventListener('mapwindow:layout', function() { if (mapMode === '2d') applyView(); });
         console.log('[TransitMap] Initialized with', Object.keys(stations).length, 'stations and', routes.length, 'routes');
     }
 
@@ -270,6 +276,8 @@
             subwayMobile = nextSubwayMobile;
             classicCompact = nextClassicCompact;
             applyLayout();
+        } else if (mapMode === '2d' && !view.user) {
+            fitView();
         }
     }
 
@@ -281,26 +289,44 @@
         const container = document.getElementById('map-container');
         if (!container) return;
 
-        // Map selection lives in the route planner dropdown; the toolbar
-        // carries only the interaction hint.
-        const hint = document.createElement('div');
-        hint.className = 'map-hint';
-        container.appendChild(hint);
+        // Windowed pages supply the hint in their HUD; the legacy page gets
+        // one appended over the map.
+        if (!container.querySelector('.map-hint')) {
+            const hint = document.createElement('div');
+            hint.className = 'map-hint';
+            container.appendChild(hint);
+        }
         updateHint();
+
+        // Fit / zoom controls in the map HUD drive whichever view is showing.
+        container.addEventListener('click', function(e) {
+            const action = e.target.closest('[data-map-action]');
+            if (!action) return;
+            const kind = action.dataset.mapAction;
+            if (mapMode === '3d' && t3) {
+                if (kind === 'fit') t3.fitCamera();
+                else { t3.controls.radius *= kind === 'in' ? 0.8 : 1.25; t3.controls.clampRadius(); t3.controls.moved = true; }
+                return;
+            }
+            if (kind === 'fit') { fitView(); return; }
+            const rect = svg.getBoundingClientRect();
+            const p = clientToSvg(rect.left + rect.width / 2, rect.top + rect.height / 2);
+            zoomBy(kind === 'in' ? 1.25 : 0.8, p.x, p.y);
+        });
 
         updateModeButtons();
     }
 
     function updateHint() {
+        if (plannedRoute.length === 0) updateRoutePanel();
         const hint = document.querySelector('.map-hint');
         if (!hint) return;
+        // One grammar for every map hint: ACTION: RESULT.
         hint.textContent = mapMode === '3d'
-            ? 'CLICK STATIONS TO PLAN ROUTE · 3D: DRAG ROTATES · PINCH OR SCROLL ZOOMS · RIGHT-DRAG PANS'
-            : (layout === 'subway'
-                ? 'CLICK STATIONS TO PLAN ROUTE · DRAG PANS · SCROLL / PINCH ZOOMS'
-                : (window.innerWidth <= 768
-                    ? 'CLICK STATIONS TO PLAN ROUTE · DRAG PANS · PINCH ZOOMS'
-                    : 'CLICK STATIONS TO PLAN ROUTE'));
+            ? 'DRAG: ORBIT · RIGHT-DRAG: PAN · SCROLL / PINCH: ZOOM · TAP A STAR: ADD TO ROUTE'
+            : (panZoomAlways || layout === 'subway' || window.innerWidth <= 768
+                ? 'DRAG: PAN · SCROLL / PINCH: ZOOM · TAP A STATION: ADD TO ROUTE'
+                : 'TAP A STATION: ADD TO ROUTE');
     }
 
     function updateModeButtons() {
@@ -313,24 +339,30 @@
     }
 
     function buildRoutingControls() {
-        const planner = document.querySelector('.route-planner');
+        const planner = document.getElementById('route-planner-body') || document.querySelector('.route-planner');
         const routeContent = document.getElementById('route-content');
         if (!planner || !routeContent || document.getElementById('route-priority')) return;
+
+        // Windowed pages pick the map from the HUD; the legacy page keeps the
+        // picker inside its planner panel.
+        const hudPicker = document.getElementById('map-picker');
+        const pickerHtml =
+            '<select id="map-view-select" class="map-select" aria-label="Map view">' +
+            '<option value="subway">◌ SUBWAY DIAGRAM</option>' +
+            '<option value="classic">▦ GEOGRAPHIC CHART</option>' +
+            '<option value="3d">◈ 3D GALACTIC</option>' +
+            '</select>';
+        if (showMapPicker && hudPicker) hudPicker.innerHTML = pickerHtml;
 
         const controls = document.createElement('div');
         controls.id = 'route-priority';
         controls.className = 'route-priority';
         controls.innerHTML =
-            (showMapPicker
+            (showMapPicker && !hudPicker
                 ? '<div class="route-priority-heading">MAP</div>' +
-                  '<div class="map-picker-row">' +
-                  '<select id="map-view-select" class="map-select" aria-label="Map view">' +
-                  '<option value="subway">◌ SUBWAY DIAGRAM</option>' +
-                  '<option value="classic">▦ GEOGRAPHIC CHART</option>' +
-                  '<option value="3d">◈ 3D GALACTIC</option>' +
-                  '</select></div>'
+                  '<div class="map-picker-row">' + pickerHtml + '</div>'
                 : '') +
-            '<div class="route-priority-heading route-priority-heading-gap">OPTIMIZE ROUTE</div>' +
+            '<div class="route-priority-heading' + (showMapPicker && !hudPicker ? ' route-priority-heading-gap' : '') + '">OPTIMIZE ROUTE</div>' +
             '<div class="route-priority-options" role="group" aria-label="Route optimization priority">' +
             '<button class="route-priority-btn" type="button" data-routing-mode="fastest" aria-pressed="false">' +
             '<span class="route-priority-name">FASTEST</span><span class="route-priority-detail">proper time</span></button>' +
@@ -341,13 +373,21 @@
             '</div>' +
             '<div id="route-priority-note" class="route-priority-note" aria-live="polite"></div>';
         planner.insertBefore(controls, routeContent);
+        if (planner.id === 'route-planner-body') {
+            // Pane layout: a plain shared button clears the route below it.
+            const actions = document.createElement('div');
+            actions.className = 'route-actions';
+            actions.innerHTML = '<button class="acidburn-button" type="button" id="route-clear">clear route</button>';
+            planner.appendChild(actions);
+            actions.querySelector('#route-clear').addEventListener('click', clearRoute);
+        }
 
         Array.from(controls.querySelectorAll('.route-priority-btn')).forEach(function(button) {
             button.addEventListener('click', function() {
                 setRoutingMode(button.dataset.routingMode);
             });
         });
-        const select = controls.querySelector('#map-view-select');
+        const select = document.getElementById('map-view-select');
         if (select) select.addEventListener('change', function() {
             const picked = this.value;
             if (picked === '3d') setMode('3d'); else setMode('2d', false, picked);
@@ -448,13 +488,91 @@
         drawRoutes();
         drawStations();
         updateRouteDisplay();
+        fitView();
+        svg.style.touchAction = (panZoomAlways || layout === 'subway' || classicCompact) ? 'none' : 'auto';
+    }
+
+    // Fit the diagram to the viewport. On a portrait phone the letterboxed
+    // diagrams shrank station names to 4-7px: the tall subway fills the
+    // width instead (top aligned, drag down the timeline) and the wide
+    // chart fills the height (centred, drag sideways). Wider screens show
+    // the whole diagram.
+    function fitView() {
         view = {x: 0, y: 0, k: 1};
+        const rect = svg.getBoundingClientRect();
+        const vb = svg.viewBox.baseVal;
+        if (panZoomAlways && rect.width && rect.height > rect.width && vb && vb.width) {
+            const s = Math.min(rect.width / vb.width, rect.height / vb.height);
+            const visibleW = rect.width / s, visibleH = rect.height / s;
+            const cx = vb.x + vb.width / 2, cy = vb.y + vb.height / 2;
+            if (visibleW > vb.width * 1.15) {
+                view.k = Math.min(3, visibleW * 0.97 / vb.width);
+                view.x = cx - cx * view.k;
+                // Start the timeline below the HUD rows instead of under them
+                // (on phones the controls sit up there too).
+                let reserve = 0;
+                document.querySelectorAll('#map-container .map-hud-tl, #map-container .map-hud-br').forEach(function(hud) {
+                    const r = hud.getBoundingClientRect();
+                    if (r.height && r.top < rect.top + rect.height / 2) reserve = Math.max(reserve, r.bottom - rect.top + 4);
+                });
+                view.padTop = reserve / s;
+                view.y = vb.y - vb.y * view.k + view.padTop;
+            } else if (visibleH > vb.height * 1.15) {
+                view.k = Math.min(3, visibleH * 0.9 / vb.height);
+                view.x = cx - cx * view.k;
+                view.y = cy - cy * view.k;
+            }
+        } else if (panZoomAlways && rect.width && rect.height && vb && vb.width) {
+            // Short landscape screens letterbox the diagram at a small scale,
+            // where the view picker would sit on the first stations. Slide the
+            // diagram into the spare side margin, clear of the picker.
+            const s = Math.min(rect.width / vb.width, rect.height / vb.height);
+            const spare = (rect.width - vb.width * s) / 2;
+            const hud = document.querySelector('#map-container .map-hud-tl');
+            if (hud && spare > 8) {
+                const hr = hud.getBoundingClientRect();
+                const need = hr.right - rect.left + 8 - spare;
+                if ((hr.bottom - rect.top) / s > 130 && need > 0) view.x = Math.min(need, spare - 4) / s;
+            }
+        }
         applyView();
-        svg.style.touchAction = (layout === 'subway' || classicCompact) ? 'none' : 'auto';
     }
 
     function applyView() {
+        if (panZoomAlways) clampView();
         world.setAttribute('transform', 'translate(' + view.x + ' ' + view.y + ') scale(' + view.k + ')');
+    }
+
+    // Keep the diagram on screen: a zoomed-in map may not be dragged past its
+    // own edges, and a zoomed-out one may not leave the viewport.
+    function clampView() {
+        const rect = svg.getBoundingClientRect();
+        const vb = svg.viewBox.baseVal;
+        if (!rect.width || !rect.height || !vb || !vb.width) return;
+        const s = Math.min(rect.width / vb.width, rect.height / vb.height);
+        const visW = rect.width / s, visH = rect.height / s;
+        const left = vb.x - (visW - vb.width) / 2, top = vb.y - (visH - vb.height) / 2;
+        function axis(offset, k, start, size, visStart, visSize, lead, trail) {
+            const lo = offset + k * start, hi = offset + k * (start + size);
+            if (hi - lo >= visSize) {
+                if (lo > visStart + lead) offset -= lo - (visStart + lead);
+                else if (hi < visStart + visSize - trail) offset += visStart + visSize - trail - hi;
+            } else {
+                if (lo < visStart) offset += visStart - lo;
+                else if (hi > visStart + visSize) offset -= hi - (visStart + visSize);
+            }
+            return offset;
+        }
+        // The top may stay clear of the HUD row the fit reserved for it, and
+        // an open bottom sheet (phones) lets the end of the map scroll above it.
+        const pane = document.getElementById('route-pane');
+        let sheet = 0;
+        if (pane && !pane.hidden) {
+            const pr = pane.getBoundingClientRect();
+            if (pr.width > rect.width * 0.8) sheet = (rect.bottom - pr.top + 6) / s;
+        }
+        view.x = axis(view.x, view.k, vb.x, vb.width, left, visW, 0, 0);
+        view.y = axis(view.y, view.k, vb.y, vb.height, top, visH, view.padTop || 0, Math.max(0, sheet));
     }
 
     function clientToSvg(clientX, clientY) {
@@ -470,26 +588,26 @@
         view.x = cx - (cx - view.x) * f;
         view.y = cy - (cy - view.y) * f;
         view.k = k2;
+        view.user = true;
         applyView();
     }
 
     function resetView() {
-        view = {x: 0, y: 0, k: 1};
-        applyView();
+        fitView();
     }
 
     function initPanZoom() {
         svg.style.touchAction = 'none';
 
         svg.addEventListener('wheel', function(e) {
-            if (layout === 'classic' && !classicCompact) return;
+            if (!panZoomAlways && layout === 'classic' && !classicCompact) return;
             e.preventDefault();
             const p = clientToSvg(e.clientX, e.clientY);
             zoomBy(e.deltaY < 0 ? 1.15 : 1 / 1.15, p.x, p.y);
         }, {passive: false});
 
         svg.addEventListener('pointerdown', function(e) {
-            if (layout === 'classic' && !classicCompact) return;
+            if (!panZoomAlways && layout === 'classic' && !classicCompact) return;
             dragState.pointers.set(e.pointerId, {x: e.clientX, y: e.clientY});
             dragState.moved = 0;
             dragState.captured = false;
@@ -503,7 +621,7 @@
         });
 
         svg.addEventListener('pointermove', function(e) {
-            if (layout === 'classic' && !classicCompact) return;
+            if (!panZoomAlways && layout === 'classic' && !classicCompact) return;
             if (!dragState.pointers.has(e.pointerId)) return;
             const prev = dragState.pointers.get(e.pointerId);
             dragState.moved += Math.hypot(e.clientX - prev.x, e.clientY - prev.y);
@@ -523,6 +641,7 @@
                 const dy = (e.clientY - prev.y) * inv.d;
                 view.x += dx;
                 view.y += dy;
+                if (dragState.moved > 4) view.user = true;
                 applyView();
             } else if (dragState.pointers.size === 2) {
                 const pts = Array.from(dragState.pointers.values());
@@ -827,6 +946,8 @@
 
         plannedRoute.push(stationName);
         updateRouteDisplay();
+        // The planner is a pane over the map: picking a station opens it.
+        if (window.MapWindow && document.getElementById('route-pane')) window.MapWindow.openPane('route-pane');
     }
 
     // Expand the planned picks into actual network hops (transfers through
@@ -963,12 +1084,16 @@
     function updateRoutePanel() {
         const routeContent = document.getElementById('route-content');
         if (!routeContent) return;
+        const count = document.querySelector('.route-button-label');
+        if (count) count.textContent = plannedRoute.length ? 'route · ' + plannedRoute.length : 'route';
+        const clear = document.getElementById('route-clear');
+        if (clear) clear.hidden = plannedRoute.length === 0;
 
         if (plannedRoute.length === 0) {
             routeContent.innerHTML =
                 '<div class="empty-state">' +
                 '<div class="empty-state-icon">✧</div>' +
-                '<div class="empty-state-text">Click stations on the map to plan your route</div>' +
+                '<div class="empty-state-text">' + (mapMode === '3d' ? 'Tap stars' : 'Tap stations') + ' on the map to plan a route.</div>' +
                 '</div>';
             return;
         }
@@ -1193,6 +1318,7 @@
             const dx = e.clientX - p.x, dy = e.clientY - p.y;
             p.x = e.clientX;
             p.y = e.clientY;
+            if (dx || dy) self.moved = true;
             const ids = Object.keys(self.pointers);
 
             if (ids.length >= 2) {
@@ -1222,6 +1348,7 @@
             e.preventDefault();
             self.radius *= Math.exp(e.deltaY * 0.001);
             self.clampRadius();
+            self.moved = true;
         }, {passive: false});
     }
 
@@ -1271,7 +1398,7 @@
         const wrap = document.createElement('div');
         wrap.className = 't3d-wrap';
         wrap.style.display = 'none';
-        wrap.innerHTML = '<canvas class="t3d-canvas"></canvas><svg class="t3d-leaders" aria-hidden="true"></svg><div class="t3d-labels"></div>';
+        wrap.innerHTML = '<canvas class="t3d-canvas"></canvas><svg class="t3d-leaders map-leaders" aria-hidden="true"></svg><div class="t3d-labels"></div>';
         container.appendChild(wrap);
 
         const canvas = wrap.querySelector('canvas');
@@ -1442,14 +1569,15 @@
             pickObjs[name] = pick;
         });
 
-        // HTML overlay labels projected each frame
+        // HTML overlay labels projected each frame; the shared map-label
+        // style is the same one the Ya Ke atlas and spacecraft view use.
         const labelEls = {};
         Object.keys(stations).forEach(function(name) {
-            const d = stations[name];
-            const el = document.createElement('div');
-            el.className = 't3d-label';
-            el.innerHTML =
-                '<span class="t3d-name">' + esc(displayName(name)) + '</span>';
+            const el = document.createElement('button');
+            el.type = 'button';
+            el.className = 't3d-label map-label';
+            el.textContent = displayName(name);
+            el.setAttribute('aria-label', 'Add ' + displayName(name) + ' to route');
             el.addEventListener('click', function() { addStationToRoute(name); });
             labelsWrap.appendChild(el);
             labelEls[name] = el;
@@ -1489,50 +1617,57 @@
         Object.keys(pos).forEach(function(name) {
             fitRadius = Math.max(fitRadius, pos[name].distanceTo(fitCenter));
         });
-        controls.target.copy(fitCenter);
-        controls.radius = Math.max(150, fitRadius / Math.sin(27.5 * Math.PI / 180) * 1.12);
-        controls.theta = Math.PI * 0.25;
-        controls.phi = Math.PI * 0.42;
-        controls.positionCamera();
-
-        // Second framing pass, in screen space: a bounding-sphere fit alone
-        // leaves lopsided dead space (a mostly-flat network seen at an angle
-        // projects into a small, off-center blob). Recenter the target on the
-        // projected bounding box and back off / close in so it fills ~78% of
-        // the tighter canvas dimension, evenly on all sides.
-        const vw = container.clientWidth || 800, vh = container.clientHeight || 600;
-        camera.aspect = vw / vh;
-        camera.updateProjectionMatrix();
-        const halfTan = Math.tan(55 * Math.PI / 360); // camera fov is 55 (three r73: no MathUtils)
-        const v = new THREE.Vector3(), right = new THREE.Vector3(), up = new THREE.Vector3();
-        for (let iter = 0; iter < 3; iter++) {
+        // Frames the network for a viewport of the given size and leaves the
+        // camera there. Re-run on resize (phone rotation, expand) until the
+        // reader moves the camera themselves.
+        function frameNetwork(vw, vh) {
+            controls.target.copy(fitCenter);
+            controls.radius = Math.max(150, fitRadius / Math.sin(27.5 * Math.PI / 180) * 1.12);
+            controls.theta = Math.PI * 0.25;
+            controls.phi = Math.PI * 0.42;
             controls.positionCamera();
-            camera.updateMatrixWorld();
-            const e = camera.matrixWorld.elements; // three r73: no reliable setFromMatrixColumn
-            right.set(e[0], e[1], e[2]);
-            up.set(e[4], e[5], e[6]);
-            let nx0 = 1e9, ny0 = 1e9, nx1 = -1e9, ny1 = -1e9, bad = false;
-            Object.keys(pos).forEach(function(name) {
-                v.copy(pos[name]).project(camera);
-                if (!isFinite(v.x) || !isFinite(v.y)) { bad = true; return; }
-                nx0 = Math.min(nx0, v.x); nx1 = Math.max(nx1, v.x);
-                ny0 = Math.min(ny0, v.y); ny1 = Math.max(ny1, v.y);
-            });
-            if (bad || nx1 <= nx0 || ny1 <= ny0) break;
-            // recentre: move the target TOWARD the projected offset — orbiting
-            // the target shifts the scene the opposite way on screen
-            const k = controls.radius * halfTan;
-            controls.target.addScaledVector(right, ((nx0 + nx1) / 2) * k * camera.aspect);
-            controls.target.addScaledVector(up, ((ny0 + ny1) / 2) * k);
-            // zoom: bbox (in NDC, [-1..1]) should cover ~78% of the tighter axis
-            const f = Math.min(1.56 / (nx1 - nx0), 1.56 / (ny1 - ny0));
-            controls.radius = Math.max(150, Math.min(900, controls.radius / f));
+
+            // Second framing pass, in screen space: a bounding-sphere fit alone
+            // leaves lopsided dead space (a mostly-flat network seen at an angle
+            // projects into a small, off-center blob). Recenter the target on the
+            // projected bounding box and back off / close in so it fills ~78% of
+            // the tighter canvas dimension, evenly on all sides.
+            camera.aspect = vw / vh;
+            camera.updateProjectionMatrix();
+            const halfTan = Math.tan(55 * Math.PI / 360); // camera fov is 55 (three r73: no MathUtils)
+            const v = new THREE.Vector3(), right = new THREE.Vector3(), up = new THREE.Vector3();
+            for (let iter = 0; iter < 3; iter++) {
+                controls.positionCamera();
+                camera.updateMatrixWorld();
+                const e = camera.matrixWorld.elements; // three r73: no reliable setFromMatrixColumn
+                right.set(e[0], e[1], e[2]);
+                up.set(e[4], e[5], e[6]);
+                let nx0 = 1e9, ny0 = 1e9, nx1 = -1e9, ny1 = -1e9, bad = false;
+                Object.keys(pos).forEach(function(name) {
+                    v.copy(pos[name]).project(camera);
+                    if (!isFinite(v.x) || !isFinite(v.y)) { bad = true; return; }
+                    nx0 = Math.min(nx0, v.x); nx1 = Math.max(nx1, v.x);
+                    ny0 = Math.min(ny0, v.y); ny1 = Math.max(ny1, v.y);
+                });
+                if (bad || nx1 <= nx0 || ny1 <= ny0) break;
+                // recentre: move the target TOWARD the projected offset — orbiting
+                // the target shifts the scene the opposite way on screen
+                const k = controls.radius * halfTan;
+                controls.target.addScaledVector(right, ((nx0 + nx1) / 2) * k * camera.aspect);
+                controls.target.addScaledVector(up, ((ny0 + ny1) / 2) * k);
+                // zoom: bbox (in NDC, [-1..1]) should cover ~78% of the tighter axis
+                const f = Math.min(1.56 / (nx1 - nx0), 1.56 / (ny1 - ny0));
+                controls.radius = Math.max(150, Math.min(900, controls.radius / f));
+            }
+            controls.positionCamera();
+            controls.moved = false;
         }
-        controls.positionCamera();
 
         t3 = {
             active: false,
-            labelEase: {},
+            fitCamera: function() { frameNetwork(t3.width, t3.height); },
+            labelTracker: window.SceneLabelLayout.createTracker(),
+            leaderLines: {},
             wrap: wrap, canvas: canvas,
             renderer: renderer, scene: scene, camera: camera, controls: controls,
             meshObjs: meshObjs, haloObjs: haloObjs, lineObjs: lineObjs, glowObjs: glowObjs,
@@ -1552,10 +1687,12 @@
         const h = container.clientHeight || 600;
         t3.width = w;
         t3.height = h;
+        labelSizes = new WeakMap();
         t3.renderer.setSize(w, h, false);
         t3.renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
         t3.camera.aspect = w / h;
         t3.camera.updateProjectionMatrix();
+        if (!t3.controls.moved) t3.fitCamera();
     }
 
     function render3d() {
@@ -1565,95 +1702,83 @@
 
         t3.renderer.render(t3.scene, t3.camera);
 
-        // Project labels into the same collision-aware layout used by the
-        // other maps. The former one-above/one-below fallback made names blink
-        // in and out as the network rotated, with no visual link to a star.
-        const vis = [];
+        // Station names use the shared label tracker: each name holds its side
+        // of its star while the network rotates, slides only when that side
+        // is blocked, and fades instead of jumping when there is no room.
+        const container = document.getElementById('map-container');
+        const fovTan = Math.tan(t3.camera.fov * Math.PI / 360);
+        const discs = [], items = [], depth = Object.create(null);
         Object.keys(t3.labelEls).forEach(function(name) {
-            const el = t3.labelEls[name];
-            t3.tmp.copy(t3.pos[name]);
-            t3.tmp.project(t3.camera);
-            if (t3.tmp.z > 1 || t3.tmp.z < -1) {
-                el.style.display = 'none';
-                return;
-            }
-            vis.push({
-                name: name,
-                x: (t3.tmp.x * 0.5 + 0.5) * t3.width,
-                y: (-t3.tmp.y * 0.5 + 0.5) * t3.height,
-                d: t3.camera.position.distanceTo(t3.pos[name])
-            });
+            t3.tmp.copy(t3.pos[name]).project(t3.camera);
+            if (t3.tmp.z > 1 || t3.tmp.z < -1) return;
+            const x = (t3.tmp.x * 0.5 + 0.5) * t3.width;
+            const y = (-t3.tmp.y * 0.5 + 0.5) * t3.height;
+            const d = t3.camera.position.distanceTo(t3.pos[name]);
+            // Label clearance follows the projected faction halo.
+            const r = Math.max(5, (name === 'Sol' ? 3.6 : 2.4) * t3.height / (2 * fovTan * d));
+            const size = labelSize(t3.labelEls[name]);
+            const inRoute = plannedRoute.indexOf(name) !== -1;
+            depth[name] = d;
+            discs.push({id: name, x: x, y: y, r: r, arc: 1});
+            t3.labelEls[name].classList.toggle('is-route', inRoute);
+            items.push({id: name, x: x, y: y, r: r, w: size.w, h: size.h, anchorX: x, anchorY: y,
+                tier: inRoute ? 2 : (name === 'Sol' ? 1 : 0), priority: -d});
         });
-        const items = [], itemById = Object.create(null);
-        vis.forEach(function(v) {
-            const el = t3.labelEls[v.name];
-            el.style.display = 'block';
-            el.style.visibility = 'hidden';
-            const prior = t3.labelEase[v.name];
-            const item = {
-                id: v.name, x: v.x, y: v.y, r: 7,
-                w: el.offsetWidth || 70, h: el.offsetHeight || 18,
-                priority: (plannedRoute.indexOf(v.name) !== -1 ? 100000 : (v.name === 'Sol' ? 50000 : 10000)) - v.d,
-                previous: prior && prior.target ? prior.target : null
-            };
-            items.push(item);
-            itemById[v.name] = {item: item, visual: v};
-        });
-        // Legend panel occupies the map's right edge in this layout; treat
-        // it as out of bounds so labels cannot ride over it.
-        const legendEl = document.querySelector('#map-container .legend');
-        const legendW = (legendEl && legendEl.offsetHeight > 0 && mapMode === '3d')
-            ? Math.min(t3.width * 0.34, (t3.width - (legendEl.getBoundingClientRect().left - document.getElementById('map-container').getBoundingClientRect().left)) + 8)
-            : 0;
-        const placements = window.SceneLabelLayout
-            ? window.SceneLabelLayout.layout(items, {x:4,y:4,w:Math.max(1,t3.width-8-legendW),h:Math.max(1,t3.height-8)}, vis.map(function(v) {
-                return {id:v.name,x:v.x,y:v.y,r:7};
-            }))
-            : [];
-        Object.keys(t3.labelEls).forEach(function(name) {
-            const el = t3.labelEls[name];
-            el.style.display = 'none';
-            el.style.visibility = '';
-            el.style.pointerEvents = 'none';
-        });
+        // Map chrome drawn over the canvas (legend, hint, controls) is
+        // marked data-label-avoid; names never slide underneath it.
+        const overlays = window.SceneLabelLayout.overlayRects(container, container.querySelectorAll('[data-label-avoid]'));
+        const result = t3.labelTracker.update(items,
+            {x: 4, y: 4, w: Math.max(1, t3.width - 8), h: Math.max(1, t3.height - 8)},
+            discs.concat(overlays), performance.now());
         t3.leaders.setAttribute('viewBox', '0 0 ' + t3.width + ' ' + t3.height);
-        t3.leaders.replaceChildren();
-        placements.forEach(function(placement) {
-            const record = itemById[placement.id];
-            if (!record) return;
-            const el = t3.labelEls[placement.id];
-            const cur = t3.labelEase[placement.id] || (t3.labelEase[placement.id] = {});
-            if (cur.x == null) {
-                cur.x = placement.box.x;
-                cur.y = placement.box.y;
-            } else if (Math.abs(placement.box.x - cur.x) < 2.5 && Math.abs(placement.box.y - cur.y) < 2.5) {
-                // Snap when the layout has essentially settled. Easing every
-                // frame meant the painted boxes lagged the geometry the
-                // leaders were computed from (painted leaders tangling at
-                // dense clusters) and kept squirming after the camera
-                // stopped. Below 2.5px the ease reads as rounding jitter,
-                // not motion.
-                cur.x = placement.box.x;
-                cur.y = placement.box.y;
-            } else {
-                cur.x += (placement.box.x - cur.x) * 0.3;
-                cur.y += (placement.box.y - cur.y) * 0.3;
-            }
-            cur.target = {x:placement.box.x,y:placement.box.y};
+        const painted = Object.create(null);
+        result.labels.forEach(function(l) {
+            if (!l.visible) return;
+            const el = t3.labelEls[l.id];
+            painted[l.id] = true;
             el.style.display = 'block';
-            el.style.visibility = '';
-            el.style.pointerEvents = 'auto';
-            el.style.transform = 'translate(' + cur.x.toFixed(1) + 'px,' + cur.y.toFixed(1) + 'px)';
-            el.style.opacity = '1';
-            el.style.zIndex = String(20000 - Math.round(record.visual.d * 10));
-            const line = document.createElementNS(SVG_NS, 'line');
-            line.setAttribute('x1', placement.start.x.toFixed(1));
-            line.setAttribute('y1', placement.start.y.toFixed(1));
-            line.setAttribute('x2', placement.end.x.toFixed(1));
-            line.setAttribute('y2', placement.end.y.toFixed(1));
-            t3.leaders.appendChild(line);
+            el.style.transform = 'translate(' + l.x.toFixed(1) + 'px,' + l.y.toFixed(1) + 'px)';
+            el.style.opacity = l.alpha < 1 ? l.alpha.toFixed(3) : '';
+            el.style.pointerEvents = l.placed ? 'auto' : 'none';
+            el.style.zIndex = String(20000 - Math.round(depth[l.id] * 10));
+            let line = t3.leaderLines[l.id];
+            if (!line) {
+                line = t3.leaderLines[l.id] = document.createElementNS(SVG_NS, 'line');
+                t3.leaders.appendChild(line);
+            }
+            line.style.display = l.leader ? '' : 'none';
+            if (l.leader) {
+                line.setAttribute('x1', l.leader.x1.toFixed(1));
+                line.setAttribute('y1', l.leader.y1.toFixed(1));
+                line.setAttribute('x2', l.leader.x2.toFixed(1));
+                line.setAttribute('y2', l.leader.y2.toFixed(1));
+                line.style.opacity = l.alpha < 1 ? l.alpha.toFixed(3) : '';
+            }
+        });
+        Object.keys(t3.labelEls).forEach(function(name) {
+            if (painted[name]) return;
+            t3.labelEls[name].style.display = 'none';
+            if (t3.leaderLines[name]) t3.leaderLines[name].style.display = 'none';
         });
     }
+
+    // Label boxes change size only with fonts or the viewport; measuring
+    // every name on every frame forced a layout per label.
+    let labelSizes = new WeakMap();
+    function labelSize(el) {
+        let size = labelSizes.get(el);
+        if (!size) {
+            const display = el.style.display;
+            el.style.display = 'block';
+            el.style.visibility = 'hidden';
+            size = {w: el.offsetWidth, h: el.offsetHeight};
+            el.style.visibility = '';
+            el.style.display = display;
+            if (size.w) labelSizes.set(el, size); else size = {w: 70, h: 18};
+        }
+        return size;
+    }
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function() { labelSizes = new WeakMap(); });
 
     function apply3dSelection() {
         if (!t3) return;

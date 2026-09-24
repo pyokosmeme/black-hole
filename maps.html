@@ -45,7 +45,16 @@
          ═══════════════════════════════════════════════════════════════ -->
     <link rel="stylesheet" href="css/acidburn.css">
     <link rel="stylesheet" href="css/futures-reading.css">
-    
+    <style>
+        /* Hub only: sections without content collapse instead of leaving an
+           empty heading, a blank band under the header, or icon-less cards
+           indented by an empty icon slot. */
+        .posts-section:has(#posts-list:empty) { display: none; }
+        .author-bio:empty { display: none; }
+        .author-header:has(+ .author-bio:empty) { margin-bottom: 0; }
+        .link-icon:empty { display: none; }
+    </style>
+
     <!-- ═══════════════════════════════════════════════════════════════
          WEBGL DEPENDENCIES (loaded conditionally by acidburn-mode.js)
          Only load if not in lite mode

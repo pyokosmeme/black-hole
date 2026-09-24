@@ -1,4 +1,4 @@
-"""Centered summaries, double-click/tap focus, and individual torus selection."""
+"""System notes, world panes, double-click/tap focus, and individual torus selection."""
 import importlib.util
 import sys
 from pathlib import Path
@@ -20,13 +20,13 @@ with sync_playwright() as p:
         page.goto('https://atlas.test/yake.html')
         page.wait_for_function('window.__sceneTest && window.__sceneAPI')
         assert page.locator('[data-pick=yake]').count() == 0
-        summary = page.locator('#system-summary').text_content()
-        assert 'STAR & STAR SYSTEM' in summary and 'K-TYPE GIANT' in summary
+        summary = page.locator('#system-pane').text_content()
+        assert 'STAR & STAR SYSTEM' in summary.upper() and 'K-TYPE GIANT' in summary.upper()
         assert 'Spanning Worlds Independence' in summary
         assert 'Canis' not in summary and 'Catalog' not in summary
         page.evaluate("location.hash='five'")
         page.wait_for_selector('.card-detail')
-        assert all(name in page.locator('#scene-card').inner_text() for name in ['Mun','In','Sin','Mu','Yong'])
+        assert all(name in page.locator('#world-pane').inner_text() for name in ['Mun','In','Sin','Mu','Yong'])
         page.keyboard.press('Escape')
         page.locator('.scene-canvas').scroll_into_view_if_needed()
         if not page.locator('[data-pick=jin]').is_visible():
@@ -35,28 +35,31 @@ with sync_playwright() as p:
             page.keyboard.press('Escape')
         # Real mouse double click: the first click must not open an intercepting card.
         page.locator('[data-pick=jin]').dblclick(delay=90)
-        page.wait_for_function("__sceneTest.radius<200 && document.querySelector('#scene-card h1')?.textContent==='Jin / 金'")
+        page.wait_for_function("__sceneTest.radius<200 && !document.querySelector('#world-pane').hidden&&document.querySelector('#world-pane-title').textContent==='Jin / 金'")
         page.keyboard.press('Escape')
         camera = page.evaluate('__sceneTest.radius')
         page.wait_for_timeout(400)
-        assert not page.locator('#scene-card').is_visible()
+        assert not page.locator('#world-pane').is_visible()
         assert page.evaluate('__sceneTest.radius') == camera
         # Two physical touch taps use the same focus action.
         page.locator('[data-scene-action=home]').click()
         page.locator('.scene-canvas').scroll_into_view_if_needed()
         checks.rendered(page)
+        # Names finish their post-move tidy-up (it starts 260ms after the
+        # camera stops) before anyone reads and taps them.
+        page.wait_for_timeout(800)
         label = page.locator('[data-pick=jin]').bounding_box()
         for _ in range(2):
             page.touchscreen.tap(label['x']+label['width']/2,label['y']+label['height']/2)
             page.wait_for_timeout(60)
-        page.wait_for_function("__sceneTest.radius<200 && document.querySelector('#scene-card h1')?.textContent==='Jin / 金'")
+        page.wait_for_function("__sceneTest.radius<200 && !document.querySelector('#world-pane').hidden&&document.querySelector('#world-pane-title').textContent==='Jin / 金'")
         page.keyboard.press('Escape')
         page.evaluate("location.hash='marassa'")
         page.wait_for_function("__sceneTest.currentView==='jin'")
         page.locator('[data-scene-action=focus]').click()
-        assert not page.locator('#scene-card').is_visible()
+        assert not page.locator('#world-pane').is_visible()
         page.evaluate("location.hash='marassa'")
-        page.wait_for_selector('#scene-card h1')
+        page.wait_for_selector('#world-pane:not([hidden])')
         for ring in ['buka','chawkee']:
             page.locator(f'[data-select-world={ring}]').click()
             checks.rendered(page)
@@ -66,15 +69,15 @@ with sync_playwright() as p:
         assert page.evaluate("__sceneTest.bodies.find(b=>b.id==='marassa').mesh.children.some(c=>c.userData.world==='chawkee'&&c.getObjectByName('ring-selection').visible)")
         page.screenshot(path=str(checks.SHOTS/f'yake-ring-highlight-{width}.png'))
         page.evaluate("location.hash='skarda'")
-        page.wait_for_selector('#scene-card em')
-        assert page.locator('#scene-card em').first.inner_text() == 'celariums'
+        page.wait_for_selector('#world-pane em')
+        assert page.locator('#world-pane em').first.inner_text() == 'celariums'
         page.keyboard.press('Escape')
         page.evaluate("location.hash='celosia'")
         page.wait_for_function("__sceneTest.currentView==='system'")
-        page.wait_for_selector('#scene-card h1')
-        assert page.locator('#scene-card h1').inner_text() == 'Celosia'
+        page.wait_for_selector('#world-pane:not([hidden])')
+        assert page.locator('#world-pane-title').text_content() == 'Celosia'
         assert page.locator('[data-scene-action^="surface-"]').count() == 0
-        assert page.locator('#world-actions button').count() == 1
+        assert page.locator('#world-pane .world-actions button').count() == 1
         page.keyboard.press('Escape')
         for region in ['fusang','mu','diyu']:
             page.evaluate('(region)=>{__sceneAPI.select("celosia");__sceneAPI.surface(region)}',region)

@@ -80,50 +80,22 @@
       el.setAttribute('d',d+' Z');
     });
   }
-function visible(l,on){
-    l.ta=on?1:0;
-    if(!on&&l.cx===undefined){l.el.hidden=true;l.line.style.display=l.dot.style.display='none';}
+  // Callouts share the maps' label tracker: each keeps its slot beside its
+  // part while the ship turns, slides only when the slot is blocked, and
+  // fades rather than jumping when there is no room.
+  const labelTracker=window.SceneLabelLayout.createTracker();
+  let labelSizes=new WeakMap();
+  function labelSize(el){
+    let size=labelSizes.get(el);
+    if(!size){
+      const hidden=el.hidden;el.hidden=false;el.style.visibility='hidden';
+      const rect=el.getBoundingClientRect();size={w:rect.width,h:rect.height};
+      el.style.visibility='';el.hidden=hidden;
+      if(size.w)labelSizes.set(el,size);else size={w:80,h:18};
+    }
+    return size;
   }
-  function applyLabel(l){
-    if(l.cx===undefined)return;
-    const w=l.w||l.el.offsetWidth||0,h=l.h||l.el.offsetHeight||0;
-    const ex=Math.max(l.cx,Math.min(l.cx+w,l.kx));
-    const ey=Math.max(l.cy,Math.min(l.cy+h,l.ky));
-    l.el.hidden=l.alpha<.02;
-    l.line.style.display=l.dot.style.display=l.alpha<.02?'none':'';
-    l.el.style.transform=`translate(${Math.round(l.cx)}px,${Math.round(l.cy)}px)`;
-    l.el.style.opacity=l.alpha.toFixed(3);
-    l.el.style.pointerEvents=l.alpha>.5?'auto':'none';
-    l.line.style.opacity=(l.alpha*.55).toFixed(3);
-    l.dot.setAttribute('opacity',l.alpha.toFixed(3));
-    l.line.setAttribute('x1',l.kx.toFixed(1));l.line.setAttribute('y1',l.ky.toFixed(1));
-    l.line.setAttribute('x2',ex.toFixed(1));l.line.setAttribute('y2',ey.toFixed(1));
-    l.dot.setAttribute('cx',l.kx.toFixed(1));l.dot.setAttribute('cy',l.ky.toFixed(1));
-  }
-  let labelAnim=null;
-  function animateLabels(){
-    if(labelAnim!==null)return;
-    const step=()=>{
-      labelAnim=null;let maxd=0;
-      labels.forEach(l=>{
-        if(l.tx===undefined){
-          if(l.cx===undefined)return;
-          maxd=Math.max(maxd,Math.abs(l.ta-l.alpha)*80);
-          l.alpha+=(l.ta-l.alpha)*.3;
-          applyLabel(l);
-          return;
-        }
-        const e=.14;
-        maxd=Math.max(maxd,Math.abs(l.tx-l.cx),Math.abs(l.ty-l.cy),Math.abs(l.dx-l.kx),Math.abs(l.dy-l.ky),Math.abs(l.ta-l.alpha)*80);
-        l.cx+=(l.tx-l.cx)*e;l.cy+=(l.ty-l.cy)*e;
-        l.kx+=(l.dx-l.kx)*e;l.ky+=(l.dy-l.ky)*e;
-        l.alpha+=(l.ta-l.alpha)*.3;
-        applyLabel(l);
-      });
-      if(maxd>.6)labelAnim=requestAnimationFrame(step);
-    };
-    labelAnim=requestAnimationFrame(step);
-  }
+  function hideLabel(l){l.el.hidden=true;l.line.style.display=l.dot.style.display='none';l.fix=l.anchor=l.box=l.u=null;l.side=0;}
   const decode=html=>{const text=document.createElement('textarea');text.innerHTML=html;return text.value;};
   const controls={bSpin:'spin',bOrbit:'orbit',bLab:'labels',bEva:'eva',bWire:'wire',bCut:'cut'};
   const reducedMotion=matchMedia('(prefers-reduced-motion: reduce)');
@@ -133,8 +105,9 @@ function visible(l,on){
       $(button).disabled=!models.length || state.compare&&['spin','orbit','labels'].includes(key) || key==='cut'&&!state.compare&&id==='el-cajon';
     }
     $('compare-ships').setAttribute('aria-pressed',String(state.compare));
-    $('compare-ships').textContent=state.compare?'Exit comparison':'Compare spacecraft';
-    $('view-caption').textContent=state.compare?'SAME SCALE · SIDE ELEVATION':'DRAG / ARROWS: ORBIT · SCROLL / PINCH / + −: ZOOM';
+    $('compare-ships').title=state.compare?'Exit comparison':'Compare both spacecraft at the same scale';
+    $('view-caption').textContent=state.compare?'SCROLL / PINCH: ZOOM':'DRAG: ORBIT · SCROLL / PINCH: ZOOM';
+    $('view-note').textContent='Same scale · side elevation';$('view-note').hidden=!state.compare;
     $('gbtns').hidden=state.compare;
     if(state.compare) $('readout').textContent='Hackett is '+(catalog.hackett.length/catalog['el-cajon'].length).toFixed(2)+'× as long. Both models use the same metre scale.';
     else {
@@ -154,13 +127,15 @@ function visible(l,on){
     $('ship-specs').innerHTML='<table class="ship-comparison"><caption>Supplied spacecraft specifications</caption><thead><tr><th scope="col">Measure</th><th scope="col">El Cajon</th><th scope="col">Hackett</th></tr></thead><tbody>'+rows.map(([label,key,unit,digits])=>'<tr><th scope="row">'+label+'</th>'+['el-cajon','hackett'].map(k=>'<td>'+(digits===null?catalog[k][key]:catalog[k][key].toLocaleString('en-US',{minimumFractionDigits:digits,maximumFractionDigits:digits}))+unit+'</td>').join('')+'</tr>').join('')+'</tbody></table>';
   }
   function createLabels() {
-    $('labels').querySelectorAll('.lab,.comparison-label').forEach(e=>e.remove());$('leaders').replaceChildren();labels=[];ringEls=null;
+    $('labels').querySelectorAll('.lab,.comparison-label').forEach(e=>e.remove());$('leaders').replaceChildren();labels=[];ringEls=null;labelTracker.reset();
     const entries=state.compare?['el-cajon','hackett'].map(k=>({t:(k==='el-cajon'?'El Cajon':'Hackett')+' · '+catalog[k].length.toFixed(2)+' m',id:k})):catalog[id].labels;
     entries.forEach((part,index)=>{
-      const el=document.createElement('span');el.className=state.compare?'comparison-label':'lab';el.textContent=decode(part.t);
+      const el=document.createElement('span');el.className=(state.compare?'comparison-label':'lab')+' map-label';el.textContent=decode(part.t);
       if(!state.compare)el.title=decode(part.s);
       const line=document.createElementNS(svgNS,'line');line.dataset.part=index;
       const dot=document.createElementNS(svgNS,'circle');dot.setAttribute('r','2');
+      // Hidden until the first layout places them (and for good without WebGL).
+      el.hidden=true;line.style.display=dot.style.display='none';
       $('labels').appendChild(el);$('leaders').append(line,dot);labels.push({el,line,dot,part,probe:-1});
     });
   }
@@ -187,8 +162,7 @@ function visible(l,on){
     const reqs=[],active=[];
     labels.forEach((l)=>{
       const show=state.labels&&(l.part.t!=='SCALE FIGURE'||state.eva);
-      if(!show){visible(l,false);return;}
-      l.el.hidden=false;l.line.style.display=l.dot.style.display='';
+      if(!show){hideLabel(l);return;}
       active.push(l);
       reqs.push({part:l.part,prev:l.probe??-1});
     });
@@ -202,186 +176,159 @@ function visible(l,on){
       const R=prof[b];if(!R)continue;
       const ax=renderer.project([b*2,0,0]);if(!ax)continue;
       const pe=renderer.project([b*2,0,R]);
-      stats.push({x:ax.x,y:ax.y,r:pe?Math.hypot(pe.x-ax.x,pe.y-ax.y):0,arc:1});
+      // Stable ids let a callout parked beside one station stay with it.
+      stats.push({id:'st'+b,x:ax.x,y:ax.y,r:pe?Math.hypot(pe.x-ax.x,pe.y-ax.y):0,arc:1});
     }
     // spin arrows float clear of the hull: keep callouts outside them too
-    (catalog[id].rings||[]).forEach(R2=>{
+    (catalog[id].rings||[]).forEach((R2,i)=>{
       const rc=renderer.project([R2.x,0,0]);
       if(rc){const re=renderer.project([R2.x,0,R2.ro]);
-        stats.push({x:rc.x,y:rc.y,r:re?Math.hypot(re.x-rc.x,re.y-rc.y):0,arc:1});}
+        stats.push({id:'ring'+i,x:rc.x,y:rc.y,r:re?Math.hypot(re.x-rc.x,re.y-rc.y):0,arc:1});}
     });
     const pairs=[];
     const C=stats.length?stats.reduce((o,st)=>{o.x+=st.x;o.y+=st.y;return o;},{x:0,y:0}):{x:stage.clientWidth/2,y:stage.clientHeight/2};
     if(stats.length){C.x/=stats.length;C.y/=stats.length;}
+    // Projected long axis (first to last hull station).
+    let axis=null;
+    if(prof){
+      let x0=-1,x1=-1;
+      for(let b=0;b<256;b++)if(prof[b]){if(x0<0)x0=b*2;x1=b*2;}
+      const pA=renderer.project([x0,0,0]),pB=renderer.project([x1,0,0]),pM=renderer.project([(x0+x1)/2,0,0]);
+      if(pA&&pB&&pM)axis={x0,x1,mid:pM,dx:pB.x-pA.x,dy:pB.y-pA.y,len:Math.hypot(pB.x-pA.x,pB.y-pA.y)};
+    }
+    const now=performance.now(),dtFix=Math.min(.1,Math.max(0,(now-(drawLabels.last||now))/1000));drawLabels.last=now;
+    let fixing=false;
+    // The HUD overlays and any open pane are keep-out rectangles.
+    const bottomPad=4,items=[],byId=new Map();
+    const overlays=window.SceneLabelLayout.overlayRects(stage,stage.querySelectorAll('[data-label-avoid]'));
     active.forEach((l,k)=>{
       const a=got?got[k]:null;
-      if(!a){visible(l,false);return;}
+      if(!a){
+        // The part turned out of view: fade the callout where it stands
+        // rather than popping it, then forget it.
+        if(l.anchor&&l.box){
+          const itemId=String(labels.indexOf(l));byId.set(itemId,l);
+          items.push({id:itemId,x:l.box.x,y:l.box.y,r:0,w:l.box.w,h:l.box.h,anchorX:l.anchor.x,anchorY:l.anchor.y,hold:true});
+        } else hideLabel(l);
+        l.u=null;
+        return;
+      }
+      // The hull probe under a part can switch to another sample as the ship
+      // turns. Carry the old anchor as a residual that decays on a critically
+      // damped spring, so the dot, leader and callout glide to the new point
+      // with continuous velocity instead of jumping.
+      if(l.anchor&&l.probe!==a.probe){
+        const v=l.fix?{vx:l.fix.vx,vy:l.fix.vy}:{vx:0,vy:0};
+        l.fix={x:l.anchor.x-a.x,y:l.anchor.y-(a.y-8),vx:v.vx,vy:v.vy};
+      }
+      if(l.fix){
+        const w=16,t=dtFix,e=Math.exp(-w*t),f=l.fix,cx=f.vx+w*f.x,cy=f.vy+w*f.y;
+        f.x=(f.x+cx*t)*e;f.y=(f.y+cy*t)*e;f.vx=(f.vx-w*cx*t)*e;f.vy=(f.vy-w*cy*t)*e;
+        if(Math.hypot(f.x,f.y)<.3&&Math.hypot(f.vx,f.vy)<6)l.fix=null;else fixing=true;
+      }
+      const fx=l.fix?l.fix.x:0,fy=l.fix?l.fix.y:0;
       l.probe=a.probe;
-      l.dx=a.x;l.dy=a.y-8;l.ta=1;
-      // The anchor is the probe on the hull surface, so the measured
-      // leader length is exactly what users perceive. Far candidates are
-      // bounded by maxLeader below; hull clearance itself is enforced by
-      // the arc obstacles handed to the layouter.
-      pairs.push({l,a});
+      l.anchor={x:a.x+fx,y:a.y-8+fy};
+      pairs.push({l,a:Object.assign({},a,{x:a.x+fx,y:a.y+fy})});
     });
-    pairs.sort((p,q)=>p.a.y-q.a.y);
-    const placed=[],requests=[],bottomPad=30;
-    const boxOverlap=(a,b,p=5)=>a.x<b.x+b.w+p&&a.x+a.w+p>b.x&&a.y<b.y+b.h+p&&a.y+a.h+p>b.y;
-    const cross=(a,b,c)=>(b.x-a.x)*(c.y-a.y)-(b.y-a.y)*(c.x-a.x);
-    const segmentsCross=(a,b,c,d)=>{
-      if(Math.max(a.x,b.x)<Math.min(c.x,d.x)||Math.max(c.x,d.x)<Math.min(a.x,b.x)||Math.max(a.y,b.y)<Math.min(c.y,d.y)||Math.max(c.y,d.y)<Math.min(a.y,b.y))return false;
-      return cross(a,b,c)*cross(a,b,d)<=.001&&cross(c,d,a)*cross(c,d,b)<=.001;
-    };
-    const pointInBox=(p,b)=>p.x>=b.x&&p.x<=b.x+b.w&&p.y>=b.y&&p.y<=b.y+b.h;
-    const lineHitsBox=(a,b,box)=>{
-      if(pointInBox(a,box)||pointInBox(b,box))return true;
-      const corners=[{x:box.x,y:box.y},{x:box.x+box.w,y:box.y},{x:box.x+box.w,y:box.y+box.h},{x:box.x,y:box.y+box.h}];
-      return corners.some((p,i)=>segmentsCross(a,b,p,corners[(i+1)%4]));
-    };
-    pairs.forEach(({l,a})=>{
-      // The visible callout can be wider than offsetWidth after inherited
-      // letter spacing and responsive font sizing resolve. Lay out against
-      // its painted box, the same geometry users see.
-      const labelRect=l.el.getBoundingClientRect();
-      const lw=labelRect.width||l.el.offsetWidth,lh=labelRect.height||l.el.offsetHeight;
+    pairs.forEach(({l,a},index)=>{
+      const {w:lw,h:lh}=labelSize(l.el);
       let ux,uy;
-      // nose/tail parts point along the axis away from the hull; the
-      // scale figure always hangs below; everything else follows its
-      // surface normal
+      // Callout directions come from the ship's projected long axis, which
+      // only changes as the camera moves: nose/tail parts point along the
+      // axis away from the hull, the scale figure hangs below, and every
+      // other part points perpendicular to the axis on its own side. The
+      // sampled surface normal flipped between hull probes and made the
+      // callouts jump while the ship turned.
       if(l.part.t==='SCALE FIGURE'){ux=0;uy=1;}
       else{
-        let axial=false;
-        if(prof){
-          let x0=-1,x1=-1;
-          for(let b=0;b<256;b++)if(prof[b]){if(x0<0)x0=b*2;x1=b*2;}
-          const mid=(x0+x1)/2,f=(l.part.p[0]-x0)/Math.max(1,x1-x0);
+        let done=false;
+        if(axis){
+          const f=(l.part.p[0]-axis.x0)/Math.max(1,axis.x1-axis.x0);
           if(f<0.16||f>0.84){
-            const pa=renderer.project([l.part.p[0],0,0]),pm=renderer.project([mid,0,0]);
-            if(pa&&pm){const dx=pa.x-pm.x,dy=pa.y-pm.y,dl=Math.hypot(dx,dy);
-              if(dl>4){ux=dx/dl;uy=dy/dl;axial=true;}}
+            const pa=renderer.project([l.part.p[0],0,0]);
+            if(pa){const dx=pa.x-axis.mid.x,dy=pa.y-axis.mid.y,dl=Math.hypot(dx,dy);
+              if(dl>4){ux=dx/dl;uy=dy/dl;done=true;}}
+          } else if(axis.len>40){
+            const nx=-axis.dy/axis.len,ny=axis.dx/axis.len;
+            const c0=renderer.project([l.part.p[0],0,0])||C;
+            const s=(a.x-c0.x)*nx+(a.y-c0.y)*ny;
+            // Side hysteresis: a part near the axis line keeps its side
+            // until it is clearly across.
+            if(!l.side||s*l.side<-6)l.side=s>=0?1:-1;
+            ux=nx*l.side;uy=ny*l.side;done=true;
           }
         }
-        if(!axial){
-          if(a.nx!==undefined){ux=a.nx;uy=a.ny;}
-          else{ux=a.x-C.x;uy=a.y-C.y;const m2=Math.hypot(ux,uy);if(m2>4){ux/=m2;uy/=m2;}else{ux=(l.part.side??1)>0?1:-1;uy=0;}}
-        }
+        if(!done){ux=a.x-C.x;uy=a.y-C.y;const m2=Math.hypot(ux,uy);if(m2>4){ux/=m2;uy/=m2;}else{ux=(l.part.side??1)>0?1:-1;uy=0;}}
       }
-      // support radius measured from this label's own station axis, so
-      // the box lands just past the outline near its part
-      const c0=renderer.project([l.part.p[0],0,0])||C;
-      let rDir=0;
-      for(const st of stats)rDir=Math.max(rDir,(st.x-c0.x)*ux+(st.y-c0.y)*uy+st.r);
-      const off=rDir+24;
-      const horiz=Math.abs(ux)>=Math.abs(uy);
-      const wantY=Math.max(8,Math.min(stage.clientHeight-lh-bottomPad,a.y-lh/2));
-      let bx,by;
-      if(horiz){
-        bx=ux>=0?c0.x+ux*off:c0.x+ux*off-lw;
-        by=wantY;
-      }else{
-        by=uy>0?c0.y+uy*off:c0.y+uy*off-lh;
-        bx=Math.max(4,Math.min(stage.clientWidth-lw-4,a.x-lw/2));
+      // Low-pass direction changes (end-on fallback, near-axis parts) so
+      // the preferred callout position glides instead of jumping.
+      if(l.u){
+        const k2=1-Math.exp(-dtFix/.14),sx=l.u.x+(ux-l.u.x)*k2,sy=l.u.y+(uy-l.u.y)*k2,m=Math.hypot(sx,sy);
+        if(m>.2){ux=sx/m;uy=sy/m;if(Math.hypot(ux-l.u.x,uy-l.u.y)>.002)fixing=true;}
       }
-      // separate overlapping boxes with the least movement, so labels
-      // stay near their parts instead of cascading across the stage
-      for(let i=0;i<24;i++){
-        const hit=placed.find(o=>bx<o.x+o.w+6&&bx+lw+6>o.x&&by<o.y+o.h+6&&by+lh+6>o.y);
-        if(!hit)break;
-        const ox=Math.min(bx+lw,hit.x+hit.w)-Math.max(bx,hit.x)+6;
-        const oy=Math.min(by+lh,hit.y+hit.h)-Math.max(by,hit.y)+6;
-        if(ox<oy)bx+=bx+lw/2<hit.x+hit.w/2?-ox:ox;
-        else by+=by+lh/2<hit.y+hit.h/2?-oy:oy;
+      l.u={x:ux,y:uy};
+      // How far along u the box must sit to clear the silhouette: for each
+      // hull station / spin arrow within the box's lateral footprint, the
+      // along-u distance past that disc. One continuous formula, so there is
+      // no horizontal/vertical docking switch for the box to jump between.
+      const px=-uy,py=ux,hu=Math.abs(ux)*lw/2+Math.abs(uy)*lh/2,hp=Math.abs(px)*lw/2+Math.abs(py)*lh/2;
+      let reach=0;
+      for(const st of stats){
+        const along=(st.x-a.x)*ux+(st.y-a.y)*uy,lat=Math.abs((st.x-a.x)*px+(st.y-a.y)*py)-hp,R=st.r+6;
+        if(lat<R)reach=Math.max(reach,along+Math.sqrt(R*R-Math.max(0,lat)*Math.max(0,lat)));
       }
-      by=Math.max(8,Math.min(stage.clientHeight-lh-bottomPad,by));
+      reach+=10+hu;
+      let bx=a.x+ux*reach-lw/2,by=a.y+uy*reach-lh/2;
       bx=Math.max(4,Math.min(stage.clientWidth-lw-4,bx));
-      for(let i=0;i<6;i++){
-        const hit2=placed.find(o=>bx<o.x+o.w+6&&bx+lw+6>o.x&&by<o.y+o.h+6&&by+lh+6>o.y);
-        if(!hit2)break;
-        const ox2=Math.min(bx+lw,hit2.x+hit2.w)-Math.max(bx,hit2.x)+6;
-        const oy2=Math.min(by+lh,hit2.y+hit2.h)-Math.max(by,hit2.y)+6;
-        if(ox2<oy2)bx+=bx+lw/2<hit2.x+hit2.w/2?-ox2:ox2;
-        else by+=by+lh/2<hit2.y+hit2.h/2?-oy2:oy2;
-      }
-      // slides/clamps must never pull the box back inside the outline
-      const rMin=rDir+16+Math.min(lw,lh)/2;
-      for(let i=0;i<3;i++){
-        const cx=bx+lw/2,cy=by+lh/2,dx=cx-c0.x,dy=cy-c0.y,d=Math.hypot(dx,dy)||1;
-        if(d>=rMin)break;
-        bx+=dx/d*(rMin-d);by+=dy/d*(rMin-d);
-        bx=Math.max(4,Math.min(stage.clientWidth-lw-4,bx));
-        by=Math.max(8,Math.min(stage.clientHeight-lh-bottomPad,by));
-      }
-      // Preserve the radial callout's preferred position, then resolve every
-      // label together below. A single global pass can reject crossed leaders
-      // instead of accepting a local fallback that collides later in the list.
-      requests.push({l,anchor:{x:l.dx,y:l.dy},box:{x:bx,y:by,w:lw,h:lh}});
-      placed.push({x:bx,y:by,w:lw,h:lh});
+      by=Math.max(8,Math.min(stage.clientHeight-lh-bottomPad,by));
+      l.box={x:bx+lw/2,y:by+lh/2,w:lw,h:lh};
+      // The radial box is the preferred slot; the tracker falls back to
+      // nearby slots around it only when it is blocked. Hull discs are arc
+      // obstacles: boxes may hug their own hull's rim but never cover it,
+      // and leaders never pierce another disc. The 180px cap kills the
+      // far-side placements that read as 200px stabs.
+      const itemId=String(labels.indexOf(l));
+      byId.set(itemId,l);
+      items.push({id:itemId,x:bx+lw/2,y:by+lh/2,r:0,w:lw,h:lh,preferCenter:true,
+        anchorX:l.anchor.x,anchorY:l.anchor.y,maxLeader:180,ignoreLeaderObstacles:true,leaderFromAnchor:true,
+        tier:0,priority:l.part.t==='SCALE FIGURE'?-100:1000-index});
     });
-    const requestById=new Map(),layoutItems=requests.map((request,index)=>{
-      const id=String(index),box=request.box;
-      requestById.set(id,request);
-      return {
-        id,x:box.x+box.w/2,y:box.y+box.h/2,r:0,w:box.w,h:box.h,
-        anchorX:request.anchor.x,anchorY:request.anchor.y,
-        // Hull discs are arc obstacles: label boxes may hug their own
-        // hull's rim but never cover its center, and leaders must not
-        // pierce any hull disc (ignoreLeaderObstacles only relaxes the
-        // legacy square test; ignoreArcLeaders stays off). The 180px cap
-        // kills the far-side placements that read as 200px stabs.
-        maxLeader:180,
-        ignoreLeaderObstacles:true,
-        priority:request.l.part.t==='SCALE FIGURE'?-100:1000-index,
-        previous:request.l.layoutBox
-      };
+    const result=labelTracker.update(items,{x:4,y:8,w:Math.max(1,stage.clientWidth-8),h:Math.max(1,stage.clientHeight-bottomPad-8)},stats.concat(overlays),now);
+    const painted=new Set();
+    result.labels.forEach(p=>{
+      const l=byId.get(p.id);
+      if(!p.visible){l.el.hidden=true;l.line.style.display=l.dot.style.display='none';return;}
+      painted.add(l);
+      l.el.hidden=false;
+      l.el.style.transform=`translate(${p.x.toFixed(1)}px,${p.y.toFixed(1)}px)`;
+      l.el.style.opacity=p.alpha<1?p.alpha.toFixed(3):'';
+      l.el.style.pointerEvents=p.placed?'auto':'none';
+      // The dot marks the hull point; the leader runs from it to the box.
+      const k=l.anchor,ex=Math.max(p.x,Math.min(p.x+p.w,k.x)),ey=Math.max(p.y,Math.min(p.y+p.h,k.y));
+      l.dot.style.display='';
+      l.dot.setAttribute('cx',k.x.toFixed(1));l.dot.setAttribute('cy',k.y.toFixed(1));
+      l.dot.setAttribute('opacity',p.alpha.toFixed(3));
+      l.line.style.display=Math.hypot(ex-k.x,ey-k.y)<5?'none':'';
+      l.line.setAttribute('x1',k.x.toFixed(1));l.line.setAttribute('y1',k.y.toFixed(1));
+      l.line.setAttribute('x2',ex.toFixed(1));l.line.setAttribute('y2',ey.toFixed(1));
+      l.line.style.opacity=(p.alpha*.55).toFixed(3);
     });
-    const arranged=window.SceneLabelLayout
-      ? window.SceneLabelLayout.layout(layoutItems,{x:4,y:8,w:Math.max(1,stage.clientWidth-8),h:Math.max(1,stage.clientHeight-bottomPad-8)},stats)
-      : [];
-    const arrangedIds=new Set(arranged.map(item=>item.id));
-    requests.forEach((request,index)=>{
-      if(arrangedIds.has(String(index)))return;
-      request.l.el.hidden=true;request.l.line.style.display=request.l.dot.style.display='none';
-      // `applyLabel` still runs once for every active part below. Zero the
-      // current opacity as well as removing the target so that an unplaced
-      // callout cannot briefly reappear at its previous coordinates.
-      request.l.ta=0;request.l.alpha=0;delete request.l.tx;
-    });
-    arranged.forEach(placement=>{
-      const request=requestById.get(placement.id);if(!request)return;
-      const l=request.l,box=placement.box;
-      l.tx=box.x;l.ty=box.y;l.w=box.w;l.h=box.h;l.layoutBox={x:box.x,y:box.y};
-      l.dx=request.anchor.x;l.dy=request.anchor.y;l.ta=1;
-      // A moving target can make two otherwise valid callouts overlap midway
-      // through an ease. The global layout is already stable via layoutBox;
-      // apply its resolved geometry atomically and reserve easing for fades.
-      l.cx=box.x;l.cy=box.y;l.kx=l.dx;l.ky=l.dy;l.alpha=1;
-    });
-    active.forEach(applyLabel);
-    // Measure the final painted positions as a last guard. Responsive font
-    // metrics can differ fractionally from the layout estimate; suppressing a
-    // lower-priority callout for that frame is preferable to showing a crossed
-    // or overlapping annotation while the ship spins.
-    const rendered=[];
-    active.slice().sort((a,b)=>(a.part.t==='SCALE FIGURE')-(b.part.t==='SCALE FIGURE')).forEach(l=>{
-      if(l.el.hidden)return;
-      const box={x:l.cx,y:l.cy,w:l.w,h:l.h};
-      const line={start:{x:l.kx,y:l.ky},end:{x:Math.max(l.cx,Math.min(l.cx+l.w,l.kx)),y:Math.max(l.cy,Math.min(l.cy+l.h,l.ky))}};
-      const conflict=rendered.some(o=>boxOverlap(box,o.box)||lineHitsBox(line.start,line.end,o.box)||lineHitsBox(o.line.start,o.line.end,box)||segmentsCross(line.start,line.end,o.line.start,o.line.end));
-      if(conflict){
-        l.ta=0;l.alpha=0;delete l.tx;
-        l.el.hidden=true;l.line.style.display=l.dot.style.display='none';
-      }else rendered.push({box,line});
-    });
-    animateLabels();
+    active.forEach(l=>{if(!painted.has(l)){l.el.hidden=true;l.line.style.display=l.dot.style.display='none';}});
+    return result.animating||fixing;
   }
   function draw() {
     if(frame!==null||!renderer||!models.length||document.hidden)return;
     frame=requestAnimationFrame(now=>{
-      frame=null;const dt=Math.min((now-last)/1000,.05);last=now;
+      frame=null;
+      // A ship switch (or lost context) may have cleared the models since
+      // this frame was queued; load() schedules a fresh one when ready.
+      if(!renderer||!models.length)return;
+      const dt=Math.min((now-last)/1000,.05);last=now;
       if(state.spin&&!state.compare)state.phase+=(state.rpm??catalog[id].rpm)*Math.PI/30*dt;
       if(state.orbit&&!state.compare)state.az+=.12*dt;
-      renderer.render(models,state);drawLabels();
-      if(state.spin||state.orbit)draw();
+      renderer.render(models,state);const settling=drawLabels();
+      if(state.spin||state.orbit||settling)draw();
     });
   }
   async function load() {
@@ -411,6 +358,12 @@ function visible(l,on){
   });
   for(const [button,key] of Object.entries(controls))$(button).addEventListener('click',()=>{state[key]=!state[key];sync();draw();});
   $('bReset').addEventListener('click',()=>{state.az=defaults().az;state.el=defaults().el;state.zoom=1;if(!models.length)load();else draw();});
+  stage.addEventListener('click',event=>{
+    const action=event.target.closest('[data-map-action]');if(!action)return;
+    state.zoom=Math.max(.3,Math.min(4,state.zoom*(action.dataset.mapAction==='in'?1.25:.8)));draw();
+  });
+  // Panes opening or closing move the areas callouts must avoid.
+  document.addEventListener('mapwindow:layout',draw);
   reducedMotion.addEventListener('change',e=>{if(e.matches){state.spin=state.orbit=false;sync();draw();}});
   canvas.addEventListener('keydown',event=>{
     const key=event.key;if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','=','-'].includes(key))return;event.preventDefault();
@@ -431,9 +384,9 @@ function visible(l,on){
   });
   for(const type of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(type,event=>pointers.delete(event.pointerId));
   canvas.addEventListener('webglcontextlost',event=>{event.preventDefault();++request;models=[];renderer=null;$('err').textContent='3D context was interrupted. Reload the page to restore it.';$('err').style.display='grid';sync();});
-  new ResizeObserver(()=>{seedStars();draw();}).observe(stage);document.fonts.ready.then(draw);
+  new ResizeObserver(()=>{labelSizes=new WeakMap();seedStars();draw();}).observe(stage);document.fonts.ready.then(()=>{labelSizes=new WeakMap();draw();});
   document.addEventListener('visibilitychange',draw);
   function fromLocation(){const params=new URLSearchParams(location.search);id=catalog[params.get('ship')]?params.get('ship'):'el-cajon';state=defaults();const az=parseFloat(params.get('az'));if(isFinite(az))state.az=az*Math.PI/180;singleState=null;if(params.get('compare')==='1'){singleState=defaults();state.compare=true;}$('ship-select').value=id;load();}
   addEventListener('popstate',fromLocation);
-  $('hud').open=false;seedStars();fromLocation();
+  seedStars();fromLocation();
 })();

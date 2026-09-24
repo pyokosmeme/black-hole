@@ -26,8 +26,11 @@ def serve(route):
         body=b'' if shell else body.replace(b'function drawLabels() {',b'function drawLabels() {window.__ship={state,id,models,renderer};')
     route.fulfill(body=body,content_type=(mimetypes.guess_type(p)[0] or 'application/octet-stream'))
 
-def settle(page):
+def settle(page,ms=0):
     page.evaluate('() => new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)))')
+    # The shared label tracker slides callouts to new slots and fades those
+    # without room; layout checks wait for it to come to rest.
+    if ms:page.wait_for_timeout(ms)
 
 def ready(page):
     page.wait_for_function("getComputedStyle(document.querySelector('#err')).display==='none'&&window.__ship?.models.length>0")
@@ -36,8 +39,8 @@ def ready(page):
 def labels_clear(page):
     result=page.evaluate('''()=>{
       const stage=document.querySelector('#stage').getBoundingClientRect();
-      const boxes=[...document.querySelectorAll('.lab:not([hidden])')].map(e=>{const r=e.getBoundingClientRect();return {x:r.x-stage.x,y:r.y-stage.y,w:r.width,h:r.height}});
-      const lines=[...document.querySelectorAll('#leaders line')].filter(e=>getComputedStyle(e).display!=='none').map(e=>({a:{x:+e.getAttribute('x1'),y:+e.getAttribute('y1')},b:{x:+e.getAttribute('x2'),y:+e.getAttribute('y2')}}));
+      const boxes=[...document.querySelectorAll('.lab:not([hidden])')].filter(e=>parseFloat(getComputedStyle(e).opacity||'1')>=.99).map(e=>{const r=e.getBoundingClientRect();return {x:r.x-stage.x,y:r.y-stage.y,w:r.width,h:r.height}});
+      const lines=[...document.querySelectorAll('#leaders line')].filter(e=>getComputedStyle(e).display!=='none'&&parseFloat(e.style.opacity||'1')>=.5).map(e=>({a:{x:+e.getAttribute('x1'),y:+e.getAttribute('y1')},b:{x:+e.getAttribute('x2'),y:+e.getAttribute('y2')}}));
       return {count:boxes.length,bounds:boxes.every(b=>b.x>=0&&b.y>=0&&b.x+b.w<=stage.width+1&&b.y+b.h<=stage.height+1),overlap:boxes.some((b,i)=>boxes.slice(i+1).some(c=>SceneLabelLayout.overlap(b,c,0))),crossed:lines.some((l,i)=>lines.slice(i+1).some(m=>SceneLabelLayout.intersects(l.a,l.b,m.a,m.b)))};
     }''')
     assert result['bounds'] and not result['overlap'] and not result['crossed'],result
@@ -45,7 +48,7 @@ def labels_clear(page):
 
 def bounds(page):
     assert page.evaluate('''()=>{const r=document.querySelector('[data-map-window]').getBoundingClientRect();return document.documentElement.scrollWidth<=innerWidth+1&&document.documentElement.scrollHeight<=innerHeight+1&&r.bottom<=innerHeight-8&&r.left>=8}''')
-    assert page.locator('.window-actions a,.window-actions button').evaluate_all('''es=>es.every(e=>{const r=e.getBoundingClientRect();return r.width>=44&&r.height>=44&&e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))})''')
+    assert page.locator('.map-window > .window-toolbar .window-actions > :is(a,button)').evaluate_all('''es=>es.every(e=>{const r=e.getBoundingClientRect();return r.width>=44&&r.height>=44&&e.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2))})''')
 
 def comparison_clear(page):
     assert page.evaluate('''()=>{
@@ -71,14 +74,13 @@ with sync_playwright() as p:
     ready(page)
     for width,height in [(1366,768),(1920,1080),(320,568),(390,844),(568,320),(768,1024)]:
         page.set_viewport_size({'width':width,'height':height})
-        page.locator('#hud').evaluate('e=>e.open=innerHeight>600')
         for ship in ['el-cajon','hackett']:
-            page.select_option('#ship-select',ship);ready(page);bounds(page)
+            page.select_option('#ship-select',ship);ready(page);settle(page,800);bounds(page)
             assert labels_clear(page)>=1,(ship,width,height)
             page.screenshot(path=str(SHOTS/f'{ship}-{width}x{height}.png'))
             page.locator('#scene').focus()
-            for _ in range(8):page.keyboard.press('ArrowRight');settle(page);labels_clear(page)
-            page.locator('[data-window-expand]').click();settle(page);bounds(page);labels_clear(page)
+            for _ in range(8):page.keyboard.press('ArrowRight');settle(page,800);labels_clear(page)
+            page.locator('[data-window-expand]').click();settle(page,800);bounds(page);labels_clear(page)
             page.keyboard.press('Escape');settle(page)
         page.locator('#compare-ships').click();ready(page);bounds(page)
         comparison_clear(page)
@@ -90,9 +92,8 @@ with sync_playwright() as p:
         page.keyboard.press('Escape');page.locator('#compare-ships').click();ready(page)
     page.set_viewport_size({'width':1366,'height':768})
     page.select_option('#ship-select','hackett');ready(page)
-    page.locator('#hud').evaluate('e=>e.open=true')
-    page.select_option('#part-select','3');settle(page)
-    assert page.locator('#part-detail').is_visible()
+    page.locator('[data-pane-toggle=options-pane]').click()
+    assert page.locator('#options-pane').is_visible()
     for b,key in [('bCut','cut'),('bWire','wire'),('bEva','eva'),('bSpin','spin')]:
         before=page.evaluate(f'__ship.state.{key}');page.locator('#'+b).click();settle(page);assert page.evaluate(f'__ship.state.{key}')!=before
     page.emulate_media(reduced_motion='reduce');page.wait_for_function('!__ship.state.spin')
@@ -104,11 +105,11 @@ with sync_playwright() as p:
         page.evaluate('(m)=>AcidburnMode.setMode(m)',mode)
         if mode=='bh':page.wait_for_function('window.AcidburnBlackhole?.isReady',timeout=30000)
         settle(page);page.screenshot(path=str(SHOTS/f'mode-{mode}.png'))
-        assert page.locator('#stage canvas').count()==1
+        assert page.locator('#stage canvas').count()==2 and page.locator('#stage canvas#scene').count()==1
         assert page.locator('#blackhole-container canvas').count()<=1
     page.locator('#compare-ships').click();ready(page);page.reload();ready(page)
     assert page.locator('#compare-ships').get_attribute('aria-pressed')=='true'
-    page.locator('.window-actions a').click();page.wait_for_url('**/maps')
+    page.locator('.map-window > .window-toolbar a').click();page.wait_for_url('**/maps')
     assert not errors,errors
     print('PASS: six viewports, both ships, noncrossing callouts, metre-scale comparison, controls, modes and reload.',flush=True)
     context.close()
@@ -123,7 +124,7 @@ with sync_playwright() as p:
         else:page.route('**/maps/ships/*.obj',lambda route:route.fulfill(status=503,body='Unavailable'))
         page.goto('https://maps.test/ship-viewer?compare=1')
         page.wait_for_function("!document.querySelector('#err').textContent.includes('Loading')")
-        page.locator('.ship-info summary').click();assert page.locator('.ship-comparison').is_visible()
-        page.locator('[data-window-expand]').click();page.locator('.window-actions a').click();page.wait_for_url('**/maps');context.close()
+        page.locator('[data-pane-toggle=specs-pane]').click();assert page.locator('.ship-comparison').is_visible()
+        page.locator('[data-window-expand]').click();page.locator('.map-window > .window-toolbar a').click();page.wait_for_url('**/maps');context.close()
     browser.close()
 print('PASS: legacy links and WebGL/asset failure fallbacks.')

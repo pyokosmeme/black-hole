@@ -1,4 +1,4 @@
-"""Focus dismisses the card, animates continuously, and yields to manual controls."""
+"""Focus dismisses the world pane, animates continuously, and yields to manual controls."""
 import importlib.util
 import sys
 from pathlib import Path
@@ -22,7 +22,7 @@ with sync_playwright() as p:
             page.wait_for_selector('[data-scene-action=focus]')
             checks.rendered(page)
             # Sample immediately in the same event task, before any animation frame.
-            result=page.evaluate('''()=>{const s=__sceneTest,before=[...s.camera.position.toArray(),s.radius];document.querySelector('[data-scene-action=focus]').click();return {closed:document.querySelector('#scene-card').hidden,unchanged:JSON.stringify(before)===JSON.stringify([...s.camera.position.toArray(),s.radius])}}''')
+            result=page.evaluate('''()=>{const s=__sceneTest,before=[...s.camera.position.toArray(),s.radius];document.querySelector('[data-scene-action=focus]').click();return {closed:document.querySelector('#world-pane').hidden,unchanged:JSON.stringify(before)===JSON.stringify([...s.camera.position.toArray(),s.radius])}}''')
             assert result=={'closed':True,'unchanged':True},result
             page.wait_for_function('__sceneTest.focusing')
         for world in ['jin','gullinkambi','marassa','mun','pani']:
@@ -36,7 +36,7 @@ with sync_playwright() as p:
             pose=page.evaluate('JSON.stringify([__sceneTest.camera.position.toArray(),__sceneTest.radius])')
             page.wait_for_timeout(100)
             assert page.evaluate('JSON.stringify([__sceneTest.camera.position.toArray(),__sceneTest.radius])')==pose
-            page.locator('#atlas-reset').click()
+            page.locator('[data-scene-action=home]').click()
         for action in ['wheel','drag','keyboard','reset','view']:
             start('jin')
             page.wait_for_timeout(150)
@@ -49,7 +49,7 @@ with sync_playwright() as p:
                 page.mouse.down();page.mouse.move(box['x']+box['width']/2+35,box['y']+box['height']/2+15);page.mouse.up()
             elif action=='keyboard':
                 canvas.focus();page.keyboard.press('ArrowRight')
-            elif action=='reset':page.locator('#atlas-reset').click()
+            elif action=='reset':page.locator('[data-scene-action=home]').click()
             else:page.evaluate("location.hash='view=shu'")
             checks.rendered(page)
             assert not page.evaluate('__sceneTest.focusing')
@@ -60,7 +60,7 @@ with sync_playwright() as p:
         page.evaluate("location.hash='pani'")
         page.wait_for_selector('[data-scene-action=focus]')
         page.locator('[data-scene-action=focus]').click();checks.rendered(page)
-        assert not page.locator('#scene-card').is_visible()
+        assert not page.locator('#world-pane').is_visible()
         assert not page.evaluate('__sceneTest.focusing')
         assert page.evaluate("__sceneTest.target.distanceTo(__sceneTest.bodies.find(b=>b.id==='pani').position)<.001")
         assert not errors,errors

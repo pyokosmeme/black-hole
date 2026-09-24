@@ -20,7 +20,7 @@ window.YakeScene = (function () {
     labelLayer.className = 'scene-labels';
     host.appendChild(labelLayer);
     const leaders=document.createElementNS('http://www.w3.org/2000/svg','svg');
-    leaders.classList.add('scene-leaders');leaders.setAttribute('aria-hidden','true');
+    leaders.classList.add('scene-leaders','map-leaders');leaders.setAttribute('aria-hidden','true');
     host.insertBefore(leaders,labelLayer);
     const scene = new T.Scene();
     const camera = new T.PerspectiveCamera(43, 1, .1, 12000);
@@ -37,13 +37,25 @@ window.YakeScene = (function () {
     function cancelFlight() { flight=null; }
     let content = null, currentView = null, selected = null;
     let bodies = [], tracks = [], annotations = [], frame = null, destroyed = false;
-    const labelMemory = new Map();
     let width = 1, height = 1, labelsOn = true;
-    // Painted label positions ease toward the layout geometry each frame.
-    // Without this a candidate flip teleports a name 10–30px between draws,
-    // which reads as jank during a slow orbit. Snap when settled so the
-    // boxes stop squirming once the camera is still.
-    const labelEase = new Map();
+    // Labels keep their side of each world while the camera moves and only
+    // slide or fade when that side is blocked (see SceneLabelLayout.createTracker).
+    const labelTracker = window.SceneLabelLayout.createTracker();
+    const leaderLines = new Map();
+    // Label boxes only change size with fonts or the viewport; measuring every
+    // label every frame forced a layout per name.
+    let labelSizes = new WeakMap();
+    function labelSize(el) {
+      let size = labelSizes.get(el);
+      if (!size) {
+        const wasHidden = el.hidden;
+        el.hidden = false; el.style.visibility = 'hidden';
+        size = {w:el.offsetWidth, h:el.offsetHeight};
+        el.style.visibility = ''; el.hidden = wasHidden;
+        if (size.w) labelSizes.set(el, size); else size = {w:60, h:20};
+      }
+      return size;
+    }
     const pointers = new Map();
     let gesture = null, dragged = false;
     let pendingTap = null;
@@ -285,7 +297,7 @@ window.YakeScene = (function () {
       mesh.position.copy(position);mesh.userData.world=id;content.add(mesh);
       const marker=new T.Mesh(new T.TorusGeometry(size+2,.12,6,64),new T.MeshBasicMaterial({color:0xff0099,transparent:true,opacity:.85,depthTest:false,depthWrite:false}));
       marker.position.copy(position);marker.visible=false;marker.renderOrder=10;content.add(marker);
-      const label=document.createElement('button');label.type='button';label.className='scene-label';label.dataset.pick=id;
+      const label=document.createElement('button');label.type='button';label.className='scene-label map-label';label.dataset.pick=id;
       label.textContent=w.mapLabel || w.name;label.setAttribute('aria-label','Select '+w.name);label.setAttribute('aria-pressed','false');if(id!=='yake')labelLayer.appendChild(label);
       label.addEventListener('click',e=>{ if(e.detail===0) onSelect(id); });
       // Cluster glyphs (Five Islands group, station rings) extend past the
@@ -326,7 +338,7 @@ window.YakeScene = (function () {
       throw new Error('No distance anchors for local view');
     }
     function annotation(text,position) {
-      const label=document.createElement('span');label.className='scene-label scene-annotation';label.textContent=text;labelLayer.appendChild(label);annotations.push({label,position});
+      const label=document.createElement('span');label.className='scene-label scene-annotation map-label';label.textContent=text;labelLayer.appendChild(label);annotations.push({label,position});
     }
     function ezNeighborhood(local,cfg) {
       const size=20;
@@ -347,7 +359,7 @@ window.YakeScene = (function () {
       cancelTap();
       if(currentView!==name) {
         if(content) {scene.remove(content);release(content);}
-        content=new T.Group();scene.add(content);bodies=[];tracks=[];annotations=[];labelMemory.clear();labelEase.clear();labelLayer.textContent='';currentView=name;
+        content=new T.Group();scene.add(content);bodies=[];tracks=[];annotations=[];labelTracker.reset();leaderLines.clear();leaders.replaceChildren();labelLayer.textContent='';currentView=name;
         const cfg=data.views[name];
         {
           if(!cfg.cluster)body(cfg.parent,new T.Vector3(),cfg.parent==='yake'?24:27,false);
@@ -448,10 +460,10 @@ window.YakeScene = (function () {
       camera.lookAt(target);camera.updateMatrixWorld();
       bodies.forEach(b=>b.marker.quaternion.copy(camera.quaternion));
       renderer.render(scene,camera);
-      const heading=host.querySelector('.scene-heading'),hint=host.querySelector('.scene-hint');
-      const labelTop=heading.offsetTop+heading.offsetHeight+6,labelBottom=hint.offsetHeight+16;
+      // Map chrome over the canvas (view title, controls, open panes) is
+      // marked data-label-avoid; names never slide underneath it.
+      const overlays=window.SceneLabelLayout.overlayRects(host,host.querySelectorAll('[data-label-avoid]'));
       leaders.setAttribute('viewBox',`0 0 ${width} ${height}`);
-      leaders.replaceChildren();
       const fov=Math.tan(camera.fov*Math.PI/360);
       const discs=bodies.map(b=>{
         const p=b.position.clone().project(camera);
@@ -464,71 +476,68 @@ window.YakeScene = (function () {
       }).filter(Boolean);
       const star=discs.find(d=>d.id==='yake');
       if(star){
-        const cr=140*height/(2*fov*star.depth);
+        // The corona sprite is 140 units across, but its additive gradient
+        // is only visible out to ~45 units; keeping labels out of the whole
+        // sprite pushed inner-world names onto long, hopping leaders.
+        const cr=45*height/(2*fov*star.depth);
         star.r=Math.min(Math.max(star.r,cr),Math.min(width,height)*.34);
         // The glow is translucent: it pushes labels outward but callouts
         // may cross it, so inner worlds keep readable names at close range.
         star.ghost=1;
       }
-      // Use the shared screen-space labeler for every projected body and
-      // annotation. The former local first-fit loop could force an annotation
-      // through a world name and could swap sides on each tiny camera change.
-      const bounds={x:4,y:Math.max(4,labelTop),w:Math.max(1,width-8),h:Math.max(1,height-labelBottom-Math.max(4,labelTop))};
-      const items=[],byId=new Map();
-      const hide=el=>{el.hidden=true;el.style.visibility='';};
-      function addLabel(id,el,x,y,r,priority) {
-        el.hidden=false;
-        el.style.visibility='hidden';
-        const item={id,el,x,y,r,w:el.offsetWidth||60,h:el.offsetHeight||20,priority,previous:labelMemory.get(id),anchorX:x,anchorY:y,clampAnchor:true};
-        items.push(item);byId.set(id,item);
-      }
+      // Labels are laid out by the shared tracker: each name holds its side of
+      // its world while the camera moves, slides only when that side is
+      // blocked, and fades rather than jumping when there is no room.
+      const bounds={x:4,y:4,w:Math.max(1,width-8),h:Math.max(1,height-8)};
+      const items=[],elements=new Map();
       // The star's glow disc is a boundary for everything near it, not a
       // cull test: bodies inside the lit core keep their names, with callout
       // leaders emerging at the glow rim (arc handling in the labeler).
-      discs.slice().sort((a,b)=>a.depth-b.depth).forEach(d=>{
+      discs.forEach(d=>{
         const b=bodies.find(bb=>bb.id===d.id);if(!b||b.id==='yake')return;
-        const visible=labelsOn&&(d.x>-40&&d.x<width+40&&d.y>-40&&d.y<height+40);
-        if(!visible){hide(b.label);return;}
+        if(!labelsOn||!(d.x>-40&&d.x<width+40&&d.y>-40&&d.y<height+40))return;
         b.label.style.zIndex=String(20000-Math.round(d.depth*10));
-        addLabel(d.id,b.label,d.x,d.y,d.r,(d.id===selected?100000:10000)-d.depth);
+        const size=labelSize(b.label);
+        items.push({id:d.id,x:d.x,y:d.y,r:d.r,w:size.w,h:size.h,tier:d.id===selected?2:1,priority:-d.depth,anchorX:d.x,anchorY:d.y,clampAnchor:true});
+        elements.set(d.id,b.label);
       });
       annotations.forEach(({label,position},index)=>{
         const p=position.clone().project(camera),x=(p.x*.5+.5)*width,y=(-p.y*.5+.5)*height;
-        if(!labelsOn||p.z<=-1||p.z>=1||!isFinite(x)||!isFinite(y)){hide(label);return;}
+        if(!labelsOn||p.z<=-1||p.z>=1||!isFinite(x)||!isFinite(y))return;
         // Annotations for knot areas (station clusters) must remain findable
-        // near the frame edge; the shared layouter clamps instead of culling.
-        addLabel('annotation-'+index,label,x,y,7,-100-index);
+        // near the frame edge; the tracker clamps instead of culling.
+        const size=labelSize(label);
+        items.push({id:'annotation-'+index,x,y,r:7,w:size.w,h:size.h,tier:0,priority:-index,anchorX:x,anchorY:y,clampAnchor:true});
+        elements.set('annotation-'+index,label);
       });
-      const placements=window.SceneLabelLayout
-        ? window.SceneLabelLayout.layout(items,bounds,discs)
-        : [];
-      items.forEach(item=>{item.el.hidden=true;});
-      let unsettled=false;
-      placements.forEach(placement=>{
-        const item=byId.get(placement.id);if(!item)return;
-        item.el.hidden=false;item.el.style.visibility='';
-        // Ease the painted box toward the layout geometry; leaders follow
-        // the eased box so callouts stay attached while gliding.
-        const cur=labelEase.get(placement.id)||{x:placement.box.x,y:placement.box.y};
-        labelEase.set(placement.id,cur);
-        if(Math.abs(placement.box.x-cur.x)<2.5&&Math.abs(placement.box.y-cur.y)<2.5){cur.x=placement.box.x;cur.y=placement.box.y;}
-        else{cur.x+=(placement.box.x-cur.x)*.35;cur.y+=(placement.box.y-cur.y)*.35;unsettled=true;}
-        item.el.style.transform='translate('+cur.x.toFixed(1)+'px,'+cur.y.toFixed(1)+'px)';
-        item.el.style.left=item.el.style.top='0';
-        labelMemory.set(item.id,{x:placement.box.x,y:placement.box.y});
-        const ex=Math.max(cur.x,Math.min(cur.x+item.w,item.anchorX));
-        const ey=Math.max(cur.y,Math.min(cur.y+item.h,item.anchorY));
-        const line=document.createElementNS('http://www.w3.org/2000/svg','line');
-        line.setAttribute('x1',placement.start.x.toFixed(1));line.setAttribute('y1',placement.start.y.toFixed(1));
-        line.setAttribute('x2',ex.toFixed(1));line.setAttribute('y2',ey.toFixed(1));
-        leaders.appendChild(line);
+      const {labels,animating}=labelTracker.update(items,bounds,discs.concat(overlays),now);
+      const painted=new Set();
+      labels.forEach(l=>{
+        if(!l.visible)return;
+        const el=elements.get(l.id);painted.add(el);
+        el.hidden=false;
+        el.style.transform='translate('+l.x.toFixed(1)+'px,'+l.y.toFixed(1)+'px)';
+        el.style.opacity=l.alpha<1?l.alpha.toFixed(3):'';
+        el.style.pointerEvents=l.placed?'':'none';
+        let line=leaderLines.get(l.id);
+        if(!line){line=document.createElementNS('http://www.w3.org/2000/svg','line');leaders.appendChild(line);leaderLines.set(l.id,line);}
+        line.style.display=l.leader?'':'none';
+        if(l.leader){
+          line.setAttribute('x1',l.leader.x1.toFixed(1));line.setAttribute('y1',l.leader.y1.toFixed(1));
+          line.setAttribute('x2',l.leader.x2.toFixed(1));line.setAttribute('y2',l.leader.y2.toFixed(1));
+          line.style.opacity=l.alpha<1?l.alpha.toFixed(3):'';
+        }
       });
-      if(flight||unsettled)draw();
+      bodies.forEach(b=>{if(!painted.has(b.label))b.label.hidden=true;});
+      annotations.forEach(a=>{if(!painted.has(a.label))a.label.hidden=true;});
+      leaderLines.forEach((line,id)=>{if(!painted.has(elements.get(id)))line.style.display='none';});
+      if(flight||animating)draw();
     }
     function resize() {
       const oldAspect=width/height;
       width=host.clientWidth;height=host.clientHeight;
       if(!width||!height)return;
+      labelSizes=new WeakMap();
       camera.aspect=width/height;camera.updateProjectionMatrix();renderer.setSize(width,height,false);
       // Context controls may change canvas height; keep the selected world's
       // camera intact when its card opens or closes. Reset/Fit remain explicit.
@@ -548,7 +557,7 @@ window.YakeScene = (function () {
       return nearest;
     }
     function pointerDown(e) {
-      if(e.target.closest('.scene-controls,.scene-card,.scene-heading'))return;
+      if(e.target.closest('.map-hud,.map-pane,.fallback-chart'))return;
       if(e.button!==0&&e.button!==2)return;
       cancelFlight();
       e.preventDefault();
@@ -586,7 +595,7 @@ window.YakeScene = (function () {
         }
       }
     }
-    function wheel(e){if(e.target.closest('.scene-card'))return;e.preventDefault();zoom(Math.exp(Math.max(-200,Math.min(200,e.deltaY))*.002));}
+    function wheel(e){if(e.target.closest('.map-pane,.map-hud,.fallback-chart'))return;e.preventDefault();zoom(Math.exp(Math.max(-200,Math.min(200,e.deltaY))*.002));}
     function keyboard(e){
       if(e.target!==canvas)return;
       if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown','+','=','-','0'].includes(e.key))e.preventDefault();else return;
@@ -594,7 +603,7 @@ window.YakeScene = (function () {
       if(e.key==='0')home();else if(e.key==='+'||e.key==='=')zoom(.85);else if(e.key==='-')zoom(1.15);
       else{const dx=e.key==='ArrowLeft'?-20:e.key==='ArrowRight'?20:0,dy=e.key==='ArrowUp'?-20:e.key==='ArrowDown'?20:0;if(e.shiftKey)pan(dx,dy);else{theta+=dx*.008;phi+=dy*.008;}draw();}
     }
-    function contextMenu(e){if(!e.target.closest('.scene-card'))e.preventDefault();}
+    function contextMenu(e){if(!e.target.closest('.map-pane'))e.preventDefault();}
     function lost(e){e.preventDefault();onFailure();}
     host.addEventListener('pointerdown',pointerDown);host.addEventListener('pointermove',pointerMove);
     host.addEventListener('pointerup',pointerUp);host.addEventListener('pointercancel',pointerUp);
@@ -602,9 +611,9 @@ window.YakeScene = (function () {
     host.addEventListener('contextmenu',contextMenu);canvas.addEventListener('webglcontextlost',lost);
     document.addEventListener('visibilitychange',draw);
     const observer=new ResizeObserver(resize);observer.observe(host);resize();
-    document.fonts?.ready.then(draw);
+    document.fonts?.ready.then(()=>{labelSizes=new WeakMap();draw();});
     return {
-      setView,select,home,focus,zoom,surface,
+      setView,select,home,focus,zoom,surface,redraw:draw,
       hasBody:id=>bodies.some(b=>b.id===id || (b.id==='marassa' && worlds.get(id)?.parent==='marassa')),
       toggleLabels:()=>{labelsOn=!labelsOn;draw();return labelsOn;},
       destroy:()=>{destroyed=true;cancelFlight();cancelTap();if(frame!==null)cancelAnimationFrame(frame);observer.disconnect();document.removeEventListener('visibilitychange',draw);
