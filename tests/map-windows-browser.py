@@ -197,7 +197,7 @@ with sync_playwright() as p:
         page.wait_for_function('window.MapWindow && window.AcidburnMode')
         page.evaluate('''async()=>{await document.fonts.ready;await document.fonts.load('14px "Share Tech Mono"');await document.fonts.load('14px Orbitron');}''')
         assert page.evaluate('''()=>['Share Tech Mono','Orbitron'].every(name=>[...document.fonts].some(f=>f.family.replaceAll('"','')===name&&f.status==='loaded'))'''), page.evaluate('''()=>({fonts:[...document.fonts].map(f=>[f.family,f.status]),sheets:[...document.styleSheets].map(s=>s.href)})''')
-        assert page.evaluate('''async()=>{const s=[...document.styleSheets].find(s=>s.href&&new URL(s.href).pathname==='/css/acidburn.css');const i=s.cssRules.length;s.insertRule('.section-header h2 {color:rgb(12,34,56)}',i);await new Promise(r=>setTimeout(r,400));const ok=getComputedStyle(document.querySelector('#chart-title')).color==='rgb(12, 34, 56)';s.deleteRule(i);return ok}''')
+        assert page.evaluate('''async()=>{const s=[...document.styleSheets].find(s=>s.href&&new URL(s.href).pathname==='/css/acidburn.css');const i=s.cssRules.length;s.insertRule('.section-header h2 {color:rgb(12,34,56)}',i);let ok=false;for(let t=0;t<30&&!ok;t++){await new Promise(r=>setTimeout(r,100));ok=getComputedStyle(document.querySelector('#chart-title')).color==='rgb(12, 34, 56)';}s.deleteRule(i);return ok}''')
         settle(page, 1500)
         for width, height in SIZES:
             page.set_viewport_size({'width': width, 'height': height})

@@ -68,7 +68,7 @@ with sync_playwright() as p:
     page.goto('https://maps.test/ship-viewer')
     page.evaluate('''async()=>{await document.fonts.ready;await document.fonts.load('14px "Share Tech Mono"');await document.fonts.load('14px Orbitron')}''')
     assert page.evaluate('''()=>['Share Tech Mono','Orbitron'].every(n=>[...document.fonts].some(f=>f.family.replaceAll('"','')===n&&f.status==='loaded'))''')
-    assert page.evaluate('''async()=>{const s=[...document.styleSheets].find(s=>s.href?.endsWith('/css/acidburn.css'));const i=s.cssRules.length;s.insertRule('.section-header h2 {color:rgb(12,34,56)}',i);await new Promise(r=>setTimeout(r,400));const ok=getComputedStyle(document.querySelector('#chart-title')).color==='rgb(12, 34, 56)';s.deleteRule(i);return ok}''')
+    assert page.evaluate('''async()=>{const s=[...document.styleSheets].find(s=>s.href?.endsWith('/css/acidburn.css'));const i=s.cssRules.length;s.insertRule('.section-header h2 {color:rgb(12,34,56)}',i);let ok=false;for(let t=0;t<30&&!ok;t++){await new Promise(r=>setTimeout(r,100));ok=getComputedStyle(document.querySelector('#chart-title')).color==='rgb(12, 34, 56)';}s.deleteRule(i);return ok}''')
     if shell:
         page.screenshot(path=str(SHOTS/'shell.png'));print('Shared shell, fonts and inheritance verified.');browser.close();sys.exit()
     ready(page)

@@ -39,7 +39,7 @@ body.bh-mode .map-viewport { background:rgba(5,5,15,.6); }
 .map-hud { position:absolute; z-index:6; display:flex; gap:4px; pointer-events:none; max-width:calc(100% - 2 * var(--hud-inset)); }
 .map-hud > * { pointer-events:auto; }
 .map-hud[hidden],.map-hud [hidden] { display:none!important; }
-.map-hud-tl { top:var(--hud-inset); left:var(--hud-inset); flex-direction:column; align-items:flex-start; }
+.map-hud-tl { top:calc(var(--hud-inset) + var(--hud-top,0px)); left:var(--hud-inset); flex-direction:column; align-items:flex-start; }
 .map-hud-bl { bottom:var(--hud-inset); left:var(--hud-inset); max-width:calc(100% - 2 * var(--hud-inset) - var(--hud-controls-w,240px)); }
 .map-hud-br { bottom:var(--hud-inset); right:var(--hud-inset); align-items:flex-end; }
 .map-view-title { margin:0; font-family:'Orbitron',sans-serif; font-size:var(--text-xs); font-weight:500; letter-spacing:.18em; color:var(--cyan); text-transform:uppercase; text-shadow:0 0 6px #000,0 0 2px #000; }
@@ -79,7 +79,7 @@ button.map-label { cursor:pointer; }
 .map-leaders line { stroke:rgba(168,185,201,.6); stroke-width:1; }
 
 /* ── Panes: secondary windows over the map ─────────────────────────────────── */
-.author-card.map-pane { position:absolute; z-index:8; top:var(--hud-inset); right:var(--hud-inset); width:var(--pane-w); max-height:calc(100% - 2 * var(--hud-inset)); padding:0; margin:0; display:flex; flex-direction:column; box-shadow:0 14px 36px rgba(0,0,0,.6); }
+.author-card.map-pane { position:absolute; z-index:8; top:calc(var(--hud-inset) + var(--hud-top,0px)); right:var(--hud-inset); width:var(--pane-w); max-height:calc(100% - 2 * var(--hud-inset) - var(--hud-top,0px)); padding:0; margin:0; display:flex; flex-direction:column; box-shadow:0 14px 36px rgba(0,0,0,.6); }
 .author-card.map-pane[hidden] { display:none; }
 body.bh-mode .author-card.map-pane,body.dark-mode .author-card.map-pane { background:rgba(12,12,22,.95); }
 .map-pane .window-toolbar { padding:var(--space-xs) var(--space-xs) var(--space-xs) var(--space-sm); }
@@ -99,20 +99,18 @@ body.bh-mode .author-card.map-pane,body.dark-mode .author-card.map-pane { backgr
   .window-toolbar .section-line { display:none; }
   .map-viewport { --hud-inset:6px; }
 }
-/* Portrait phones: panes become a bottom sheet and the controls move up
- * beside the view title, so an open sheet never covers them. */
+/* Portrait phones: panes become a bottom sheet, and the overlays form one
+ * centred header block over the map: title, pickers and legend, then the
+ * controls row beneath (map-window.js measures the first row's height). An
+ * open sheet never covers either. */
 @media(max-width:600px) and (min-height:501px) {
-  .author-card.map-pane { top:auto; left:var(--hud-inset); right:var(--hud-inset); bottom:var(--hud-inset); width:auto; max-height:min(62%,calc(100% - 64px)); }
-  .map-hud-br { bottom:auto; top:var(--hud-inset); }
-  .map-viewport.pane-reaches-bottom .map-hud-br { right:var(--hud-inset); }
-  .map-hud-tl { max-width:calc(100% - 2 * var(--hud-inset) - var(--hud-controls-w,140px)); }
+  .author-card.map-pane { top:auto; left:var(--hud-inset); right:var(--hud-inset); bottom:var(--hud-inset); width:auto; max-height:min(62%,calc(100% - 64px - var(--hud-top,0px))); }
+  .map-hud-tl,.map-hud-br { left:var(--hud-inset); right:var(--hud-inset); max-width:none; }
+  .map-hud-tl { align-items:center; text-align:center; }
+  .map-hud-br { bottom:auto; top:calc(var(--hud-inset) + var(--hud-top,0px) + var(--hud-tl-h,44px) + 6px); justify-content:center; }
+  .map-viewport.pane-reaches-bottom .map-hud-br { right:var(--hud-inset); max-width:none; }
+  .map-hud .map-picker,.map-hud .map-controls,.map-hud .legend { justify-content:center; }
   .map-hud-bl { display:none; }
-  /* Too little room beside the controls: they drop to a second row. */
-  .map-viewport.hud-stack .map-hud-tl { max-width:calc(100% - 2 * var(--hud-inset)); }
-  .map-viewport.hud-stack .map-hud-br { top:calc(var(--hud-inset) + var(--hud-tl-h,44px) + 4px); }
-  /* Measuring pass (map-window.js): the title/picker row at its natural width. */
-  .map-viewport.hud-measure .map-hud-tl { max-width:none; }
-  .map-viewport.hud-measure .map-picker { flex-wrap:nowrap; }
 }
 /* Pinch replaces the zoom buttons on small touch screens. */
 @media(max-width:600px) and (pointer:coarse), (max-height:500px) and (pointer:coarse) {

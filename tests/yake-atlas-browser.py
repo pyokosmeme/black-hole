@@ -81,8 +81,10 @@ def run():
                 const sheet=[...document.styleSheets].find(s=>s.href?.endsWith('/css/acidburn.css'));
                 const start=sheet.cssRules.length;
                 sheet.insertRule('.section-header h2 {color:rgb(12,34,56)}',sheet.cssRules.length);
-                await new Promise(resolve=>setTimeout(resolve,150));
-                const result=getComputedStyle(document.querySelector('#chart-title')).color==='rgb(12, 34, 56)';
+                // The heading's colour transitions; wait for it to land rather
+                // than sampling mid-transition while surfaces paint.
+                let result=false;
+                for(let t=0;t<30&&!result;t++){await new Promise(resolve=>setTimeout(resolve,100));result=getComputedStyle(document.querySelector('#chart-title')).color==='rgb(12, 34, 56)';}
                 while(sheet.cssRules.length>start)sheet.deleteRule(start);
                 return result;
             }""")

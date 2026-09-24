@@ -28,7 +28,7 @@
 
   field.innerHTML = `<div class="atlas-scene map-viewport">
     <div class="map-hud map-hud-tl" data-label-avoid>
-      <div class="view-title-row"><p class="map-view-title" id="view-title">System overview</p><button class="acidburn-button icon moon-close" type="button" data-close-view hidden>${closeIcon}</button></div>
+      <p class="map-view-title" id="view-title">System overview</p>
       <p class="map-view-note" id="view-note">${SYSTEM_NOTE}</p>
     </div>
     <div class="map-hud map-hud-bl"><p class="map-hint">DRAG: ORBIT · SCROLL / PINCH: ZOOM · TAP: SELECT · DOUBLE-TAP: FOCUS</p></div>
@@ -41,6 +41,9 @@
         <button class="acidburn-button" type="button" data-scene-action="labels" aria-pressed="true">labels</button>
       </div>
     </div>
+    <div class="author-card moon-frame" hidden>
+      <div class="section-header window-toolbar" data-label-avoid><h2 id="moon-title"></h2><div class="section-line"></div><div class="window-actions"><button class="acidburn-button moon-close" type="button" data-close-view>${closeIcon}</button></div></div>
+    </div>
     <aside class="author-card map-pane" id="system-pane" data-map-pane data-label-avoid hidden aria-labelledby="system-pane-title">
       ${paneHead('system-pane-title', 'YA KE', 'Close system notes')}
       <div class="map-pane-body"><p class="post-date">Star &amp; star system · K-type giant</p><p class="card-intro">${esc(star.intro)}</p>${stats(data.summaryStats(star).filter(([key]) => key !== 'Catalog identity'))}</div>
@@ -51,6 +54,14 @@
     </aside>
   </div>`;
   const sceneHost = field.querySelector('.atlas-scene');
+  const moonFrame = sceneHost.querySelector('.moon-frame');
+  // Overlays and panes sit below the moon window's title bar.
+  function fitFrame() {
+    const head = moonFrame.hidden ? 0 : moonFrame.querySelector('.window-toolbar').getBoundingClientRect().bottom - sceneHost.getBoundingClientRect().top;
+    sceneHost.style.setProperty('--hud-top', Math.max(0, Math.round(head)) + 'px');
+    window.MapWindow?.refresh();
+  }
+  window.addEventListener('resize', fitFrame);
   window.MapWindow?.refresh();
   const worldPane = document.getElementById('world-pane');
   const systemPane = document.getElementById('system-pane');
@@ -65,13 +76,17 @@
     view = name; cfg = data.views[view]; plotted = members(cfg); selected = null; region = null;
     if (scene) scene.setView(view, null);
     else fallback();
+    // A moon system opens as a window over the system chart: an Acid Burn
+    // card frame whose title bar carries the close button, like the panes.
     sceneHost.classList.toggle('moon-window', view !== 'system');
+    moonFrame.hidden = view === 'system';
+    document.getElementById('moon-title').textContent = cfg.title;
     document.getElementById('view-title').textContent = view === 'system' ? 'System overview' : cfg.title;
     document.getElementById('view-note').textContent = view === 'system' ? SYSTEM_NOTE : cfg.caption;
     const close = sceneHost.querySelector('.moon-close');
-    close.hidden = view === 'system';
     close.setAttribute('aria-label', 'Close ' + cfg.title + ' and return to the system map');
     close.title = close.getAttribute('aria-label');
+    fitFrame();
     renderCard(); writeLocation();
     status(cfg.title + ' opened. Select a destination.');
   }
@@ -163,8 +178,23 @@
         scene = window.YakeScene.create(sceneHost, id => id ? selectWorld(id) : (win() && win().closePane(worldPane)), fallback, id => { selectWorld(id); scene.select(id); scene.focus(); });
         scene.setView('system', null);
       } catch (error) { console.error('[yake] scene create failed:', error && error.stack || error); fallback(); }
-      spinner.remove();
       readLocation();
+      // The worlds paint in the background (yake-surfaces.js); the spinner
+      // stays until the opening view is painted, then the moon systems paint
+      // quietly so opening them later is instant.
+      const painted = scene ? Promise.race([scene.painted(), new Promise(r => setTimeout(r, 20000))]) : Promise.resolve();
+      painted.then(() => {
+        spinner.remove();
+        if (!scene) return;
+        const ids = new Set(['pani-clouds']);
+        moonViews.forEach(name => {
+          const v = data.views[name];
+          if (!v.cluster) ids.add(v.parent);
+          v.nodes.forEach(([id]) => ids.add(id));
+          (v.locals || []).forEach(([id]) => { if (!worlds.get(id)?.mapLabel && id !== 'marassa') ids.add(id); });
+        });
+        (window.requestIdleCallback || (f => setTimeout(f, 200)))(() => scene && scene.prefetch([...ids]));
+      });
       // First look at the atlas on a roomy screen opens the system notes;
       // once closed they stay closed.
       let notes = null;

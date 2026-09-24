@@ -31,9 +31,8 @@
       view.classList.toggle('pane-reaches-bottom', shown.some(p => p.getBoundingClientRect().bottom > bottom - 64));
     });
   }
-  // Phones pin the controls to the top right, beside the view title and
-  // pickers. Reserve the controls' measured width for them, and move them to a
-  // second row when the title/picker row cannot fit beside them.
+  // HUD geometry the CSS cannot know: the controls' width and, on portrait
+  // phones, the height of the title/picker block the controls sit under.
   const phone = window.matchMedia('(max-width: 600px) and (min-height: 501px)');
   function fitHud() {
     document.querySelectorAll('.map-viewport').forEach(view => {
@@ -41,20 +40,13 @@
       if (!tl || !br) return;
       // Pages may build their HUD after this script runs; watch it once seen.
       [tl, br].forEach(el => { if (hudSizes && !el.dataset.observed) { hudSizes.observe(el); el.dataset.observed = '1'; } });
-      // The hint (bottom left) and phone title row both leave room for it.
-      const controls = br.getBoundingClientRect().width;
-      view.style.setProperty('--hud-controls-w', (controls + 8) + 'px');
-      if (!phone.matches) { view.classList.remove('hud-stack'); return; }
-      const inset = parseFloat(getComputedStyle(view).getPropertyValue('--hud-inset')) || 6;
-      view.classList.add('hud-measure');
-      const natural = tl.getBoundingClientRect().width;
-      view.classList.remove('hud-measure');
-      const stack = natural > view.clientWidth - 2 * inset - controls - 8;
-      view.classList.toggle('hud-stack', stack);
-      view.style.setProperty('--hud-tl-h', tl.getBoundingClientRect().height + 'px');
+      // The hint (bottom left) leaves room for the controls; on phones the
+      // controls row sits under the title/picker block, whatever its height.
+      view.style.setProperty('--hud-controls-w', (br.getBoundingClientRect().width + 8) + 'px');
+      if (phone.matches) view.style.setProperty('--hud-tl-h', tl.getBoundingClientRect().height + 'px');
     });
   }
-  const hudSizes = window.ResizeObserver ? new ResizeObserver(fitHud) : null;
+  const hudSizes = window.ResizeObserver ? new ResizeObserver(() => { fitHud(); notify(); }) : null;
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { fitHud(); notify(); });
   const paneSizes = window.ResizeObserver ? new ResizeObserver(() => { fitPanes(); notify(); }) : null;
   window.addEventListener('resize', () => { fitHud(); fitPanes(); });

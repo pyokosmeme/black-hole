@@ -18,16 +18,19 @@ body.bh-mode .atlas-chart { background:rgba(5,5,15,.72); backdrop-filter:blur(3p
 .scene-label[hidden] { display:none!important; }
 .scene-label.scene-annotation { pointer-events:none; color:#dda271; }
 
-/* Moon and Five Islands views open as a framed window over the system chart;
- * the close button beside the view title returns to the system map. */
-.atlas-scene.moon-window {
-  margin:var(--space-sm);
-  border:3px solid;
-  border-image:linear-gradient(135deg, var(--cyan), var(--purple)) 1;
-  box-shadow:0 0 calc(22px * var(--glow-intensity)) rgba(0,255,255,.20), 0 0 12px rgba(191,0,255,.18), 0 16px 40px rgba(0,0,0,.55);
-}
-.view-title-row { display:flex; align-items:center; gap:var(--space-xs); }
-.map-hud .moon-close:hover,.map-hud .moon-close:focus-visible { color:#ff83cd; }
+/* Moon and Five Islands views open as a window over the system chart. Its
+ * frame is the shared .author-card (the world card's border and stripe) with
+ * a pane-style title bar; the close button at its right end returns to the
+ * system map. The frame itself is see-through and lets the map take input. */
+.atlas-scene.moon-window { margin:var(--space-sm); box-shadow:0 14px 36px rgba(0,0,0,.6); }
+body .atlas-scene > .author-card.moon-frame { position:absolute; inset:0; z-index:5; margin:0; padding:0; display:flex; flex-direction:column; background:transparent; backdrop-filter:none; pointer-events:none; }
+body .atlas-scene > .author-card.moon-frame[hidden] { display:none; }
+.moon-frame .window-toolbar { pointer-events:auto; background:rgba(12,12,22,.95); padding:var(--space-xs) var(--space-xs) var(--space-xs) var(--space-sm); }
+body.light-mode .moon-frame .window-toolbar { background:#fdfaf5; }
+.moon-frame .window-toolbar h2 { font-size:var(--text-xs); letter-spacing:.2em; text-transform:uppercase; }
+.moon-frame .window-actions .acidburn-button { width:40px; height:40px; }
+/* The title bar names the moon view; the overlay keeps only its caption. */
+.atlas-scene.moon-window #view-title { display:none; }
 
 /* Pane contents: system notes and world cards share one layout. */
 .map-pane .post-date { margin:0 0 var(--space-xs); line-height:1.4; }
@@ -69,4 +72,12 @@ body.bh-mode .atlas-chart { background:rgba(5,5,15,.72); backdrop-filter:blur(3p
 }
 @media(max-height:500px) {
   .atlas-scene.moon-window { margin:4px; }
+  /* Short landscape: a compact title bar, and an open card takes the map's
+   * full height over its right end (the card's own close sits there). */
+  .moon-frame .window-toolbar { padding:2px 2px 2px var(--space-sm); }
+  .moon-frame .window-actions .acidburn-button { width:36px; height:36px; }
+  .atlas-scene.moon-window > .author-card.map-pane { top:var(--hud-inset); max-height:calc(100% - 2 * var(--hud-inset)); }
+  /* A little wider, tighter buttons: world actions stay on one row. */
+  .atlas-scene.map-viewport { --pane-w:min(300px,52%); }
+  .world-actions .acidburn-button { min-height:36px; padding:0 8px; }
 }

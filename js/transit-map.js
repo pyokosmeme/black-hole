@@ -261,7 +261,8 @@
 
         window.addEventListener('resize', onResize);
         // Opening or closing a pane changes how far the diagram may scroll.
-        document.addEventListener('mapwindow:layout', function() { if (mapMode === '2d') applyView(); });
+        // (Until the reader moves the map, a new HUD height refits it.)
+        document.addEventListener('mapwindow:layout', function() { if (mapMode === '2d') { if (view.user) applyView(); else fitView(); } });
         console.log('[TransitMap] Initialized with', Object.keys(stations).length, 'stations and', routes.length, 'routes');
     }
 
