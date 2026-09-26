@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#000000">
+  <title>CHOMP Vehicle Viewer · Possible Territories</title>
+  <meta name="description" content="Inspect and operate the CHOMP hexapedal vehicle and its five turret configurations.">
+  <link rel="icon" href="img/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/acidburn.css">
+  <link rel="stylesheet" href="css/map-window.css?v=10">
+  <link rel="stylesheet" href="css/vehicle-viewer.css?v=1">
+  <script defer src="js-libs/three.min.js"></script>
+  <script defer src="js-libs/jquery-2.1.4.min.js"></script>
+  <script defer src="js-libs/Detector.js"></script>
+  <script defer src="js-libs/ShaderLoader.min.js"></script>
+  <script defer src="js-libs/mustache.min.js"></script>
+  <script defer src="three-js-monkey-patch.js"></script>
+  <script defer src="js/acidburn-galaxy.js"></script>
+  <script defer src="js/acidburn-mode.js"></script>
+  <script defer src="js/acidburn-blackhole.js"></script>
+  <script defer src="js/map-window.js?v=10"></script>
+  <script defer src="js/chomp-three.js"></script>
+  <script defer src="js/vehicle-viewer.js?v=1"></script>
+  <script defer src="nav-menu.js"></script>
+</head>
+<body class="vehicle-viewer">
+  <a class="skip-link" href="#main">Skip to vehicle viewer</a>
+  <div class="static-bg" aria-hidden="true"></div>
+  <div id="blackhole-container" aria-hidden="true"></div>
+  <header class="header-bar">
+    <div id="nav-menu"></div>
+    <div class="header-content-wrapper"><a href="/maps" class="header-brand">POSSIBLE TERRITORIES</a></div>
+  </header>
+  <main id="main" class="main-content map-window-shell">
+    <section class="author-card map-window" data-map-window aria-labelledby="chart-title">
+      <div class="section-header window-toolbar">
+        <h2 id="chart-title">CHOMP / VEHICLE VIEW</h2><div class="section-line"></div>
+        <div class="window-actions" role="group" aria-label="Window controls">
+          <button class="acidburn-button" type="button" data-window-expand aria-pressed="false" aria-label="Expand window" title="Expand window">
+            <svg class="expand-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/></svg>
+            <svg class="collapse-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9h6V3m6 0v6h6M9 21v-6H3m18 0h-6v6"/></svg>
+          </button>
+          <a class="acidburn-button" href="/maps" aria-label="Close viewer and return to Maps" title="Close viewer · Maps">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg>
+          </a>
+        </div>
+      </div>
+      <div class="map-viewport" id="stage">
+        <div class="map-hud map-hud-tl">
+          <p class="map-view-title">CHOMP // <span id="varName">CIC</span></p>
+          <p class="map-view-note">Combat and Hazardous Operations Modular Platform</p>
+        </div>
+        <div class="map-hud map-hud-bl"><p class="map-hint" id="view-hint">DRAG: ORBIT · SCROLL / PINCH: ZOOM · CLICK: IDENTIFY</p><p class="map-label" id="pick" hidden></p></div>
+        <div class="map-hud map-hud-br">
+          <div class="map-controls" role="group" aria-label="Vehicle controls">
+            <button class="acidburn-button" type="button" data-pane-toggle="views-pane" aria-controls="views-pane" aria-expanded="false">views</button>
+            <button class="acidburn-button" type="button" data-pane-toggle="turret-pane" aria-controls="turret-pane" aria-expanded="false">turret</button>
+            <button class="acidburn-button" type="button" data-pane-toggle="motion-pane" aria-controls="motion-pane" aria-expanded="false">motion</button>
+            <button class="acidburn-button" type="button" data-pane-toggle="details-pane" aria-controls="details-pane" aria-expanded="false">details</button>
+            <button class="acidburn-button icon" type="button" id="resetView" aria-label="Reset camera" title="Reset camera"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><circle cx="12" cy="12" r="2.5"/></svg></button>
+            <button class="acidburn-button icon" type="button" data-scene-action="in" aria-label="Zoom in" title="Zoom in"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
+            <button class="acidburn-button icon" type="button" data-scene-action="out" aria-label="Zoom out" title="Zoom out"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg></button>
+          </div>
+        </div>
+
+        <aside class="author-card map-pane" id="views-pane" data-map-pane hidden aria-labelledby="views-title">
+          <div class="section-header window-toolbar"><h2 id="views-title">VIEWS &amp; LAYERS</h2><div class="section-line"></div><div class="window-actions"><button class="acidburn-button" type="button" data-pane-close aria-label="Close views"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div></div>
+          <div class="map-pane-body">
+            <p class="post-date">CAMERA</p>
+            <div class="vehicle-choice-grid" id="views">
+              <button class="acidburn-button" type="button" data-view="three">3/4</button><button class="acidburn-button" type="button" data-view="front">front</button><button class="acidburn-button" type="button" data-view="side">side</button><button class="acidburn-button" type="button" data-view="rear">rear</button><button class="acidburn-button" type="button" data-view="top">top</button><button class="acidburn-button" type="button" data-view="under">underside</button><button class="acidburn-button" type="button" data-view="ramp">crew ramp</button><button class="acidburn-button" type="button" data-view="leg">leg root</button><button class="acidburn-button" type="button" data-view="legout">leg joints</button><button class="acidburn-button" type="button" data-view="turret">turret</button>
+            </div>
+            <button id="spin" class="acidburn-button" type="button" aria-pressed="false">auto rotate</button>
+            <p class="post-date">VISIBLE LAYERS</p>
+            <div class="vehicle-layer-grid" id="layers">
+              <label><input type="checkbox" id="lay-hull" checked>Hull</label><label><input type="checkbox" id="lay-turret" checked>Turret</label><label><input type="checkbox" id="lay-legs" checked>Legs</label><label><input type="checkbox" id="lay-radiator" checked>Belly radiator</label><label><input type="checkbox" id="lay-cargo" checked>Racks &amp; cargo</label><label><input type="checkbox" id="lay-ramp" checked>Crew ramp</label><label><input type="checkbox" id="lay-grid" checked>1 m grid</label>
+            </div>
+          </div>
+        </aside>
+
+        <aside class="author-card map-pane" id="turret-pane" data-map-pane hidden aria-labelledby="turret-title">
+          <div class="section-header window-toolbar"><h2 id="turret-title">TURRET</h2><div class="section-line"></div><div class="window-actions"><button class="acidburn-button" type="button" data-pane-close aria-label="Close turret controls"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div></div>
+          <div class="map-pane-body">
+            <p class="post-date">CONFIGURATION</p>
+            <div class="vehicle-choice-grid" id="variants">
+              <button class="acidburn-button" type="button" data-variant="cic" aria-pressed="true">CIC</button><button class="acidburn-button" type="button" data-variant="gun" aria-pressed="false">autocannon</button><button class="acidburn-button" type="button" data-variant="cadss" aria-pressed="false">CIWS (CADSS)</button><button class="acidburn-button" type="button" data-variant="laser" aria-pressed="false">CIWS laser</button><button class="acidburn-button" type="button" data-variant="missile" aria-pressed="false">missile / drone</button>
+            </div>
+            <p class="vehicle-note" id="varNote"></p>
+            <div class="vehicle-range"><label for="traverse">Traverse</label><input type="range" id="traverse" min="-180" max="180" step="1" value="0"><output id="travVal" for="traverse">0°</output></div>
+            <div class="vehicle-choice-grid"><button class="acidburn-button" id="turretAnim" type="button" aria-pressed="false">animate turret</button><button class="acidburn-button" id="poseBtn" type="button" aria-pressed="false">action pose</button><button class="acidburn-button" id="droneBtn" type="button" aria-pressed="false" hidden>launch drones</button></div>
+          </div>
+        </aside>
+
+        <aside class="author-card map-pane" id="motion-pane" data-map-pane hidden aria-labelledby="motion-title">
+          <div class="section-header window-toolbar"><h2 id="motion-title">MOTION</h2><div class="section-line"></div><div class="window-actions"><button class="acidburn-button" type="button" data-pane-close aria-label="Close motion controls"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div></div>
+          <div class="map-pane-body">
+            <p class="post-date">LEG PRESETS</p>
+            <div class="vehicle-choice-grid" id="poses"><button class="acidburn-button" type="button" data-pose="stand" aria-pressed="true">stand</button><button class="acidburn-button" type="button" data-pose="crouch" aria-pressed="false">crouch</button><button class="acidburn-button" type="button" data-pose="tall" aria-pressed="false">tall</button><button class="acidburn-button" type="button" data-pose="stride" aria-pressed="false">stride</button><button class="acidburn-button" type="button" data-pose="reach" aria-pressed="false">reach</button><button class="acidburn-button" type="button" data-pose="walk" aria-pressed="false">walk</button><button class="acidburn-button" type="button" data-pose="jog" aria-pressed="false">jog</button><button class="acidburn-button" type="button" data-pose="sprint" aria-pressed="false">sprint</button></div>
+            <label class="vehicle-check"><input type="checkbox" id="slowMo">Slow motion (¼×)</label><p class="vehicle-note" id="gaitSpeed" aria-live="off"></p>
+            <div class="vehicle-range"><label for="legSel">Drive</label><select id="legSel"><option value="all">All six legs</option><option value="L1">Left front</option><option value="L2">Left middle</option><option value="L3">Left rear</option><option value="R1">Right front</option><option value="R2">Right middle</option><option value="R3">Right rear</option></select></div>
+            <div class="vehicle-range"><label for="jStride">Stride</label><input type="range" id="jStride" min="-21" max="21" step="0.5" value="0"><output id="vStride" for="jStride">0°</output></div>
+            <div class="vehicle-range"><label for="jLift">Lift</label><input type="range" id="jLift" min="0" max="16" step="0.5" value="0"><output id="vLift" for="jLift">0°</output></div>
+            <div class="vehicle-range"><label for="jKnee">Knee</label><input type="range" id="jKnee" min="0" max="45" step="0.5" value="0"><output id="vKnee" for="jKnee">0°</output></div>
+            <div class="vehicle-choice-grid"><button class="acidburn-button" id="jumpBtn" type="button">rocket jump</button><button class="acidburn-button" id="powerBtn" type="button" aria-pressed="false">cut power</button></div>
+            <p class="vehicle-note" id="legNote">Ball joint: stride ±21°, lift 0–16°. Knee: 0–45°, side-by-side on one pin. Ankle: passive gimbal, ±3°; the jointed talons take the rest. Muscles are internal fibre bundles; each joint has a spring-applied brake that locks it if power or a muscle is lost.</p>
+            <p class="post-date">CREW RAMP</p>
+            <div class="vehicle-range"><button class="acidburn-button" id="rampBtn" type="button">open ramp</button><input type="range" id="ramp" min="0" max="42.8" step="0.1" value="0" aria-label="Ramp angle"><output id="rampVal" for="ramp">0.0°</output></div>
+            <p class="vehicle-note">The hinged belly flap reaches the ground at <span id="gAngle">42.8</span>°.</p>
+          </div>
+        </aside>
+
+        <aside class="author-card map-pane" id="details-pane" data-map-pane hidden aria-labelledby="details-title">
+          <div class="section-header window-toolbar"><h2 id="details-title">CHOMP / DETAILS</h2><div class="section-line"></div><div class="window-actions"><button class="acidburn-button" type="button" data-pane-close aria-label="Close details"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div></div>
+          <div class="map-pane-body">
+            <p class="vehicle-note">Combat and Hazardous Operations Modular Platform. Hexapedal vehicle with five turret configurations.</p>
+            <dl class="vehicle-specs"><div><dt>Body</dt><dd>12.00 m</dd></div><div><dt>Hull width</dt><dd>3.96 m</dd></div><div><dt>Height</dt><dd>5.45 m hull / 5.54 m CIC</dd></div><div><dt>Belly</dt><dd id="bellyEl">1.07 m</dd></div><div><dt>Leg span</dt><dd id="span">—</dd></div><div><dt>Mass</dt><dd>100 t</dd></div><div><dt>Crew</dt><dd>3 / 9 max</dd></div></dl>
+            <p class="post-date">SELECTED PART</p><p class="vehicle-note" id="partInfo">Click the model to identify a part. L1–L3 and R1–R3 denote the left and right legs, front to rear.</p>
+          </div>
+        </aside>
+        <div class="vehicle-status" id="status" role="status">Loading CHOMP…</div>
+      </div>
+    </section>
+    <noscript>This interactive vehicle viewer needs JavaScript.</noscript>
+  </main>
+  <script id="vertex-shader" type="x-shader/x-vertex">void main() { gl_Position = vec4(position, 1.0); }</script>
+  <script data-src="raytracer.glsl" data-name="raytracer" type="x-shader/x-fragment"></script>
+</body>
+</html>

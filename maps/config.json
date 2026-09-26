@@ -35,6 +35,13 @@
       "url": "ship-viewer.html",
       "icon": "",
       "desc": "Ex Astris Umbra ships, at true scale."
+    },
+    {
+      "id": "vehicle-viewer",
+      "label": "CHOMP Vehicle Viewer",
+      "url": "vehicle-viewer.html",
+      "icon": "",
+      "desc": "Inspect the CHOMP hexapedal vehicle, turret variants, leg motion, crew ramp, and rocket jump."
     }
   ],
   "posts_index": ""

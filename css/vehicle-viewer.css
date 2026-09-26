@@ -1,0 +1,32 @@
+/* CHOMP layout only. Acid Burn and map-window.css own the page chrome. */
+.vehicle-viewer #stage { --grid:#293846; --grid-major:#486177; }
+.vehicle-viewer #stage > canvas { position:absolute; inset:0; width:100%; height:100%; display:block; cursor:grab; touch-action:none; }
+.vehicle-viewer #stage > canvas:active { cursor:grabbing; }
+.vehicle-viewer #stage > canvas:focus-visible { outline:2px solid var(--cyan); outline-offset:-3px; }
+.vehicle-viewer .map-hud-bl { display:flex; flex-direction:column; align-items:flex-start; }
+.vehicle-viewer #pick { max-width:min(340px,calc(100vw - 32px)); overflow-wrap:anywhere; }
+.vehicle-viewer .vehicle-status { position:absolute; inset:0; z-index:5; display:grid; place-items:center; padding:var(--space-md); color:#fff; background:#05050f; text-align:center; }
+.vehicle-viewer .vehicle-status[hidden] { display:none; }
+.vehicle-viewer .map-pane-body { display:flex; flex-direction:column; gap:var(--space-sm); }
+.vehicle-viewer .map-pane-body .post-date { margin:var(--space-xs) 0 0; }
+.vehicle-viewer .vehicle-choice-grid,.vehicle-viewer .vehicle-layer-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px; }
+.vehicle-viewer .vehicle-choice-grid .acidburn-button { min-height:40px; padding:6px; white-space:normal; }
+.vehicle-viewer .vehicle-layer-grid label,.vehicle-viewer .vehicle-check { display:flex; align-items:center; gap:var(--space-xs); min-height:40px; cursor:pointer; }
+.vehicle-viewer .vehicle-layer-grid input,.vehicle-viewer .vehicle-check input { width:18px; height:18px; flex:none; accent-color:var(--purple); }
+.vehicle-viewer .vehicle-range { display:grid; grid-template-columns:minmax(66px,auto) minmax(0,1fr) auto; align-items:center; gap:var(--space-xs); min-height:40px; }
+.vehicle-viewer .vehicle-range input[type=range] { min-width:0; width:100%; accent-color:var(--purple); }
+.vehicle-viewer .vehicle-range select { min-width:0; width:100%; padding:7px; font:inherit; color:inherit; background:var(--panel); border:1px solid var(--purple); }
+.vehicle-viewer .vehicle-range output { min-width:44px; text-align:right; font-variant-numeric:tabular-nums; }
+.vehicle-viewer .vehicle-note { margin:0; overflow-wrap:anywhere; }
+.vehicle-viewer .vehicle-specs { display:grid; gap:4px; margin:0; }
+.vehicle-viewer .vehicle-specs div { display:flex; justify-content:space-between; gap:var(--space-sm); border-bottom:1px solid var(--purple); }
+.vehicle-viewer .vehicle-specs dd { margin:0; text-align:right; }
+.vehicle-viewer .map-hud .map-view-note { max-width:260px; }
+@media(max-width:600px) and (min-height:501px) {
+  .vehicle-viewer .map-hud-bl { display:none; }
+  .vehicle-viewer .map-hud-br { top:auto; bottom:var(--hud-inset); }
+  .vehicle-viewer .map-viewport.has-pane .map-hud-br { display:none; }
+  .vehicle-viewer .author-card.map-pane { max-height:min(72%,calc(100% - var(--hud-tl-h,44px) - 22px)); }
+}
+@media(max-width:380px) { .vehicle-viewer .map-controls { gap:2px; } .vehicle-viewer .map-hud .acidburn-button { padding-inline:6px; } }
+@media(max-height:600px) { .vehicle-viewer .map-hud-bl { display:none; } }

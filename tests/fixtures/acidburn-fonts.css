@@ -1,0 +1,6 @@
+/* Offline browser fixture for the same Google Fonts declared by vehicle-viewer.html. */
+@font-face { font-family:'Orbitron'; font-style:normal; font-weight:400; src:url('https://vehicle.test/tests/fixtures/fonts/orbitron-400.ttf') format('truetype'); }
+@font-face { font-family:'Orbitron'; font-style:normal; font-weight:500; src:url('https://vehicle.test/tests/fixtures/fonts/orbitron-500.ttf') format('truetype'); }
+@font-face { font-family:'Orbitron'; font-style:normal; font-weight:700; src:url('https://vehicle.test/tests/fixtures/fonts/orbitron-700.ttf') format('truetype'); }
+@font-face { font-family:'Orbitron'; font-style:normal; font-weight:900; src:url('https://vehicle.test/tests/fixtures/fonts/orbitron-900.ttf') format('truetype'); }
+@font-face { font-family:'Share Tech Mono'; font-style:normal; font-weight:400; src:url('https://vehicle.test/tests/fixtures/fonts/share-tech-mono-400.ttf') format('truetype'); }
