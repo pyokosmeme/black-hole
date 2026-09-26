@@ -84,6 +84,17 @@ def run():
                 }""")
                 page.screenshot(path=str(SHOTS / f"chomp-{width}x{height}-motion.png"))
                 page.locator('#motion-pane [data-pane-close]').click()
+            if width in (320, 390):
+                page.locator('[data-pane-toggle="views-pane"]').click()
+                page.locator('#lightBearing').scroll_into_view_if_needed()
+                assert page.locator('#lightBearing').is_visible()
+                assert page.evaluate("""() => {
+                    const c=document.querySelector('#lightBearing').getBoundingClientRect();
+                    const p=document.querySelector('#views-pane').getBoundingClientRect();
+                    return c.left>=p.left&&c.right<=p.right&&c.top>=p.top&&c.bottom<=p.bottom;
+                }""")
+                page.screenshot(path=str(SHOTS / f"chomp-{width}x{height}-lighting.png"))
+                page.locator('#views-pane [data-pane-close]').click()
             if width == 1366:
                 page.wait_for_timeout(400)
                 idle = page.evaluate("__vehicleViewer.renderCount")
@@ -94,6 +105,37 @@ def run():
                 page.keyboard.press('ArrowRight')
                 assert page.evaluate("__vehicleViewer.camera.position.toArray()") != before
                 page.locator('#resetView').click()
+                page.locator('[data-pane-toggle="views-pane"]').click()
+                assert page.locator('#lightKey').is_visible()
+                page.evaluate("""() => {
+                    for(const [id,value] of Object.entries({lightAmbient:0.3,lightKey:0.4,lightFill:1.2,lightBearing:45})){
+                        const el=document.getElementById(id);el.value=value;
+                        el.dispatchEvent(new Event('input',{bubbles:true}));
+                        el.dispatchEvent(new Event('change',{bubbles:true}));
+                    }
+                }""")
+                assert page.locator('#lightKeyValue').inner_text() == '0.4×'
+                assert page.evaluate("""() => {
+                    const lights=__vehicleViewer.scene.children.filter(x=>x.isDirectionalLight);
+                    const ambient=__vehicleViewer.scene.children.find(x=>x.isHemisphereLight);
+                    return ambient.intensity===0.3&&lights[0].intensity===0.4&&lights[1].intensity===1.2
+                        &&Math.abs(lights[0].position.x-lights[0].position.y)<.01;
+                }""")
+                page.reload()
+                page.wait_for_function("window.__vehicleViewer?.loaded", timeout=20000)
+                assert page.locator('#lightAmbient').input_value() == '0.3'
+                assert page.locator('#lightKey').input_value() == '0.4'
+                assert page.locator('#lightFill').input_value() == '1.2'
+                assert page.locator('#lightBearing').input_value() == '45'
+                page.locator('[data-pane-toggle="views-pane"]').click()
+                page.locator('#resetLighting').click()
+                assert page.locator('#lightAmbient').input_value() == '1.6'
+                assert page.locator('#lightKey').input_value() == '2.1'
+                assert page.locator('#lightFill').input_value() == '0.7'
+                assert page.locator('#lightBearing').input_value() == '-128'
+                assert page.evaluate("localStorage.getItem('chomp-lighting-v1')===null")
+                page.screenshot(path=str(SHOTS / "chomp-1366x768-lighting.png"))
+                page.locator('#views-pane [data-pane-close]').click()
                 assert page.evaluate("""async () => {
                   const s=[...document.styleSheets].find(x=>x.href?.endsWith('/css/acidburn.css'));
                   const n=s.cssRules.length;s.insertRule('.section-header h2 {color:rgb(12,34,56)}',n);

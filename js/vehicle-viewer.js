@@ -24,11 +24,44 @@ const controls=new OrbitControls(camera,renderer.domElement);
 controls.enableDamping=true; controls.dampingFactor=.09; controls.maxDistance=80; controls.minDistance=2;
 controls.listenToKeyEvents(renderer.domElement);
 
-scene.add(new THREE.HemisphereLight(0xe8eef0,0x3a3f36,1.6));
+const ambient=new THREE.HemisphereLight(0xe8eef0,0x3a3f36,1.6); scene.add(ambient);
 const sun=new THREE.DirectionalLight(0xfff4e2,2.1);
 sun.position.set(-7,-9,16);
 scene.add(sun); scene.add(sun.target);
 const fill=new THREE.DirectionalLight(0xcfe0ff,.7); fill.position.set(10,8,4); scene.add(fill);
+const lightingDefaults=Object.freeze({ambient:1.6,key:2.1,fill:.7,bearing:-128});
+const lighting={...lightingDefaults};
+const lightingControls={
+  ambient:document.getElementById('lightAmbient'), key:document.getElementById('lightKey'),
+  fill:document.getElementById('lightFill'), bearing:document.getElementById('lightBearing')
+};
+const lightingStorageKey='chomp-lighting-v1';
+try{
+  const saved=JSON.parse(localStorage.getItem(lightingStorageKey));
+  if(saved&&typeof saved==='object')for(const [key,input] of Object.entries(lightingControls)){
+    const value=saved[key];
+    if(Number.isFinite(value)&&value>=Number(input.min)&&value<=Number(input.max))lighting[key]=value;
+  }
+}catch{}
+function applyLighting(){
+  ambient.intensity=lighting.ambient; sun.intensity=lighting.key; fill.intensity=lighting.fill;
+  const angle=THREE.MathUtils.degToRad(lighting.bearing),radius=Math.hypot(7,9);
+  sun.position.set(Math.cos(angle)*radius,Math.sin(angle)*radius,16);
+  for(const [key,input] of Object.entries(lightingControls)){
+    input.value=lighting[key];
+    document.getElementById(input.id+'Value').textContent=key==='bearing'?`${lighting[key]}°`:`${lighting[key].toFixed(1)}×`;
+  }
+}
+applyLighting();
+for(const [key,input] of Object.entries(lightingControls)){
+  input.addEventListener('input',()=>{lighting[key]=Number(input.value);applyLighting();requestRender();});
+  input.addEventListener('change',()=>{try{localStorage.setItem(lightingStorageKey,JSON.stringify(lighting));}catch{}});
+}
+document.getElementById('resetLighting').addEventListener('click',()=>{
+  Object.assign(lighting,lightingDefaults);applyLighting();
+  try{localStorage.removeItem(lightingStorageKey);}catch{}
+  requestRender();
+});
 
 const contactTexture=(()=>{const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');const g=x.createRadialGradient(32,32,2,32,32,32);g.addColorStop(0,'rgba(0,0,0,.34)');g.addColorStop(1,'rgba(0,0,0,0)');x.fillStyle=g;x.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);})();
 const groundShadow=new THREE.Mesh(new THREE.PlaneGeometry(14,10),new THREE.MeshBasicMaterial({map:contactTexture,transparent:true,depthWrite:false}));
