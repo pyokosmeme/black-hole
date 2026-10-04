@@ -104,6 +104,7 @@ window.createNeonBlackhole = function (options) {
     planetEnabled: function () { return this.planet.enabled && this.quality !== 'fast'; },
     observerMotion: function () { return this.observer.motion; },
     diskTilt: function () { return this.look.disk_tilt !== 0 || this.look.disk_yaw !== 0; },
+    gridPulse: function () { return this.look.grid_pulse !== 0; },
     viewerSky: function () { return !!options.skyMotion; }
   };
 
@@ -232,7 +233,25 @@ window.createNeonBlackhole = function (options) {
   var defaults = settings();
 
   var templates = {}, template = null, needsCompile = true, dirty = true;
-  function compile() { return Mustache.render(template, P); }
+  var compiledTemplate, compiledKey, compiledSource, compileFields;
+  function compile() {
+    if (compiledTemplate !== template) {
+      compiledTemplate = template; compiledKey = null;
+      // Derive dependencies from the live template, so adding a shader feature
+      // cannot silently leave a manually maintained cache key out of date.
+      compileFields = Array.from(new Set((template.match(/\{\{[#^]?[\w.]+\}\}/g) || []).map(function (tag) {
+        return tag.replace(/[{}#^]/g, '');
+      })));
+    }
+    var key = JSON.stringify(compileFields.map(function (path) {
+      var value = path.split('.').reduce(function (obj, k) { return obj && obj[k]; }, P);
+      return typeof value === 'function' ? value.call(P) : value;
+    }));
+    if (key !== compiledKey) {
+      compiledSource = Mustache.render(template, P); compiledKey = key;
+    }
+    return compiledSource;
+  }
 
   // ─────────────────────────────────────────────────────────── textures
   var textures = {}, pending = 0, galaxyTexture = null;
@@ -566,10 +585,13 @@ window.createNeonBlackhole = function (options) {
     buildTargets(curScale || P.look.render_scale);
   }
 
-  function viewMatrix(pitch, yaw) {
-    var m = new THREE.Matrix4().makeRotationX(degToRad(-pitch));
-    m.multiply(new THREE.Matrix4().makeRotationY(degToRad(-yaw)));
-    var e = m.elements, cm = new THREE.Matrix3();
+  var viewRotation = new THREE.Matrix4(), viewYaw = new THREE.Matrix4();
+  var cameraView = new THREE.Matrix3(), cameraLevel = new THREE.Matrix3();
+  var worldFloor = new THREE.Matrix3(), worldFloorYaw;
+  function viewMatrix(pitch, yaw, cm) {
+    viewRotation.makeRotationX(degToRad(-pitch));
+    viewRotation.multiply(viewYaw.makeRotationY(degToRad(-yaw)));
+    var e = viewRotation.elements;
     cm.set(e[0], e[1], e[2], e[8], e[9], e[10], e[4], e[5], e[6]);
     return cm;
   }
@@ -580,14 +602,18 @@ window.createNeonBlackhole = function (options) {
     var wp = c.wobble_pitch * (0.75 * Math.sin(k * tt) + 0.25 * Math.sin(k * 2.618 * tt + 1.3));
     var wy = c.wobble_yaw * (0.7 * Math.sin(k * 0.73 * tt + 0.5) + 0.3 * Math.sin(k * 1.91 * tt + 2.1));
     if (!P.observer.motion) { wp = 0; wy = 0; }
-    var cm = viewMatrix(c.pitch + wp, c.yaw + wy);
-    var cmLevel = viewMatrix(c.pitch, c.yaw);
+    var cm = viewMatrix(c.pitch + wp, c.yaw + wy, cameraView);
+    var cmLevel = viewMatrix(c.pitch, c.yaw, cameraLevel);
+    if (worldFloorYaw !== P.look.floor_yaw) {
+      viewMatrix(0, P.look.floor_yaw, worldFloor);
+      worldFloorYaw = P.look.floor_yaw;
+    }
     if (P.observer.motion) {
       var frame = observer.orbitalFrame();
-      floorBasis = frame.clone().multiply(cmLevel);
+      floorBasis.copy(frame).multiply(cmLevel);
       observer.orientation = frame.multiply(cm);
     } else {
-      floorBasis = viewMatrix(0, P.look.floor_yaw);
+      floorBasis.copy(worldFloor);
       var az=degToRad(P.observer.azimuth+observer.rotation), el=degToRad(P.observer.elevation);
       observer.position.set(Math.cos(az)*Math.cos(el),Math.sin(az)*Math.cos(el),Math.sin(el)).multiplyScalar(P.observer.distance);
       // Stationary height changes the viewpoint before aiming at the hole.
@@ -630,7 +656,7 @@ window.createNeonBlackhole = function (options) {
     uniforms.cam_x.value.set(e[0], e[1], e[2]);
     uniforms.cam_y.value.set(e[3], e[4], e[5]);
     uniforms.cam_z.value.set(e[6], e[7], e[8]);
-    if (!L.floor_follow_camera) floorBasis=viewMatrix(0,L.floor_yaw);
+    if (!L.floor_follow_camera) floorBasis.copy(worldFloor);
     var f = floorBasis.elements;
     uniforms.floor_bx.value.set(f[0], f[1], f[2]);
     uniforms.floor_by.value.set(f[3], f[4], f[5]);
@@ -699,8 +725,11 @@ window.createNeonBlackhole = function (options) {
     if (!paused) adaptResolution(frameMs, now);
 
     if (needsCompile) {
-      mainMat.fragmentShader = compile();
-      mainMat.needsUpdate = true;
+      var source = compile();
+      if (mainMat.fragmentShader !== source) {
+        mainMat.fragmentShader = source;
+        mainMat.needsUpdate = true;
+      }
       needsCompile = false;
     }
     observer.update(paused ? 0 : dt);
@@ -715,20 +744,26 @@ window.createNeonBlackhole = function (options) {
     var L = P.look;
     pass(mainScene, rtMain);
 
-    post.bright.uniforms.src.value = rtMain;
-    post.bright.uniforms.texel.value.set(1 / rtMain.width, 1 / rtMain.height);
-    post.bright.uniforms.threshold.value = L.bloom_threshold;
-    pass(post.sBright, rtA);
-    blurPair(rtA, rtB, L.bloom_radius);
-    blurPair(rtA, rtB, L.bloom_radius * 2.0);
+    var bloom = !ORIG && L.bloom_strength !== 0;
+    if (bloom) {
+      post.bright.uniforms.src.value = rtMain;
+      post.bright.uniforms.texel.value.set(1 / rtMain.width, 1 / rtMain.height);
+      post.bright.uniforms.threshold.value = L.bloom_threshold;
+      pass(post.sBright, rtA);
+      blurPair(rtA, rtB, L.bloom_radius);
+      blurPair(rtA, rtB, L.bloom_radius * 2.0);
 
-    post.copy.uniforms.src.value = rtA;
-    pass(post.sCopy, rtC);
-    blurPair(rtC, rtD, L.bloom_radius * 1.5);
-    blurPair(rtC, rtD, L.bloom_radius * 3.0);
+      post.copy.uniforms.src.value = rtA;
+      pass(post.sCopy, rtC);
+      blurPair(rtC, rtD, L.bloom_radius * 1.5);
+      blurPair(rtC, rtD, L.bloom_radius * 3.0);
+    }
 
     var C = post.composite.uniforms;
-    C.scene.value = rtMain; C.bloom1.value = rtA; C.bloom2.value = rtC;
+    C.scene.value = rtMain;
+    // Bind a valid target even when bloom is unused; multiplying it by zero
+    // leaves the compositor's output identical without ten extra GPU passes.
+    C.bloom1.value = bloom ? rtA : rtMain; C.bloom2.value = bloom ? rtC : rtMain;
     C.strength.value = ORIG ? 0.0 : L.bloom_strength;
     C.exposure.value = L.exposure;
     C.tonemap.value = ORIG ? 0.0 : 1.0;

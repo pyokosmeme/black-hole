@@ -801,6 +801,7 @@ void main() {
         float dens = clamp(LAT_STEP / (8.0 * fw), 0.0, 1.0);
 
         // packets running along meridians, each with its own speed and phase
+        {{#gridPulse}}
         float id = floor(lon / LON_STEP + 0.5);
         float h = hash11(id + 3.7);
         float k = fract((lat / M_PI + 0.5) * 2.0 + time * 0.012 * (0.4 + h) + h * 9.0);
@@ -808,6 +809,10 @@ void main() {
         // a latitude band sweeping pole to pole; through the lens it becomes arcs
         float band_lat = (fract(time * 0.004) - 0.5) * M_PI;
         float band = exp(-abs(lat - band_lat) / 0.06);
+        {{/gridPulse}}
+        {{^gridPulse}}
+        float packet = 0.0, band = 0.0;
+        {{/gridPulse}}
 
         float A = (1.2 * a.x + 0.35 * a.y) * (1.0 + 2.5 * grid_pulse * band);
         float B = (1.2 * b.x + 0.35 * b.y) * (1.0 + 4.0 * grid_pulse * packet);

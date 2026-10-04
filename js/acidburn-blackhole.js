@@ -18,10 +18,12 @@
   }
   async function dependencies(){
     await script('js-libs/three.min.js',()=>!!window.THREE);
-    await script('js-libs/Detector.js',()=>!!window.Detector);
+    await Promise.all([
+      script('js-libs/Detector.js',()=>!!window.Detector),
+      script('js-libs/mustache.min.js',()=>!!window.Mustache),
+      script('three-js-monkey-patch.js',()=>!!THREE.Matrix4.prototype.linearPart)
+    ]);
     if(!Detector.webgl) throw new Error('WebGL unavailable');
-    await script('js-libs/mustache.min.js',()=>!!window.Mustache);
-    await script('three-js-monkey-patch.js',()=>!!THREE.Matrix4.prototype.linearPart);
   }
   async function sync(){
     const request=++generation,kind=legacy()?'legacy':'neon',on=active();
@@ -31,8 +33,10 @@
     try{
       await dependencies();
       if(kind==='neon'){
-        await script('neon/settings.js',()=>!!window.NeonSettings);
-        await script('neon/js-libs/neon-blackhole.js',()=>!!window.createNeonBlackhole);
+        await Promise.all([
+          script('neon/settings.js',()=>!!window.NeonSettings),
+          script('neon/js-libs/neon-blackhole.js',()=>!!window.createNeonBlackhole)
+        ]);
       }else{
         await script('js-libs/jquery-2.1.4.min.js',()=>!!window.jQuery);
         await script('js-libs/ShaderLoader.min.js',()=>!!window.SHADER_LOADER);
