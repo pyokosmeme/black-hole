@@ -37,11 +37,11 @@
     beaming: true,
     doppler_shift: true,
     light_travel_time: true,
-    time_scale: 1.16,
+    time_scale: 3.18,
     observer: {
       motion: true,
       orbit: 'eccentric',          // 'eccentric' (geodesic between periapsis/apoapsis) or 'circular'
-      periapsis: 4.1,
+      periapsis: 3.2,
       apoapsis: 22.6,
       distance: 8.0,               // circular orbit radius
       orbital_inclination: 4.27
@@ -49,12 +49,12 @@
     camera: {
       pitch: 9.35, yaw: -10.96,
       // quasi-periodic wobble (two incommensurate tones per axis), degrees
-      wobble_pitch: 4.0, wobble_yaw: 7.0, wobble_period: 26.0   // period in seconds at time_scale 1
+      wobble_pitch: 4.0, wobble_yaw: 7.0, wobble_period: 89.5   // period in seconds at time_scale 1
     },
 
     // fork features
-    neon_grid: false,
-    neon_floor: true,
+    neon_grid: true,
+    neon_floor: false,
     neon_sky: true,
     photon_eq_fix: true,         // u'' = -u + 3/2 u^2 (original has u^3)
     disk_flow: true,
@@ -62,9 +62,9 @@
     grav_redshift: true,
 
     look: {
-      grid_strength: 0.666,
-      grid_glow: 12.0,
-      grid_pulse: 3.0,
+      grid_strength: 0.05,
+      grid_glow: 0.0,
+      grid_pulse: 0.0,
       floor_strength: 0.975,
       floor_height: 5.9,
       floor_tilt: -3.0,            // degrees in the UI
@@ -75,9 +75,9 @@
       floor_extent: 14.0,
       disk_temp: 8075.0,
       disk_outer: 13.0,
-      disk_speed: 10.0,            // 1 = Keplerian; >1 is a stylized speed-up of the gas only
+      disk_speed: 4.06,            // 1 = Keplerian; >1 is a stylized speed-up of the gas only
       spot_strength: 4.0,
-      galaxy_gain: 3.0,
+      galaxy_gain: 3.36,
       vfov: 72.0,                  // max vertical FOV (deg); landscape keeps the original 90 deg horizontal
       exposure: 1.381,
       bloom_strength: 0.693,
