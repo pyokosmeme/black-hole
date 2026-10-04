@@ -51,9 +51,33 @@ uniform float disk_temp;        // peak disk temperature (K) for NT profile
 uniform float disk_outer;       // outer disk radius (r_s units)
 uniform float galaxy_gain;
 
-const vec3 NEON_CYAN    = vec3(0.10, 0.95, 1.00);
-const vec3 NEON_MAGENTA = vec3(1.00, 0.12, 0.85);
-const vec3 NEON_VIOLET  = vec3(0.55, 0.10, 1.00);
+// lastnpcalex.agency palette: --cyan #00ffff, --purple #bf00ff, deep #4a1868
+const vec3 SITE_CYAN   = vec3(0.000, 1.000, 1.000);
+const vec3 SITE_PURPLE = vec3(0.749, 0.000, 1.000);
+const vec3 SITE_DEEP   = vec3(0.290, 0.094, 0.408);
+
+uniform float disk_speed;      // 1 = Keplerian
+uniform float spot_strength;   // orbiting hot spots
+
+// cheap 3D value noise for the disk turbulence
+float vhash(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+float vnoise(vec3 x) {
+    vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * f);
+    return mix(mix(mix(vhash(i), vhash(i + vec3(1,0,0)), f.x), mix(vhash(i + vec3(0,1,0)), vhash(i + vec3(1,1,0)), f.x), f.y),
+               mix(mix(vhash(i + vec3(0,0,1)), vhash(i + vec3(1,0,1)), f.x), mix(vhash(i + vec3(0,1,1)), vhash(i + vec3(1,1,1)), f.x), f.y), f.z);
+}
+float vfbm(vec3 p) { float a = 0.5, s = 0.0; for (int i = 0; i < 4; i++) { s += a * vnoise(p); p = p * 2.07 + 5.3; a *= 0.5; } return s; }
+
+// Gas pattern in the frame co-rotating with the Keplerian flow, started at
+// epoch t0: angle advanced by Omega(r) (t - t0) so the pattern shears like
+// the real flow. Azimuth enters as a circle in noise space, so no seam.
+float disk_gas(float r, float ang, float dt_epoch, float seed) {
+    float omega = disk_speed * sqrt(0.5 / (r*r*r));   // coordinate Omega, r_s = 1
+    float a = ang - omega * dt_epoch;
+    vec3 q = vec3(cos(a) * 2.2, sin(a) * 2.2, log(r) * 7.0 + seed);
+    float n = vfbm(q);
+    return n + 0.5 * vfbm(q * 2.6 + vec3(n * 2.0));   // fine filaments riding the clumps
+}
 
 float hash11(float x) { return fract(sin(x * 127.1) * 43758.5453); }
 
@@ -226,6 +250,17 @@ vec4 planet_intersection(vec3 old_pos, vec3 ray, float t, float dt,
 vec4 galaxy_color(vec2 tex_coord, float doppler_factor) {
 
     vec4 color = texture2D(galaxy_texture, tex_coord);
+    {{#neon_sky}}
+    // The original refits each texel to a blackbody and shifts its
+    // temperature, which turns saturated neon into beige. Stylized
+    // stand-in: tint toward red when redshifted (D > 1), blue when
+    // blueshifted. Intensity beaming is still applied to the whole frame.
+    {
+        float D = clamp(doppler_factor, 0.3, 3.0);
+        vec3 tint = vec3(pow(D, 0.9), 1.0, pow(D, -0.9));
+        return vec4(color.rgb * tint / max(max(tint.r, tint.b), 1.0) * 1.2, color.a);
+    }
+    {{/neon_sky}}
     {{^observerMotion}}
     return color;
     {{/observerMotion}}
@@ -287,12 +322,25 @@ vec4 floor_shade(vec3 fp, vec3 dir, float dist, float pix_angle) {
     float core = mix(mean * 1.5, max(lx.x, ly.x), dens);
     float glow = mix(mean * 2.0, max(lx.y, ly.y), dens);
 
+    // major lines every 4 cells in the site's cyan
+    const float S4 = 4.0 * S;
+    const float W4 = 1.4 * W;
+    vec2 gm = abs(fract(st / S4 + 0.5) - 0.5) * S4;
+    vec2 mx = neon_line(gm.x, W4, fw, W4 + 3.0*fw);
+    vec2 my = neon_line(gm.y, W4, fw, W4 + 3.0*fw);
+    float dens4 = clamp(S4 / (6.0 * fw), 0.0, 1.0);
+    float mean4 = 2.0 * (W4 + fw) / S4;
+    float mcore = mix(mean4 * 1.5, max(mx.x, my.x), dens4);
+    float mglow = mix(mean4 * 2.0, max(mx.y, my.y), dens4);
+
     float fade = exp(-rad / floor_extent);
-    vec3 fc = NEON_MAGENTA * (1.3*core + 0.35*glow)
-            + vec3(1.0, 0.8, 1.0) * core * lx.x * ly.x * 1.2   // hot crossings
-            + NEON_VIOLET * 0.025;                              // surface sheen
-    // distance haze: grid dissolves into the classic pink horizon band
-    vec3 haze = mix(vec3(0.05, 0.0, 0.10), vec3(0.85, 0.15, 0.55), smoothstep(0.6, 1.0, 1.0 - fade));
+    float minor = core * (1.0 - mcore);
+    vec3 fc = SITE_PURPLE * (1.3*minor + 0.35*glow)
+            + SITE_CYAN * (1.1*mcore + 0.4*mglow)
+            + vec3(0.85, 1.0, 1.0) * mcore * mx.x * my.x * 1.5    // hot crossings on the major grid
+            + SITE_DEEP * 0.06;                                    // surface sheen
+    // distance haze: grid dissolves into a purple horizon band
+    vec3 haze = mix(SITE_DEEP * 0.4, SITE_PURPLE * 0.85 + SITE_CYAN * 0.05, smoothstep(0.6, 1.0, 1.0 - fade));
     fc = mix(haze * 0.45, fc, fade);
 
     // opacity falls off with distance so the horizon is a soft haze gradient
@@ -463,34 +511,48 @@ void main() {
                     gamma = 1.0/sqrt(1.0-dot(accretion_v,accretion_v));
                     float doppler_factor = gamma*(1.0+dot(ray/ray_l,accretion_v));
 
-                    vec4 disk_tex;
+                    vec4 disk_tex = texture2D(accretion_disk_texture, tex_coord);
+                    float spot = 0.0;
                     {{#disk_flow}}
-                    // Keplerian differential rotation, Omega = v/r, using the
-                    // retarded time t (light-travel corrected when enabled).
-                    // Two layers reset out of phase and crossfade (flow-map
-                    // trick) so the pattern shears locally but never winds up.
+                    // The ring texture is azimuthally uniform (it varies ~40x
+                    // more in r than in phi), so rotating it shows nothing.
+                    // Instead: procedural gas advected by Keplerian rotation in
+                    // retarded coordinate time t. Two epochs, each reset every
+                    // EPOCH, crossfade with a variance-preserving blend, so the
+                    // pattern shears into spirals without winding up and
+                    // without the contrast loss of a plain mix.
                     {
-                        float omega = 1.0 / (r * sqrt(2.0*(r-1.0)));
-                        const float P = 60.0;
-                        float c1 = t / P, c2 = t / P + 0.5;
+                        float ang = atan(isec.y, isec.x);
+                        const float EPOCH = 90.0;
+                        float c1 = t / EPOCH, c2 = c1 + 0.5;
                         float f1 = fract(c1), f2 = fract(c2);
-                        float w1 = 1.0 - abs(2.0*f1 - 1.0);
-                        float rot1 = omega*f1*P/(2.0*M_PI) + 0.618*floor(c1);
-                        float rot2 = omega*f2*P/(2.0*M_PI) + 0.618*floor(c2) + 0.31;
-                        vec2 o2 = vec2(0.0, 0.5);
-                        vec4 a1 = texture2D(accretion_disk_texture, vec2(r_tex, phi_tex + rot1));
-                        vec4 a2 = texture2D(accretion_disk_texture, vec2(r_tex, phi_tex + rot2));
-                        vec4 b1 = texture2D(accretion_disk_texture, vec2(r_tex*1.9+0.13, 2.0*(phi_tex + rot1)));
-                        vec4 b2 = texture2D(accretion_disk_texture, vec2(r_tex*1.9+0.13, 2.0*(phi_tex + rot2)));
-                        disk_tex = mix(a2*0.7 + b2*0.45, a1*0.7 + b1*0.45, w1);
+                        float w1 = 1.0 - abs(2.0*f1 - 1.0), w2 = 1.0 - w1;
+                        float g1 = disk_gas(r, ang, f1 * EPOCH, 13.1 * floor(c1));
+                        float g2 = disk_gas(r, ang, f2 * EPOCH, 13.1 * floor(c2) + 57.0);
+                        float g = 0.75 + ((g1 - 0.75) * w1 + (g2 - 0.75) * w2) / sqrt(w1*w1 + w2*w2);
+                        float clump = smoothstep(0.45, 1.15, g);
+                        disk_tex *= 0.25 + 1.6 * clump;
+
+                        // Orbiting hot spots (cf. GRAVITY flares near Sgr A*):
+                        // Gaussian blobs on circular Keplerian orbits, stretched
+                        // along phi. They pass through the same beaming/Doppler
+                        // code below, so the approaching side flashes.
+                        for (int k = 0; k < 3; k++) {
+                            float fk = float(k);
+                            float rk = 3.4 + 1.9 * fk + 0.6 * sin(fk * 2.3);
+                            float ok = disk_speed * sqrt(0.5 / (rk*rk*rk));
+                            float pk = fk * 2.1 + ok * t;
+                            float dphi = mod(ang - pk + M_PI, 2.0 * M_PI) - M_PI;
+                            float dr = (r - rk) / 0.35;
+                            float ds = dphi * rk / 1.1;
+                            spot += exp(-dr*dr - ds*ds) * (0.8 + 0.4 * sin(fk * 4.7 + t * 0.05));
+                        }
+                        spot *= spot_strength;
                     }
                     {{/disk_flow}}
-                    {{^disk_flow}}
-                    disk_tex = texture2D(accretion_disk_texture, tex_coord);
-                    {{/disk_flow}}
                     {{#disk_profile}}
-                    // more streak contrast so the shear/flow reads (fork styling)
-                    disk_tex = pow(max(disk_tex, 0.0), vec4(1.7)) * 1.8;
+                    // more streak contrast (fork styling)
+                    disk_tex = pow(max(disk_tex, 0.0), vec4(1.4)) * 1.5;
                     {{/disk_profile}}
 
                     {{#disk_profile}}
@@ -507,6 +569,11 @@ void main() {
                         accretion_intensity *= 3.5 * f*f*f*f;   // bolometric ~ T^4
                     }
                     {{/disk_profile}}
+
+                    // hot spots: brighter and hotter than the surrounding gas
+                    accretion_intensity *= 1.0 + 3.0 * spot;
+                    temperature *= 1.0 + 0.35 * spot;
+                    disk_tex += vec4(0.35 * spot);
 
                     {{#grav_redshift}}
                     // static emitter -> static observer at r_cam: sqrt(g_tt(r)/g_tt(r_cam))
@@ -614,10 +681,10 @@ void main() {
 
         float A = (1.2 * a.x + 0.35 * a.y) * (1.0 + 2.5 * grid_pulse * band);
         float B = (1.2 * b.x + 0.35 * b.y) * (1.0 + 4.0 * grid_pulse * packet);
-        grid_rgb = (NEON_CYAN * A + NEON_MAGENTA * B
+        grid_rgb = (SITE_CYAN * A + SITE_PURPLE * B
                  + vec3(1.0) * a.x * b.x * 2.0
-                 + NEON_CYAN * 0.06 * grid_pulse * band) * dens
-                 + (NEON_CYAN + NEON_MAGENTA) * 0.04 * (1.0 - dens);
+                 + SITE_CYAN * 0.06 * grid_pulse * band) * dens
+                 + (SITE_CYAN + SITE_PURPLE) * 0.04 * (1.0 - dens);
         // rays still orbiting when the step budget ran out (photon ring) have no
         // meaningful escape direction; don't let them sparkle
         grid_rgb *= grid_strength * smoothstep(0.08, 0.02, u);
