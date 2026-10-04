@@ -25,7 +25,7 @@ if '--live' in sys.argv:
     origin='https://lastnpcalex.agency'
     revision=subprocess.check_output(['git','rev-parse','--short','HEAD'],cwd=ROOT,text=True).strip()
     for asset in ASSETS:
-        with urlopen(Request(origin+'/'+asset+'?release='+revision,headers={'Cache-Control':'no-cache'}),timeout=30) as response:
+        with urlopen(Request(origin+'/'+asset+'?release='+revision,headers={'Cache-Control':'no-cache','User-Agent':'Mozilla/5.0'}),timeout=30) as response:
             assert response.status==200
             assert response.read()==(ROOT/asset).read_bytes(),asset
     with sync_playwright() as p:
