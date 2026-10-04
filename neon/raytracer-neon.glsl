@@ -92,8 +92,12 @@ float hash11(float x) { return fract(sin(x * 127.1) * 43758.5453); }
 
 // anti-aliased line + screen-space glow. d, core, fw, glow all in the same units
 vec2 neon_line(float d, float core, float fw, float glow) {
-    float c = 1.0 - smoothstep(core, core + fw, d);
-    float g = exp(-d / max(glow, 1e-6));
+    // Integrate the thin line across a pixel instead of expanding its edge
+    // by a whole footprint. Subpixel lines keep their coverage without blur.
+    float pixel = max(fw, 1e-6);
+    float c = clamp((core - d) / pixel + 0.5, 0.0, 1.0)
+            - clamp((-core - d) / pixel + 0.5, 0.0, 1.0);
+    float g = glow > 0.0 ? exp(-d / glow) : 0.0;
     return vec2(c, g);
 }
 // -------------------------------------------------------------------------
@@ -341,47 +345,29 @@ vec4 floor_shade(vec3 fp, vec3 dir, float dist, float pix_angle) {
     float fw = dist * pix_angle / max(cosi, 0.02);
 
     float S = floor_cell;         // cell size, r_s
-    float W = 0.018 * S;          // line half-width scales with the cell
+    float W = 0.006 * S;          // thin line half-width scales with the cell
     vec2 gd = abs(fract(st / S + 0.5) - 0.5) * S;
-    vec2 lx = neon_line(gd.x, W, fw, W + 2.5*fw);
-    vec2 ly = neon_line(gd.y, W, fw, W + 2.5*fw);
-    {{#look.floor_infinite}}
-    lx *= W / max(W, fw);
-    ly *= W / max(W, fw);
-    {{/look.floor_infinite}}
+    vec2 lx = neon_line(gd.x, W, fw, 0.0);
+    vec2 ly = neon_line(gd.y, W, fw, 0.0);
     // when cells shrink below a few pixels, fade lines to their mean
     float dens = clamp(S / (6.0 * fw), 0.0, 1.0);
-    {{#look.floor_infinite}}
     float mean = 2.0 * W / S;
-    {{/look.floor_infinite}}
-    {{^look.floor_infinite}}
-    float mean = 2.0 * (W + fw) / S;
-    {{/look.floor_infinite}}
-    float core = mix(mean * 1.5, max(lx.x, ly.x), dens);
-    float glow = mix(mean * 2.0, max(lx.y, ly.y), dens);
+    float core = mix(2.0 * mean - mean * mean,
+                     lx.x + ly.x - lx.x * ly.x, dens);
 
     // major lines every 4 cells in the site's cyan
     float S4 = 4.0 * S;
     float W4 = 1.4 * W;
     vec2 gm = abs(fract(st / S4 + 0.5) - 0.5) * S4;
-    vec2 mx = neon_line(gm.x, W4, fw, W4 + 3.0*fw);
-    vec2 my = neon_line(gm.y, W4, fw, W4 + 3.0*fw);
-    {{#look.floor_infinite}}
-    mx *= W4 / max(W4, fw);
-    my *= W4 / max(W4, fw);
-    {{/look.floor_infinite}}
+    vec2 mx = neon_line(gm.x, W4, fw, 0.0);
+    vec2 my = neon_line(gm.y, W4, fw, 0.0);
     float dens4 = clamp(S4 / (6.0 * fw), 0.0, 1.0);
-    {{#look.floor_infinite}}
     float mean4 = 2.0 * W4 / S4;
-    {{/look.floor_infinite}}
-    {{^look.floor_infinite}}
-    float mean4 = 2.0 * (W4 + fw) / S4;
-    {{/look.floor_infinite}}
-    float mcore = mix(mean4 * 1.5, max(mx.x, my.x), dens4);
-    float mglow = mix(mean4 * 2.0, max(mx.y, my.y), dens4);
+    float mcore = mix(2.0 * mean4 - mean4 * mean4,
+                      mx.x + my.x - mx.x * my.x, dens4);
 
     {{#look.floor_infinite}}
-    // An unbounded plane fades subpixel lines into horizon haze.
+    // Continue to the horizon while fading unresolved lines smoothly.
     float fade = 1.0 / (1.0 + rad / (8.0 * floor_extent));
     {{/look.floor_infinite}}
     {{^look.floor_infinite}}
@@ -389,37 +375,14 @@ vec4 floor_shade(vec3 fp, vec3 dir, float dist, float pix_angle) {
     {{/look.floor_infinite}}
     // purple stays out from under the cyan lines (it was shifting them blue);
     // core gains are set so cores land on the site hex after the tonemap
-    float major = min(1.0, mcore + 0.6 * mglow);
+    float major = mcore;
     float minor = core * (1.0 - major);
-    vec3 fc = SITE_PURPLE * (1.3*minor + 0.35*glow*(1.0 - major))
-            + SITE_CYAN * (1.8*mcore + 0.4*mglow)
-            + vec3(0.85, 1.0, 1.0) * mcore * mx.x * my.x * 1.5    // hot crossings on the major grid
-            + SITE_DEEP * 0.06;                                    // surface sheen
-    // distance haze: grid dissolves into a purple horizon band
-    vec3 haze = mix(SITE_DEEP * 0.4, SITE_PURPLE * 0.85 + SITE_CYAN * 0.05, smoothstep(0.6, 1.0, 1.0 - fade));
-    // haze glow peaks a few extents out, then dies off toward the horizon,
-    // so the floor dissolves into the sky instead of ending on a hard line
-    {{#look.floor_infinite}}
-    float far = 1.0;
-    {{/look.floor_infinite}}
-    {{^look.floor_infinite}}
-    float far = exp(-rad / (5.0 * floor_extent));
-    {{/look.floor_infinite}}
-    {{#look.floor_infinite}}
-    fc = mix(haze * 0.08, fc, fade);
-    {{/look.floor_infinite}}
-    {{^look.floor_infinite}}
-    fc = mix(haze * 0.45 * far, fc, fade);
-    {{/look.floor_infinite}}
-
-    // opacity falls off with distance so the horizon is a soft haze gradient
-    {{#look.floor_infinite}}
-    float opac = 0.98;
-    {{/look.floor_infinite}}
-    {{^look.floor_infinite}}
-    float opac = 0.98 * exp(-rad / (2.5 * floor_extent));
-    {{/look.floor_infinite}}
-    return vec4(fc * floor_strength * mix(0.6, 1.0, opac), opac);   // opac -> 0 and fc -> 0 together
+    vec3 fc = SITE_PURPLE * (1.3 * minor)
+            + SITE_CYAN * (1.8 * mcore)
+            + vec3(0.85, 1.0, 1.0) * mcore * mx.x * my.x * 1.5;
+    // Only the wires occlude the scene. No surface sheen or haze fills cells.
+    float opac = clamp((minor + major) * floor_strength, 0.0, 1.0) * fade;
+    return vec4(fc * floor_strength * fade, opac);
 }
 {{/neon_floor}}
 
@@ -785,7 +748,7 @@ void main() {
         // meridians converge at the poles; drop them near the pole cap
         float pole = smoothstep(0.985, 0.995, abs(gdir.z));
 
-        float core = 0.0012;                                 // ~0.07 deg
+        float core = 0.00055;                                // ~0.03 deg
         float glow = min(grid_glow * fw, 0.3 * LAT_STEP);    // screen-space halo
         vec2 a = neon_line(dlat, core, fw, glow);
         vec2 b = neon_line(dlon, core, fw, glow);

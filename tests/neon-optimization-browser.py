@@ -32,7 +32,9 @@ with sync_playwright() as p:
         errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
         page.goto('https://optimization.test/fixture')
         page.wait_for_function('v.isReady && framesQueue.length>0')
-        page.evaluate('framesQueue.pop()(performance.now())')
+        # Grid styling deliberately changes; isolate the allocation optimization
+        # comparison to the disk and sky, with the grid disabled in both builds.
+        page.evaluate('v.params.neon_grid=false;v.recompile();framesQueue.pop()(performance.now())')
         before=page.evaluate('allocations')
         page.evaluate("()=>{for(let i=0;i<5;i++)window.dispatchEvent(new Event('resize'));}")
         stats=page.evaluate('({allocations,galaxies,frames:v.frames,scale:v.getScale()})')
