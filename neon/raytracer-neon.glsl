@@ -56,6 +56,9 @@ const vec3 SITE_CYAN   = vec3(0.000, 1.000, 1.000);
 const vec3 SITE_PURPLE = vec3(0.749, 0.000, 1.000);
 const vec3 SITE_DEEP   = vec3(0.290, 0.094, 0.408);
 
+uniform float floor_cell;      // grid cell size (r_s)
+uniform vec2 floor_offset;     // accumulated drift across the floor (r_s), integrated in JS
+uniform vec3 floor_bx, floor_by, floor_bz;   // camera basis WITHOUT wobble: floor stays level
 uniform float disk_speed;      // 1 = Keplerian
 uniform float spot_strength;   // orbiting hot spots
 
@@ -306,13 +309,13 @@ vec4 floor_shade(vec3 fp, vec3 dir, float dist, float pix_angle) {
     vec3 rel = fp - floor_o;
     float rad = length(rel);
     vec2 st = vec2(dot(rel, floor_e1), dot(rel, floor_e2));
-    st.y += time * floor_speed;
+    st += floor_offset;
 
     float cosi = abs(dot(dir, floor_n));
     float fw = dist * pix_angle / max(cosi, 0.02);
 
-    const float S = 1.0;          // cell size, r_s
-    const float W = 0.018;        // line half-width, r_s
+    float S = floor_cell;         // cell size, r_s
+    float W = 0.018 * S;          // line half-width scales with the cell
     vec2 gd = abs(fract(st / S + 0.5) - 0.5) * S;
     vec2 lx = neon_line(gd.x, W, fw, W + 2.5*fw);
     vec2 ly = neon_line(gd.y, W, fw, W + 2.5*fw);
@@ -323,8 +326,8 @@ vec4 floor_shade(vec3 fp, vec3 dir, float dist, float pix_angle) {
     float glow = mix(mean * 2.0, max(lx.y, ly.y), dens);
 
     // major lines every 4 cells in the site's cyan
-    const float S4 = 4.0 * S;
-    const float W4 = 1.4 * W;
+    float S4 = 4.0 * S;
+    float W4 = 1.4 * W;
     vec2 gm = abs(fract(st / S4 + 0.5) - 0.5) * S4;
     vec2 mx = neon_line(gm.x, W4, fw, W4 + 3.0*fw);
     vec2 my = neon_line(gm.y, W4, fw, W4 + 3.0*fw);
@@ -341,11 +344,14 @@ vec4 floor_shade(vec3 fp, vec3 dir, float dist, float pix_angle) {
             + SITE_DEEP * 0.06;                                    // surface sheen
     // distance haze: grid dissolves into a purple horizon band
     vec3 haze = mix(SITE_DEEP * 0.4, SITE_PURPLE * 0.85 + SITE_CYAN * 0.05, smoothstep(0.6, 1.0, 1.0 - fade));
-    fc = mix(haze * 0.45, fc, fade);
+    // haze glow peaks a few extents out, then dies off toward the horizon,
+    // so the floor dissolves into the sky instead of ending on a hard line
+    float far = exp(-rad / (5.0 * floor_extent));
+    fc = mix(haze * 0.45 * far, fc, fade);
 
     // opacity falls off with distance so the horizon is a soft haze gradient
     float opac = 0.98 * exp(-rad / (2.5 * floor_extent));
-    return vec4(fc * floor_strength * mix(0.6, 1.0, opac), opac);
+    return vec4(fc * floor_strength * mix(0.6, 1.0, opac), opac);   // opac -> 0 and fc -> 0 together
 }
 {{/neon_floor}}
 
@@ -414,9 +420,9 @@ void main() {
     {{#neon_floor}}
     // Floor rigidly attached to the observer's frame (stylization: it is not
     // boosted with the orbit). Tilt lowers the horizon so the hole sits above it.
-    floor_n  = normalize(cam_y * cos(floor_tilt) + cam_z * sin(floor_tilt));
+    floor_n  = normalize(floor_by * cos(floor_tilt) + floor_bz * sin(floor_tilt));
     floor_d  = dot(cam_pos, floor_n) - floor_height;
-    floor_e1 = normalize(cam_x - dot(cam_x, floor_n) * floor_n);
+    floor_e1 = normalize(floor_bx - dot(floor_bx, floor_n) * floor_n);
     floor_e2 = cross(floor_e1, floor_n);                 // points away from camera
     floor_o  = floor_d * floor_n;                        // foot of the hole on the floor
     {{/neon_floor}}
@@ -499,7 +505,7 @@ void main() {
 
                 float r = length(isec);
 
-                if (r > ACCRETION_MIN_R && r < disk_outer) {
+                if (r > ACCRETION_MIN_R && r < disk_outer * 1.25) {
                     float phi_tex = atan(isec.x, isec.y)/M_PI*0.5+0.5;
                     float r_tex = (r-ACCRETION_MIN_R)/DISK_WIDTH;
                     vec2 tex_coord = vec2(r_tex, phi_tex);
@@ -511,8 +517,11 @@ void main() {
                     gamma = 1.0/sqrt(1.0-dot(accretion_v,accretion_v));
                     float doppler_factor = gamma*(1.0+dot(ray/ray_l,accretion_v));
 
-                    vec4 disk_tex = texture2D(accretion_disk_texture, tex_coord);
+                    vec4 disk_tex = texture2D(accretion_disk_texture, vec2(min(r_tex, 1.0), phi_tex));
                     float spot = 0.0;
+                    // soft outer edge: density tapers over the outer ~35%, and
+                    // the gas pattern (below) pushes the edge in and out
+                    float edge_r = r;
                     {{#disk_flow}}
                     // The ring texture is azimuthally uniform (it varies ~40x
                     // more in r than in phi), so rotating it shows nothing.
@@ -532,6 +541,7 @@ void main() {
                         float g = 0.75 + ((g1 - 0.75) * w1 + (g2 - 0.75) * w2) / sqrt(w1*w1 + w2*w2);
                         float clump = smoothstep(0.45, 1.15, g);
                         disk_tex *= 0.25 + 1.6 * clump;
+                        edge_r = r * (1.0 - 0.18 * (g - 0.75));
 
                         // Orbiting hot spots (cf. GRAVITY flares near Sgr A*):
                         // Gaussian blobs on circular Keplerian orbits, stretched
@@ -569,6 +579,8 @@ void main() {
                         accretion_intensity *= 3.5 * f*f*f*f;   // bolometric ~ T^4
                     }
                     {{/disk_profile}}
+
+                    disk_tex *= 1.0 - smoothstep(0.65 * disk_outer, 1.05 * disk_outer, edge_r);
 
                     // hot spots: brighter and hotter than the surrounding gas
                     accretion_intensity *= 1.0 + 3.0 * spot;

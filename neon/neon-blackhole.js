@@ -46,7 +46,11 @@
       distance: 8.0,               // circular orbit radius
       orbital_inclination: 4.27
     },
-    camera: { pitch: 9.35, yaw: -10.96 },
+    camera: {
+      pitch: 9.35, yaw: -10.96,
+      // quasi-periodic wobble (two incommensurate tones per axis), degrees
+      wobble_pitch: 4.0, wobble_yaw: 7.0, wobble_period: 26.0   // period in seconds at time_scale 1
+    },
 
     // fork features
     neon_grid: false,
@@ -63,12 +67,15 @@
       floor_strength: 0.975,
       floor_height: 5.9,
       floor_tilt: -3.0,            // degrees in the UI
-      floor_speed: 0.06,
+      floor_cell: 2.5,             // grid cell (r_s); major cyan lines every 4 cells
+      floor_speed: 0.25,           // forward drift (r_s per second at time_scale 1)
+      floor_sway: 6.0,             // side-to-side drift amplitude (r_s)
+      floor_sway_period: 34.0,     // seconds at time_scale 1
       floor_extent: 14.0,
       disk_temp: 8075.0,
-      disk_outer: 20.0,
-      disk_speed: 1.0,             // 1 = Keplerian; >1 is a stylized speed-up of the gas only
-      spot_strength: 1.0,
+      disk_outer: 13.0,
+      disk_speed: 10.0,            // 1 = Keplerian; >1 is a stylized speed-up of the gas only
+      spot_strength: 4.0,
       galaxy_gain: 3.0,
       vfov: 72.0,                  // max vertical FOV (deg); landscape keeps the original 90 deg horizontal
       exposure: 1.381,
@@ -97,6 +104,8 @@
     this.lookT = new THREE.Vector3(0, 1, 0);
     this.time = 0.0;        // coordinate time (the shader's `time`)
     this.tau = 0.0;         // proper time
+    this.clock = 0.0;       // wall seconds x time_scale, drives wobble and floor drift
+    this.floorOffset = new THREE.Vector2();
     this.phi = 0.0;
     this.r = 8.0;
     this.speed = 0.0;
@@ -162,6 +171,14 @@
     if (key !== this.orbitKey) this.resetOrbit();
     if (o.motion) this.advance(wallDt * P.time_scale);
     else this.time += wallDt * P.time_scale;
+
+    // drift across the floor: steady forward motion plus a side-to-side sway
+    var dc = wallDt * P.time_scale, Lk = P.look;
+    this.clock += dc;
+    var ws = 2 * Math.PI / Math.max(Lk.floor_sway_period, 1);
+    var lateral = Lk.floor_sway * ws * Math.cos(ws * this.clock);
+    this.floorOffset.x += lateral * dc;
+    this.floorOffset.y += Lk.floor_speed * dc;
 
     var C = this.C, u = this.u, r = 1 / u, f = 1 - u;
     var c = Math.cos(this.phi), s = Math.sin(this.phi);
@@ -389,7 +406,7 @@
   }
 
   var UNIFORM_LOOK = ['grid_strength', 'grid_glow', 'grid_pulse', 'floor_strength', 'floor_height',
-    'floor_tilt', 'floor_speed', 'floor_extent', 'disk_temp', 'disk_outer', 'disk_speed',
+    'floor_tilt', 'floor_cell', 'floor_extent', 'disk_temp', 'disk_outer', 'disk_speed',
     'spot_strength', 'galaxy_gain'];
 
   function ready() {
@@ -419,6 +436,10 @@
       planet_distance: { type: 'f', value: 7 },
       planet_radius: { type: 'f', value: 0.4 },
       fov_mult: { type: 'f', value: 1 },
+      floor_offset: { type: 'v2', value: new THREE.Vector2() },
+      floor_bx: { type: 'v3', value: new THREE.Vector3() },
+      floor_by: { type: 'v3', value: new THREE.Vector3() },
+      floor_bz: { type: 'v3', value: new THREE.Vector3() },
       star_texture: { type: 't', value: textures.stars },
       accretion_disk_texture: { type: 't', value: textures.accretion_disk },
       galaxy_texture: { type: 't', value: ORIG && origGalaxy ? origGalaxy : galaxyTexture },
@@ -455,17 +476,30 @@
     buildTargets(P.look.render_scale);
   }
 
-  function updateCamera() {
-    var m = new THREE.Matrix4().makeRotationX(degToRad(-P.camera.pitch));
-    m.multiply(new THREE.Matrix4().makeRotationY(degToRad(-P.camera.yaw)));
+  function viewMatrix(pitch, yaw) {
+    var m = new THREE.Matrix4().makeRotationX(degToRad(-pitch));
+    m.multiply(new THREE.Matrix4().makeRotationY(degToRad(-yaw)));
     var e = m.elements, cm = new THREE.Matrix3();
     cm.set(e[0], e[1], e[2], e[8], e[9], e[10], e[4], e[5], e[6]);
+    return cm;
+  }
+
+  var floorBasis = new THREE.Matrix3();
+  function updateCamera() {
+    var c = P.camera, k = 2 * Math.PI / Math.max(c.wobble_period, 1), tt = observer.clock;
+    var wp = c.wobble_pitch * (0.75 * Math.sin(k * tt) + 0.25 * Math.sin(k * 2.618 * tt + 1.3));
+    var wy = c.wobble_yaw * (0.7 * Math.sin(k * 0.73 * tt + 0.5) + 0.3 * Math.sin(k * 1.91 * tt + 2.1));
+    var cm = viewMatrix(c.pitch + wp, c.yaw + wy);
+    var cmLevel = viewMatrix(c.pitch, c.yaw);
     if (P.observer.motion) {
-      observer.orientation = observer.orbitalFrame().multiply(cm);
+      var frame = observer.orbitalFrame();
+      floorBasis = frame.clone().multiply(cmLevel);
+      observer.orientation = frame.multiply(cm);
     } else {
+      floorBasis = cmLevel;
       observer.orientation = cm;
       var d = P.observer.orbit === 'eccentric' ? 1 / observer.u : P.observer.distance;
-      observer.position.set(-cm.elements[6] * d, -cm.elements[7] * d, -cm.elements[8] * d);
+      observer.position.set(-cmLevel.elements[6] * d, -cmLevel.elements[7] * d, -cmLevel.elements[8] * d);
       observer.velocity.set(0, 0, 0);
     }
   }
@@ -479,6 +513,11 @@
     uniforms.cam_x.value.set(e[0], e[1], e[2]);
     uniforms.cam_y.value.set(e[3], e[4], e[5]);
     uniforms.cam_z.value.set(e[6], e[7], e[8]);
+    var f = floorBasis.elements;
+    uniforms.floor_bx.value.set(f[0], f[1], f[2]);
+    uniforms.floor_by.value.set(f[3], f[4], f[5]);
+    uniforms.floor_bz.value.set(f[6], f[7], f[8]);
+    uniforms.floor_offset.value.copy(observer.floorOffset);
     uniforms.planet_distance.value = P.planet.distance;
     uniforms.planet_radius.value = P.planet.radius;
     UNIFORM_LOOK.forEach(function (k) { uniforms[k].value = L[k]; });
@@ -593,12 +632,18 @@
     add(orbit, P, 'time_scale', 0, 8);
     add(orbit, P.camera, 'pitch', -60, 60);
     add(orbit, P.camera, 'yaw', -180, 180);
+    add(orbit, P.camera, 'wobble_pitch', 0, 20).name('wobble pitch (deg)');
+    add(orbit, P.camera, 'wobble_yaw', 0, 30).name('wobble yaw (deg)');
+    add(orbit, P.camera, 'wobble_period', 4, 120).name('wobble period (s)');
 
     var floor = gui.addFolder('Floor');
     add(floor, P.look, 'floor_strength', 0, 3);
     add(floor, P.look, 'floor_height', 0.5, 12);
     add(floor, P.look, 'floor_tilt', -20, 40).name('floor_tilt (deg)');
-    add(floor, P.look, 'floor_speed', -0.5, 0.5);
+    add(floor, P.look, 'floor_cell', 0.5, 8).name('cell size (r_s)');
+    add(floor, P.look, 'floor_speed', -2, 2).name('forward drift');
+    add(floor, P.look, 'floor_sway', 0, 20).name('sideways sway (r_s)');
+    add(floor, P.look, 'floor_sway_period', 4, 120).name('sway period (s)');
     add(floor, P.look, 'floor_extent', 2, 60);
 
     var disk = gui.addFolder('Disk');
