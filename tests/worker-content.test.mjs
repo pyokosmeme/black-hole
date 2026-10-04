@@ -59,6 +59,63 @@ function jsonRequest(path, body, cookie) {
   });
 }
 
+async function seedSubscriber(env, email = 'test@example.com') {
+  await handleContentRequest(jsonRequest('/api/subscriptions', { email, topics: ['books'], source: 'test' }), env);
+  const key = (await env.SESSIONS.list({ prefix: 'subscriber:' })).keys.find(item => JSON.parse(env.SESSIONS.values.get(item.name)).email === email).name;
+  return JSON.parse(await env.SESSIONS.get(key));
+}
+const subscriberMutation = (method, body, cookie = 'session=owner-session') =>
+  new Request(jsonRequest('/api/admin/subscribers', body, cookie), { method });
+
+test('admin edits subscriber email, topics and status; unsubscribe mapping follows the new address', async () => {
+  const env = makeEnv();
+  const original = await seedSubscriber(env);
+  const response = await handleContentRequest(subscriberMutation('PATCH', { ...original, email: ' NEW@example.com ', topics: ['blog', 'fiction'], status: 'active', source: 'admin test' }), env);
+  assert.equal(response.status, 200);
+  const edited = (await response.json()).subscriber;
+  assert.equal(edited.email, 'new@example.com');
+  assert.equal(edited.source, 'admin test');
+  assert.equal(edited.createdAt, original.createdAt);
+  assert.equal(edited.unsubscribeToken, undefined);
+  assert.deepEqual(edited.topics, ['blog', 'fiction']);
+  assert.notEqual(edited.id, original.id);
+  assert.equal(await env.SESSIONS.get('subscriber:' + original.id), null);
+  assert.equal(await env.SESSIONS.get('unsubscribe:' + original.unsubscribeToken), edited.id);
+  const unsubscribe = await handleContentRequest(new Request('https://lastnpcalex.agency/api/subscriptions/unsubscribe?token=' + original.unsubscribeToken, { method: 'POST' }), env);
+  assert.equal(unsubscribe.status, 200);
+  const stopped = JSON.parse(await env.SESSIONS.get('subscriber:' + edited.id));
+  const reactivated = await handleContentRequest(subscriberMutation('PATCH', { ...stopped, status: 'active' }), env);
+  assert.equal(reactivated.status, 200);
+  assert.equal(await env.SESSIONS.get('unsubscribe:' + original.unsubscribeToken), edited.id);
+  const current = JSON.parse(await env.SESSIONS.get('subscriber:' + edited.id));
+  const deleted = await handleContentRequest(subscriberMutation('DELETE', current), env);
+  assert.equal(deleted.status, 200);
+  assert.equal(await env.SESSIONS.get('subscriber:' + edited.id), null);
+  assert.equal(await env.SESSIONS.get('unsubscribe:' + original.unsubscribeToken), null);
+  const listing = await handleContentRequest(new Request('https://lastnpcalex.agency/api/admin/subscribers', { headers: { Cookie: 'session=owner-session' } }), env);
+  assert.deepEqual((await listing.json()).subscribers, []);
+});
+
+test('subscriber maintenance rejects duplicate addresses, invalid fields, stale records and unauthorized mutations', async () => {
+  const env = makeEnv();
+  const original = await seedSubscriber(env);
+  await seedSubscriber(env, 'other@example.com');
+  for (const [override, expected] of [[{ email: 'other@example.com' }, 409], [{ email: 'bad' }, 400], [{ topics: [] }, 400], [{ topics: ['unknown'] }, 400], [{ status: 'draft' }, 400], [{ source: 'x'.repeat(101) }, 400], [{ updatedAt: 'stale' }, 409], [{ id: '../session:owner-session' }, 400]]) {
+    const response = await handleContentRequest(subscriberMutation('PATCH', { ...original, ...override }), env);
+    assert.equal(response.status, expected, JSON.stringify(override));
+  }
+  for (const method of ['PATCH', 'DELETE']) {
+    assert.equal((await handleContentRequest(subscriberMutation(method, original, 'session=reader-session'), env)).status, 403);
+    assert.equal((await handleContentRequest(subscriberMutation(method, original, ''), env)).status, 401);
+    const crossOrigin = subscriberMutation(method, original);
+    crossOrigin.headers.set('Origin', 'https://attacker.example');
+    assert.equal((await handleContentRequest(crossOrigin, env)).status, 403);
+  }
+  assert.equal(await env.SESSIONS.get('subscriber:' + original.id), JSON.stringify(original));
+  assert.equal((await handleContentRequest(subscriberMutation('DELETE', { ...original, updatedAt: 'stale' }), env)).status, 409);
+  assert.equal((await handleContentRequest(subscriberMutation('DELETE', { id: 'f'.repeat(64) }), env)).status, 404);
+});
+
 test('admin section loading reads only that section and keeps authorization uncached', async () => {
   const env = makeEnv();
   const record = { section: 'author', slug: 'managed', title: 'Managed', status: 'draft', markdown: 'Private body' };

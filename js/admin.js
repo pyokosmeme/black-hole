@@ -266,7 +266,75 @@ function renderTransmissionList() {
   }
 }
 
+let subscriberRecords = [], editingSubscriber = null, subscriberBusy = false;
+const subscriberForm = document.getElementById('subscriber-form');
+const subscriberStatus = document.getElementById('subscriber-status');
+function closeSubscriberEditor() {
+  editingSubscriber = null;
+  subscriberForm.hidden = true;
+}
+function subscriberControlsBusy(busy) {
+  subscriberBusy = busy;
+  document.getElementById('subscriber-fields').disabled = busy;
+  document.querySelectorAll('#subscriber-list button').forEach(button => { button.disabled = busy; });
+  document.getElementById('load-maintenance').disabled = busy;
+}
+function editSubscriber(subscriber) {
+  if (subscriberBusy) return;
+  editingSubscriber = subscriber;
+  subscriberForm.elements.email.value = subscriber.email;
+  subscriberForm.elements.status.value = subscriber.status;
+  subscriberForm.elements.source.value = subscriber.source || '';
+  subscriberForm.querySelectorAll('[name="topics"]').forEach(input => { input.checked = (subscriber.topics || []).includes(input.value); });
+  subscriberForm.hidden = false;
+  setStatus(subscriberStatus, `Editing ${subscriber.email}.`);
+  subscriberForm.elements.email.focus();
+}
+async function deleteSubscriber(subscriber, button) {
+  if (subscriberBusy) return;
+  subscriberControlsBusy(true);
+  try {
+    if (!(await acidConfirm(`Permanently delete ${subscriber.email} and their subscription preferences?`))) return;
+    await api('/api/admin/subscribers', { method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: subscriber.id, updatedAt: subscriber.updatedAt }) });
+    if (editingSubscriber?.id === subscriber.id) closeSubscriberEditor();
+    renderSubscribers(subscriberRecords.filter(item => item.id !== subscriber.id));
+    setStatus(subscriberStatus, `Deleted ${subscriber.email}.`, 'success');
+  } catch (error) { setStatus(subscriberStatus, `Could not delete subscriber: ${error.message}`, 'error'); }
+  finally {
+    subscriberControlsBusy(false);
+    (button.isConnected ? button : document.getElementById('load-maintenance')).focus();
+  }
+}
+subscriberForm.addEventListener('submit', async event => {
+  event.preventDefault();
+  if (subscriberBusy || !editingSubscriber || !subscriberForm.reportValidity()) return;
+  const topics = [...subscriberForm.querySelectorAll('[name="topics"]:checked')].map(input => input.value);
+  if (!topics.length) { setStatus(subscriberStatus, 'Choose at least one update type.', 'error'); return; }
+  const oldId = editingSubscriber.id;
+  const input = { id: oldId, updatedAt: editingSubscriber.updatedAt, email: subscriberForm.elements.email.value,
+    status: subscriberForm.elements.status.value, source: subscriberForm.elements.source.value, topics };
+  subscriberControlsBusy(true);
+  setStatus(subscriberStatus, 'Saving subscriber…');
+  try {
+    const payload = await api('/api/admin/subscribers', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(input) });
+    renderSubscribers(subscriberRecords.map(item => item.id === oldId ? payload.subscriber : item));
+    closeSubscriberEditor();
+    setStatus(subscriberStatus, `Saved ${payload.subscriber.email}.`, 'success');
+  } catch (error) { setStatus(subscriberStatus, `Could not save subscriber: ${error.message}`, 'error'); }
+  finally {
+    subscriberControlsBusy(false);
+    if (subscriberForm.hidden) document.getElementById('load-maintenance').focus();
+  }
+});
+document.getElementById('subscriber-cancel').addEventListener('click', () => {
+  if (subscriberBusy) return;
+  closeSubscriberEditor();
+  setStatus(subscriberStatus, 'Edit cancelled.');
+});
+
 function renderSubscribers(subscribers) {
+  subscriberRecords = subscribers;
   document.getElementById('subscriber-count').textContent = subscribers.filter(item => item.status === 'active').length;
   const body = document.getElementById('subscriber-list');
   body.replaceChildren(...subscribers.map(subscriber => {
@@ -276,12 +344,27 @@ function renderSubscribers(subscribers) {
       cell.textContent = value;
       row.append(cell);
     });
+    const actions = document.createElement('td');
+    const group = document.createElement('div');
+    group.className = 'subscriber-actions';
+    for (const action of ['Edit', 'Delete']) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = action;
+      button.disabled = subscriberBusy;
+      button.setAttribute('aria-label', `${action} ${subscriber.email}`);
+      if (action === 'Delete') button.className = 'danger';
+      button.addEventListener('click', () => action === 'Edit' ? editSubscriber(subscriber) : deleteSubscriber(subscriber, button));
+      group.append(button);
+    }
+    actions.append(group);
+    row.append(actions);
     return row;
   }));
   if (!subscribers.length) {
     const row = document.createElement('tr');
     const cell = document.createElement('td');
-    cell.colSpan = 4;
+    cell.colSpan = 5;
     cell.textContent = 'No subscribers yet.';
     row.append(cell);
     body.append(row);

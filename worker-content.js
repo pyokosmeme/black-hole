@@ -532,7 +532,9 @@ async function listAllTransmissionsForAdmin(request, env, selectedSection) {
 
 function subscriberForAdmin(record) {
   return {
+    id: record.id,
     email: record.email,
+    source: record.source || '',
     topics: record.topics || [],
     status: record.status,
     createdAt: record.createdAt,
@@ -608,6 +610,44 @@ async function handleAdmin(request, env, pathname) {
     const subscribers = (await listKvValues(env.SESSIONS, 'subscriber:')).map(subscriberForAdmin);
     subscribers.sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
     return json({ subscribers });
+  }
+
+  if (pathname === '/api/admin/subscribers' && ['PATCH', 'DELETE'].includes(request.method)) {
+    if (!sameOriginRequest(request)) return json({ error: 'Origin not allowed' }, 403);
+    const input = await readJson(request, 20_000);
+    const id = String(input.id || '');
+    if (!/^[a-f0-9]{64}$/.test(id)) throw new HttpError(400, 'Invalid subscriber ID');
+    const key = `subscriber:${id}`;
+    const raw = await env.SESSIONS.get(key);
+    if (!raw) throw new HttpError(404, 'Subscriber not found. Refresh the list.');
+    const previous = JSON.parse(raw);
+    if (input.updatedAt !== previous.updatedAt) throw new HttpError(409, 'Subscriber changed. Refresh the list before trying again.');
+    if (request.method === 'DELETE') {
+      if (previous.unsubscribeToken) await env.SESSIONS.delete(`unsubscribe:${previous.unsubscribeToken}`);
+      await env.SESSIONS.delete(key);
+      return json({ ok: true });
+    }
+    const email = String(input.email || '').trim().toLowerCase();
+    if (!validEmail(email)) throw new HttpError(400, 'Enter a valid email address');
+    if (!Array.isArray(input.topics) || !input.topics.length || input.topics.some(topic => !ALLOWED_TOPICS.has(topic))) {
+      throw new HttpError(400, 'Choose at least one valid update type');
+    }
+    if (!['active', 'unsubscribed'].includes(input.status)) throw new HttpError(400, 'Invalid subscriber status');
+    if (typeof input.source !== 'string' || input.source.length > 100) throw new HttpError(400, 'Source must be at most 100 characters');
+    const nextId = await sha256(email);
+    if (nextId !== id && await env.SESSIONS.get(`subscriber:${nextId}`)) {
+      throw new HttpError(409, 'That email already has a subscriber record');
+    }
+    const record = { ...previous, id: nextId, email, topics: [...new Set(input.topics)], status: input.status,
+      source: input.source.trim(), updatedAt: new Date().toISOString() };
+    if (record.status === 'active' && !record.unsubscribeToken) record.unsubscribeToken = crypto.randomUUID() + crypto.randomUUID().replace(/-/g, '');
+    await env.SESSIONS.put(`subscriber:${nextId}`, JSON.stringify(record));
+    if (record.unsubscribeToken) {
+      if (record.status === 'active') await env.SESSIONS.put(`unsubscribe:${record.unsubscribeToken}`, nextId);
+      else await env.SESSIONS.delete(`unsubscribe:${record.unsubscribeToken}`);
+    }
+    if (nextId !== id) await env.SESSIONS.delete(key);
+    return json({ ok: true, subscriber: subscriberForAdmin(record) });
   }
 
   if (pathname === '/api/admin/subscribers.csv' && request.method === 'GET') {

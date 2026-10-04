@@ -173,10 +173,25 @@
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Email</th><th>Signals</th><th>Status</th><th>Joined</th></tr></thead>
+            <thead><tr><th>Email</th><th>Signals</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
             <tbody id="subscriber-list"></tbody>
           </table>
         </div>
+        <p id="subscriber-status" class="status" role="status" aria-live="polite"></p>
+        <form id="subscriber-form" hidden>
+          <fieldset id="subscriber-fields">
+            <legend>Edit subscriber</legend>
+            <label>Email<input name="email" type="email" required maxlength="254" autocomplete="off"></label>
+            <fieldset class="subscriber-topics"><legend>Update types</legend>
+              <label><input name="topics" type="checkbox" value="blog"> Blog</label>
+              <label><input name="topics" type="checkbox" value="books"> Books</label>
+              <label><input name="topics" type="checkbox" value="fiction"> Fiction</label>
+            </fieldset>
+            <label>Status<select name="status"><option value="active">Active</option><option value="unsubscribed">Unsubscribed</option></select></label>
+            <label>Signup source<input name="source" maxlength="100"></label>
+            <div class="subscriber-actions"><button type="submit" class="primary">Save subscriber</button><button id="subscriber-cancel" type="button">Cancel</button></div>
+          </fieldset>
+        </form>
       </section>
 
       <section class="subscriber-panel admin-surface" aria-labelledby="player-title">
