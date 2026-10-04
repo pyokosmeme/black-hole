@@ -50,7 +50,7 @@ with sync_playwright() as p:
         assert page.evaluate('AcidburnBlackhole.renderer')=='neon'
         assert page.locator('#blackhole-container canvas').count()==1,url
         assert page.evaluate('AcidburnBlackhole.getShader().parameters.time_scale')==3.18
-        assert page.evaluate('AcidburnBlackhole.getShader().parameters.look.grid_strength')==.25
+        assert page.evaluate('AcidburnBlackhole.getShader().parameters.look.grid_strength')==.21875
         assert page.evaluate('AcidburnBlackhole.getShader().parameters.look.grid_glow')==1
         assert page.evaluate('AcidburnBlackhole.getShader().parameters.look.grid_pulse')==0
         page.evaluate("AcidburnMode.setMode('dark')")
