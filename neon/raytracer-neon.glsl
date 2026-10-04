@@ -25,6 +25,9 @@ uniform vec2 resolution;
 uniform float time;
 
 uniform vec3 cam_pos;
+{{#diskTilt}}
+uniform vec3 disk_n, disk_bx, disk_by;
+{{/diskTilt}}
 uniform vec3 cam_x;
 uniform vec3 cam_y;
 uniform vec3 cam_z;
@@ -319,9 +322,18 @@ vec4 floor_shade(vec3 fp, vec3 dir, float dist, float pix_angle) {
     vec2 gd = abs(fract(st / S + 0.5) - 0.5) * S;
     vec2 lx = neon_line(gd.x, W, fw, W + 2.5*fw);
     vec2 ly = neon_line(gd.y, W, fw, W + 2.5*fw);
+    {{#look.floor_infinite}}
+    lx *= W / max(W, fw);
+    ly *= W / max(W, fw);
+    {{/look.floor_infinite}}
     // when cells shrink below a few pixels, fade lines to their mean
     float dens = clamp(S / (6.0 * fw), 0.0, 1.0);
+    {{#look.floor_infinite}}
+    float mean = 2.0 * W / S;
+    {{/look.floor_infinite}}
+    {{^look.floor_infinite}}
     float mean = 2.0 * (W + fw) / S;
+    {{/look.floor_infinite}}
     float core = mix(mean * 1.5, max(lx.x, ly.x), dens);
     float glow = mix(mean * 2.0, max(lx.y, ly.y), dens);
 
@@ -331,12 +343,27 @@ vec4 floor_shade(vec3 fp, vec3 dir, float dist, float pix_angle) {
     vec2 gm = abs(fract(st / S4 + 0.5) - 0.5) * S4;
     vec2 mx = neon_line(gm.x, W4, fw, W4 + 3.0*fw);
     vec2 my = neon_line(gm.y, W4, fw, W4 + 3.0*fw);
+    {{#look.floor_infinite}}
+    mx *= W4 / max(W4, fw);
+    my *= W4 / max(W4, fw);
+    {{/look.floor_infinite}}
     float dens4 = clamp(S4 / (6.0 * fw), 0.0, 1.0);
+    {{#look.floor_infinite}}
+    float mean4 = 2.0 * W4 / S4;
+    {{/look.floor_infinite}}
+    {{^look.floor_infinite}}
     float mean4 = 2.0 * (W4 + fw) / S4;
+    {{/look.floor_infinite}}
     float mcore = mix(mean4 * 1.5, max(mx.x, my.x), dens4);
     float mglow = mix(mean4 * 2.0, max(mx.y, my.y), dens4);
 
+    {{#look.floor_infinite}}
+    // An unbounded plane fades subpixel lines into horizon haze.
+    float fade = 1.0 / (1.0 + rad / (8.0 * floor_extent));
+    {{/look.floor_infinite}}
+    {{^look.floor_infinite}}
     float fade = exp(-rad / floor_extent);
+    {{/look.floor_infinite}}
     // purple stays out from under the cyan lines (it was shifting them blue);
     // core gains are set so cores land on the site hex after the tonemap
     float major = min(1.0, mcore + 0.6 * mglow);
@@ -349,11 +376,26 @@ vec4 floor_shade(vec3 fp, vec3 dir, float dist, float pix_angle) {
     vec3 haze = mix(SITE_DEEP * 0.4, SITE_PURPLE * 0.85 + SITE_CYAN * 0.05, smoothstep(0.6, 1.0, 1.0 - fade));
     // haze glow peaks a few extents out, then dies off toward the horizon,
     // so the floor dissolves into the sky instead of ending on a hard line
+    {{#look.floor_infinite}}
+    float far = 1.0;
+    {{/look.floor_infinite}}
+    {{^look.floor_infinite}}
     float far = exp(-rad / (5.0 * floor_extent));
+    {{/look.floor_infinite}}
+    {{#look.floor_infinite}}
+    fc = mix(haze * 0.08, fc, fade);
+    {{/look.floor_infinite}}
+    {{^look.floor_infinite}}
     fc = mix(haze * 0.45 * far, fc, fade);
+    {{/look.floor_infinite}}
 
     // opacity falls off with distance so the horizon is a soft haze gradient
+    {{#look.floor_infinite}}
+    float opac = 0.98;
+    {{/look.floor_infinite}}
+    {{^look.floor_infinite}}
     float opac = 0.98 * exp(-rad / (2.5 * floor_extent));
+    {{/look.floor_infinite}}
     return vec4(fc * floor_strength * mix(0.6, 1.0, opac), opac);   // opac -> 0 and fc -> 0 together
 }
 {{/neon_floor}}
@@ -510,24 +552,42 @@ void main() {
         {{/planetEnabled}}
 
         {{#accretion_disk}}
+        {{#diskTilt}}
+        float disk_h0 = dot(old_pos, disk_n), disk_h1 = dot(pos, disk_n);
+        if (disk_h0 * disk_h1 < 0.0) {
+            float acc_isec_t = -disk_h0 / dot(ray, disk_n);
+        {{/diskTilt}}
+        {{^diskTilt}}
         if (old_pos.z * pos.z < 0.0) {
             // crossed plane z=0
 
             float acc_isec_t = -old_pos.z / ray.z;
+        {{/diskTilt}}
             if (acc_isec_t < solid_isec_t) {
                 vec3 isec = old_pos + ray*acc_isec_t;
+                {{#diskTilt}}
+                vec3 disk_isec = vec3(dot(isec,disk_bx),dot(isec,disk_by),0.0);
+                {{/diskTilt}}
+                {{^diskTilt}}
+                vec3 disk_isec = isec;
+                {{/diskTilt}}
 
                 float r = length(isec);
 
                 if (r > ACCRETION_MIN_R && r < disk_outer * 1.25) {
-                    float phi_tex = atan(isec.x, isec.y)/M_PI*0.5+0.5;
+                    float phi_tex = atan(disk_isec.x, disk_isec.y)/M_PI*0.5+0.5;
                     float r_tex = (r-ACCRETION_MIN_R)/DISK_WIDTH;
                     vec2 tex_coord = vec2(r_tex, phi_tex);
 
                     float accretion_intensity = ACCRETION_BRIGHTNESS;
                     float temperature = ACCRETION_TEMPERATURE;
 
+                    {{#diskTilt}}
+                    vec3 accretion_v = (-disk_isec.y*disk_bx + disk_isec.x*disk_by) / sqrt(2.0*(r-1.0)) / (r*r);
+                    {{/diskTilt}}
+                    {{^diskTilt}}
                     vec3 accretion_v = vec3(-isec.y, isec.x, 0.0) / sqrt(2.0*(r-1.0)) / (r*r);
+                    {{/diskTilt}}
                     gamma = 1.0/sqrt(1.0-dot(accretion_v,accretion_v));
                     float doppler_factor = gamma*(1.0+dot(ray/ray_l,accretion_v));
 
@@ -552,7 +612,7 @@ void main() {
                     // pattern shears into spirals without winding up and
                     // without the contrast loss of a plain mix.
                     {
-                        float ang = atan(isec.y, isec.x);
+                        float ang = atan(disk_isec.y, disk_isec.x);
                         const float EPOCH = 90.0;
                         float c1 = t_hit / EPOCH, c2 = c1 + 0.5;
                         float f1 = fract(c1), f2 = fract(c2);

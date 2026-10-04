@@ -13,8 +13,11 @@
   choice('Orbit','observer.orbit','Orbit',['eccentric','circular']);
   number('Orbit','observer.periapsis','Periapsis (rₛ)',3.2,30);
   number('Orbit','observer.apoapsis','Apoapsis (rₛ)',3.2,60);
-  number('Orbit','observer.distance','Circular radius (rₛ)',3.01,30);
+  number('Camera','observer.distance','Camera radius (rₛ)',3.01,30);
   number('Orbit','observer.orbital_inclination','Inclination (°)',-90,90);
+  number('Camera','observer.azimuth','Stationary position azimuth (°)',-180,180);
+  number('Camera','observer.elevation','Stationary position elevation (°)',-85,85);
+  number('Camera','observer.rotation_speed','Stationary camera rotation (°/s)',-30,30);
   number('Camera','camera.pitch','Pitch (°)',-60,60);
   number('Camera','camera.yaw','Yaw (°)',-180,180);
   number('Camera','camera.wobble_pitch','Pitch wobble (°)',0,20);
@@ -23,6 +26,9 @@
   for(const [key,label] of [['photon_eq_fix','Correct photon equation'],['neon_floor','Lensed floor'],['neon_sky','Nebula sky'],['neon_grid','Sky grid'],['disk_flow','Disk turbulence'],['disk_profile','Disk temperature profile'],['grav_redshift','Gravitational redshift']]) check('Neon features',key,label);
   for(const [key,label,min,max] of [['floor_strength','Brightness',0,3],['floor_height','Height',.5,12],['floor_tilt','Tilt (°)',-20,40],['floor_cell','Cell size (rₛ)',.5,8],['floor_speed','Forward drift',-2,2],['floor_sway','Sideways sway (rₛ)',0,20],['floor_sway_period','Sway period (s)',4,120],['floor_extent','Extent',2,60]]) number('Floor','look.'+key,label,min,max);
   check('Disk','accretion_disk','Accretion disk');
+  number('Disk','look.disk_tilt','Disk tilt (°)',-90,90);
+  number('Disk','look.disk_yaw','Disk tilt direction (°)',-180,180);
+  check('Floor','look.floor_infinite','Infinite floor / horizon');
   number('Disk','look.disk_temp','Peak temperature (K)',2000,20000,1);
   number('Disk','look.disk_outer','Outer radius (rₛ)',3,30);
   number('Disk','look.disk_speed','Gas speed (1 = Keplerian)',0,10);

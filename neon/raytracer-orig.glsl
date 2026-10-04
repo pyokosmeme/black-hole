@@ -25,6 +25,9 @@ uniform vec2 resolution;
 uniform float time;
 
 uniform vec3 cam_pos;
+{{#diskTilt}}
+uniform vec3 disk_n, disk_bx, disk_by;
+{{/diskTilt}}
 uniform vec3 cam_x;
 uniform vec3 cam_y;
 uniform vec3 cam_z;
@@ -355,26 +358,44 @@ void main() {
         {{/planetEnabled}}
 
         {{#accretion_disk}}
+        {{#diskTilt}}
+        float disk_h0 = dot(old_pos,disk_n), disk_h1 = dot(pos,disk_n);
+        if (disk_h0 * disk_h1 < 0.0) {
+            float acc_isec_t = -disk_h0 / dot(ray,disk_n);
+        {{/diskTilt}}
+        {{^diskTilt}}
         if (old_pos.z * pos.z < 0.0) {
             // crossed plane z=0
 
             float acc_isec_t = -old_pos.z / ray.z;
+        {{/diskTilt}}
             if (acc_isec_t < solid_isec_t) {
                 vec3 isec = old_pos + ray*acc_isec_t;
+                {{#diskTilt}}
+                vec3 disk_isec = vec3(dot(isec,disk_bx),dot(isec,disk_by),0.0);
+                {{/diskTilt}}
+                {{^diskTilt}}
+                vec3 disk_isec = isec;
+                {{/diskTilt}}
 
                 float r = length(isec);
 
                 if (r > ACCRETION_MIN_R) {
                     vec2 tex_coord = vec2(
                             (r-ACCRETION_MIN_R)/ACCRETION_WIDTH,
-                            atan(isec.x, isec.y)/M_PI*0.5+0.5
+                            atan(disk_isec.x, disk_isec.y)/M_PI*0.5+0.5
                     );
 
                     float accretion_intensity = ACCRETION_BRIGHTNESS;
                     //accretion_intensity *= 1.0 / abs(ray.z/ray_l);
                     float temperature = ACCRETION_TEMPERATURE;
 
+                    {{#diskTilt}}
+                    vec3 accretion_v = (-disk_isec.y*disk_bx + disk_isec.x*disk_by) / sqrt(2.0*(r-1.0)) / (r*r);
+                    {{/diskTilt}}
+                    {{^diskTilt}}
                     vec3 accretion_v = vec3(-isec.y, isec.x, 0.0) / sqrt(2.0*(r-1.0)) / (r*r);
+                    {{/diskTilt}}
                     gamma = 1.0/sqrt(1.0-dot(accretion_v,accretion_v));
                     float doppler_factor = gamma*(1.0+dot(ray/ray_l,accretion_v));
                     {{#beaming}}

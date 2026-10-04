@@ -7,7 +7,7 @@
   if(!scene) return;
   const $=id=>document.getElementById(id),status=$('neon-status');
   const controls=new Map(),reduced=matchMedia('(prefers-reduced-motion: reduce)');
-  let viewer,feedbackTimer;
+  let viewer,feedbackTimer,movingCamera=false;
   function message(text){
     clearTimeout(feedbackTimer);status.textContent=text;
     // Keep errors and clipboard/export feedback readable even with a pane open.
@@ -31,10 +31,14 @@
     padFrame=null;padPointer=null;drag=null;padX=padY=0;
     $('neon-camera-pad').querySelector('.neon-pad-thumb').style.transform='';
   }
-  function moveCamera(yaw,pitch,zoom=0){viewer.moveCamera(yaw,pitch,zoom);syncFields();}
+  function moveCamera(yaw,pitch,zoom=0,move=movingCamera){
+    if(move){viewer.orbitCamera(yaw,pitch);viewer.moveCamera(0,0,zoom);}else viewer.moveCamera(yaw,pitch,zoom);
+    syncFields();
+  }
   function setupCamera(){
     const pad=$('neon-camera-pad');pad.hidden=!mobile;
-    if(mobile)$('neon-camera-help').textContent='Thumb pad or drag to look · +/− to zoom';
+    if(mobile)$('neon-camera-help').textContent='Drag / thumb pad · Move changes position · +/− zoom';
+    $('neon-camera-move').addEventListener('click',()=>{movingCamera=!movingCamera;$('neon-camera-move').setAttribute('aria-pressed',String(movingCamera));message(movingCamera?'Move camera around the hole.':'Look around from this position.');});
     const available=()=>!viewer.settings().observer.motion&&!scene.closest('.neon-viewport').classList.contains('has-pane');
     function padPosition(e){const r=pad.getBoundingClientRect();padX=Math.max(-1,Math.min(1,(e.clientX-r.x-r.width/2)/30));padY=Math.max(-1,Math.min(1,(e.clientY-r.y-r.height/2)/30));pad.querySelector('.neon-pad-thumb').style.transform=`translate(${padX*24}px,${padY*24}px)`;}
     function tick(now){if(padPointer===null||!available()){stopCamera();return;}const dt=Math.min((now-padTime)/1000,.05);padTime=now;moveCamera(padX*45*dt,-padY*35*dt);padFrame=requestAnimationFrame(tick);}
@@ -42,14 +46,14 @@
     pad.addEventListener('pointermove',e=>{if(e.pointerId===padPointer)padPosition(e);});
     for(const name of ['pointerup','pointercancel','lostpointercapture'])pad.addEventListener(name,e=>{if(e.pointerId===padPointer)stopCamera();});
     scene.addEventListener('pointerdown',e=>{if(!available()||drag||e.button!==0)return;scene.focus({preventScroll:true});scene.setPointerCapture(e.pointerId);drag={id:e.pointerId,x:e.clientX,y:e.clientY};});
-    scene.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;moveCamera((e.clientX-drag.x)*.18,(drag.y-e.clientY)*.18);drag.x=e.clientX;drag.y=e.clientY;});
+    scene.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;moveCamera((e.clientX-drag.x)*.18,(drag.y-e.clientY)*.18,0,movingCamera||e.shiftKey);drag.x=e.clientX;drag.y=e.clientY;});
     for(const name of ['pointerup','pointercancel','lostpointercapture'])scene.addEventListener(name,e=>{if(drag?.id===e.pointerId)drag=null;});
     scene.addEventListener('wheel',e=>{if(!available())return;e.preventDefault();moveCamera(0,0,Math.sign(e.deltaY)*.07);},{passive:false});
-    function keyboard(e){if(!available())return;const moves={ArrowLeft:[-3,0],ArrowRight:[3,0],ArrowUp:[0,3],ArrowDown:[0,-3],'+':[0,0,-.07],'=':[0,0,-.07],'-':[0,0,.07]};if(moves[e.key]){e.preventDefault();moveCamera(...moves[e.key]);}}
+    function keyboard(e){if(!available())return;const moves={ArrowLeft:[-3,0],ArrowRight:[3,0],ArrowUp:[0,3],ArrowDown:[0,-3],'+':[0,0,-.07],'=':[0,0,-.07],'-':[0,0,.07]};const positions={a:[-3,0],d:[3,0],w:[0,3],s:[0,-3]};if(positions[e.key.toLowerCase()]){e.preventDefault();viewer.orbitCamera(...positions[e.key.toLowerCase()]);syncFields();}else if(moves[e.key]){e.preventDefault();moveCamera(...moves[e.key]);}}
     scene.addEventListener('keydown',keyboard);pad.addEventListener('keydown',keyboard);
     $('neon-zoom-in').addEventListener('click',()=>moveCamera(0,0,-.1));
     $('neon-zoom-out').addEventListener('click',()=>moveCamera(0,0,.1));
-    $('neon-camera-center').addEventListener('click',()=>{const c=viewer.settings().camera;moveCamera(-c.yaw,-c.pitch);});
+    $('neon-camera-center').addEventListener('click',()=>{const c=viewer.settings().camera;moveCamera(-c.yaw,-c.pitch,0,false);});
     window.addEventListener('blur',stopCamera);
     document.addEventListener('visibilitychange',stopCamera);
     document.addEventListener('mapwindow:layout',()=>{if(!available())stopCamera();});
@@ -68,7 +72,7 @@
       label.append(input);groups.get(field.group).append(label);controls.set(field.path,input);
       input.addEventListener('change',()=>{
         const next=viewer.settings();NeonSettings.set(next,field.path,input.type==='checkbox'?input.checked:input.type==='number'?input.valueAsNumber:input.value);
-        try{viewer.applySettings(next);syncFields();input.setCustomValidity('');message('View updated.');}catch(error){input.setCustomValidity(error.message);input.reportValidity();message(error.message);}
+        try{viewer.applySettings(next,true);syncFields();input.setCustomValidity('');message('View updated.');}catch(error){input.setCustomValidity(error.message);input.reportValidity();message(error.message);}
       });
       input.addEventListener('input',()=>input.setCustomValidity(''));
     }
@@ -111,7 +115,7 @@
     }catch(error){message(error.message);}finally{button.disabled=false;}
   }
   try{
-    viewer=createNeonBlackhole({container:scene,base:base.href,settings:window.NEON_DEFAULT_SETTINGS||undefined});
+    viewer=createNeonBlackhole({container:scene,base:base.href,settings:window.NEON_DEFAULT_SETTINGS||{look:{floor_infinite:true}}});
     window.NeonViewer=viewer;
     if(reduced.matches)pause(true);
     const initial=viewer.settings();

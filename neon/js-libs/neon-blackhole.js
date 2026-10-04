@@ -48,7 +48,8 @@ window.createNeonBlackhole = function (options) {
       periapsis: 3.2,
       apoapsis: 22.6,
       distance: 8.0,               // circular orbit radius
-      orbital_inclination: 4.27
+      orbital_inclination: 4.27,
+      azimuth: -90, elevation: 0, rotation_speed: 0
     },
     camera: {
       pitch: 9.35, yaw: -10.96,
@@ -78,6 +79,8 @@ window.createNeonBlackhole = function (options) {
       floor_sway_period: 34.0,     // seconds at time_scale 1
       floor_extent: 14.0,
       disk_temp: 8075.0,
+      disk_tilt: 0, disk_yaw: 0,
+      floor_infinite: false,
       disk_outer: 13.0,
       disk_speed: 4.06,            // 1 = Keplerian; >1 is a stylized speed-up of the gas only
       spot_strength: 4.0,
@@ -93,7 +96,8 @@ window.createNeonBlackhole = function (options) {
     },
 
     planetEnabled: function () { return this.planet.enabled && this.quality !== 'fast'; },
-    observerMotion: function () { return this.observer.motion; }
+    observerMotion: function () { return this.observer.motion; },
+    diskTilt: function () { return this.look.disk_tilt !== 0 || this.look.disk_yaw !== 0; }
   };
 
   // ─────────────────────────────────────────────────────────── observer
@@ -110,6 +114,7 @@ window.createNeonBlackhole = function (options) {
     this.time = 0.0;        // coordinate time (the shader's `time`)
     this.tau = 0.0;         // proper time
     this.clock = 0.0;       // wall seconds x time_scale, drives wobble and floor drift
+    this.rotation = 0;
     this.floorOffset = new THREE.Vector2();
     this.phi = 0.0;
     this.r = 8.0;
@@ -180,6 +185,7 @@ window.createNeonBlackhole = function (options) {
     // drift across the floor: steady forward motion plus a side-to-side sway
     var dc = wallDt * P.time_scale, Lk = P.look;
     this.clock += dc;
+    if (!o.motion) this.rotation += wallDt * o.rotation_speed;
     var ws = 2 * Math.PI / Math.max(Lk.floor_sway_period, 1);
     var lateral = Lk.floor_sway * ws * Math.cos(ws * this.clock);
     this.floorOffset.x += lateral * dc;
@@ -324,8 +330,11 @@ window.createNeonBlackhole = function (options) {
     var c = renderer.domElement;
     var W = c.width, H = c.height;
     curScale = scale;
-    if (rtMain) rtMain.dispose();
-    rtMain = makeTarget(W * scale, H * scale, rtType);
+    var mw = Math.max(1, (W * scale) | 0), mh = Math.max(1, (H * scale) | 0);
+    if (!rtMain || rtMain.width !== mw || rtMain.height !== mh) {
+      if (rtMain) rtMain.dispose();
+      rtMain = makeTarget(mw, mh, rtType);
+    }
     uniforms.resolution.value.set(rtMain.width, rtMain.height);
     var qw = Math.max(1, (W / 4) | 0), qh = Math.max(1, (H / 4) | 0);
     if (!rtA || rtA.width !== qw || rtA.height !== qh) {
@@ -422,7 +431,7 @@ window.createNeonBlackhole = function (options) {
   }
   function initialize() {
     template = ORIG ? templates.orig : templates.neon;
-    renderer = new THREE.WebGLRenderer({ preserveDrawingBuffer: !!options.test });
+    renderer = new THREE.WebGLRenderer({ preserveDrawingBuffer: !!options.test, depth:false, stencil:false });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     container.appendChild(renderer.domElement);
     // 8-bit targets clip at 1.0 before bloom; prefer half-float when available
@@ -431,7 +440,7 @@ window.createNeonBlackhole = function (options) {
     camera = new THREE.PerspectiveCamera(45, 1, 1, 80000);
 
     galaxyTexture = bakeSky();
-    origGalaxy = makeOrigGalaxy();
+    if (ORIG) origGalaxy = makeOrigGalaxy();
 
     uniforms = {
       time: { type: 'f', value: 0 },
@@ -441,6 +450,9 @@ window.createNeonBlackhole = function (options) {
       cam_y: { type: 'v3', value: new THREE.Vector3() },
       cam_z: { type: 'v3', value: new THREE.Vector3() },
       cam_vel: { type: 'v3', value: new THREE.Vector3() },
+      disk_n: { type:'v3', value:new THREE.Vector3(0,0,1) },
+      disk_bx: { type:'v3', value:new THREE.Vector3(1,0,0) },
+      disk_by: { type:'v3', value:new THREE.Vector3(0,1,0) },
       planet_distance: { type: 'f', value: 7 },
       planet_radius: { type: 'f', value: 0.4 },
       fov_mult: { type: 'f', value: 1 },
@@ -479,8 +491,10 @@ window.createNeonBlackhole = function (options) {
 
   function resize() {
     if (!renderer) return;
-    renderer.setSize(Math.max(1,container.clientWidth), Math.max(1,container.clientHeight));
-    buildTargets(P.look.render_scale);
+    var w=Math.max(1,container.clientWidth), h=Math.max(1,container.clientHeight);
+    if (rtMain && renderer.domElement.width===Math.floor(w*renderer.getPixelRatio()) && renderer.domElement.height===Math.floor(h*renderer.getPixelRatio())) return;
+    renderer.setSize(w, h);
+    buildTargets(curScale || P.look.render_scale);
   }
 
   function viewMatrix(pitch, yaw) {
@@ -505,17 +519,31 @@ window.createNeonBlackhole = function (options) {
       observer.orientation = frame.multiply(cm);
     } else {
       floorBasis = viewMatrix(0, 0);
-      observer.orientation = cm;
-      observer.position.set(0, -P.observer.distance, 0);
+      var az=degToRad(P.observer.azimuth+observer.rotation), el=degToRad(P.observer.elevation);
+      observer.position.set(Math.cos(az)*Math.cos(el),Math.sin(az)*Math.cos(el),Math.sin(el)).multiplyScalar(P.observer.distance);
+      var forward=observer.position.clone().normalize().negate();
+      var right=new THREE.Vector3().crossVectors(forward,new THREE.Vector3(0,0,1)).normalize();
+      var up=new THREE.Vector3().crossVectors(right,forward);
+      var basis=new THREE.Matrix3().set(right.x,forward.x,up.x,right.y,forward.y,up.y,right.z,forward.z,up.z);
+      observer.orientation = basis.multiply(cm);
       observer.velocity.set(0, 0, 0);
     }
   }
 
+  var diskBasisKey = '';
   function updateUniforms() {
     var L = P.look;
     uniforms.time.value = observer.time;
     uniforms.cam_pos.value.copy(observer.position);
     uniforms.cam_vel.value.copy(observer.velocity);
+    var key=L.disk_tilt+','+L.disk_yaw;
+    if (key !== diskBasisKey) {
+      var disk=new THREE.Matrix4().makeRotationZ(degToRad(L.disk_yaw)).multiply(new THREE.Matrix4().makeRotationX(degToRad(L.disk_tilt))).elements;
+      uniforms.disk_bx.value.set(disk[0],disk[1],disk[2]);
+      uniforms.disk_by.value.set(disk[4],disk[5],disk[6]);
+      uniforms.disk_n.value.set(disk[8],disk[9],disk[10]);
+      diskBasisKey=key;
+    }
     var e = observer.orientation.elements;
     uniforms.cam_x.value.set(e[0], e[1], e[2]);
     uniforms.cam_y.value.set(e[3], e[4], e[5]);
@@ -619,6 +647,7 @@ window.createNeonBlackhole = function (options) {
     ORIG = !!on;
     if (!templates.neon || !uniforms) return;
     template = ORIG ? templates.orig : templates.neon;
+    if (ORIG && !origGalaxy) origGalaxy = makeOrigGalaxy();
     uniforms.galaxy_texture.value = ORIG && origGalaxy ? origGalaxy : galaxyTexture;
     needsCompile = true;
   }
@@ -630,18 +659,20 @@ window.createNeonBlackhole = function (options) {
     return out;
   }
 
-  function applySettings(input) {
+  function applySettings(input, preserveTime) {
     var next=NeonSettings.validate(input,defaults);
     Object.keys(P).forEach(function (k) {
       if (typeof P[k]==='function') return;
       if (P[k] && typeof P[k]==='object') Object.assign(P[k],next[k]);
       else P[k]=next[k];
     });
-    Object.assign(observer,new Observer());
-    observer.resetOrbit();
+    if (!preserveTime) {
+      Object.assign(observer,new Observer());
+      observer.resetOrbit();
+    }
     setOriginal(next.renderer==='original');
     needsCompile=true; dirty=true;
-    if (renderer) resize();
+    if (renderer) buildTargets(P.look.auto_res && curScale ? Math.min(curScale,P.look.render_scale) : P.look.render_scale);
     return settings();
   }
   function setActive(on) {
@@ -672,6 +703,13 @@ window.createNeonBlackhole = function (options) {
       P.camera.yaw = ((P.camera.yaw + yaw + 180) % 360 + 360) % 360 - 180;
       P.camera.pitch = Math.max(-60, Math.min(60, P.camera.pitch + pitch));
       P.observer.distance = Math.max(3.01, Math.min(30, P.observer.distance * Math.exp(zoom)));
+      dirty = true;
+    },
+    orbitCamera: function (azimuth, elevation) {
+      if (P.observer.motion || ![azimuth,elevation].every(Number.isFinite)) return;
+      P.observer.azimuth = ((P.observer.azimuth + observer.rotation + azimuth + 180) % 360 + 360) % 360 - 180;
+      observer.rotation = 0;
+      P.observer.elevation = Math.max(-85, Math.min(85, P.observer.elevation + elevation));
       dirty = true;
     },
     setPaused: function (p) { paused = !!p; dirty = true; }, isPaused: function () { return paused; },

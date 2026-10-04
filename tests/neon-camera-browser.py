@@ -24,6 +24,7 @@ with sync_playwright() as p:
         context.add_init_script("localStorage.setItem('acidburn-mode','bh')")
         page=context.new_page();errors=[]
         page.on('pageerror',lambda e:errors.append(str(e)))
+        page.on('console',lambda m:errors.append(m.text) if m.type=='error' and 'THREE.WebGL' in m.text else None)
         page.goto('https://camera.test/neon-black-hole.html')
         page.wait_for_function('window.NeonViewer && NeonViewer.frames>1',timeout=60000)
         assert page.locator('#blackhole-container canvas').count()==0
@@ -51,10 +52,34 @@ with sync_playwright() as p:
         assert page.evaluate('NeonViewer.settings().observer.distance')<8
         page.locator('#neon-camera-center').click()
         assert page.evaluate('NeonViewer.settings().camera.yaw')==0
+        page.locator('#neon-camera-move').click()
+        azimuth=page.evaluate('NeonViewer.settings().observer.azimuth')
+        page.locator('#neon-scene').focus();page.keyboard.press('ArrowRight');page.keyboard.press('w')
+        assert page.evaluate('NeonViewer.settings().observer.azimuth')==azimuth+3
+        assert page.evaluate('NeonViewer.settings().observer.elevation')==3
+        page.wait_for_timeout(200)
+        assert page.evaluate('NeonViewer.observer.position.toArray()')!=position
+        page.locator('#neon-camera-move').click()
+        # Disk tilt and optional stationary rotation must remain independent.
+        page.evaluate('''()=>{const s=NeonViewer.settings();s.look.disk_tilt=30;s.look.disk_yaw=20;s.observer.rotation_speed=3;s.neon_floor=true;NeonViewer.applySettings(s);NeonViewer.setPaused(false);}''')
+        clock=page.evaluate('NeonViewer.observer.time')
+        page.wait_for_function('(clock)=>NeonViewer.observer.time>clock',arg=clock,timeout=30000)
+        assert page.evaluate('NeonViewer.observer.rotation')>0
+        page.evaluate('NeonViewer.setPaused(true)')
+        page.wait_for_timeout(100)
+        if kind=='desktop':
+            page.screenshot(path=str(SHOTS/'stationary-infinite-floor.png'))
+            frame=page.evaluate('NeonViewer.frames')
+            page.evaluate('''()=>{const s=NeonViewer.settings();s.neon_floor=false;NeonViewer.applySettings(s,true);}''')
+            page.wait_for_function('(frame)=>NeonViewer.frames>frame',arg=frame)
+            page.screenshot(path=str(SHOTS/'stationary-tilted-disk.png'))
         if kind in ['phone','tablet']:
             pad=page.locator('#neon-camera-pad');r=pad.bounding_box()
             page.mouse.move(r['x']+r['width']/2+25,r['y']+r['height']/2)
-            page.mouse.down();page.wait_for_timeout(350);page.mouse.up()
+            before_yaw=page.evaluate('NeonViewer.settings().camera.yaw')
+            page.mouse.down()
+            page.wait_for_function('(yaw)=>NeonViewer.settings().camera.yaw>yaw',arg=before_yaw,timeout=30000)
+            page.mouse.up()
             yaw=page.evaluate('NeonViewer.settings().camera.yaw');assert yaw>0
             page.wait_for_timeout(200);assert page.evaluate('NeonViewer.settings().camera.yaw')==yaw
             # Cancelled touches must stop continuous motion, too.

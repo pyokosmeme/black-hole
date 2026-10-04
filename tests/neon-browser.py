@@ -59,6 +59,12 @@ with sync_playwright() as p:
     changed['camera']['pitch']=12.5
     changed['observer']['motion']=False
     changed['camera']['yaw']=24
+    changed['observer']['azimuth']=-55
+    changed['observer']['elevation']=15
+    changed['observer']['rotation_speed']=2
+    changed['look']['disk_tilt']=25
+    changed['look']['disk_yaw']=35
+    changed['neon_floor']=True
     changed['planet']['enabled']=True
     changed['renderer']='original'
     page.locator('[data-pane-toggle=neon-share]').click()
