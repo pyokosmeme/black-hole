@@ -9,7 +9,9 @@ ROOT=Path(__file__).resolve().parents[1]
 SHOTS=ROOT/'attached_files/neon-checks'
 SHOTS.mkdir(parents=True,exist_ok=True)
 def source(name,old):
-    if old and name in ['neon/js-libs/neon-blackhole.js','neon/raytracer-neon.glsl','neon/raytracer-orig.glsl']:
+    # Compare allocation/lifecycle behavior with the same current shaders.
+    # The ray solver has intentionally changed since the shipped JS baseline.
+    if old and name == 'neon/js-libs/neon-blackhole.js':
         return subprocess.check_output(['git','show','0b33837:'+name],cwd=ROOT)
     return (ROOT/name).read_bytes()
 

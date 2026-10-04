@@ -93,6 +93,28 @@ float disk_gas(float r, float ang, float dt_epoch, float seed) {
 
 float hash11(float x) { return fract(sin(x * 127.1) * 43758.5453); }
 
+float ray_acceleration(float u) {
+    {{#photon_eq_fix}}
+    return -u * (1.0 - 1.5 * u);
+    {{/photon_eq_fix}}
+    {{^photon_eq_fix}}
+    return -u * (1.0 - 1.5 * u * u);
+    {{/photon_eq_fix}}
+}
+
+// Advance position and derivative at the same angular time. The old
+// drift/kick update left the escape direction dependent on the last step.
+vec2 ray_advance(vec2 state, float h) {
+    vec2 a = vec2(state.y, ray_acceleration(state.x));
+    vec2 bstate = state + 0.5 * h * a;
+    vec2 b = vec2(bstate.y, ray_acceleration(bstate.x));
+    vec2 cstate = state + 0.5 * h * b;
+    vec2 c = vec2(cstate.y, ray_acceleration(cstate.x));
+    vec2 dstate = state + h * c;
+    vec2 d = vec2(dstate.y, ray_acceleration(dstate.x));
+    return state + h * (a + 2.0 * b + 2.0 * c + d) / 6.0;
+}
+
 // anti-aliased line + screen-space glow. d, core, fw, glow all in the same units
 vec2 neon_line(float d, float core, float fw, float glow) {
     // Integrate the thin line across a pixel instead of expanding its edge
@@ -492,18 +514,9 @@ void main() {
         {{/gravitational_time_dilation}}
         {{/light_travel_time}}
 
-        // Leapfrog scheme
-        u += du*step;
-        // Null geodesic, r_s = 1: (u')^2 = 1/b^2 - u^2 (1 - u)  =>  u'' = -u + 3/2 u^2.
-        // The original (and oseiskar upstream) has -u(1 - 3/2 u^2), which puts the
-        // photon sphere at r = 1.225 instead of 1.5 and shrinks the shadow ~34%.
-        {{#photon_eq_fix}}
-        float ddu = -u*(1.0 - 1.5*u);
-        {{/photon_eq_fix}}
-        {{^photon_eq_fix}}
-        float ddu = -u*(1.0 - 1.5*u*u);
-        {{/photon_eq_fix}}
-        du += ddu*step;
+        vec2 next_ray = ray_advance(vec2(u, du), step);
+        u = next_ray.x;
+        du = next_ray.y;
 
         if (u < 0.0) break;
 
@@ -717,12 +730,15 @@ void main() {
 
     vec3 esc = normalize(pos - old_pos);
     if (u < 0.0) {
-        // Escaped. The last chord's direction depends on where the final step
-        // happened to land, so it jumps wherever the step count changes by one
-        // (seams in the sky, flicker in the grid). Use the asymptote instead:
-        // from the last state, u'' ~ -u gives u = A cos x + B sin x, zero at
-        // x = atan(A, -B). The neglected 3/2 u^2 term is small and continuous.
-        float x = atan(last_u, -last_du);
+        // Locate u=0 within the crossing step using the same nonlinear ODE,
+        // not a straight chord or a linearized oscillator at a variable radius.
+        // Newton refinement keeps neighboring rays continuous when their final
+        // step count differs. The crossing derivative is safely nonzero.
+        float x = clamp(last_u / max(-last_du, 1e-6), 0.0, step);
+        for (int refine=0; refine<3; refine++) {
+            vec2 end_ray = ray_advance(vec2(last_u, last_du), x);
+            x = clamp(x - end_ray.x / min(end_ray.y, -1e-6), 0.0, step);
+        }
         float pa = last_phi + x;
         esc = normalize(cos(pa) * normal_vec + sin(pa) * tangent_vec);
     }
