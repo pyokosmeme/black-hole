@@ -72,6 +72,7 @@ window.createNeonBlackhole = function (options) {
       grid_strength: 0.05,
       grid_glow: 0.0,
       grid_pulse: 0.0,
+      sky_motion: false, sky_speed: 1.0, sky_axis_tilt: 0,
       floor_strength: 0.975,
       floor_height: 5.9,
       floor_follow_camera:true, floor_x:0, floor_y:0, floor_yaw:0,
@@ -100,7 +101,8 @@ window.createNeonBlackhole = function (options) {
 
     planetEnabled: function () { return this.planet.enabled && this.quality !== 'fast'; },
     observerMotion: function () { return this.observer.motion; },
-    diskTilt: function () { return this.look.disk_tilt !== 0 || this.look.disk_yaw !== 0; }
+    diskTilt: function () { return this.look.disk_tilt !== 0 || this.look.disk_yaw !== 0; },
+    viewerSky: function () { return !!options.skyMotion; }
   };
 
   // ─────────────────────────────────────────────────────────── observer
@@ -118,6 +120,7 @@ window.createNeonBlackhole = function (options) {
     this.tau = 0.0;         // proper time
     this.clock = 0.0;       // wall seconds x time_scale, drives wobble and floor drift
     this.rotation = 0;
+    this.skyAngle = 0;
     this.floorOffset = new THREE.Vector2();
     this.phi = 0.0;
     this.r = 8.0;
@@ -188,6 +191,7 @@ window.createNeonBlackhole = function (options) {
     // drift across the floor: steady forward motion plus a side-to-side sway
     var dc = wallDt * P.time_scale, Lk = P.look;
     this.clock += dc;
+    if (options.skyMotion && Lk.sky_motion) this.skyAngle = (this.skyAngle + wallDt * Lk.sky_speed) % 360;
     if (!o.motion) this.rotation += wallDt * o.rotation_speed;
     var ws = 2 * Math.PI / Math.max(Lk.floor_sway_period, 1);
     var lateral = Lk.floor_sway * ws * Math.cos(ws * this.clock);
@@ -470,6 +474,7 @@ window.createNeonBlackhole = function (options) {
 
     uniforms = {
       time: { type: 'f', value: 0 },
+      sky_rotation: { type: 'm3', value: new THREE.Matrix3() },
       resolution: { type: 'v2', value: new THREE.Vector2() },
       cam_pos: { type: 'v3', value: new THREE.Vector3() },
       cam_x: { type: 'v3', value: new THREE.Vector3() },
@@ -565,9 +570,17 @@ window.createNeonBlackhole = function (options) {
   }
 
   var diskBasisKey = '';
+  var skyMatrix = new THREE.Matrix4(), skyAxis = new THREE.Vector3();
   function updateUniforms() {
     var L = P.look;
     uniforms.time.value = observer.time;
+    if (options.skyMotion) {
+      var tilt=degToRad(L.sky_axis_tilt);
+      skyAxis.set(Math.sin(tilt),0,Math.cos(tilt));
+      skyMatrix.makeRotationAxis(skyAxis,degToRad(-observer.skyAngle));
+      var sk=skyMatrix.elements;
+      uniforms.sky_rotation.value.set(sk[0],sk[4],sk[8],sk[1],sk[5],sk[9],sk[2],sk[6],sk[10]);
+    }
     uniforms.cam_pos.value.copy(observer.position);
     uniforms.cam_vel.value.copy(observer.velocity);
     var key=L.disk_tilt+','+L.disk_yaw;

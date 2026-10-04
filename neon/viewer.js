@@ -16,6 +16,7 @@
   }
   function syncFields(){
     const values=viewer.settings();for(const [path,input] of controls){const value=NeonSettings.get(values,path);if(input.type==='checkbox')input.checked=value;else input.value=value;}
+    for(const path of ['look.sky_motion','look.sky_speed','look.sky_axis_tilt']){const input=controls.get(path);if(input)input.disabled=values.renderer!=='neon';}
     const preview=$('neon-planet-preview');if(preview){const src=values.planet.texture||new URL('img/beach-ball.png',base).href;if(preview.getAttribute('src')!==src)preview.src=src;}
     $('neon-grid').setAttribute('aria-pressed',String(values.neon_grid));
     $('neon-floor').setAttribute('aria-pressed',String(values.neon_floor));
@@ -107,6 +108,7 @@
     }
     const cameraHelp=document.createElement('p');cameraHelp.textContent='Free move translates the camera. WASD moves sideways/forward, Q/E moves down/up. Shift keys or Alt-drag gives 10× finer control. On touch devices, lower sensitivity or movement speed for fine adjustments.';groups.get('Camera').append(cameraHelp);
     const floorHelp=document.createElement('p');floorHelp.textContent='With Floor follows camera off, the plane stays fixed in world space. Height places the black hole above or below it; X/Y offsets move the grid independently.';groups.get('Floor').append(floorHelp);
+    const skyHelp=document.createElement('p');skyHelp.textContent='Neon mode: move the stars and galaxies while the grid stays fixed. Use Stationary and set camera rotation and wobble to zero to hold the view still. Sky speed uses real seconds; Pause freezes it. Turn motion off or set speed to zero to stop in place.';groups.get('Sky').append(skyHelp);
     syncFields();
   }
   async function copy(){
@@ -146,7 +148,7 @@
     }catch(error){message(error.message);}finally{button.disabled=false;}
   }
   try{
-    viewer=createNeonBlackhole({container:scene,base:base.href,settings:window.NEON_DEFAULT_SETTINGS||{look:{floor_infinite:true,floor_follow_camera:false}}});
+    viewer=createNeonBlackhole({container:scene,base:base.href,skyMotion:true,settings:window.NEON_DEFAULT_SETTINGS||{look:{floor_infinite:true,floor_follow_camera:false}}});
     window.NeonViewer=viewer;
     if(reduced.matches)pause(true);
     const initial=viewer.settings();

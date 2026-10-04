@@ -23,6 +23,9 @@ const float SPECTRUM_TEX_RATIO_RANGE = 6.48053329012;
 
 uniform vec2 resolution;
 uniform float time;
+{{#viewerSky}}
+uniform mat3 sky_rotation;
+{{/viewerSky}}
 
 uniform vec3 cam_pos;
 {{#diskTilt}}
@@ -782,7 +785,13 @@ void main() {
     // the event horizon is at u = 1
     if (u < 1.0) {
         ray = esc;
+        // Rotate only texture sampling; the celestial grid uses unchanged gdir.
+        {{#viewerSky}}
+        vec2 tex_coord = sphere_map(sky_rotation * gdir);
+        {{/viewerSky}}
+        {{^viewerSky}}
         vec2 tex_coord = sphere_map(gdir);
+        {{/viewerSky}}
         float t_coord;
 
         vec4 star_color = texture2D(star_texture, tex_coord);

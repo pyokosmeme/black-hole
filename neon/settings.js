@@ -38,6 +38,9 @@
   number('Disk','look.disk_outer','Outer radius (rₛ)',3,30);
   number('Disk','look.disk_speed','Gas speed (1 = Keplerian)',0,10);
   number('Disk','look.spot_strength','Hot spots',0,4);
+  check('Sky','look.sky_motion','Move stars / galaxies');
+  number('Sky','look.sky_speed','Sky speed (°/s; negative reverses)',-30,30,.01);
+  number('Sky','look.sky_axis_tilt','Sky rotation axis tilt (°)',-90,90);
   for(const [key,label,min,max] of [['galaxy_gain','Galaxy brightness',0,6],['grid_strength','Grid brightness',0,3],['grid_glow','Grid glow (px)',0,12],['grid_pulse','Grid pulse',0,3],['vfov','Maximum vertical FOV (°)',30,120]]) number('Sky','look.'+key,label,min,max);
   for(const [key,label,min,max] of [['exposure','Exposure',.2,4],['bloom_strength','Bloom strength',0,3],['bloom_threshold','Bloom threshold',0,1.5],['bloom_radius','Bloom radius',.25,4],['render_scale','Maximum render scale',.25,1]]) number('Post / performance','look.'+key,label,min,max);
   check('Post / performance','look.auto_res','Automatic resolution');
