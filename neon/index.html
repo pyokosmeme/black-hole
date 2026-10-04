@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Neon Black Hole</title>
+  <style>
+    html, body { margin: 0; height: 100%; background: #030508; overflow: hidden; }
+    #blackhole-container, #blackhole-container canvas { position: fixed; inset: 0; display: block; }
+    #loader { position: fixed; left: 16px; bottom: 16px; color: #bf00ff;
+              font: 12px/1.4 ui-monospace, monospace; letter-spacing: .1em; }
+    .no-webgl #loader::after { content: ' (WebGL unavailable)'; }
+  </style>
+</head>
+<body>
+  <div id="blackhole-container" aria-hidden="true"></div>
+  <div id="loader">BENDING LIGHT…</div>
+
+  <script src="../js-libs/three.min.js"></script>
+  <script src="../js-libs/Detector.js"></script>
+  <script src="../js-libs/mustache.min.js"></script>
+  <script src="../js-libs/dat.gui.min.js"></script>
+  <script src="../three-js-monkey-patch.js"></script>
+  <script src="../js/acidburn-galaxy.js"></script>
+  <script src="neon-blackhole.js"></script>
+</body>
+</html>
