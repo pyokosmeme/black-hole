@@ -1,0 +1,16 @@
+/* Shared map windows and Acid Burn own the chrome; only viewer layout lives here. */
+.neon-scene { position:absolute; inset:0; }
+.neon-scene canvas { display:block; width:100%; height:100%; }
+.neon-viewer .neon-viewport { background:#030508; }
+.neon-status { position:absolute; bottom:var(--hud-inset); left:var(--hud-inset); right:var(--hud-inset); margin:0; max-width:calc(100% - var(--hud-controls-w,220px)); font-size:var(--text-xs); color:#fff; pointer-events:none; text-shadow:0 1px 4px #000; }
+.neon-viewport.has-pane .neon-status { display:none; }
+.neon-share-actions { display:flex; flex-wrap:wrap; gap:var(--space-xs); margin-bottom:var(--space-sm); }
+.neon-viewer details { margin-bottom:var(--space-sm); }
+.neon-viewer summary { min-height:44px; cursor:pointer; display:list-item; align-content:center; }
+.neon-viewer .acidburn-field { margin:var(--space-sm) 0; }
+.neon-viewer .acidburn-button { min-height:40px; }
+.neon-viewer .neon-control { display:grid; grid-template-columns:minmax(0,1fr) 90px; align-items:center; gap:var(--space-xs); }
+.neon-viewer .neon-control input[type=checkbox] { justify-self:end; }
+.neon-standalone .map-window-shell { padding-top:var(--window-gap); }
+@media(max-width:600px) and (min-height:501px) { .neon-status { max-width:none; } }
+@media(max-height:500px) { .neon-status { display:none; } }

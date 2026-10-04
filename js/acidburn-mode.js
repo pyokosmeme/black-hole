@@ -126,21 +126,7 @@
             }
         }, 3000);
         
-        // Wait for blackhole initialization if needed
-        if (typeof AcidburnGalaxy !== 'undefined' && AcidburnGalaxy.start) {
-            // Check if renderer is actually ready (empirical check)
-            if (window.AcidburnBlackhole && !window.AcidburnBlackhole.isReady) {
-                console.log('[ACIDBURN Mode] Waiting for renderer before starting galaxy...');
-                const wait = setInterval(() => {
-                    if (window.AcidburnBlackhole.isReady) {
-                        clearInterval(wait);
-                        if (!body.classList.contains('lite-mode')) AcidburnGalaxy.start();
-                    }
-                }, 100);
-            } else {
-                AcidburnGalaxy.start();
-            }
-        }
+        // The selected background renderer owns its texture animation lifecycle.
     }
     
     function stopEffects() {
@@ -167,7 +153,12 @@
                     <div class="mode-options" role="group" aria-labelledby="display-mode-label">
                         ${['dark', 'light', 'bh'].map(mode => `<button type="button" class="nav-link" data-display-mode="${mode}" aria-label="${MODE_INFO[mode].label}" aria-pressed="false"><span class="nav-link-label">${mode}</span></button>`).join('')}
                     </div>
+                    <label class="mode-legacy-option"><input type="checkbox" id="bh-legacy"> Legacy black hole</label>
                     <p class="mode-reading-note" hidden>BH is paused while reading.</p>`;
+                picker.querySelector('#bh-legacy').addEventListener('change', event => {
+                    localStorage.setItem('acidburn-bh-legacy', String(event.target.checked));
+                    window.dispatchEvent(new CustomEvent('acidburn-bh-style-change'));
+                });
                 picker.querySelectorAll('[data-display-mode]').forEach(button => {
                     button.addEventListener('click', () => {
                         const mode = button.dataset.displayMode;
@@ -244,6 +235,11 @@
         });
         const note = document.querySelector('.mode-reading-note');
         if (note) note.hidden = !isReading;
+        const legacy = document.getElementById('bh-legacy');
+        if (legacy) {
+            legacy.checked = localStorage.getItem('acidburn-bh-legacy') === 'true';
+            legacy.closest('label').hidden = currentMode !== 'bh';
+        }
 
         const btn = document.getElementById('main-mode-toggle');
         if (!btn) return;

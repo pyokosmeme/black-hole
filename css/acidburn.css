@@ -600,6 +600,17 @@ body.light-mode .header-bar .header-stat-label {
     letter-spacing: normal;
 }
 
+.mode-legacy-option { display:flex; gap:8px; align-items:center; min-height:44px; cursor:pointer; letter-spacing:normal; }
+.mode-legacy-option[hidden] { display:none; }
+.mode-legacy-option input { width:20px; height:20px; accent-color:var(--cyan); }
+
+/* Shared form fields for interactive tools. */
+.acidburn-field { display:flex; flex-direction:column; gap:var(--space-xs); font:inherit; }
+.acidburn-field input,.acidburn-field select,.acidburn-field textarea { min-width:0; max-width:100%; padding:8px; min-height:40px; border:1px solid currentColor; background:#12121a; color:inherit; font:inherit; }
+.acidburn-field input[type=checkbox] { width:20px; height:20px; min-height:20px; accent-color:var(--cyan); }
+.acidburn-field input:focus-visible,.acidburn-field select:focus-visible,.acidburn-field textarea:focus-visible,.mode-legacy-option input:focus-visible { outline:2px solid var(--cyan); outline-offset:2px; }
+body.light-mode .acidburn-field input,body.light-mode .acidburn-field select,body.light-mode .acidburn-field textarea { background:#fdfaf5; color:#2e2a26; }
+
 @media (max-width: 480px) {
     .mode-btn-icon {
         width: 36px;

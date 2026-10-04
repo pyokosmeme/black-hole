@@ -29,8 +29,10 @@ def serve(route):
     if path.name == 'yake-3d.js':
         body = body.replace(b'renderer.render(scene,camera);', b'window.__sceneTest={scene,camera,bodies,tracks,currentView,radius,target,renderer,focusing:!!flight};renderer.render(scene,camera);')
         body = body.replace(b'return {\n      setView', b'return window.__sceneAPI = {\n      setView').replace(b'return {\r\n      setView', b'return window.__sceneAPI = {\r\n      setView')
-    if path.name == 'acidburn-blackhole.js':
+    if path.name == 'acidburn-blackhole-legacy.js':
         body = body.replace(b'renderer.render(scene, camera);', b'renderer.render(scene, camera); window.__bhFrames=(window.__bhFrames||0)+1; window.__bhRenderer=renderer;')
+    if path.name == 'neon-blackhole.js':
+        body = body.replace(b'frameCount++;', b'frameCount++; window.__bhFrames=(window.__bhFrames||0)+1; window.__bhRenderer=renderer;')
     route.fulfill(body=body, content_type=mimetypes.guess_type(path)[0] or 'application/octet-stream')
 
 

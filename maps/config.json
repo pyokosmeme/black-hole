@@ -9,6 +9,13 @@
   },
   "links": [
     {
+      "id": "neon-black-hole",
+      "label": "Neon Black Hole Viewer",
+      "url": "neon-black-hole.html",
+      "icon": "",
+      "desc": "Explore a neon black hole, share settings, and download your own standalone viewer."
+    },
+    {
       "id": "yake",
       "label": "Ya Ke System Atlas",
       "url": "yake.html",

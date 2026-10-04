@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Neon Black Hole — Possible Territories</title>
+  <meta name="description" content="Explore a neon black hole, share settings, and download your own standalone viewer.">
+  <link rel="icon" href="img/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Share+Tech+Mono&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=VT323&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/acidburn.css">
+  <link rel="stylesheet" href="css/map-window.css">
+  <link rel="stylesheet" href="css/neon-viewer.css">
+  <script defer src="js-libs/three.min.js"></script>
+  <script defer src="js-libs/jquery-2.1.4.min.js"></script>
+  <script defer src="js-libs/Detector.js"></script>
+  <script defer src="js-libs/ShaderLoader.min.js"></script>
+  <script defer src="js-libs/mustache.min.js"></script>
+  <script defer src="three-js-monkey-patch.js"></script>
+  <script defer src="js/acidburn-galaxy.js"></script>
+  <script defer src="js/map-window.js"></script>
+  <script defer src="neon/settings.js"></script>
+  <script defer src="neon/js-libs/neon-blackhole.js"></script>
+  <script defer src="neon/zip.js"></script>
+  <script defer src="neon/viewer.js"></script>
+  <script defer src="js/acidburn-mode.js"></script>
+  <script defer src="js/acidburn-blackhole.js"></script>
+  <script defer src="nav-menu.js"></script>
+</head>
+<body class="neon-viewer">
+  <a class="skip-link" href="#main">Skip to viewer</a>
+  <div class="static-bg" aria-hidden="true"></div>
+  <div id="blackhole-container" aria-hidden="true"></div>
+  <header class="header-bar">
+    <div id="nav-menu"></div>
+    <div class="header-content-wrapper"><a href="/maps" class="header-brand">POSSIBLE TERRITORIES</a></div>
+  </header>
+  <main id="main" class="main-content map-window-shell">
+    <section class="author-card map-window" data-map-window aria-labelledby="viewer-title">
+      <div class="section-header window-toolbar">
+        <h2 id="viewer-title">NEON BLACK HOLE</h2><div class="section-line"></div>
+        <div class="window-actions" role="group" aria-label="Window controls">
+          <button class="acidburn-button" type="button" data-window-expand aria-pressed="false" aria-label="Expand window" title="Expand window">
+            <svg class="expand-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3H3v6m12-6h6v6M3 15v6h6m12-6v6h-6"/></svg>
+            <svg class="collapse-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9h6V3m6 0v6h6M9 21v-6H3m18 0h-6v6"/></svg>
+          </button>
+          <a class="acidburn-button" href="/maps" aria-label="Close viewer and return to Maps" title="Close viewer · Maps"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></a>
+        </div>
+      </div>
+      <div class="map-viewport neon-viewport">
+        <div id="neon-scene" class="neon-scene" role="img" aria-label="Animated black hole with a lensed accretion disk"></div>
+        <div class="map-hud map-hud-tl"><div class="map-controls">
+          <button type="button" class="acidburn-button" id="neon-pause" aria-pressed="false">Pause</button>
+          <button type="button" class="acidburn-button" id="neon-reset">Reset</button>
+        </div></div>
+        <div class="map-hud map-hud-br"><div class="map-controls">
+          <button type="button" class="acidburn-button" data-pane-toggle="neon-settings" aria-expanded="false">Settings</button>
+          <button type="button" class="acidburn-button" data-pane-toggle="neon-share" aria-expanded="false">Share / ZIP</button>
+        </div></div>
+        <section class="author-card map-pane" id="neon-settings" data-map-pane hidden aria-labelledby="settings-title">
+          <div class="section-header window-toolbar"><h2 id="settings-title">Settings</h2><div class="section-line"></div><div class="window-actions"><button type="button" class="acidburn-button" data-pane-close aria-label="Close settings">×</button></div></div>
+          <div class="map-pane-body"><p>Change the view, then copy or download your settings.</p><div id="neon-fields"></div></div>
+        </section>
+        <section class="author-card map-pane" id="neon-share" data-map-pane hidden aria-labelledby="share-title">
+          <div class="section-header window-toolbar"><h2 id="share-title">Share / ZIP</h2><div class="section-line"></div><div class="window-actions"><button type="button" class="acidburn-button" data-pane-close aria-label="Close sharing">×</button></div></div>
+          <div class="map-pane-body">
+            <p>Copy this view, load someone else’s settings, or take the viewer with you.</p>
+            <div class="neon-share-actions">
+              <button type="button" class="acidburn-button" id="neon-copy">Copy settings</button>
+              <button type="button" class="acidburn-button" id="neon-zip">Download ZIP</button>
+            </div>
+            <label class="acidburn-field" for="neon-json">Settings JSON<textarea id="neon-json" rows="6" spellcheck="false" placeholder="Paste copied settings here"></textarea></label>
+            <button type="button" class="acidburn-button" id="neon-load">Load JSON</button>
+            <label class="acidburn-field" for="neon-file">Or choose a settings file<input id="neon-file" type="file" accept=".json,application/json"></label>
+            <p>Your ZIP opens with these settings as its defaults. Includes the viewer’s code and assets, plus launch instructions.</p>
+          </div>
+        </section>
+        <p id="neon-status" class="neon-status" role="status">Black-hole viewer</p>
+      </div>
+    </section>
+    <noscript><p>This viewer needs JavaScript and WebGL.</p></noscript>
+  </main>
+  <script id="vertex-shader" type="x-shader/x-vertex">void main() { gl_Position = vec4(position, 1.0); }</script>
+  <script data-src="raytracer.glsl" data-name="raytracer" type="x-shader/x-fragment"></script>
+</body>
+</html>

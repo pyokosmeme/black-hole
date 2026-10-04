@@ -1,0 +1,66 @@
+/* One schema owns JSON validation and accessible viewer controls. */
+(function () {
+  'use strict';
+  const fields=[];
+  const number=(group,path,label,min,max,step=.01)=>fields.push({group,path,label,min,max,step,type:'number'});
+  const check=(group,path,label)=>fields.push({group,path,label,type:'checkbox'});
+  const choice=(group,path,label,values)=>fields.push({group,path,label,values,type:'select'});
+  choice('View','renderer','Renderer',['neon','original']);
+  choice('View','quality','Quality',['fast','medium','high']);
+  number('View','n_steps','Raytrace steps',20,300,1);
+  number('View','time_scale','Time scale',0,8);
+  check('Orbit','observer.motion','Camera motion');
+  choice('Orbit','observer.orbit','Orbit',['eccentric','circular']);
+  number('Orbit','observer.periapsis','Periapsis (rₛ)',3.2,30);
+  number('Orbit','observer.apoapsis','Apoapsis (rₛ)',3.2,60);
+  number('Orbit','observer.distance','Circular radius (rₛ)',3.01,30);
+  number('Orbit','observer.orbital_inclination','Inclination (°)',-90,90);
+  number('Camera','camera.pitch','Pitch (°)',-60,60);
+  number('Camera','camera.yaw','Yaw (°)',-180,180);
+  number('Camera','camera.wobble_pitch','Pitch wobble (°)',0,20);
+  number('Camera','camera.wobble_yaw','Yaw wobble (°)',0,30);
+  number('Camera','camera.wobble_period','Wobble period (s)',4,120);
+  for(const [key,label] of [['photon_eq_fix','Correct photon equation'],['neon_floor','Lensed floor'],['neon_sky','Nebula sky'],['neon_grid','Sky grid'],['disk_flow','Disk turbulence'],['disk_profile','Disk temperature profile'],['grav_redshift','Gravitational redshift']]) check('Neon features',key,label);
+  for(const [key,label,min,max] of [['floor_strength','Brightness',0,3],['floor_height','Height',.5,12],['floor_tilt','Tilt (°)',-20,40],['floor_cell','Cell size (rₛ)',.5,8],['floor_speed','Forward drift',-2,2],['floor_sway','Sideways sway (rₛ)',0,20],['floor_sway_period','Sway period (s)',4,120],['floor_extent','Extent',2,60]]) number('Floor','look.'+key,label,min,max);
+  check('Disk','accretion_disk','Accretion disk');
+  number('Disk','look.disk_temp','Peak temperature (K)',2000,20000,1);
+  number('Disk','look.disk_outer','Outer radius (rₛ)',3,30);
+  number('Disk','look.disk_speed','Gas speed (1 = Keplerian)',0,10);
+  number('Disk','look.spot_strength','Hot spots',0,4);
+  for(const [key,label,min,max] of [['galaxy_gain','Galaxy brightness',0,6],['grid_strength','Grid brightness',0,3],['grid_glow','Grid glow (px)',0,12],['grid_pulse','Grid pulse',0,3],['vfov','Maximum vertical FOV (°)',30,120]]) number('Sky','look.'+key,label,min,max);
+  for(const [key,label,min,max] of [['exposure','Exposure',.2,4],['bloom_strength','Bloom strength',0,3],['bloom_threshold','Bloom threshold',0,1.5],['bloom_radius','Bloom radius',.25,4],['render_scale','Maximum render scale',.25,1]]) number('Post / performance','look.'+key,label,min,max);
+  check('Post / performance','look.auto_res','Automatic resolution');
+  number('Post / performance','look.target_fps','Target FPS',24,120,1);
+  for(const [key,label] of [['beaming','Relativistic beaming'],['doppler_shift','Doppler shift'],['aberration','Aberration'],['light_travel_time','Light travel time'],['gravitational_time_dilation','Time dilation'],['lorentz_contraction','Lorentz contraction']]) check('Physics',key,label);
+  check('Planet','planet.enabled','Planet');
+  number('Planet','planet.distance','Distance (rₛ)',3,30);
+  number('Planet','planet.radius','Radius (rₛ)',.01,2);
+  const get=(obj,path)=>path.split('.').reduce((v,k)=>v?.[k],obj);
+  function set(obj,path,value){const keys=path.split('.'),key=keys.pop();keys.reduce((v,k)=>v[k],obj)[key]=value;}
+  function validate(input,defaults){
+    if(!input||typeof input!=='object'||Array.isArray(input)) throw new Error('Settings must be a JSON object.');
+    if(input.version!==undefined&&input.version!==1) throw new Error('Unsupported settings version.');
+    const output=JSON.parse(JSON.stringify(defaults));
+    const allowed=new Set(['version','t','r','v','render_scale_now',...fields.map(f=>f.path.split('.')[0])]);
+    for(const key of Object.keys(input)) if(!allowed.has(key)) throw new Error('Unknown setting: '+key);
+    for(const group of ['camera','observer','look','planet']){
+      if(!Object.hasOwn(input,group)) continue;
+      if(!input[group]||typeof input[group]!=='object'||Array.isArray(input[group])) throw new Error(group+' must be an object.');
+      const keys=new Set(fields.filter(f=>f.path.startsWith(group+'.')).map(f=>f.path.split('.')[1]));
+      for(const key of Object.keys(input[group])) if(!keys.has(key)) throw new Error('Unknown setting: '+group+'.'+key);
+    }
+    for(const field of fields){
+      const value=get(input,field.path);
+      if(value===undefined) continue;
+      if(field.type==='checkbox'&&typeof value!=='boolean') throw new Error(field.label+' must be true or false.');
+      if(field.type==='select'&&!field.values.includes(value)) throw new Error('Invalid '+field.label.toLowerCase()+'.');
+      if(field.type==='number'&&(typeof value!=='number'||!Number.isFinite(value)||value<field.min||value>field.max||field.step===1&&!Number.isInteger(value))) throw new Error(field.label+' must be between '+field.min+' and '+field.max+'.');
+      set(output,field.path,value);
+    }
+    const o=output.observer;
+    if(o.orbit==='eccentric'&&(o.apoapsis<o.periapsis||1-1/o.periapsis-1/o.apoapsis<1/o.periapsis-1e-9)) throw new Error('Choose a bound orbit: increase periapsis or apoapsis.');
+    output.version=1;
+    return output;
+  }
+  window.NeonSettings={fields,get,set,validate};
+})();

@@ -10,6 +10,7 @@
       "icon": "⬡",
       "children": [
         { "label": "Maps Hub", "url": "/maps.html", "icon": "✦" },
+        { "label": "Neon Black Hole Viewer", "url": "/neon-black-hole.html", "icon": "✧" },
         { "label": "Ya Ke System Atlas", "url": "/yake.html", "icon": "◈" },
         { "label": "Transit Network", "url": "/exu2374.html", "icon": "→" },
         { "label": "Galactic Star Map", "url": "/galaxy.html", "icon": "✧" },
