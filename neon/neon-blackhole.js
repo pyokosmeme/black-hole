@@ -56,6 +56,7 @@
     neon_grid: false,
     neon_floor: true,
     neon_sky: true,
+    photon_eq_fix: true,         // u'' = -u + 3/2 u^2 (original has u^3)
     disk_flow: true,
     disk_profile: true,
     grav_redshift: true,
@@ -391,7 +392,11 @@
         '  float L = max(dot(c, vec3(0.2126, 0.7152, 0.0722)), 1e-4);',
         '  vec3 th = c * (1.0 - exp(-L * exposure)) / L;',
         '  vec3 tc = vec3(1.0) - exp(-c * exposure);',
-        '  vec3 t = min(mix(th, tc, 0.3), vec3(1.0));',
+        '  // per-channel rolloff (burn to white) only for genuinely hot pixels, and',
+        '  // normalise by the max channel instead of clamping each one, so a',
+        '  // saturated #bf00ff or #00ffff keeps its hue instead of skewing',
+        '  vec3 t = mix(th, tc, 0.3 * smoothstep(1.5, 4.0, L));',
+        '  t /= max(1.0, max(t.r, max(t.g, t.b)));',
         '  c = mix(c, t, tonemap);',
         '  float scan = 0.97 + 0.03 * sin(gl_FragCoord.y * 3.14159);',
         '  vec2 q = vUv - 0.5; float vig = 1.0 - 0.35 * dot(q, q) * 2.0;',
@@ -618,7 +623,7 @@
     }
 
     var fx = gui.addFolder('Neon features (recompile)');
-    ['neon_floor', 'neon_sky', 'neon_grid', 'disk_flow', 'disk_profile', 'grav_redshift'].forEach(function (k) {
+    ['photon_eq_fix', 'neon_floor', 'neon_sky', 'neon_grid', 'disk_flow', 'disk_profile', 'grav_redshift'].forEach(function (k) {
       add(fx, P, k).onChange(recompile);
     });
     fx.open();
@@ -708,7 +713,7 @@
       render_scale_now: +curScale.toFixed(2),
       camera: P.camera, observer: P.observer, look: {}
     };
-    ['neon_floor', 'neon_sky', 'neon_grid', 'disk_flow', 'disk_profile', 'grav_redshift', 'accretion_disk',
+    ['photon_eq_fix', 'neon_floor', 'neon_sky', 'neon_grid', 'disk_flow', 'disk_profile', 'grav_redshift', 'accretion_disk',
      'beaming', 'doppler_shift', 'aberration', 'light_travel_time',
      'gravitational_time_dilation', 'lorentz_contraction', 'n_steps', 'time_scale'].forEach(function (k) { out[k] = P[k]; });
     Object.keys(P.look).forEach(function (k) {

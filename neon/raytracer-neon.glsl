@@ -337,9 +337,12 @@ vec4 floor_shade(vec3 fp, vec3 dir, float dist, float pix_angle) {
     float mglow = mix(mean4 * 2.0, max(mx.y, my.y), dens4);
 
     float fade = exp(-rad / floor_extent);
-    float minor = core * (1.0 - mcore);
-    vec3 fc = SITE_PURPLE * (1.3*minor + 0.35*glow)
-            + SITE_CYAN * (1.1*mcore + 0.4*mglow)
+    // purple stays out from under the cyan lines (it was shifting them blue);
+    // core gains are set so cores land on the site hex after the tonemap
+    float major = min(1.0, mcore + 0.6 * mglow);
+    float minor = core * (1.0 - major);
+    vec3 fc = SITE_PURPLE * (1.3*minor + 0.35*glow*(1.0 - major))
+            + SITE_CYAN * (1.8*mcore + 0.4*mglow)
             + vec3(0.85, 1.0, 1.0) * mcore * mx.x * my.x * 1.5    // hot crossings on the major grid
             + SITE_DEEP * 0.06;                                    // surface sheen
     // distance haze: grid dissolves into a purple horizon band
@@ -427,7 +430,10 @@ void main() {
     floor_o  = floor_d * floor_n;                        // foot of the hole on the floor
     {{/neon_floor}}
 
+    float last_u = u, last_du = du, last_phi = 0.0;
+
     for (int j=0; j < NSTEPS; j++) {
+        last_u = u; last_du = du; last_phi = phi;
 
         step = MAX_REVOLUTIONS * 2.0*M_PI / float(NSTEPS);
 
@@ -446,7 +452,15 @@ void main() {
 
         // Leapfrog scheme
         u += du*step;
+        // Null geodesic, r_s = 1: (u')^2 = 1/b^2 - u^2 (1 - u)  =>  u'' = -u + 3/2 u^2.
+        // The original (and oseiskar upstream) has -u(1 - 3/2 u^2), which puts the
+        // photon sphere at r = 1.225 instead of 1.5 and shrinks the shadow ~34%.
+        {{#photon_eq_fix}}
+        float ddu = -u*(1.0 - 1.5*u);
+        {{/photon_eq_fix}}
+        {{^photon_eq_fix}}
         float ddu = -u*(1.0 - 1.5*u*u);
+        {{/photon_eq_fix}}
         du += ddu*step;
 
         if (u < 0.0) break;
@@ -519,6 +533,13 @@ void main() {
 
                     vec4 disk_tex = texture2D(accretion_disk_texture, vec2(min(r_tex, 1.0), phi_tex));
                     float spot = 0.0;
+                    // retarded time AT the crossing: t is only updated once per
+                    // step, and using it raw makes the gas pattern jump wherever
+                    // neighbouring rays cross on different steps
+                    float t_hit = t;
+                    {{#light_travel_time}}
+                    t_hit = t - dt * acc_isec_t;
+                    {{/light_travel_time}}
                     // soft outer edge: density tapers over the outer ~35%, and
                     // the gas pattern (below) pushes the edge in and out
                     float edge_r = r;
@@ -533,7 +554,7 @@ void main() {
                     {
                         float ang = atan(isec.y, isec.x);
                         const float EPOCH = 90.0;
-                        float c1 = t / EPOCH, c2 = c1 + 0.5;
+                        float c1 = t_hit / EPOCH, c2 = c1 + 0.5;
                         float f1 = fract(c1), f2 = fract(c2);
                         float w1 = 1.0 - abs(2.0*f1 - 1.0), w2 = 1.0 - w1;
                         float g1 = disk_gas(r, ang, f1 * EPOCH, 13.1 * floor(c1));
@@ -551,11 +572,11 @@ void main() {
                             float fk = float(k);
                             float rk = 3.4 + 1.9 * fk + 0.6 * sin(fk * 2.3);
                             float ok = disk_speed * sqrt(0.5 / (rk*rk*rk));
-                            float pk = fk * 2.1 + ok * t;
+                            float pk = fk * 2.1 + ok * t_hit;
                             float dphi = mod(ang - pk + M_PI, 2.0 * M_PI) - M_PI;
                             float dr = (r - rk) / 0.35;
                             float ds = dphi * rk / 1.1;
-                            spot += exp(-dr*dr - ds*ds) * (0.8 + 0.4 * sin(fk * 4.7 + t * 0.05));
+                            spot += exp(-dr*dr - ds*ds) * (0.8 + 0.4 * sin(fk * 4.7 + t_hit * 0.05));
                         }
                         spot *= spot_strength;
                     }
@@ -640,6 +661,16 @@ void main() {
     }
 
     vec3 esc = normalize(pos - old_pos);
+    if (u < 0.0) {
+        // Escaped. The last chord's direction depends on where the final step
+        // happened to land, so it jumps wherever the step count changes by one
+        // (seams in the sky, flicker in the grid). Use the asymptote instead:
+        // from the last state, u'' ~ -u gives u = A cos x + B sin x, zero at
+        // x = atan(A, -B). The neglected 3/2 u^2 term is small and continuous.
+        float x = atan(last_u, -last_du);
+        float pa = last_phi + x;
+        esc = normalize(cos(pa) * normal_vec + sin(pa) * tangent_vec);
+    }
 
     {{#neon_floor}}
     if (u < 1.0) {
@@ -662,7 +693,7 @@ void main() {
     // pixel's angular footprint and is seam-free (unlike fwidth(atan)).
     vec3 grid_rgb = vec3(0.0);
     {
-        float fw = max(length(fwidth(gdir)), 1e-5);
+        float fw = clamp(length(fwidth(gdir)), 1e-5, 0.02);
         float lat = asin(clamp(gdir.z, -1.0, 1.0));
         float lon = atan(gdir.x, gdir.y);
         const float LAT_STEP = M_PI / 24.0;
