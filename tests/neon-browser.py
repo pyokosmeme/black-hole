@@ -25,7 +25,10 @@ def serve(route):
     if not path.is_relative_to(ROOT) or not path.is_file():
         route.fulfill(status=404, body='Missing local asset')
         return
-    route.fulfill(body=path.read_bytes(), content_type=mimetypes.guess_type(path)[0] or 'application/octet-stream')
+    content=path.read_bytes()
+    if path==ROOT/'neon/index.html':
+        content=content.replace(b'</body>',b'<script src="https://static.cloudflareinsights.com/beacon.min.js"></script></body>')
+    route.fulfill(body=content, content_type=mimetypes.guess_type(path)[0] or 'application/octet-stream')
 
 with sync_playwright() as p:
     browser = p.chromium.launch(args=['--enable-webgl', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'])
@@ -88,6 +91,7 @@ with sync_playwright() as p:
         assert json.loads(z.read('settings.json'))==changed
         assert not any('nav-menu' in n or 'cf.env' in n for n in z.namelist())
         assert b'window.NEON_PACKAGED=true' in z.read('index.html')
+        assert b'cloudflareinsights' not in z.read('index.html')
         z.extractall(exported)
     print('JSON import, atomic validation, file import, clipboard fallback, ZIP CRC and contents passed.')
     page.locator('#neon-share [data-pane-close]').click()

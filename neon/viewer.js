@@ -54,7 +54,12 @@
         try{response=await fetch(item.url);}catch{throw new Error('Could not fetch '+item.name+'.');}
         if(!response.ok)throw new Error('Could not load '+item.name+'.');
         if(item.name==='index.html'){
-          let html=await response.text();html=html.replaceAll('../css/','css/').replaceAll('../img/','img/').replaceAll('../js/map-window.js','map-window.js').replace("window.NEON_SITE_ASSETS='../'","window.NEON_SITE_ASSETS='./'").replace('window.NEON_PACKAGED=false','window.NEON_PACKAGED=true');
+          // Hosting may inject analytics into served HTML. The portable viewer
+          // contains only its bundled scripts, even when exported from production.
+          const template=new DOMParser().parseFromString(await response.text(),'text/html');
+          template.querySelectorAll('script[src]').forEach(script=>{if(new URL(script.getAttribute('src'),item.url).origin!==item.url.origin)script.remove();});
+          let html='<!doctype html>\n'+template.documentElement.outerHTML;
+          html=html.replaceAll('../css/','css/').replaceAll('../img/','img/').replaceAll('../js/map-window.js','map-window.js').replace("window.NEON_SITE_ASSETS='../'","window.NEON_SITE_ASSETS='./'").replace('window.NEON_PACKAGED=false','window.NEON_PACKAGED=true');
           return {name:item.name,data:html};
         }
         return {name:item.name,data:await response.arrayBuffer()};
