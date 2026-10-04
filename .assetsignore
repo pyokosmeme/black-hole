@@ -8,7 +8,8 @@
 .github/
 canvas/
 attached_files/
-CHOMP/
+# Original source bundle only; the public runtime model is in /models/chomp/.
+/CHOMP/
 /.agents/
 /Neon Black Hole.zip
 scripts/
