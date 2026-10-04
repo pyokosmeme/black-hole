@@ -18,13 +18,18 @@
   number('Camera','observer.azimuth','Stationary position azimuth (°)',-180,180);
   number('Camera','observer.elevation','Stationary position elevation (°)',-85,85);
   number('Camera','observer.rotation_speed','Stationary camera rotation (°/s)',-30,30);
+  choice('Camera','camera.navigation','Move control',['orbit','free']);
+  number('Camera','camera.sensitivity','Look / move sensitivity',.01,1,.01);
+  number('Camera','camera.move_speed','Movement speed (rₛ/s)',.01,10,.01);
+  for(const axis of ['x','y','z']) number('Camera','camera.offset_'+axis,'Camera offset '+axis.toUpperCase()+' (rₛ)',-100,100,.01);
   number('Camera','camera.pitch','Pitch (°)',-60,60);
   number('Camera','camera.yaw','Yaw (°)',-180,180);
   number('Camera','camera.wobble_pitch','Pitch wobble (°)',0,20);
   number('Camera','camera.wobble_yaw','Yaw wobble (°)',0,30);
   number('Camera','camera.wobble_period','Wobble period (s)',4,120);
   for(const [key,label] of [['photon_eq_fix','Correct photon equation'],['neon_floor','Lensed floor'],['neon_sky','Nebula sky'],['neon_grid','Sky grid'],['disk_flow','Disk turbulence'],['disk_profile','Disk temperature profile'],['grav_redshift','Gravitational redshift']]) check('Neon features',key,label);
-  for(const [key,label,min,max] of [['floor_strength','Brightness',0,3],['floor_height','Height',.5,12],['floor_tilt','Tilt (°)',-20,40],['floor_cell','Cell size (rₛ)',.5,8],['floor_speed','Forward drift',-2,2],['floor_sway','Sideways sway (rₛ)',0,20],['floor_sway_period','Sway period (s)',4,120],['floor_extent','Extent',2,60]]) number('Floor','look.'+key,label,min,max);
+  check('Floor','look.floor_follow_camera','Floor follows camera');
+  for(const [key,label,min,max] of [['floor_strength','Brightness',0,3],['floor_height','Black hole height above floor (rₛ)',-50,100],['floor_x','Floor X offset (rₛ)',-100,100],['floor_y','Floor Y offset (rₛ)',-100,100],['floor_yaw','Floor heading (°)',-180,180],['floor_tilt','Tilt (°)',-80,80],['floor_cell','Cell size (rₛ)',.5,20],['floor_speed','Forward drift',-2,2],['floor_sway','Sideways sway (rₛ)',0,20],['floor_sway_period','Sway period (s)',4,120],['floor_extent','Extent',2,100]]) number('Floor','look.'+key,label,min,max);
   check('Disk','accretion_disk','Accretion disk');
   number('Disk','look.disk_tilt','Disk tilt (°)',-90,90);
   number('Disk','look.disk_yaw','Disk tilt direction (°)',-180,180);
@@ -39,8 +44,18 @@
   number('Post / performance','look.target_fps','Target FPS',24,120,1);
   for(const [key,label] of [['beaming','Relativistic beaming'],['doppler_shift','Doppler shift'],['aberration','Aberration'],['light_travel_time','Light travel time'],['gravitational_time_dilation','Time dilation'],['lorentz_contraction','Lorentz contraction']]) check('Physics',key,label);
   check('Planet','planet.enabled','Planet');
-  number('Planet','planet.distance','Distance (rₛ)',3,30);
+  number('Planet','planet.distance','Semi-major axis (rₛ)',3,30);
   number('Planet','planet.radius','Radius (rₛ)',.01,2);
+  number('Planet','planet.eccentricity','Orbital eccentricity',0,.8,.01);
+  number('Planet','planet.inclination','Orbital inclination (°)',-180,180);
+  number('Planet','planet.node','Ascending node (°)',-180,180);
+  number('Planet','planet.periapsis','Periapsis direction (°)',-180,180);
+  number('Planet','planet.phase','Initial orbital phase (°)',-180,180);
+  number('Planet','planet.speed','Orbital speed multiplier',0,2,.01);
+  number('Planet','planet.spin','Surface spin (°/s)',-90,90);
+  number('Planet','planet.axial_tilt','Axial tilt (°)',-180,180);
+  number('Planet','planet.texture_offset','Texture longitude offset',0,1,.001);
+  fields.push({group:'Planet',path:'planet.texture',label:'Planet texture',type:'texture'});
   const get=(obj,path)=>path.split('.').reduce((v,k)=>v?.[k],obj);
   function set(obj,path,value){const keys=path.split('.'),key=keys.pop();keys.reduce((v,k)=>v[k],obj)[key]=value;}
   function validate(input,defaults){
@@ -61,10 +76,13 @@
       if(field.type==='checkbox'&&typeof value!=='boolean') throw new Error(field.label+' must be true or false.');
       if(field.type==='select'&&!field.values.includes(value)) throw new Error('Invalid '+field.label.toLowerCase()+'.');
       if(field.type==='number'&&(typeof value!=='number'||!Number.isFinite(value)||value<field.min||value>field.max||field.step===1&&!Number.isInteger(value))) throw new Error(field.label+' must be between '+field.min+' and '+field.max+'.');
+      if(field.type==='texture'&&(typeof value!=='string'||value.length>3000000||(value!==''&&!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(value)))) throw new Error('Planet texture must be an embedded PNG, JPEG or WebP under 3 MB.');
       set(output,field.path,value);
     }
     const o=output.observer;
     if(o.orbit==='eccentric'&&(o.apoapsis<o.periapsis||1-1/o.periapsis-1/o.apoapsis<1/o.periapsis-1e-9)) throw new Error('Choose a bound orbit: increase periapsis or apoapsis.');
+    if(!o.motion){const a=o.azimuth*Math.PI/180,e=o.elevation*Math.PI/180,c=output.camera;if(Math.hypot(o.distance*Math.cos(a)*Math.cos(e)+c.offset_x,o.distance*Math.sin(a)*Math.cos(e)+c.offset_y,o.distance*Math.sin(e)+c.offset_z)<1.5)throw new Error('Keep the camera outside 1.5 rₛ.');}
+    if(output.planet.distance*(1-output.planet.eccentricity)<=output.planet.radius+1.5) throw new Error('Planet periapsis must keep the whole planet outside 1.5 rₛ. Increase orbital distance or reduce eccentricity.');
     output.version=1;
     return output;
   }

@@ -34,6 +34,8 @@ uniform vec3 cam_z;
 uniform vec3 cam_vel;
 
 uniform float planet_distance, planet_radius;
+uniform float planet_eccentricity, planet_phase, planet_speed, planet_spin, planet_texture_offset;
+uniform vec3 planet_bx, planet_by, planet_tx, planet_ty, planet_tz;
 
 uniform sampler2D galaxy_texture, star_texture,
     accretion_disk_texture, planet_texture, spectrum_texture;
@@ -102,33 +104,52 @@ vec3 contract(vec3 x, vec3 d, float mult) {
     return (x-par*d) + d*par*mult;
 }
 
+// Kepler ellipse in its own plane, then rotated into world space.
+float planet_anomaly(float epoch) {
+    float a=max(planet_distance,planet_radius+1.5);
+    float n=-planet_speed/sqrt(2.0*(a-1.0))/a;
+    float m=mod(epoch*n+planet_phase+M_PI,2.0*M_PI)-M_PI;
+    float E=m;
+    for(int k=0;k<8;k++) E-=(E-planet_eccentricity*sin(E)-m)/max(1.0-planet_eccentricity*cos(E),0.2);
+    return E;
+}
+vec3 planet_position(float epoch) {
+    float E=planet_anomaly(epoch),a=max(planet_distance,planet_radius+1.5),e=planet_eccentricity;
+    return a*((cos(E)-e)*planet_bx+sqrt(1.0-e*e)*sin(E)*planet_by);
+}
+vec3 planet_velocity(float epoch) {
+    float E=planet_anomaly(epoch),a=max(planet_distance,planet_radius+1.5),e=planet_eccentricity;
+    float rate=(-planet_speed/sqrt(2.0*(a-1.0))/a)/max(1.0-e*cos(E),0.2);
+    return a*rate*(-sin(E)*planet_bx+sqrt(1.0-e*e)*cos(E)*planet_by);
+}
 vec4 planet_intersection(vec3 old_pos, vec3 ray, float t, float dt,
         vec3 planet_pos0, float ray_doppler_factor) {
 
     vec4 ret = vec4(0,0,0,0);
     vec3 ray0 = ray;
+    dt=max(dt,0.00001);
     ray = ray/dt;
-
-    vec3 planet_dir = vec3(planet_pos0.y, -planet_pos0.x, 0.0) / PLANET_DISTANCE;
+    vec3 velocity0=planet_velocity(t);
+    vec3 planet_dir=length(velocity0)>0.00001?normalize(velocity0):planet_by;
+    float planet_gamma=1.0/sqrt(max(1.0-dot(velocity0,velocity0),0.01));
 
     {{#light_travel_time}}
-    float planet_ang1 = (t-dt) * PLANET_ORBITAL_ANG_VEL;
-    vec3 planet_pos1 = vec3(cos(planet_ang1), sin(planet_ang1), 0)*PLANET_DISTANCE;
+    vec3 planet_pos1 = planet_position(t-dt);
     vec3 planet_vel = (planet_pos1-planet_pos0)/dt;
 
     // transform to moving planet coordinate system
     ray = ray - planet_vel;
     {{/light_travel_time}}
     {{^light_travel_time}}
-    vec3 planet_vel = planet_dir * PLANET_ORBITAL_ANG_VEL * PLANET_DISTANCE;
+    vec3 planet_vel = velocity0;
     {{/light_travel_time}}
 
     // ray-sphere intersection
     vec3 d = old_pos - planet_pos0;
 
     {{#lorentz_contraction}}
-    ray = contract(ray, planet_dir, PLANET_GAMMA);
-    d = contract(d, planet_dir, PLANET_GAMMA);
+    ray = contract(ray, planet_dir, planet_gamma);
+    d = contract(d, planet_dir, planet_gamma);
     {{/lorentz_contraction}}
 
     float dotp = dot(d,ray);
@@ -158,8 +179,8 @@ vec4 planet_intersection(vec3 old_pos, vec3 ray, float t, float dt,
     rot_phase -= isec_t*dt;
     {{/light_travel_time}}
 
-    rot_phase = rot_phase * PLANET_ROTATION_ANG_VEL*0.5/M_PI;
-    light_dir = light_dir / PLANET_DISTANCE;
+    rot_phase = rot_phase * planet_spin*0.5/M_PI;
+    light_dir = normalize(light_dir);
 
     {{#light_travel_time}}
     light_dir = light_dir - planet_vel;
@@ -167,12 +188,13 @@ vec4 planet_intersection(vec3 old_pos, vec3 ray, float t, float dt,
 
     vec3 surface_normal = surface_point;
     {{#lorentz_contraction}}
-    light_dir = contract(light_dir, planet_dir, PLANET_GAMMA);
+    light_dir = contract(light_dir, planet_dir, planet_gamma);
     {{/lorentz_contraction}}
     light_dir = normalize(light_dir);
 
-    vec2 tex_coord = sphere_map(surface_point * PLANET_COORDS);
-    tex_coord.x = mod(tex_coord.x + rot_phase, 1.0);
+    vec3 surface_unit=normalize(surface_point);
+    vec2 tex_coord = sphere_map(vec3(dot(surface_unit,planet_tx),dot(surface_unit,planet_ty),dot(surface_unit,planet_tz)));
+    tex_coord.x = mod(tex_coord.x + rot_phase + planet_texture_offset, 1.0);
 
     float diffuse = max(0.0, dot(surface_normal, -light_dir));
     float lightness = ((1.0-PLANET_AMBIENT)*diffuse + PLANET_AMBIENT) *
@@ -180,7 +202,7 @@ vec4 planet_intersection(vec3 old_pos, vec3 ray, float t, float dt,
 
     float light_temperature = ACCRETION_TEMPERATURE;
     {{#doppler_shift}}
-    float doppler_factor = SQ(PLANET_GAMMA) *
+    float doppler_factor = SQ(planet_gamma) *
         (1.0 + dot(planet_vel, light_dir)) *
         (1.0 - dot(planet_vel, normalize(ray)));
     light_temperature /= doppler_factor * ray_doppler_factor;
@@ -283,8 +305,7 @@ void main() {
     float dt = 1.0;
 
     {{^light_travel_time}}
-    float planet_ang0 = t * PLANET_ORBITAL_ANG_VEL;
-    vec3 planet_pos0 = vec3(cos(planet_ang0), sin(planet_ang0), 0)*PLANET_DISTANCE;
+    vec3 planet_pos0 = planet_position(t);
     {{/light_travel_time}}
 
     vec3 old_pos;
@@ -334,17 +355,12 @@ void main() {
 
         {{#planetEnabled}}
         if (
-            (
-                old_pos.z * pos.z < 0.0 ||
-                min(abs(old_pos.z), abs(pos.z)) < PLANET_RADIUS
-            ) &&
-            max(u, old_u) > 1.0/(PLANET_DISTANCE+PLANET_RADIUS) &&
-            min(u, old_u) < 1.0/(PLANET_DISTANCE-PLANET_RADIUS)
+            max(u, old_u) > 1.0/(PLANET_DISTANCE*(1.0+planet_eccentricity)+PLANET_RADIUS) &&
+            min(u, old_u) < 1.0/(PLANET_DISTANCE*(1.0-planet_eccentricity)-PLANET_RADIUS)
         ) {
 
             {{#light_travel_time}}
-            float planet_ang0 = t * PLANET_ORBITAL_ANG_VEL;
-            vec3 planet_pos0 = vec3(cos(planet_ang0), sin(planet_ang0), 0)*PLANET_DISTANCE;
+            vec3 planet_pos0 = planet_position(t);
             {{/light_travel_time}}
 
             vec4 planet_isec = planet_intersection(old_pos, ray, t, dt,

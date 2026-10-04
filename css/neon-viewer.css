@@ -12,11 +12,14 @@
 .neon-viewer .neon-control { display:grid; grid-template-columns:minmax(0,1fr) 90px; align-items:center; gap:var(--space-xs); }
 .neon-viewer .neon-control input[type=checkbox] { justify-self:end; }
 .neon-standalone .map-window-shell { padding-top:var(--window-gap); }
+.neon-viewer .neon-planet-preview { display:block; width:100%; max-height:140px; object-fit:contain; margin:var(--space-sm) 0; }
+.neon-viewer #neon-planet-texture { min-width:0; width:100%; }
 @media(max-width:600px) and (min-height:501px) { .neon-status { max-width:none; } }
 @media(max-height:500px) { .neon-status { display:none; } }
 .neon-viewer[data-disable-bh-background] .static-bg { display:block; opacity:1; }
 .neon-viewer .map-hud-tl { max-width:calc(100% - 2 * var(--hud-inset)); }
 .neon-viewer .map-hud-tl .map-controls { justify-content:flex-start; }
+.neon-viewer #neon-camera-free[hidden] { display:none; }
 .neon-viewport.is-stationary .neon-scene { touch-action:none; cursor:grab; }
 .neon-camera-controls { position:absolute; z-index:6; left:var(--hud-inset); bottom:var(--hud-inset); color:#fff; }
 .neon-camera-controls[hidden], .neon-viewer .neon-camera-pad[hidden] { display:none; }

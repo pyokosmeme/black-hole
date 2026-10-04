@@ -34,7 +34,7 @@ window.createNeonBlackhole = function (options) {
     n_steps: 60,
     quality: 'medium',
     accretion_disk: true,
-    planet: { enabled: false, distance: 7.0, radius: 0.4 },
+    planet: { enabled:false, distance:7.0, radius:0.4, eccentricity:0, inclination:0, node:0, periapsis:0, phase:0, speed:1, spin:15, axial_tilt:30, texture_offset:0, texture:'' },
     lorentz_contraction: true,
     gravitational_time_dilation: true,
     aberration: true,
@@ -52,6 +52,8 @@ window.createNeonBlackhole = function (options) {
       azimuth: -90, elevation: 0, rotation_speed: 0
     },
     camera: {
+      navigation:'orbit', sensitivity:.18, move_speed:1,
+      offset_x:0, offset_y:0, offset_z:0,
       pitch: 9.35, yaw: -10.96,
       // quasi-periodic wobble (two incommensurate tones per axis), degrees
       wobble_pitch: 4.0, wobble_yaw: 7.0, wobble_period: 89.5   // period in seconds at time_scale 1
@@ -72,6 +74,7 @@ window.createNeonBlackhole = function (options) {
       grid_pulse: 0.0,
       floor_strength: 0.975,
       floor_height: 5.9,
+      floor_follow_camera:true, floor_x:0, floor_y:0, floor_yaw:0,
       floor_tilt: -3.0,            // degrees in the UI
       floor_cell: 2.5,             // grid cell (r_s); major cyan lines every 4 cells
       floor_speed: 0.25,           // forward drift (r_s per second at time_scale 1)
@@ -227,6 +230,29 @@ window.createNeonBlackhole = function (options) {
 
   // ─────────────────────────────────────────────────────────── textures
   var textures = {}, pending = 0, galaxyTexture = null;
+  var textureKey='', customPlanetTexture=null, textureRequest=0, texturePromise=Promise.resolve();
+  function syncPlanetTexture() {
+    if (!uniforms || textureKey===P.planet.texture) return;
+    textureKey=P.planet.texture;
+    var request=++textureRequest, src=textureKey;
+    if (!src) {
+      uniforms.planet_texture.value=textures.moon;
+      if(customPlanetTexture)customPlanetTexture.dispose();customPlanetTexture=null;
+      dirty=true;texturePromise=Promise.resolve();return;
+    }
+    texturePromise=new Promise(function(resolve,reject){
+      var img=new Image();
+      img.onload=function(){
+        if(request!==textureRequest){resolve();return;}
+        if(img.width>2048||img.height>2048){reject(new Error('Embedded planet maps must be at most 2048 pixels per side.'));return;}
+        var tex=new THREE.Texture(img);tex.minFilter=tex.magFilter=THREE.LinearFilter;tex.generateMipmaps=false;tex.needsUpdate=true;
+        if(customPlanetTexture)customPlanetTexture.dispose();customPlanetTexture=tex;
+        uniforms.planet_texture.value=tex;dirty=true;resolve();
+      };
+      img.onerror=function(){reject(new Error('Could not decode the planet texture.'));};img.src=src;
+    });
+    texturePromise.catch(function(){});
+  }
   var texLoader = new THREE.TextureLoader();
 
   function loadTexture(key, url, filter) {
@@ -455,6 +481,11 @@ window.createNeonBlackhole = function (options) {
       disk_by: { type:'v3', value:new THREE.Vector3(0,1,0) },
       planet_distance: { type: 'f', value: 7 },
       planet_radius: { type: 'f', value: 0.4 },
+      planet_eccentricity: {type:'f',value:0}, planet_phase:{type:'f',value:0}, planet_speed:{type:'f',value:1},
+      planet_spin:{type:'f',value:0}, planet_texture_offset:{type:'f',value:0},
+      planet_bx:{type:'v3',value:new THREE.Vector3(1,0,0)}, planet_by:{type:'v3',value:new THREE.Vector3(0,1,0)},
+      planet_tx:{type:'v3',value:new THREE.Vector3(1,0,0)}, planet_ty:{type:'v3',value:new THREE.Vector3(0,1,0)}, planet_tz:{type:'v3',value:new THREE.Vector3(0,0,1)},
+      floor_x:{type:'f',value:0}, floor_y:{type:'f',value:0},
       fov_mult: { type: 'f', value: 1 },
       floor_offset: { type: 'v2', value: new THREE.Vector2() },
       floor_bx: { type: 'v3', value: new THREE.Vector3() },
@@ -484,6 +515,7 @@ window.createNeonBlackhole = function (options) {
     if (window.ResizeObserver) new ResizeObserver(function () { resize(); }).observe(container);
 
     observer.resetOrbit();
+    syncPlanetTexture();
     lastT = performance.now();
     readyResolve(api);
     setActive(active);
@@ -518,7 +550,7 @@ window.createNeonBlackhole = function (options) {
       floorBasis = frame.clone().multiply(cmLevel);
       observer.orientation = frame.multiply(cm);
     } else {
-      floorBasis = viewMatrix(0, 0);
+      floorBasis = viewMatrix(0, P.look.floor_yaw);
       var az=degToRad(P.observer.azimuth+observer.rotation), el=degToRad(P.observer.elevation);
       observer.position.set(Math.cos(az)*Math.cos(el),Math.sin(az)*Math.cos(el),Math.sin(el)).multiplyScalar(P.observer.distance);
       var forward=observer.position.clone().normalize().negate();
@@ -526,6 +558,8 @@ window.createNeonBlackhole = function (options) {
       var up=new THREE.Vector3().crossVectors(right,forward);
       var basis=new THREE.Matrix3().set(right.x,forward.x,up.x,right.y,forward.y,up.y,right.z,forward.z,up.z);
       observer.orientation = basis.multiply(cm);
+      observer.position.add(new THREE.Vector3(c.offset_x,c.offset_y,c.offset_z));
+      if(observer.position.length()<1.5){if(observer.position.length()>0)observer.position.normalize().multiplyScalar(1.5);else observer.position.set(0,-1.5,0);}
       observer.velocity.set(0, 0, 0);
     }
   }
@@ -548,6 +582,7 @@ window.createNeonBlackhole = function (options) {
     uniforms.cam_x.value.set(e[0], e[1], e[2]);
     uniforms.cam_y.value.set(e[3], e[4], e[5]);
     uniforms.cam_z.value.set(e[6], e[7], e[8]);
+    if (!L.floor_follow_camera) floorBasis=viewMatrix(0,L.floor_yaw);
     var f = floorBasis.elements;
     uniforms.floor_bx.value.set(f[0], f[1], f[2]);
     uniforms.floor_by.value.set(f[3], f[4], f[5]);
@@ -555,6 +590,17 @@ window.createNeonBlackhole = function (options) {
     uniforms.floor_offset.value.copy(observer.floorOffset);
     uniforms.planet_distance.value = P.planet.distance;
     uniforms.planet_radius.value = P.planet.radius;
+    if (P.planet.enabled) {
+    var pp=P.planet;
+    var orbitBasis=new THREE.Matrix4().makeRotationZ(degToRad(pp.node)).multiply(new THREE.Matrix4().makeRotationX(degToRad(pp.inclination))).multiply(new THREE.Matrix4().makeRotationZ(degToRad(pp.periapsis)));
+    var pe=orbitBasis.elements;
+    uniforms.planet_bx.value.set(pe[0],pe[1],pe[2]);uniforms.planet_by.value.set(pe[4],pe[5],pe[6]);
+    var te=orbitBasis.multiply(new THREE.Matrix4().makeRotationY(degToRad(pp.axial_tilt))).elements;
+    uniforms.planet_tx.value.set(te[0],te[1],te[2]);uniforms.planet_ty.value.set(te[4],te[5],te[6]);uniforms.planet_tz.value.set(te[8],te[9],te[10]);
+    uniforms.planet_eccentricity.value=pp.eccentricity;uniforms.planet_phase.value=degToRad(pp.phase);uniforms.planet_speed.value=pp.speed;
+    uniforms.planet_spin.value=degToRad(pp.spin);uniforms.planet_texture_offset.value=pp.texture_offset;
+    }
+    uniforms.floor_x.value=L.floor_x;uniforms.floor_y.value=L.floor_y;
     UNIFORM_LOOK.forEach(function (k) { uniforms[k].value = L[k]; });
     uniforms.floor_tilt.value = degToRad(L.floor_tilt);
     // p.x spans [-1,1] horizontally in the shader; pick the horizontal FOV so
@@ -673,6 +719,7 @@ window.createNeonBlackhole = function (options) {
     setOriginal(next.renderer==='original');
     needsCompile=true; dirty=true;
     if (renderer) buildTargets(P.look.auto_res && curScale ? Math.min(curScale,P.look.render_scale) : P.look.render_scale);
+    syncPlanetTexture();
     return settings();
   }
   function setActive(on) {
@@ -692,6 +739,7 @@ window.createNeonBlackhole = function (options) {
     get isReady() { return !!renderer; },
     get frames() { return frameCount; },
     get active() { return active; },
+    get textureReady() { return texturePromise; },
     setActive:setActive, applySettings:applySettings,
     defaults:function () { return JSON.parse(JSON.stringify(defaults)); },
     recompile: function () { needsCompile = true; },
@@ -711,6 +759,14 @@ window.createNeonBlackhole = function (options) {
       observer.rotation = 0;
       P.observer.elevation = Math.max(-85, Math.min(85, P.observer.elevation + elevation));
       dirty = true;
+    },
+    translateCamera: function (x,y,z) {
+      if (P.observer.motion || ![x,y,z].every(Number.isFinite)) return;
+      var e=observer.orientation.elements, c=P.camera;
+      var delta=new THREE.Vector3(e[0]*x+e[3]*y+e[6]*z,e[1]*x+e[4]*y+e[7]*z,e[2]*x+e[5]*y+e[8]*z);
+      if(observer.position.clone().add(delta).length()<1.5)return;
+      c.offset_x=Math.max(-100,Math.min(100,c.offset_x+delta.x));c.offset_y=Math.max(-100,Math.min(100,c.offset_y+delta.y));c.offset_z=Math.max(-100,Math.min(100,c.offset_z+delta.z));
+      dirty=true;
     },
     setPaused: function (p) { paused = !!p; dirty = true; }, isPaused: function () { return paused; },
     getScale: function () { return curScale; },

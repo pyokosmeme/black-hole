@@ -95,6 +95,12 @@ with sync_playwright() as p:
             yaw=page.evaluate('NeonViewer.settings().camera.yaw')
             page.wait_for_timeout(200);assert page.evaluate('NeonViewer.settings().camera.yaw')==yaw
         page.screenshot(path=str(SHOTS/f'camera-{kind}.png'))
+        page.locator('#neon-camera-free').click()
+        assert page.evaluate('NeonViewer.settings().camera.navigation')=='free'
+        offset=page.evaluate('NeonViewer.settings().camera.offset_x')
+        page.locator('#neon-scene').focus();page.keyboard.press('Shift+d')
+        assert page.evaluate('NeonViewer.settings().camera.offset_x')!=offset
+        page.locator('#neon-camera-free').click()
         if kind=='phone':
             for width,height in [(320,568),(568,320),(390,844)]:
                 page.set_viewport_size({'width':width,'height':height});page.wait_for_timeout(200)
