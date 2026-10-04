@@ -1,5 +1,12 @@
 # Repository instructions
 
+## Packaged visualizer skill
+
+For Acid Burn page and visualizer work, use the repository skill at
+[.agents/skills/acid-burn-visualizers/SKILL.md](.agents/skills/acid-burn-visualizers/SKILL.md).
+It locates live shared components and map/renderer workflows. Keep the skill on
+GitHub only; `.agents/` must remain excluded from public assets.
+
 ## New pages and Acid Burn UI
 
 When asked how to add a page, to build a new page, or to restyle a page on

@@ -385,6 +385,13 @@ vec4 floor_shade(vec3 fp, vec3 dir, float dist, float pix_angle) {
             + vec3(0.85, 1.0, 1.0) * mcore * mx.x * my.x * 1.5;
     // Only the wires occlude the scene. No surface sheen or haze fills cells.
     float opac = clamp((minor + major) * floor_strength, 0.0, 1.0) * fade;
+    {{#look.floor_infinite}}
+    // Unresolved wires merge into the horizon emitter below, rather than
+    // spreading a faint solid surface across the distant cells.
+    float resolved = smoothstep(0.0, 0.4, dens4);
+    fc *= resolved;
+    opac *= resolved;
+    {{/look.floor_infinite}}
     return vec4(fc * floor_strength * fade, opac);
 }
 {{/neon_floor}}
@@ -734,6 +741,22 @@ void main() {
     }
     {{/neon_floor}}
     vec3 gdir = esc * BG_COORDS;
+    {{#neon_floor}}
+    {{#look.floor_infinite}}
+    // Integrate the subpixel minor/major wires at the plane's vanishing line.
+    // Use the lensed escape direction so the horizon bends with the grid.
+    float horizonPixel = max(PIX_ANGLE, length(fwidth(esc)));
+    float horizonDistance = abs(dot(esc, floor_n));
+    float horizonCore = exp2(-SQ(horizonDistance / (0.6 * horizonPixel)));
+    float horizonGlow = exp2(-SQ(horizonDistance / (2.5 * horizonPixel)));
+    float wireCoverage = 4.0 * 0.006 + 4.0 * (1.4 * 0.006 / 4.0);
+    vec3 horizonColor = (SITE_CYAN * 1.8 + SITE_PURPLE * 1.3) * wireCoverage * 24.0;
+    color.rgb += (horizonColor * (1.6 * horizonCore + 0.3 * horizonGlow)
+                 + vec3(0.85, 1.0, 1.0) * horizonCore * 0.6)
+                 * floor_strength * trans * smoothstep(0.08, 0.02, u)
+                 * (dot(cam_pos, floor_n) >= floor_d ? 1.0 : 0.0);
+    {{/look.floor_infinite}}
+    {{/neon_floor}}
 
     {{#neon_grid}}
     // Analytic celestial grid on the escape direction: exact lensing, crisp at

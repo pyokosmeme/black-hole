@@ -1,0 +1,4 @@
+interface:
+  display_name: "Acid Burn Visualizers"
+  short_description: "Build and edit the real Acid Burn maps and viewers"
+  default_prompt: "Use $acid-burn-visualizers to update this repository's visualizer while preserving its shared Acid Burn UI and verifying it in the browser."
