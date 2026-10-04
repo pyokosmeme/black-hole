@@ -8,14 +8,11 @@
     'use strict';
 
     const body = document.body;
-    // Detection for default setting
-    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 768;
-    
-    // Default to 'bh' on desktop, 'dark' on mobile if no preference saved
+    // Start quietly on every device; an explicitly saved display choice wins.
     const savedMode = localStorage.getItem('acidburn-mode');
-    let currentMode = savedMode || (isMobile ? 'dark' : 'bh');
+    let currentMode = savedMode || 'dark';
     
-    console.log(`[ACIDBURN Mode] Init: isMobile=${isMobile}, saved=${savedMode}, current=${currentMode}`);
+    console.log(`[ACIDBURN Mode] Init: saved=${savedMode}, current=${currentMode}`);
     
     let lastStaticMode = localStorage.getItem('acidburn-static-mode') || 'dark';
     let webglSupported = true;
@@ -29,7 +26,7 @@
     };
 
     // Sanitize stale localStorage values from previous versions
-    if (!MODE_INFO[currentMode]) currentMode = 'bh';
+    if (!MODE_INFO[currentMode]) currentMode = 'dark';
     if (!MODE_INFO[lastStaticMode]) lastStaticMode = 'dark';
     
     // ═══════════════════════════════════════════════════════════════

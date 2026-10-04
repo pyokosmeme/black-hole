@@ -35,7 +35,8 @@ def check(slug, content, get_image):
     m = {k:v[0] for k,v in head.meta.items()}
     assert head.canonicals == [ORIGIN+'/'+slug] and m['og:url']==head.canonicals[0]
     assert m['twitter:card']=='summary_large_image'
-    assert m['og:image']==m['twitter:image']==ORIGIN+'/img/social/'+slug+'-v1.jpg'
+    version='v2' if slug=='neon-black-hole' else 'v1'
+    assert m['og:image']==m['twitter:image']==ORIGIN+'/img/social/'+slug+'-'+version+'.jpg'
     assert m['og:title']==m['twitter:title']
     assert m['og:image:type']=='image/jpeg' and (m['og:image:width'],m['og:image:height'])==('1200','630')
     data = get_image(m['og:image'])

@@ -9,6 +9,7 @@ import base64
 import html
 import json
 import mimetypes
+import sys
 from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -63,7 +64,8 @@ def card(page, item, scene):
     page.wait_for_function('document.images[0].complete && document.images[0].naturalWidth > 0')
     assert page.evaluate("document.fonts.check('40px Orbitron') && document.fonts.check('22px \"Share Tech Mono\"')")
     assert page.locator('.social-card').evaluate('(e)=>e.scrollHeight <= e.clientHeight')
-    page.screenshot(path=str(OUT / (item['id']+'-v1.jpg')), type='jpeg', quality=92)
+    version='v2' if item['id']=='neon-black-hole' else 'v1'
+    page.screenshot(path=str(OUT / (item['id']+'-'+version+'.jpg')), type='jpeg', quality=92)
 
 def main():
     OUT.mkdir(exist_ok=True, parents=True)
@@ -74,6 +76,8 @@ def main():
         context.route('**/*', serve)
         context.add_init_script("localStorage.setItem('acidburn-mode','dark')")
         for item in LINKS:
+            if len(sys.argv)>1 and item['id'] not in sys.argv[1:]:
+                continue
             page = context.new_page()
             errors = []
             page.on('pageerror', lambda e: errors.append(str(e)))
@@ -81,7 +85,14 @@ def main():
             page.evaluate('document.fonts.ready')
             if item['id']=='neon-black-hole':
                 page.wait_for_function('window.NeonViewer?.frames > 2', timeout=60000)
-                page.evaluate('''() => { const s=NeonViewer.settings();s.observer.motion=false;s.observer.distance=18;NeonViewer.applySettings(s);NeonViewer.setPaused(true); }''')
+                page.evaluate('''() => {
+                  const s=NeonViewer.settings();
+                  s.observer.motion=false;s.observer.distance=18;s.observer.azimuth=0;s.observer.elevation=6;
+                  s.camera.pitch=0;s.camera.yaw=0;s.camera.height=0;
+                  s.camera.offset_x=0;s.camera.offset_y=0;s.camera.offset_z=0;
+                  s.look.disk_tilt=0;s.look.disk_yaw=0;s.look.auto_res=false;s.look.render_scale=1;
+                  NeonViewer.applySettings(s);NeonViewer.setPaused(true);
+                }''')
             elif item['id']=='vehicle-viewer':
                 page.wait_for_function('window.__vehicleViewer?.loaded', timeout=60000)
             else:
@@ -104,8 +115,9 @@ def main():
             card(page, item, scene)
             print('Rendered',item['id'],flush=True)
             page.close()
-        page = context.new_page()
-        card(page, {'id':'maps','label':'Possible Territories','desc':'Maps and charts of speculative worlds. Explore star systems, transit networks, spacecraft, and a neon black hole.'}, SHOTS/'galaxy.png')
+        if len(sys.argv)==1:
+            page = context.new_page()
+            card(page, {'id':'maps','label':'Possible Territories','desc':'Maps and charts of speculative worlds. Explore star systems, transit networks, spacecraft, and a neon black hole.'}, SHOTS/'galaxy.png')
         browser.close()
 
 if __name__ == '__main__':
