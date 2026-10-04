@@ -9,7 +9,7 @@
   choice('View','quality','Quality',['fast','medium','high']);
   number('View','n_steps','Raytrace steps',20,300,1);
   number('View','time_scale','Time scale',0,8);
-  check('Orbit','observer.motion','Camera motion');
+  check('Orbit','observer.motion','Automatic orbit');
   choice('Orbit','observer.orbit','Orbit',['eccentric','circular']);
   number('Orbit','observer.periapsis','Periapsis (rₛ)',3.2,30);
   number('Orbit','observer.apoapsis','Apoapsis (rₛ)',3.2,60);

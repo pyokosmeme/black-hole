@@ -14,7 +14,46 @@
     const pane=document.querySelector('.neon-viewport [data-map-pane]:not([hidden]) .map-pane-body');
     if(pane){let note=pane.querySelector('.neon-feedback');if(!note){note=document.createElement('p');note.className='neon-feedback';note.setAttribute('role','status');pane.prepend(note);}note.textContent=text;}
   }
-  function syncFields(){const values=viewer.settings();for(const [path,input] of controls){const value=NeonSettings.get(values,path);if(input.type==='checkbox')input.checked=value;else input.value=value;}}
+  function syncFields(){
+    const values=viewer.settings();for(const [path,input] of controls){const value=NeonSettings.get(values,path);if(input.type==='checkbox')input.checked=value;else input.value=value;}
+    $('neon-grid').setAttribute('aria-pressed',String(values.neon_grid));
+    $('neon-floor').setAttribute('aria-pressed',String(values.neon_floor));
+    $('neon-stationary').setAttribute('aria-pressed',String(!values.observer.motion));
+    $('neon-camera-controls').hidden=values.observer.motion;
+    scene.closest('.neon-viewport').classList.toggle('is-stationary',!values.observer.motion);
+    if(values.observer.motion)stopCamera();
+  }
+  // Use mobile device signals, never CPU architecture or window size.
+  const mobile=navigator.userAgentData?.mobile===true || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  let padPointer=null,drag=null,padFrame=null,padX=0,padY=0,padTime=0;
+  function stopCamera(){
+    if(padFrame!==null)cancelAnimationFrame(padFrame);
+    padFrame=null;padPointer=null;drag=null;padX=padY=0;
+    $('neon-camera-pad').querySelector('.neon-pad-thumb').style.transform='';
+  }
+  function moveCamera(yaw,pitch,zoom=0){viewer.moveCamera(yaw,pitch,zoom);syncFields();}
+  function setupCamera(){
+    const pad=$('neon-camera-pad');pad.hidden=!mobile;
+    if(mobile)$('neon-camera-help').textContent='Thumb pad or drag to look · +/− to zoom';
+    const available=()=>!viewer.settings().observer.motion&&!scene.closest('.neon-viewport').classList.contains('has-pane');
+    function padPosition(e){const r=pad.getBoundingClientRect();padX=Math.max(-1,Math.min(1,(e.clientX-r.x-r.width/2)/30));padY=Math.max(-1,Math.min(1,(e.clientY-r.y-r.height/2)/30));pad.querySelector('.neon-pad-thumb').style.transform=`translate(${padX*24}px,${padY*24}px)`;}
+    function tick(now){if(padPointer===null||!available()){stopCamera();return;}const dt=Math.min((now-padTime)/1000,.05);padTime=now;moveCamera(padX*45*dt,-padY*35*dt);padFrame=requestAnimationFrame(tick);}
+    pad.addEventListener('pointerdown',e=>{if(!available()||padPointer!==null||e.button!==0)return;e.preventDefault();padPointer=e.pointerId;pad.setPointerCapture(e.pointerId);padPosition(e);padTime=performance.now();padFrame=requestAnimationFrame(tick);});
+    pad.addEventListener('pointermove',e=>{if(e.pointerId===padPointer)padPosition(e);});
+    for(const name of ['pointerup','pointercancel','lostpointercapture'])pad.addEventListener(name,e=>{if(e.pointerId===padPointer)stopCamera();});
+    scene.addEventListener('pointerdown',e=>{if(!available()||drag||e.button!==0)return;scene.focus({preventScroll:true});scene.setPointerCapture(e.pointerId);drag={id:e.pointerId,x:e.clientX,y:e.clientY};});
+    scene.addEventListener('pointermove',e=>{if(!drag||drag.id!==e.pointerId)return;moveCamera((e.clientX-drag.x)*.18,(drag.y-e.clientY)*.18);drag.x=e.clientX;drag.y=e.clientY;});
+    for(const name of ['pointerup','pointercancel','lostpointercapture'])scene.addEventListener(name,e=>{if(drag?.id===e.pointerId)drag=null;});
+    scene.addEventListener('wheel',e=>{if(!available())return;e.preventDefault();moveCamera(0,0,Math.sign(e.deltaY)*.07);},{passive:false});
+    function keyboard(e){if(!available())return;const moves={ArrowLeft:[-3,0],ArrowRight:[3,0],ArrowUp:[0,3],ArrowDown:[0,-3],'+':[0,0,-.07],'=':[0,0,-.07],'-':[0,0,.07]};if(moves[e.key]){e.preventDefault();moveCamera(...moves[e.key]);}}
+    scene.addEventListener('keydown',keyboard);pad.addEventListener('keydown',keyboard);
+    $('neon-zoom-in').addEventListener('click',()=>moveCamera(0,0,-.1));
+    $('neon-zoom-out').addEventListener('click',()=>moveCamera(0,0,.1));
+    $('neon-camera-center').addEventListener('click',()=>{const c=viewer.settings().camera;moveCamera(-c.yaw,-c.pitch);});
+    window.addEventListener('blur',stopCamera);
+    document.addEventListener('visibilitychange',stopCamera);
+    document.addEventListener('mapwindow:layout',()=>{if(!available())stopCamera();});
+  }
   function pause(on){viewer.setPaused(on);$('neon-pause').setAttribute('aria-pressed',String(on));$('neon-pause').textContent=on?'Resume':'Pause';}
   function load(input){viewer.applySettings(input);syncFields();message('Settings loaded.');}
   function buildFields(){
@@ -29,7 +68,7 @@
       label.append(input);groups.get(field.group).append(label);controls.set(field.path,input);
       input.addEventListener('change',()=>{
         const next=viewer.settings();NeonSettings.set(next,field.path,input.type==='checkbox'?input.checked:input.type==='number'?input.valueAsNumber:input.value);
-        try{viewer.applySettings(next);input.setCustomValidity('');message('View updated.');}catch(error){input.setCustomValidity(error.message);input.reportValidity();message(error.message);}
+        try{viewer.applySettings(next);syncFields();input.setCustomValidity('');message('View updated.');}catch(error){input.setCustomValidity(error.message);input.reportValidity();message(error.message);}
       });
       input.addEventListener('input',()=>input.setCustomValidity(''));
     }
@@ -77,6 +116,9 @@
     if(reduced.matches)pause(true);
     const initial=viewer.settings();
     buildFields();
+    setupCamera();
+    for(const [id,key] of [['neon-grid','neon_grid'],['neon-floor','neon_floor']])$(id).addEventListener('click',()=>{viewer.params[key]=!viewer.params[key];viewer.recompile();syncFields();message((key==='neon_grid'?'Grid':'Floor')+(viewer.params[key]?' on.':' off.'));});
+    $('neon-stationary').addEventListener('click',()=>{const next=viewer.settings();next.observer.motion=!next.observer.motion;if(!next.observer.motion){next.camera.pitch=0;next.camera.yaw=0;}load(next);message(next.observer.motion?'Automatic orbit.':'Stationary camera. Drag to look around.');});
     $('neon-pause').addEventListener('click',()=>pause(!viewer.isPaused()));
     $('neon-reset').addEventListener('click',()=>{load(initial);pause(reduced.matches);message('Default settings restored.');});
     $('neon-copy').addEventListener('click',copy);
@@ -86,7 +128,8 @@
     reduced.addEventListener('change',()=>{if(reduced.matches)pause(true);});
     viewer.ready.then(()=>message(reduced.matches?'Paused for reduced motion.':'Neon black hole ready.')).catch(error=>{viewer.setActive(false);message('Viewer unavailable: '+error.message);});
   }catch(error){
+    document.body.classList.add('no-webgl');
     message(error.message);
-    for(const id of ['neon-pause','neon-reset','neon-copy','neon-zip','neon-load','neon-file'])$(id).disabled=true;
+    for(const id of ['neon-pause','neon-reset','neon-copy','neon-zip','neon-load','neon-file','neon-grid','neon-floor','neon-stationary'])$(id).disabled=true;
   }
 })();

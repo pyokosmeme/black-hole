@@ -118,6 +118,7 @@
     // ═══════════════════════════════════════════════════════════════
     
     function startEffects() {
+        if (body.hasAttribute('data-disable-bh-background')) return;
         if (glitchInterval) return;
         glitchInterval = setInterval(() => {
             if (Math.random() > 0.85) {
@@ -234,11 +235,15 @@
             button.title = button.disabled ? 'BH is paused while reading' : MODE_INFO[mode].title;
         });
         const note = document.querySelector('.mode-reading-note');
-        if (note) note.hidden = !isReading;
+        const backgroundDisabled = body.hasAttribute('data-disable-bh-background');
+        if (note) {
+            note.hidden = !isReading && !backgroundDisabled;
+            note.textContent = backgroundDisabled ? 'BH background is paused in this viewer.' : 'BH is paused while reading.';
+        }
         const legacy = document.getElementById('bh-legacy');
         if (legacy) {
             legacy.checked = localStorage.getItem('acidburn-bh-legacy') === 'true';
-            legacy.closest('label').hidden = currentMode !== 'bh';
+            legacy.closest('label').hidden = currentMode !== 'bh' || backgroundDisabled;
         }
 
         const btn = document.getElementById('main-mode-toggle');

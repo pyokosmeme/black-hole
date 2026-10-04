@@ -39,10 +39,13 @@
         </div>
       </div>
       <div class="map-viewport neon-viewport">
-        <div id="neon-scene" class="neon-scene" role="img" aria-label="Animated black hole with a lensed accretion disk"></div>
+        <div id="neon-scene" class="neon-scene" role="img" tabindex="0" aria-describedby="neon-camera-help" aria-label="Animated black hole with a lensed accretion disk"></div>
         <div class="map-hud map-hud-tl"><div class="map-controls">
           <button type="button" class="acidburn-button" id="neon-pause" aria-pressed="false">Pause</button>
           <button type="button" class="acidburn-button" id="neon-reset">Reset</button>
+          <button type="button" class="acidburn-button" id="neon-grid" aria-pressed="true">Grid</button>
+          <button type="button" class="acidburn-button" id="neon-floor" aria-pressed="false">Floor</button>
+          <button type="button" class="acidburn-button" id="neon-stationary" aria-pressed="false">Stationary</button>
         </div></div>
         <div class="map-hud map-hud-br"><div class="map-controls">
           <button type="button" class="acidburn-button" data-pane-toggle="neon-settings" aria-expanded="false">Settings</button>
@@ -66,6 +69,15 @@
             <p>Your ZIP opens with these settings as its defaults. Includes the viewer’s code and assets, plus launch instructions.</p>
           </div>
         </section>
+        <div id="neon-camera-controls" class="neon-camera-controls" hidden>
+          <button type="button" id="neon-camera-pad" class="acidburn-button neon-camera-pad" hidden aria-label="Camera thumb pad: drag to look around" aria-describedby="neon-camera-help"><span class="neon-pad-thumb" aria-hidden="true"></span><span aria-hidden="true">↕ ↔</span></button>
+          <div class="neon-camera-actions">
+            <button type="button" class="acidburn-button" id="neon-zoom-in" aria-label="Move camera closer">+</button>
+            <button type="button" class="acidburn-button" id="neon-zoom-out" aria-label="Move camera farther away">−</button>
+            <button type="button" class="acidburn-button" id="neon-camera-center">Center</button>
+          </div>
+          <p id="neon-camera-help">Drag to look · arrows · scroll or +/− to zoom</p>
+        </div>
         <p id="neon-status" class="neon-status" role="status">Black-hole viewer</p>
       </div>
     </section>

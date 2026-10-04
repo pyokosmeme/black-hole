@@ -496,6 +496,7 @@ window.createNeonBlackhole = function (options) {
     var c = P.camera, k = 2 * Math.PI / Math.max(c.wobble_period, 1), tt = observer.clock;
     var wp = c.wobble_pitch * (0.75 * Math.sin(k * tt) + 0.25 * Math.sin(k * 2.618 * tt + 1.3));
     var wy = c.wobble_yaw * (0.7 * Math.sin(k * 0.73 * tt + 0.5) + 0.3 * Math.sin(k * 1.91 * tt + 2.1));
+    if (!P.observer.motion) { wp = 0; wy = 0; }
     var cm = viewMatrix(c.pitch + wp, c.yaw + wy);
     var cmLevel = viewMatrix(c.pitch, c.yaw);
     if (P.observer.motion) {
@@ -503,10 +504,9 @@ window.createNeonBlackhole = function (options) {
       floorBasis = frame.clone().multiply(cmLevel);
       observer.orientation = frame.multiply(cm);
     } else {
-      floorBasis = cmLevel;
+      floorBasis = viewMatrix(0, 0);
       observer.orientation = cm;
-      var d = P.observer.orbit === 'eccentric' ? 1 / observer.u : P.observer.distance;
-      observer.position.set(-cmLevel.elements[6] * d, -cmLevel.elements[7] * d, -cmLevel.elements[8] * d);
+      observer.position.set(0, -P.observer.distance, 0);
       observer.velocity.set(0, 0, 0);
     }
   }
@@ -666,6 +666,14 @@ window.createNeonBlackhole = function (options) {
     recompile: function () { needsCompile = true; },
     setOriginal: setOriginal, isOriginal: function () { return ORIG; },
     settings: settings,
+    // Camera input updates uniforms without restarting the orbit or reallocating targets.
+    moveCamera: function (yaw, pitch, zoom) {
+      if (P.observer.motion || ![yaw,pitch,zoom].every(Number.isFinite)) return;
+      P.camera.yaw = ((P.camera.yaw + yaw + 180) % 360 + 360) % 360 - 180;
+      P.camera.pitch = Math.max(-60, Math.min(60, P.camera.pitch + pitch));
+      P.observer.distance = Math.max(3.01, Math.min(30, P.observer.distance * Math.exp(zoom)));
+      dirty = true;
+    },
     setPaused: function (p) { paused = !!p; dirty = true; }, isPaused: function () { return paused; },
     getScale: function () { return curScale; },
     isOrbitValid: function () { return !observer.invalid; }

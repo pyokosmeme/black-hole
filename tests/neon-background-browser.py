@@ -57,7 +57,7 @@ with sync_playwright() as p:
         assert page.locator('#blackhole-container canvas').count()==0
         print('PASS shared background:',url,mode,width,flush=True)
     # UI checkbox switches the actual previous renderer, persists across reloads.
-    page.goto('https://background.test/neon-black-hole.html')
+    page.goto('https://background.test/yake.html')
     page.evaluate("AcidburnMode.setMode('bh')")
     page.wait_for_function('AcidburnBlackhole.frames>0',timeout=60000)
     page.locator('.nav-toggle').click()
@@ -87,7 +87,6 @@ with sync_playwright() as p:
     # Reduced motion freezes both rendering paths and the independent viewer.
     page.emulate_media(reduced_motion='reduce')
     page.wait_for_timeout(400)
-    page.wait_for_function('NeonViewer.isPaused()')
     count=page.evaluate('AcidburnBlackhole.frames')
     page.wait_for_timeout(500)
     assert page.evaluate('AcidburnBlackhole.frames')==count
@@ -96,6 +95,9 @@ with sync_playwright() as p:
     count=page.evaluate('AcidburnBlackhole.frames')
     page.wait_for_timeout(500)
     assert page.evaluate('AcidburnBlackhole.frames')==count
+    page.goto('https://background.test/neon-black-hole.html')
+    page.wait_for_function('window.NeonViewer && NeonViewer.isPaused()')
+    assert page.locator('#blackhole-container canvas').count()==0
     print('PASS reduced motion for neon, legacy and viewer.',flush=True)
     # WebGL failure: shared static fallback, actionable viewer message and navigation.
     fallback=browser.new_context(viewport={'width':390,'height':844},reduced_motion='reduce')

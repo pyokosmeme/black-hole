@@ -57,6 +57,8 @@ with sync_playwright() as p:
     changed=json.loads(json.dumps(initial))
     changed['look']['exposure']=2.17
     changed['camera']['pitch']=12.5
+    changed['observer']['motion']=False
+    changed['camera']['yaw']=24
     changed['planet']['enabled']=True
     changed['renderer']='original'
     page.locator('[data-pane-toggle=neon-share]').click()
@@ -133,8 +135,10 @@ with sync_playwright() as p:
     assert page.locator('#neon-scene canvas').count()==1
     page.screenshot(path=str(SHOTS/'viewer-light.png'))
     page.evaluate("AcidburnMode.setMode('bh')")
-    page.wait_for_function('AcidburnBlackhole.frames>0', timeout=60000)
-    assert page.locator('#blackhole-container canvas').count()==1
+    page.wait_for_timeout(350)
+    assert page.evaluate('AcidburnBlackhole.frames')==0
+    assert page.evaluate('AcidburnMode.getMode()')=='bh'
+    assert page.locator('#blackhole-container canvas').count()==0
     assert page.locator('#neon-scene canvas').count()==1
     assert page.evaluate('NeonViewer.settings()')==initial
     page.evaluate("AcidburnMode.setMode('dark')")

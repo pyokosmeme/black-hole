@@ -8,7 +8,7 @@
   let generation=0, failure=false;
   const reduced=matchMedia('(prefers-reduced-motion: reduce)');
   const legacy=()=>localStorage.getItem('acidburn-bh-legacy')==='true';
-  const active=()=>document.body.classList.contains('bh-mode')&&!document.hidden;
+  const active=()=>!document.body.hasAttribute('data-disable-bh-background')&&document.body.classList.contains('bh-mode')&&!document.hidden;
   function script(path,available){
     if(available()) return Promise.resolve();
     if(!loads.has(path)) loads.set(path,new Promise((resolve,reject)=>{

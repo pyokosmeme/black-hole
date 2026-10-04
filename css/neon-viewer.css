@@ -14,3 +14,20 @@
 .neon-standalone .map-window-shell { padding-top:var(--window-gap); }
 @media(max-width:600px) and (min-height:501px) { .neon-status { max-width:none; } }
 @media(max-height:500px) { .neon-status { display:none; } }
+.neon-viewer[data-disable-bh-background] .static-bg { display:block; opacity:1; }
+.neon-viewer .map-hud-tl { max-width:calc(100% - 2 * var(--hud-inset)); }
+.neon-viewer .map-hud-tl .map-controls { justify-content:flex-start; }
+.neon-viewport.is-stationary .neon-scene { touch-action:none; cursor:grab; }
+.neon-camera-controls { position:absolute; z-index:6; left:var(--hud-inset); bottom:var(--hud-inset); color:#fff; }
+.neon-camera-controls[hidden], .neon-viewer .neon-camera-pad[hidden] { display:none; }
+.neon-camera-actions { display:flex; gap:var(--space-xs); }
+.neon-camera-controls .acidburn-button { min-width:44px; min-height:44px; }
+.neon-camera-controls p { margin:var(--space-xs) 0 0; font-size:var(--text-xs); text-shadow:0 1px 4px #000; }
+.neon-viewer .neon-camera-pad { position:relative; display:block; width:88px; height:88px; border-radius:50%; margin-bottom:var(--space-xs); touch-action:none; user-select:none; }
+.neon-pad-thumb { position:absolute; width:30px; height:30px; border:2px solid currentColor; border-radius:50%; left:calc(50% - 15px); top:calc(50% - 15px); pointer-events:none; }
+.neon-viewport.is-stationary .neon-status, .neon-viewport.has-pane .neon-camera-controls { display:none; }
+@media(max-width:600px) { .neon-camera-controls p { max-width:230px; } }
+@media(max-height:500px) {
+  .neon-viewer .neon-camera-pad { width:56px; height:56px; }
+  .neon-camera-controls p { display:none; }
+}
