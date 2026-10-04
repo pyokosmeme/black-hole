@@ -26,6 +26,19 @@ with sync_playwright() as p:
     page.goto('https://planet.test/neon-black-hole.html')
     page.wait_for_function('window.NeonViewer && NeonViewer.frames>0')
     page.locator('#neon-stationary').click();page.locator('#neon-pause').click()
+    page.locator('[data-pane-toggle=neon-settings]').click()
+    page.locator('summary').filter(has_text='Camera').click()
+    page.locator('#neon-camera-low').click()
+    page.keyboard.press('Escape')
+    page.wait_for_timeout(150)
+    low=page.evaluate('NeonViewer.settings()')
+    assert low['camera']['height']==.5-low['look']['floor_height'] and low['neon_floor']
+    assert page.evaluate('NeonViewer.observer.position.z')<0
+    assert page.evaluate('''()=>{const o=NeonViewer.observer,e=o.orientation.elements;return new THREE.Vector3(e[6],e[7],e[8]).dot(o.position.clone().normalize().negate())}''')>.999
+    page.screenshot(path=str(OUT/'low-camera-view.png'))
+    low0=screenshot(page);low['camera']['height']=-2;apply(page,low)
+    assert ImageChops.difference(low0,screenshot(page)).getbbox() is not None,'Camera height did not change rendered pixels'
+    low['camera']['height']=0;apply(page,low)
     s=page.evaluate('NeonViewer.settings()');s['look']['auto_res']=False;s['look']['render_scale']=.5
     s['camera']['navigation']='free';apply(page,s)
     page.locator('#neon-scene').focus()
@@ -62,6 +75,7 @@ with sync_playwright() as p:
     custom=page.evaluate('NeonViewer.settings()');custom['planet']['texture_offset']=.5;apply(page,custom)
     assert ImageChops.difference(textured,screenshot(page)).getbbox() is not None,'Texture longitude mapping has no effect'
     custom['look'].update(sky_motion=True,sky_speed=2,sky_axis_tilt=30,antialiasing=True);apply(page,custom)
+    custom['camera']['height']=-2;apply(page,custom)
     page.screenshot(path=str(OUT/'custom-textured-planet.png'))
     page.locator('[data-pane-toggle=neon-share]').click()
     with page.expect_download() as download:page.locator('#neon-zip').click()
@@ -71,6 +85,7 @@ with sync_playwright() as p:
         chosen=json.loads(z.read('settings.json'));assert chosen['planet']['texture'].startswith('data:image/jpeg;base64,')
         assert chosen['look']['sky_motion'] and chosen['look']['sky_speed']==2 and chosen['look']['sky_axis_tilt']==30
         assert chosen['look']['antialiasing']
+        assert chosen['camera']['height']==-2
         assert chosen['planet']['eccentricity']==.2 and chosen['planet']['inclination']==35
         z.extractall(exported)
     page.goto('https://planet.test/attached_files/neon-checks/planet-exported/index.html')

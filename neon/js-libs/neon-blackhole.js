@@ -54,6 +54,7 @@ window.createNeonBlackhole = function (options) {
     camera: {
       navigation:'orbit', sensitivity:.18, move_speed:1,
       offset_x:0, offset_y:0, offset_z:0,
+      height:0,
       pitch: 9.35, yaw: -10.96,
       // quasi-periodic wobble (two incommensurate tones per axis), degrees
       wobble_pitch: 4.0, wobble_yaw: 7.0, wobble_period: 89.5   // period in seconds at time_scale 1
@@ -589,6 +590,9 @@ window.createNeonBlackhole = function (options) {
       floorBasis = viewMatrix(0, P.look.floor_yaw);
       var az=degToRad(P.observer.azimuth+observer.rotation), el=degToRad(P.observer.elevation);
       observer.position.set(Math.cos(az)*Math.cos(el),Math.sin(az)*Math.cos(el),Math.sin(el)).multiplyScalar(P.observer.distance);
+      // Stationary height changes the viewpoint before aiming at the hole.
+      // Free-movement offsets remain separate, preserving manual navigation.
+      observer.position.z += c.height;
       var forward=observer.position.clone().normalize().negate();
       var right=new THREE.Vector3().crossVectors(forward,new THREE.Vector3(0,0,1)).normalize();
       var up=new THREE.Vector3().crossVectors(right,forward);

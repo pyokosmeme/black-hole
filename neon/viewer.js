@@ -16,6 +16,7 @@
   }
   function syncFields(){
     const values=viewer.settings();for(const [path,input] of controls){const value=NeonSettings.get(values,path);if(input.type==='checkbox')input.checked=value;else input.value=value;}
+    const height=controls.get('camera.height');if(height)height.disabled=values.observer.motion;
     for(const path of ['look.sky_motion','look.sky_speed','look.sky_axis_tilt']){const input=controls.get(path);if(input)input.disabled=values.renderer!=='neon';}
     const preview=$('neon-planet-preview');if(preview){const src=values.planet.texture||new URL('img/beach-ball.png',base).href;if(preview.getAttribute('src')!==src)preview.src=src;}
     $('neon-grid').setAttribute('aria-pressed',String(values.neon_grid));
@@ -106,7 +107,9 @@
       });
       input.addEventListener('input',()=>input.setCustomValidity(''));
     }
-    const cameraHelp=document.createElement('p');cameraHelp.textContent='Free move translates the camera. WASD moves sideways/forward, Q/E moves down/up. Shift keys or Alt-drag gives 10× finer control. On touch devices, lower sensitivity or movement speed for fine adjustments.';groups.get('Camera').append(cameraHelp);
+    const lowView=document.createElement('button');lowView.type='button';lowView.className='acidburn-button';lowView.id='neon-camera-low';lowView.textContent='Near floor · look up';groups.get('Camera').append(lowView);
+    lowView.addEventListener('click',()=>{stopCamera();const next=viewer.settings();next.observer.motion=false;next.observer.elevation=0;next.observer.distance=Math.max(next.observer.distance,Math.min(30,next.look.disk_outer+5));next.camera.height=Math.max(-100,Math.min(100,.5-next.look.floor_height));next.camera.pitch=next.camera.yaw=0;next.camera.offset_x=next.camera.offset_y=next.camera.offset_z=0;next.neon_floor=true;next.look.floor_follow_camera=false;viewer.applySettings(next,true);syncFields();message('Low view: adjust Camera height to raise or lower your viewpoint.');});
+    const cameraHelp=document.createElement('p');cameraHelp.textContent='Stationary camera height raises or lowers the viewpoint while aiming at the black hole. Negative values move below it; Near floor gives a low starting view with the grid visible. Free move translates the camera. WASD moves sideways/forward, Q/E moves down/up. Shift keys or Alt-drag gives 10× finer control. On touch devices, lower sensitivity or movement speed for fine adjustments.';groups.get('Camera').append(cameraHelp);
     const floorHelp=document.createElement('p');floorHelp.textContent='With Floor follows camera off, the plane stays fixed in world space. Height places the black hole above or below it; X/Y offsets move the grid independently.';groups.get('Floor').append(floorHelp);
     const skyHelp=document.createElement('p');skyHelp.textContent='Neon mode: move the stars and galaxies while the grid stays fixed. Use Stationary and set camera rotation and wobble to zero to hold the view still. Sky speed uses real seconds; Pause freezes it. Turn motion off or set speed to zero to stop in place.';groups.get('Sky').append(skyHelp);
     syncFields();

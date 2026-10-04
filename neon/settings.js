@@ -17,6 +17,7 @@
   number('Orbit','observer.orbital_inclination','Inclination (°)',-90,90);
   number('Camera','observer.azimuth','Stationary position azimuth (°)',-180,180);
   number('Camera','observer.elevation','Stationary position elevation (°)',-85,85);
+  number('Camera','camera.height','Stationary camera height offset (rₛ)',-100,100,.01);
   number('Camera','observer.rotation_speed','Stationary camera rotation (°/s)',-30,30);
   choice('Camera','camera.navigation','Move control',['orbit','free']);
   number('Camera','camera.sensitivity','Look / move sensitivity',.01,1,.01);
@@ -85,7 +86,7 @@
     }
     const o=output.observer;
     if(o.orbit==='eccentric'&&(o.apoapsis<o.periapsis||1-1/o.periapsis-1/o.apoapsis<1/o.periapsis-1e-9)) throw new Error('Choose a bound orbit: increase periapsis or apoapsis.');
-    if(!o.motion){const a=o.azimuth*Math.PI/180,e=o.elevation*Math.PI/180,c=output.camera;if(Math.hypot(o.distance*Math.cos(a)*Math.cos(e)+c.offset_x,o.distance*Math.sin(a)*Math.cos(e)+c.offset_y,o.distance*Math.sin(e)+c.offset_z)<1.5)throw new Error('Keep the camera outside 1.5 rₛ.');}
+    if(!o.motion){const a=o.azimuth*Math.PI/180,e=o.elevation*Math.PI/180,c=output.camera;if(Math.hypot(o.distance*Math.cos(a)*Math.cos(e)+c.offset_x,o.distance*Math.sin(a)*Math.cos(e)+c.offset_y,o.distance*Math.sin(e)+c.height+c.offset_z)<1.5)throw new Error('Keep the camera outside 1.5 rₛ.');}
     if(output.planet.distance*(1-output.planet.eccentricity)<=output.planet.radius+1.5) throw new Error('Planet periapsis must keep the whole planet outside 1.5 rₛ. Increase orbital distance or reduce eccentricity.');
     output.version=1;
     return output;
