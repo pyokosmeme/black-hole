@@ -148,7 +148,7 @@
     }catch(error){message(error.message);}finally{button.disabled=false;}
   }
   try{
-    viewer=createNeonBlackhole({container:scene,base:base.href,skyMotion:true,settings:window.NEON_DEFAULT_SETTINGS||{look:{floor_infinite:true,floor_follow_camera:false}}});
+    viewer=createNeonBlackhole({container:scene,base:base.href,skyMotion:true,antialiasing:true,settings:window.NEON_DEFAULT_SETTINGS||{look:{floor_infinite:true,floor_follow_camera:false}}});
     window.NeonViewer=viewer;
     if(reduced.matches)pause(true);
     const initial=viewer.settings();

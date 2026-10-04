@@ -41,7 +41,7 @@
       }
       if(request!==generation||!active()) return;
       if(!instances[kind]){
-        instances[kind]=kind==='neon'?createNeonBlackhole({container,base:new URL('neon/',root).href,active:false}):createLegacyBlackhole({container,active:false});
+        instances[kind]=kind==='neon'?createNeonBlackhole({container,base:new URL('neon/',root).href,active:false,settings:{look:{grid_strength:.25,grid_glow:1,grid_pulse:0}}}):createLegacyBlackhole({container,active:false});
         if(kind==='neon') await instances[kind].ready;
       }
       if(request!==generation||!active()) return;

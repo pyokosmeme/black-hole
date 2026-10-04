@@ -61,7 +61,7 @@ with sync_playwright() as p:
     textured=screenshot(page)
     custom=page.evaluate('NeonViewer.settings()');custom['planet']['texture_offset']=.5;apply(page,custom)
     assert ImageChops.difference(textured,screenshot(page)).getbbox() is not None,'Texture longitude mapping has no effect'
-    custom['look'].update(sky_motion=True,sky_speed=2,sky_axis_tilt=30);apply(page,custom)
+    custom['look'].update(sky_motion=True,sky_speed=2,sky_axis_tilt=30,antialiasing=True);apply(page,custom)
     page.screenshot(path=str(OUT/'custom-textured-planet.png'))
     page.locator('[data-pane-toggle=neon-share]').click()
     with page.expect_download() as download:page.locator('#neon-zip').click()
@@ -70,6 +70,7 @@ with sync_playwright() as p:
     with zipfile.ZipFile(OUT/'planet-export.zip') as z:
         chosen=json.loads(z.read('settings.json'));assert chosen['planet']['texture'].startswith('data:image/jpeg;base64,')
         assert chosen['look']['sky_motion'] and chosen['look']['sky_speed']==2 and chosen['look']['sky_axis_tilt']==30
+        assert chosen['look']['antialiasing']
         assert chosen['planet']['eccentricity']==.2 and chosen['planet']['inclination']==35
         z.extractall(exported)
     page.goto('https://planet.test/attached_files/neon-checks/planet-exported/index.html')

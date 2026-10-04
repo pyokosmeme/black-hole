@@ -96,6 +96,7 @@ window.createNeonBlackhole = function (options) {
       bloom_radius: 1.982,
       render_scale: 0.85,          // max raytrace scale; auto_res lowers it to hold the frame rate
       auto_res: true,
+      antialiasing: false,
       target_fps: 50
     },
 
@@ -335,6 +336,7 @@ window.createNeonBlackhole = function (options) {
   // ─────────────────────────────────────────────────────────── renderer
   var renderer, camera;
   var rtMain, rtA, rtB, rtC, rtD;
+  var rtAA;
   var mainScene, mainMat, uniforms;
   var post = {};
   var origGalaxy = null;
@@ -449,6 +451,35 @@ window.createNeonBlackhole = function (options) {
     post.sBlur = quad(post.blur);
     post.sCopy = quad(post.copy);
     post.sComp = quad(post.composite);
+    if (options.antialiasing) {
+      // Edge-directed FXAA after tone mapping: no scene blur on low-contrast
+      // pixels, and no change to the ray tracer or analytic grid coverage.
+      post.aa = new THREE.ShaderMaterial({
+        uniforms:{src:{type:'t',value:null},texel:{type:'v2',value:new THREE.Vector2()}},
+        vertexShader:QUAD_VS,
+        fragmentShader:[
+          'uniform sampler2D src; uniform vec2 texel; varying vec2 vUv;',
+          'void main(){',
+          'vec3 c=texture2D(src,vUv).rgb;',
+          'vec3 nw=texture2D(src,vUv+vec2(-1.0,-1.0)*texel).rgb;',
+          'vec3 ne=texture2D(src,vUv+vec2(1.0,-1.0)*texel).rgb;',
+          'vec3 sw=texture2D(src,vUv+vec2(-1.0,1.0)*texel).rgb;',
+          'vec3 se=texture2D(src,vUv+vec2(1.0,1.0)*texel).rgb;',
+          'vec3 luma=vec3(0.299,0.587,0.114);',
+          'float m=dot(c,luma),a=dot(nw,luma),b=dot(ne,luma),d=dot(sw,luma),e=dot(se,luma);',
+          'float lo=min(m,min(min(a,b),min(d,e))),hi=max(m,max(max(a,b),max(d,e)));',
+          'if(hi-lo<max(0.0312,hi*0.125)){gl_FragColor=vec4(c,1.0);return;}',
+          'vec2 dir=vec2(-((a+b)-(d+e)),(a+d)-(b+e));',
+          'float reduce=max((a+b+d+e)*0.03125,0.0078125);',
+          'dir=clamp(dir/(min(abs(dir.x),abs(dir.y))+reduce),vec2(-8.0),vec2(8.0))*texel;',
+          'vec3 p=0.5*(texture2D(src,vUv-dir/6.0).rgb+texture2D(src,vUv+dir/6.0).rgb);',
+          'vec3 q=p*0.5+0.25*(texture2D(src,vUv-dir*0.5).rgb+texture2D(src,vUv+dir*0.5).rgb);',
+          'float l=dot(q,luma);gl_FragColor=vec4(l<lo||l>hi?p:q,1.0);',
+          '}'
+        ].join('\n')
+      });
+      post.sAA=quad(post.aa);
+    }
   }
 
   var UNIFORM_LOOK = ['grid_strength', 'grid_glow', 'grid_pulse', 'floor_strength', 'floor_height',
@@ -697,7 +728,20 @@ window.createNeonBlackhole = function (options) {
     C.strength.value = ORIG ? 0.0 : L.bloom_strength;
     C.exposure.value = L.exposure;
     C.tonemap.value = ORIG ? 0.0 : 1.0;
-    renderer.render(post.sComp, camera);
+    if (options.antialiasing && L.antialiasing) {
+      var canvas=renderer.domElement;
+      if (!rtAA || rtAA.width!==canvas.width || rtAA.height!==canvas.height) {
+        if(rtAA)rtAA.dispose();
+        rtAA=makeTarget(canvas.width,canvas.height,THREE.UnsignedByteType);
+      }
+      pass(post.sComp,rtAA);
+      post.aa.uniforms.src.value=rtAA;
+      post.aa.uniforms.texel.value.set(1/rtAA.width,1/rtAA.height);
+      renderer.render(post.sAA,camera);
+    } else {
+      if(rtAA){rtAA.dispose();rtAA=null;}
+      renderer.render(post.sComp, camera);
+    }
     frameCount++;
   }
 

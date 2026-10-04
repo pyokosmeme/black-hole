@@ -44,6 +44,7 @@
   for(const [key,label,min,max] of [['galaxy_gain','Galaxy brightness',0,6],['grid_strength','Grid brightness',0,3],['grid_glow','Grid glow (px)',0,12],['grid_pulse','Grid pulse',0,3],['vfov','Maximum vertical FOV (°)',30,120]]) number('Sky','look.'+key,label,min,max);
   for(const [key,label,min,max] of [['exposure','Exposure',.2,4],['bloom_strength','Bloom strength',0,3],['bloom_threshold','Bloom threshold',0,1.5],['bloom_radius','Bloom radius',.25,4],['render_scale','Maximum render scale',.25,1]]) number('Post / performance','look.'+key,label,min,max);
   check('Post / performance','look.auto_res','Automatic resolution');
+  check('Post / performance','look.antialiasing','Antialiasing (FXAA)');
   number('Post / performance','look.target_fps','Target FPS',24,120,1);
   for(const [key,label] of [['beaming','Relativistic beaming'],['doppler_shift','Doppler shift'],['aberration','Aberration'],['light_travel_time','Light travel time'],['gravitational_time_dilation','Time dilation'],['lorentz_contraction','Lorentz contraction']]) check('Physics',key,label);
   check('Planet','planet.enabled','Planet');
