@@ -39,6 +39,7 @@
   <script defer src="js/acidburn-galaxy.js"></script>
   <script defer src="js/map-window.js"></script>
   <script defer src="neon/settings.js"></script>
+  <script defer src="neon/warm-chrome.js"></script>
   <script defer src="neon/js-libs/neon-blackhole.js"></script>
   <script defer src="neon/zip.js"></script>
   <script defer src="neon/viewer.js"></script>
@@ -74,6 +75,8 @@
           <button type="button" class="acidburn-button" id="neon-grid" aria-pressed="true">Grid</button>
           <button type="button" class="acidburn-button" id="neon-floor" aria-pressed="false">Floor</button>
           <button type="button" class="acidburn-button" id="neon-stationary" aria-pressed="false">Stationary</button>
+          <button type="button" class="acidburn-button" id="neon-warm">Warm chrome scene</button>
+          <button type="button" class="acidburn-button" id="neon-link">Share link</button>
           <button type="button" class="acidburn-button" id="neon-camera-free" aria-pressed="false" hidden>Free move</button>
         </div></div>
         <div class="map-hud map-hud-br"><div class="map-controls">
@@ -90,9 +93,11 @@
             <p>Copy this view, load someone else’s settings, or take the viewer with you.</p>
             <div class="neon-share-actions">
               <button type="button" class="acidburn-button" id="neon-copy">Copy settings</button>
+              <button type="button" class="acidburn-button" id="neon-copy-link">Copy scene link</button>
               <button type="button" class="acidburn-button" id="neon-zip">Download ZIP</button>
             </div>
             <label class="acidburn-field" for="neon-json">Settings JSON<textarea id="neon-json" rows="6" spellcheck="false" placeholder="Paste copied settings here"></textarea></label>
+            <label class="acidburn-field neon-link-field" for="neon-link-url" hidden>Scene link<input id="neon-link-url" type="text" readonly></label>
             <button type="button" class="acidburn-button" id="neon-load">Load JSON</button>
             <label class="acidburn-field" for="neon-file">Or choose a settings file<input id="neon-file" type="file" accept=".json,application/json"></label>
             <p>Your ZIP opens with these settings as its defaults. Includes the viewer’s code and assets, plus launch instructions.</p>

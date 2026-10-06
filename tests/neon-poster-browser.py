@@ -59,7 +59,7 @@ with sync_playwright() as p:
     assert s['look']['nebula_resolution']=='high' and s['look']['nebula_color']=='#85cfa3'
     assert s['caption']['angular'] and s['caption']['metal']>0 and s['caption']['fuzz']>0
     assert page.evaluate('''()=>{const gl=document.querySelector('#neon-scene canvas').getContext('webgl'),n=Math.min(4096,gl.getParameter(gl.MAX_TEXTURE_SIZE));return skyAllocations.some(a=>a[0]===n&&a[1]===n/2)}'''),'High gas texture was not allocated'
-    s['look'].update(auto_res=False,render_scale=.7,bloom_strength=0)
+    s['look'].update(auto_res=False,render_scale=.7,bloom_strength=0,sky_motion=False)
     apply(page,s)
     # Isolate the floor in an expanded wide viewport. Its vanishing row must
     # reach both edges at the same height, including fractional pixel coverage.

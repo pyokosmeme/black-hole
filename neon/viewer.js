@@ -206,6 +206,39 @@
   }
   function pause(on){viewer.setPaused(on);$('neon-pause').setAttribute('aria-pressed',String(on));$('neon-pause').textContent=on?'Resume':'Pause';}
   function load(input){viewer.applySettings(input);viewer.textureReady.catch(error=>message(error.message));syncFields();message('Settings loaded.');}
+  function warmScene(){stopCamera();movingCamera=false;load(window.NEON_WARM_CHROME);$('neon-camera-move').setAttribute('aria-pressed','false');if(reduced.matches)pause(true);message('Warm chrome scene loaded. Stationary camera; moving sky.');}
+  async function scenePayload(snapshot){
+    let bytes=new TextEncoder().encode(JSON.stringify(snapshot)),kind='j';
+    if(typeof CompressionStream==='function'){bytes=new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());kind='g';}
+    let binary='';for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));
+    const encoded='1'+kind+'.'+btoa(binary).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,'');
+    if(encoded.length>64000)throw new Error('This scene is too large for a link. Use Copy settings or Download ZIP to include its textures.');
+    return encoded;
+  }
+  async function settingsFromLink(encoded){
+    if(encoded.length>64000||!/^1[jg]\.[A-Za-z0-9_-]+$/.test(encoded))throw new Error('Invalid scene link.');
+    const bytes=Uint8Array.from(atob(encoded.slice(3).replaceAll('-','+').replaceAll('_','/')),c=>c.charCodeAt(0));
+    let stream=new Blob([bytes]).stream();
+    if(encoded[1]==='g'){if(typeof DecompressionStream!=='function')throw new Error('This browser cannot open compressed scene links.');stream=stream.pipeThrough(new DecompressionStream('gzip'));}
+    const reader=stream.getReader(),chunks=[];let length=0;
+    while(true){const {done,value}=await reader.read();if(done)break;length+=value.length;if(length>6400000){await reader.cancel();throw new Error('Scene link settings are too large.');}chunks.push(value);}
+    const decoded=new Uint8Array(length);let offset=0;for(const chunk of chunks){decoded.set(chunk,offset);offset+=chunk.length;}
+    return JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(decoded));
+  }
+  async function openSceneLink(){
+    const hash=location.hash;if(!hash.startsWith('#scene='))return false;
+    try{const settings=await settingsFromLink(hash.slice(7));if(location.hash!==hash)return true;stopCamera();load(settings);movingCamera=viewer.params.camera.navigation==='free';$('neon-camera-move').setAttribute('aria-pressed',String(movingCamera));message('Shared scene loaded.');}
+    catch(error){message('Could not open scene link: '+error.message);}
+    return true;
+  }
+  async function copySceneLink(){
+    const snapshot=viewer.settings(),buttons=[$('neon-link'),$('neon-copy-link')];buttons.forEach(b=>b.disabled=true);
+    try{const url=new URL(window.NEON_PACKAGED?'https://lastnpcalex.agency/neon-black-hole':location.href);url.hash='scene='+await scenePayload(snapshot);url.search='';
+      const input=$('neon-link-url');input.value=url.href;input.parentElement.hidden=false;
+      try{await navigator.clipboard.writeText(url.href);message('Scene link copied. It opens with your current settings.');}
+      catch{if($('neon-share').hidden)document.querySelector('[data-pane-toggle="neon-share"]').click();input.focus();input.select();message('Select and copy the scene link below.');}
+    }catch(error){message(error.message);}finally{buttons.forEach(b=>b.disabled=false);}
+  }
   function buildFields(){
     const groups=new Map();
     for(const field of NeonSettings.fields){
@@ -244,7 +277,7 @@
     const floorHelp=document.createElement('p');floorHelp.textContent='With Floor follows camera off, the plane stays fixed in world space. Height places the black hole above or below it; X/Y offsets move the grid independently. Turn floor lensing off for a straight poster horizon. Custom grid colors apply to nearby wires and their distant glow.';groups.get('Floor').append(floorHelp);
     const skyHelp=document.createElement('p');skyHelp.textContent='Neon mode: move the stars and galaxies while the grid stays fixed. Use Stationary and set camera rotation and wobble to zero to hold the view still. Sky speed uses real seconds; Pause freezes it. Turn motion off or set speed to zero to stop in place.';groups.get('Sky').append(skyHelp);
     const poster=document.createElement('button');poster.type='button';poster.className='acidburn-button';poster.id='neon-poster-preset';poster.textContent='Warm chrome scene';groups.get('View').append(poster);
-    poster.addEventListener('click',()=>{const s=viewer.settings();Object.assign(s.observer,{motion:false,azimuth:0,elevation:0,distance:30,rotation_speed:0});Object.assign(s.camera,{height:-5.4,pitch:0,yaw:0,offset_x:0,offset_y:0,offset_z:0,wobble_pitch:0,wobble_yaw:0});s.neon_floor=true;s.neon_grid=false;Object.assign(s.look,{floor_follow_camera:false,floor_tilt:0,floor_height:6,floor_lensing:false,floor_infinite:true,floor_strength:.975,floor_concentration:18,floor_palette:true,floor_color:'#e879ef',floor_major_color:'#e879ef',floor_reflection:.45,floor_roughness:.1,floor_speed:0,floor_sway:0,gas_tint:.75,gas_color:'#ffbd87',disk_tilt:17,disk_yaw:90,disk_temp:5500,nebula_amount:1.7,nebula_scale:3,nebula_color:'#85cfa3',nebula_resolution:'high',render_scale:1,auto_res:false,antialiasing:true});Object.assign(s.caption,{enabled:true,text:s.caption.text||'BEYOND|HUMAN',style:'mixed',font:'Sculpted',uppercase:true,bevel:1,grid:.85,size:22,y:68,width:90,stretch:1,line_gap:1.12,angular:true,metal:.65,glow:.85,fuzz:.22});load(s);message('Warm chrome starting scene: low camera looking up. Adjust Disk, Floor, Sky and Poster text to customize.');});
+    poster.addEventListener('click',warmScene);
     syncFields();
   }
   async function copy(){
@@ -258,7 +291,7 @@
     const snapshot=viewer.settings();
     try{
       message('Preparing ZIP…');
-      const neonFiles=['index.html','settings.js','zip.js','viewer.js','NOTICE.txt','fonts/Teko.ttf','fonts/OFL.txt','raytracer-neon.glsl','raytracer-orig.glsl','js-libs/three.min.js','js-libs/Detector.js','js-libs/mustache.min.js','js-libs/three-js-monkey-patch.js','js-libs/acidburn-galaxy.js','js-libs/neon-blackhole.js','img/accretion-disk.png','img/beach-ball.png','img/spectra.png','img/stars.png'];
+      const neonFiles=['index.html','settings.js','warm-chrome.js','zip.js','viewer.js','NOTICE.txt','fonts/Teko.ttf','fonts/OFL.txt','raytracer-neon.glsl','raytracer-orig.glsl','js-libs/three.min.js','js-libs/Detector.js','js-libs/mustache.min.js','js-libs/three-js-monkey-patch.js','js-libs/acidburn-galaxy.js','js-libs/neon-blackhole.js','img/accretion-disk.png','img/beach-ball.png','img/spectra.png','img/stars.png'];
       const sharedFiles=['css/acidburn.css','css/map-window.css','css/neon-viewer.css'];
       const requests=[...neonFiles.map(name=>({name,url:new URL(name,base)})),...sharedFiles.map(name=>({name,url:new URL(name,siteBase)})),{name:'map-window.js',url:new URL(window.NEON_PACKAGED?'map-window.js':'js/map-window.js',siteBase)}];
       const entries=await Promise.all(requests.map(async item=>{
@@ -295,16 +328,20 @@
     $('neon-pause').addEventListener('click',()=>pause(!viewer.isPaused()));
     $('neon-reset').addEventListener('click',()=>{load(initial);pause(reduced.matches);message('Default settings restored.');});
     $('neon-copy').addEventListener('click',copy);
+    $('neon-warm').addEventListener('click',warmScene);
+    $('neon-link').addEventListener('click',copySceneLink);
+    $('neon-copy-link').addEventListener('click',copySceneLink);
     $('neon-zip').addEventListener('click',download);
     const imageButton=document.createElement('button');imageButton.type='button';imageButton.className='acidburn-button';imageButton.id='neon-image';imageButton.textContent='Download PNG';$('neon-zip').parentElement.append(imageButton);
     imageButton.addEventListener('click',async()=>{try{await viewer.ready;await viewer.textureReady;await posterFontPromise;await document.fonts.ready;drawLettering();const rendered=viewer.capture(),canvas=document.createElement('canvas');canvas.width=rendered.width;canvas.height=rendered.height;const ctx=canvas.getContext('2d');ctx.drawImage(rendered,0,0);if(!lettering.hidden)ctx.drawImage(lettering,0,0,canvas.width,canvas.height);canvas.toBlob(blob=>{if(!blob){message('PNG export failed.');return;}const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='neon-black-hole.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);message('PNG downloaded with scene and poster text.');},'image/png');}catch(error){message(error.message);}});
     $('neon-load').addEventListener('click',()=>{try{load(JSON.parse($('neon-json').value));}catch(error){message('Could not load JSON: '+error.message);}});
     $('neon-file').addEventListener('change',async()=>{const file=$('neon-file').files[0];if(!file)return;try{if(file.size>6400000)throw new Error('Settings files must be under 6.4 MB.');load(JSON.parse(await file.text()));}catch(error){message('Could not load file: '+error.message);}finally{$('neon-file').value='';}});
     reduced.addEventListener('change',()=>{if(reduced.matches)pause(true);});
-    viewer.ready.then(()=>message(reduced.matches?'Paused for reduced motion.':'Neon black hole ready.')).catch(error=>{viewer.setActive(false);message('Viewer unavailable: '+error.message);});
+    window.addEventListener('hashchange',openSceneLink);
+    viewer.ready.then(async()=>{if(!await openSceneLink())message(reduced.matches?'Paused for reduced motion.':'Neon black hole ready.');}).catch(error=>{viewer.setActive(false);message('Viewer unavailable: '+error.message);});
   }catch(error){
     document.body.classList.add('no-webgl');
     message(error.message);
-    for(const id of ['neon-pause','neon-reset','neon-copy','neon-zip','neon-load','neon-file','neon-grid','neon-floor','neon-stationary','neon-camera-free'])$(id).disabled=true;
+    for(const id of ['neon-pause','neon-reset','neon-copy','neon-zip','neon-load','neon-file','neon-grid','neon-floor','neon-stationary','neon-camera-free','neon-warm','neon-link','neon-copy-link'])$(id).disabled=true;
   }
 })();
