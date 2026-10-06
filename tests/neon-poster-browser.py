@@ -39,7 +39,7 @@ with sync_playwright() as p:
     assert initial['look']['gas_tint']==initial['look']['floor_reflection']==0 and not initial['caption']['enabled']
     # Old saved files acquire all new defaults; bad values fail atomically.
     old=json.loads(json.dumps(initial));del old['caption']
-    for key in ['gas_color','gas_texture','gas_tint','floor_concentration','floor_reflection','floor_roughness']:del old['look'][key]
+    for key in ['gas_color','gas_texture','gas_tint','floor_concentration','floor_reflection','floor_roughness','floor_opaque']:del old['look'][key]
     apply(page,old)
     assert page.evaluate('NeonViewer.settings()')==initial
     for bad in [{'look':{'gas_color':'red'}},{'caption':{'text':'x'*121}},{'caption':{'enabled':'yes'}},{'look':{'floor_reflection':2}},{'caption':{'unknown':True}}]:
@@ -51,6 +51,7 @@ with sync_playwright() as p:
     page.wait_for_function('''[...document.fonts].some(f=>f.family.replaceAll('"','')==='Neon Teko'&&f.status==='loaded')''')
     s=page.evaluate('NeonViewer.settings()')
     assert s['caption']['font']=='Sculpted'
+    assert s['look']['floor_opaque']
     assert s['observer']['elevation']==0 and s['camera']['height']<0
     assert abs(s['camera']['height']+s['look']['floor_height']-.6)<.00001
     assert s['look']['floor_palette'] and s['look']['floor_color']==s['look']['floor_major_color']
@@ -59,7 +60,7 @@ with sync_playwright() as p:
     assert s['look']['nebula_resolution']=='high' and s['look']['nebula_color']=='#85cfa3'
     assert s['caption']['angular'] and s['caption']['metal']>0 and s['caption']['fuzz']>0
     assert page.evaluate('''()=>{const gl=document.querySelector('#neon-scene canvas').getContext('webgl'),n=Math.min(4096,gl.getParameter(gl.MAX_TEXTURE_SIZE));return skyAllocations.some(a=>a[0]===n&&a[1]===n/2)}'''),'High gas texture was not allocated'
-    s['look'].update(auto_res=False,render_scale=.7,bloom_strength=0,sky_motion=False)
+    s['look'].update(auto_res=False,render_scale=.7,bloom_strength=0,sky_motion=False,floor_opaque=False)
     apply(page,s)
     # Isolate the floor in an expanded wide viewport. Its vanishing row must
     # reach both edges at the same height, including fractional pixel coverage.

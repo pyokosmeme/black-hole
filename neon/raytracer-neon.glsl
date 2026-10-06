@@ -432,7 +432,7 @@ vec4 floor_shade(vec3 fp, vec3 dir, float dist, float pix_angle) {
     // The same pigments shade both nearby wires and their integrated light.
     fc = floor_color * (1.3 * minor) + floor_major_color * (1.8 * major);
     {{/floorTint}}
-    // Only the wires occlude the scene. No surface sheen or haze fills cells.
+    // Transparent mode occludes only the wires and the partial reflection.
     float opac = clamp((minor + major) * floor_strength, 0.0, 1.0) * fade;
     {{#look.floor_infinite}}
     // Keep the filtered mean wire emission as projected cells shrink. Their
@@ -458,6 +458,11 @@ vec4 floor_shade(vec3 fp, vec3 dir, float dist, float pix_angle) {
         reflected *= mirror * (1.0-opac);
         opac = opac + mirror * (1.0-opac);
     }
+    {{#look.floor_opaque}}
+    // The mirror rests on a solid surface: unreflected light is absorbed,
+    // rather than revealing the sky or the scene beneath the plane.
+    opac = fade;
+    {{/look.floor_opaque}}
     return vec4(fc * floor_strength * fade + reflected, opac);
 }
 {{/neon_floor}}
@@ -897,7 +902,9 @@ void main() {
     // parallel rays at a fixed cutoff (which clipped wide-screen edges).
     float planePixel=max(fwidth(planeDirection)*0.5,0.0000001);
     float planeCoverage=clamp(0.5-planeDirection/(2.0*planePixel),0.0,1.0);
-    if(planeHeight>0.0 && planeCoverage>0.0){
+    // Captured rays and solid hits already terminate on an opaque scene
+    // surface. The final straight-floor pass must not paint over that surface.
+    if(planeHeight>0.0 && planeCoverage>0.0 && u<1.0){
         vec3 floorSample=normalize(floor_camera_ray-floor_n*max(0.0,planeDirection+planePixel*0.5));
         float planeHit=planeHeight/max(-dot(floorSample,floor_n),0.0000001);
         vec4 fs=floor_shade(cam_pos+floorSample*planeHit,floorSample,planeHit,PIX_ANGLE)*planeCoverage;

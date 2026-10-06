@@ -41,6 +41,7 @@
   fields.push({group:'Floor',path:'look.floor_color',label:'Grid color',type:'color'});
   fields.push({group:'Floor',path:'look.floor_major_color',label:'Major grid color',type:'color'});
   number('Floor','look.floor_reflection','Floor reflectivity (extra render pass)',0,1);
+  check('Floor','look.floor_opaque','Opaque floor surface');
   number('Floor','look.floor_roughness','Reflection roughness',0,1);
   number('Disk','look.gas_tint','Gas color blend',0,1);
   fields.push({group:'Disk',path:'look.gas_color',label:'Gas color',type:'color'});

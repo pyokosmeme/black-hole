@@ -85,7 +85,7 @@ window.createNeonBlackhole = function (options) {
       floor_sway: 6.0,             // side-to-side drift amplitude (r_s)
       floor_sway_period: 34.0,     // seconds at time_scale 1
       floor_extent: 14.0,
-      floor_concentration:18, floor_reflection:0, floor_roughness:.15,
+      floor_concentration:18, floor_reflection:0, floor_roughness:.15, floor_opaque:false,
       floor_palette:false, floor_color:'#bf00ff', floor_major_color:'#00ffff',
       nebula_amount:0, nebula_scale:3, nebula_color:'#df81ed',
       nebula_resolution:'standard',
