@@ -55,7 +55,7 @@
   number('Poster text','caption.fuzz','Fine surface grain',0,1);
   fields.push({group:'Poster text',path:'caption.text',label:'Text (use | for a new line)',type:'text',maxLength:120});
   choice('Poster text','caption.style','Finish',['chrome','iridescent','mixed']);
-  choice('Poster text','caption.font','Lettering',['block','Orbitron','Teko']);
+  choice('Poster text','caption.font','Lettering',['block','Orbitron','Teko','Sculpted']);
   number('Poster text','caption.size','Letter height (% of view)',2,25);
   number('Poster text','caption.x','Horizontal center (%)',0,100);
   number('Poster text','caption.y','Vertical center (%)',0,100);

@@ -15,6 +15,48 @@
   }
   const lettering=document.createElement('canvas');lettering.className='neon-lettering';lettering.setAttribute('aria-hidden','true');scene.after(lettering);
   let letteringKey=null;
+  // Reference-shaped capitals in a 100-unit cap box. Other characters retain
+  // the bundled font, normalized to the same cap height and spacing.
+  const artifactGlyphs={
+    B:[67,'M0 0H35Q65 0 65 25Q65 43 51 49Q67 56 67 76Q67 100 35 100H0Z M14 14V42H31Q49 42 49 27Q49 14 31 14Z M14 56V86H32Q51 86 51 72Q51 56 32 56Z'],
+    E:[55,'M0 0H55V14H14V41H47V55H14V86H55V100H0Z'],
+    Y:[65,'M0 0H16L32 39L49 0H65L40 58V100H25V58Z'],
+    O:[68,'M34 0Q68 0 68 28V72Q68 100 34 100Q0 100 0 72V28Q0 0 34 0Z M34 14Q15 14 15 31V69Q15 86 34 86Q53 86 53 69V31Q53 14 34 14Z'],
+    N:[67,'M0 0H16L52 68V0H67V100H51L15 33V100H0Z'],
+    D:[67,'M0 0H31Q67 0 67 30V70Q67 100 31 100H0Z M15 14V86H30Q52 86 52 66V34Q52 14 30 14Z'],
+    H:[64,'M0 0H14V42H50V0H64V100H50V56H14V100H0Z'],
+    U:[66,'M0 0H15V69Q15 86 33 86Q51 86 51 69V0H66V72Q66 100 33 100Q0 100 0 72Z'],
+    M:[80,'M0 0H17L40 63L63 0H80V100H65V34L40 95L15 34V100H0Z'],
+    A:[72,'M27 0H45L72 100H56L49 76H23L16 100H0Z M36 23L27 62H45Z'],
+    F:[55,'M0 0H55V14H14V41H47V55H14V100H0Z'],
+    I:[22,'M4 0H18V100H4Z'],L:[55,'M0 0H15V86H55V100H0Z'],
+    T:[64,'M0 0H64V14H40V100H24V14H0Z'],
+    V:[68,'M0 0H16L34 74L52 0H68L42 100H26Z'],
+    W:[94,'M0 0H15L27 74L40 0H54L67 74L79 0H94L76 100H59L47 34L35 100H18Z'],
+    X:[66,'M0 0H17L33 34L49 0H66L42 49L66 100H49L33 65L17 100H0L24 49Z'],
+    Z:[60,'M0 0H60V14L18 86H60V100H0V86L42 14H0Z'],
+    P:[64,'M0 0H32Q64 0 64 28Q64 57 32 57H15V100H0Z M15 14V43H31Q49 43 49 28Q49 14 31 14Z'],
+    R:[67,'M0 0H32Q64 0 64 28Q64 48 47 55L67 100H50L32 58H15V100H0Z M15 14V43H31Q49 43 49 28Q49 14 31 14Z'],
+    C:[65,'M65 22L51 27Q49 14 33 14Q15 14 15 31V69Q15 86 33 86Q49 86 51 73L65 78Q61 100 33 100Q0 100 0 72V28Q0 0 33 0Q61 0 65 22Z'],
+    G:[67,'M65 22L51 27Q49 14 33 14Q15 14 15 31V69Q15 86 33 86Q52 86 52 70V61H35V47H67V73Q67 100 33 100Q0 100 0 72V28Q0 0 33 0Q61 0 65 22Z'],
+    J:[55,'M40 0H55V73Q55 100 27 100Q0 100 0 76V67H15V73Q15 86 27 86Q40 86 40 71Z'],
+    K:[67,'M0 0H15V43L48 0H66L29 48L67 100H49L15 55V100H0Z'],
+    Q:[70,'M34 0Q68 0 68 28V72Q68 88 57 94L70 106H51L43 99Q39 100 34 100Q0 100 0 72V28Q0 0 34 0Z M34 14Q15 14 15 31V69Q15 86 34 86Q53 86 53 69V31Q53 14 34 14Z'],
+    S:[64,'M63 24L48 27Q47 14 32 14Q15 14 15 26Q15 36 35 43Q64 53 64 75Q64 100 32 100Q1 100 0 76L15 73Q16 86 32 86Q49 86 49 74Q49 63 29 56Q0 46 0 26Q0 0 32 0Q61 0 63 24Z']
+  };
+  function artifactLine(line,size,target,cx,cy,angular){
+    const chars=[...line],glyphs=chars.map(ch=>artifactGlyphs[ch]);
+    const widths=chars.map((ch,i)=>glyphs[i]?glyphs[i][0]:ch===' '?30:60),units=widths.reduce((a,b)=>a+b,0)+Math.max(0,chars.length-1)*5;
+    if(target){let x=cx-units*size/200;chars.forEach((ch,i)=>{target.save();target.translate(x,cy-size/2);target.scale(size/100,size/100);
+      if(glyphs[i]){let path=glyphs[i][1];
+        if(angular&&i===0&&ch==='H')path='M0 0H14V42H50V0H64V100H50V56H14V100L0 125Z';
+        if(angular&&i===chars.length-1&&ch==='N')path='M0 0H16L52 68V0H67V125L51 100L15 33V100H0Z';
+        target.fill(new Path2D(path),'evenodd');
+      }else if(ch!==' '){target.textAlign='left';target.textBaseline='alphabetic';const m=target.measureText(ch),height=m.actualBoundingBoxAscent+m.actualBoundingBoxDescent;target.translate(4,0);target.scale(52/Math.max(m.width,1),100/Math.max(height,1));target.fillText(ch,0,m.actualBoundingBoxAscent);}
+      target.restore();x+=(widths[i]+5)*size/100;
+    });}
+    return units*size/100;
+  }
   function drawLettering(){
     if(!viewer)return;
     const c=viewer.params.caption,w=Math.max(1,scene.clientWidth),h=Math.max(1,scene.clientHeight),dpr=Math.min(devicePixelRatio,2);
@@ -24,16 +66,20 @@
     const ctx=lettering.getContext('2d');ctx.scale(dpr,dpr);
     lettering.hidden=!c.enabled||!c.text;
     if(lettering.hidden)return;
-    if(c.font==='Teko'&&!posterFontReady)loadPosterFont();
+    if((c.font==='Teko'||c.font==='Sculpted')&&!posterFontReady)loadPosterFont();
     const lines=(c.uppercase?c.text.toUpperCase():c.text).split(/[|\n]/).slice(0,6),size=h*c.size/100,lineHeight=size*c.line_gap;
-    ctx.font=`${c.font==='Teko'?700:900} ${size}px ${c.font==='Teko'?'"Neon Teko"':c.font==='Orbitron'?'Orbitron':'Impact, "Arial Black"'}, sans-serif`;
-    const measured=Math.max(...lines.map(line=>ctx.measureText(line).width),1),scale=Math.min(c.stretch,w*c.width/100/measured);
-    ctx.translate(w*c.x/100,h*c.y/100);ctx.scale(scale,1);ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='miter';ctx.miterLimit=2;
+    const sculpted=c.font==='Sculpted';
+    ctx.font=`${c.font==='Teko'||sculpted?700:900} ${size}px ${c.font==='Teko'||sculpted?'"Neon Teko"':c.font==='Orbitron'?'Orbitron':'Impact, "Arial Black"'}, sans-serif`;
+    const measured=Math.max(...lines.map(line=>sculpted?artifactLine(line,size):ctx.measureText(line).width),1),scale=Math.min(c.stretch,w*c.width/100/measured);
+    // Fit long sculpted rows uniformly on narrow screens. The explicit width
+    // multiplier still works, but automatic fitting does not crush the glyphs.
+    ctx.translate(w*c.x/100,h*c.y/100);ctx.scale(scale,sculpted?Math.min(1,scale/c.stretch):1);ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='miter';ctx.miterLimit=2;
     lines.forEach((line,index)=>{
       const y=(index-(lines.length-1)/2)*lineHeight;
-      const metrics=ctx.measureText(line),lineWidth=metrics.width,base=metrics.actualBoundingBoxDescent;
+      const lineWidth=sculpted?artifactLine(line,size):ctx.measureText(line).width;
+      const metrics=sculpted?{actualBoundingBoxAscent:size/2,actualBoundingBoxDescent:size/2,actualBoundingBoxLeft:lineWidth/2,actualBoundingBoxRight:lineWidth/2}:ctx.measureText(line),base=metrics.actualBoundingBoxDescent;
       function terminals(target,cx,cy){
-        if(!c.angular||index===0||!line.trim())return;
+        if(sculpted||!c.angular||index===0||!line.trim())return;
         const left=cx-metrics.actualBoundingBoxLeft,right=cx+metrics.actualBoundingBoxRight,bottom=cy+base;
         target.moveTo(left,bottom-size*.035);target.lineTo(left,bottom+size*.2);target.lineTo(left+size*.09,bottom-size*.035);target.closePath();
         target.moveTo(right,bottom-size*.035);target.lineTo(right,bottom+size*.2);target.lineTo(right-size*.09,bottom-size*.035);target.closePath();
@@ -43,7 +89,7 @@
       const fc=face.getContext('2d');fc.scale(dpr,dpr);fc.font=ctx.font;fc.textAlign='center';fc.textBaseline='middle';
       // One alpha silhouette joins the pointed feet to the glyphs before
       // beveling. Separate strokes left visible seams across their joins.
-      fc.fillStyle='#fff';fc.fillText(line,fw/2,fh/2);fc.beginPath();terminals(fc,fw/2,fh/2);fc.fill();
+      fc.fillStyle='#fff';if(sculpted)artifactLine(line,size,fc,fw/2,fh/2,c.angular&&index>0);else fc.fillText(line,fw/2,fh/2);fc.beginPath();terminals(fc,fw/2,fh/2);fc.fill();
       const mask=document.createElement('canvas');mask.width=face.width;mask.height=face.height;mask.getContext('2d').drawImage(face,0,0);
       const top=fh/2-metrics.actualBoundingBoxAscent,bottom=fh/2+base,inkHeight=bottom-top;
       const bevel=size*.028*c.bevel,neon=viewer.params.look.floor_palette?viewer.params.look.floor_color:'#e879ef';
@@ -71,7 +117,7 @@
       fc.clearRect(0,0,fw,fh);fc.globalCompositeOperation='source-over';
       // The reflected skyline undulates gently across the metal face; its
       // shading is anchored to actual ink bounds, not the font's em box.
-      for(let x=0;x<fw;x+=2){const wave=inkHeight*.014*(Math.sin(x/fw*12)+.45*Math.sin(x/fw*29));const g=fc.createLinearGradient(0,top+wave,0,bottom+wave);stops.forEach(([at,color])=>g.addColorStop(at,color));fc.fillStyle=g;fc.fillRect(x,0,2,fh);}
+      for(let x=0;x<fw;x+=2){const wave=inkHeight*.022*(Math.sin(x/fw*32)+.45*Math.sin(x/fw*61));const g=fc.createLinearGradient(0,top+wave,0,bottom+wave);stops.forEach(([at,color])=>g.addColorStop(at,color));fc.fillStyle=g;fc.fillRect(x,0,2,fh);}
       fc.globalCompositeOperation='destination-in';fc.drawImage(mask,0,0,fw,fh);
       fc.globalCompositeOperation='source-atop';
       if(c.metal){
@@ -79,7 +125,7 @@
       }
       if(c.grid&&!iridescent){const rgb=parseInt(neon.slice(1),16);fc.strokeStyle=`rgba(${rgb>>16&255},${rgb>>8&255},${rgb&255},${c.grid*.55})`;fc.lineWidth=Math.max(.4,size*.004);const horizon=top+inkHeight*.68;
         fc.beginPath();for(let i=1;i<=5;i++){const gy=horizon+(bottom-horizon)*Math.pow(i/5,1.7);fc.moveTo(0,gy);fc.lineTo(fw,gy);}
-        for(let i=-9;i<=9;i++){fc.moveTo(fw*.5+i*size*.035,horizon);fc.lineTo(fw*.5+i*size*.48,bottom+size*.2);}fc.stroke();
+        for(let i=-9;i<=9;i++){fc.moveTo(fw*.5+i*size*.11,horizon);fc.lineTo(fw*.5+i*size*.48,bottom+size*.2);}fc.stroke();
       }
       if(c.fuzz){const grain=document.createElement('canvas');grain.width=grain.height=64;const gc=grain.getContext('2d'),pixels=gc.createImageData(64,64);let seed=9217;
         for(let i=0;i<pixels.data.length;i+=4){seed=(Math.imul(seed,1664525)+1013904223)|0;const value=seed>>>24;pixels.data[i]=pixels.data[i+1]=pixels.data[i+2]=value;pixels.data[i+3]=Math.round(c.fuzz*32);}
@@ -198,7 +244,7 @@
     const floorHelp=document.createElement('p');floorHelp.textContent='With Floor follows camera off, the plane stays fixed in world space. Height places the black hole above or below it; X/Y offsets move the grid independently. Turn floor lensing off for a straight poster horizon. Custom grid colors apply to nearby wires and their distant glow.';groups.get('Floor').append(floorHelp);
     const skyHelp=document.createElement('p');skyHelp.textContent='Neon mode: move the stars and galaxies while the grid stays fixed. Use Stationary and set camera rotation and wobble to zero to hold the view still. Sky speed uses real seconds; Pause freezes it. Turn motion off or set speed to zero to stop in place.';groups.get('Sky').append(skyHelp);
     const poster=document.createElement('button');poster.type='button';poster.className='acidburn-button';poster.id='neon-poster-preset';poster.textContent='Warm chrome scene';groups.get('View').append(poster);
-    poster.addEventListener('click',()=>{const s=viewer.settings();Object.assign(s.observer,{motion:false,azimuth:0,elevation:0,distance:30,rotation_speed:0});Object.assign(s.camera,{height:-5.4,pitch:0,yaw:0,offset_x:0,offset_y:0,offset_z:0,wobble_pitch:0,wobble_yaw:0});s.neon_floor=true;s.neon_grid=false;Object.assign(s.look,{floor_follow_camera:false,floor_tilt:0,floor_height:6,floor_lensing:false,floor_infinite:true,floor_strength:.975,floor_concentration:18,floor_palette:true,floor_color:'#e879ef',floor_major_color:'#e879ef',floor_reflection:.45,floor_roughness:.1,floor_speed:0,floor_sway:0,gas_tint:.75,gas_color:'#ffbd87',disk_tilt:17,disk_yaw:90,disk_temp:5500,nebula_amount:1.7,nebula_scale:3,nebula_color:'#85cfa3',nebula_resolution:'high',render_scale:1,auto_res:false,antialiasing:true});Object.assign(s.caption,{enabled:true,text:s.caption.text||'BEYOND|HUMAN',style:'mixed',font:'Teko',uppercase:true,bevel:1,grid:.85,size:25,y:73,width:90,stretch:.95,line_gap:.8,angular:true,metal:.65,glow:.85,fuzz:.22});load(s);message('Warm chrome starting scene: low camera looking up. Adjust Disk, Floor, Sky and Poster text to customize.');});
+    poster.addEventListener('click',()=>{const s=viewer.settings();Object.assign(s.observer,{motion:false,azimuth:0,elevation:0,distance:30,rotation_speed:0});Object.assign(s.camera,{height:-5.4,pitch:0,yaw:0,offset_x:0,offset_y:0,offset_z:0,wobble_pitch:0,wobble_yaw:0});s.neon_floor=true;s.neon_grid=false;Object.assign(s.look,{floor_follow_camera:false,floor_tilt:0,floor_height:6,floor_lensing:false,floor_infinite:true,floor_strength:.975,floor_concentration:18,floor_palette:true,floor_color:'#e879ef',floor_major_color:'#e879ef',floor_reflection:.45,floor_roughness:.1,floor_speed:0,floor_sway:0,gas_tint:.75,gas_color:'#ffbd87',disk_tilt:17,disk_yaw:90,disk_temp:5500,nebula_amount:1.7,nebula_scale:3,nebula_color:'#85cfa3',nebula_resolution:'high',render_scale:1,auto_res:false,antialiasing:true});Object.assign(s.caption,{enabled:true,text:s.caption.text||'BEYOND|HUMAN',style:'mixed',font:'Sculpted',uppercase:true,bevel:1,grid:.85,size:22,y:68,width:90,stretch:1,line_gap:1.12,angular:true,metal:.65,glow:.85,fuzz:.22});load(s);message('Warm chrome starting scene: low camera looking up. Adjust Disk, Floor, Sky and Poster text to customize.');});
     syncFields();
   }
   async function copy(){

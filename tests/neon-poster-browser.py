@@ -50,6 +50,7 @@ with sync_playwright() as p:
     page.keyboard.press('Escape')
     page.wait_for_function('''[...document.fonts].some(f=>f.family.replaceAll('"','')==='Neon Teko'&&f.status==='loaded')''')
     s=page.evaluate('NeonViewer.settings()')
+    assert s['caption']['font']=='Sculpted'
     assert s['observer']['elevation']==0 and s['camera']['height']<0
     assert abs(s['camera']['height']+s['look']['floor_height']-.6)<.00001
     assert s['look']['floor_palette'] and s['look']['floor_color']==s['look']['floor_major_color']
@@ -148,6 +149,18 @@ with sync_playwright() as p:
     assert ImageChops.difference(metal,lettering_pixels()).convert('RGB').getbbox(),'Metal surface detail did not change lettering'
     page.locator('#setting-caption-metal').fill('.65');page.locator('#setting-caption-metal').press('Tab')
     page.keyboard.press('Escape')
+    # Sculpted counters must be open shapes, rather than the tiny rectangular
+    # holes of the previous heavy font. Check the actual exported alpha mask.
+    saved=page.evaluate('NeonViewer.settings()');probe=json.loads(json.dumps(saved))
+    def import_caption(settings):
+        page.locator('[data-pane-toggle=neon-share]').click()
+        page.locator('#neon-json').fill(json.dumps(settings));page.locator('#neon-load').click();page.keyboard.press('Escape')
+    probe['caption'].update(text='O',size=20,x=50,y=50,stretch=1,bevel=0,glow=0,metal=0,fuzz=0,grid=0)
+    import_caption(probe);ink=lettering_pixels();ink.save(OUT/'counter-probe.png');cx,cy=ink.width//2,ink.height//2;em=ink.height*.2
+    assert ink.crop((int(cx-em*.1),int(cy-em*.2),int(cx+em*.1),int(cy+em*.2))).getchannel('A').getbbox() is None,'Sculpted O counter is not open'
+    probe['caption']['text']='ABCDEFGHIJKLMNOPQRSTUVWXYZ|0123456789 !?';import_caption(probe)
+    assert lettering_pixels().getchannel('A').getbbox(),'Editable alphabet/fallback characters did not render'
+    import_caption(saved)
     s=page.evaluate('NeonViewer.settings()');s['look'].update(auto_res=False,render_scale=.85,bloom_strength=.35)
     apply(page,s);page.screenshot(path=str(OUT/'warm-chrome.png'))
     page.set_viewport_size({'width':390,'height':844});page.wait_for_timeout(150)
