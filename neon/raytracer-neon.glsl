@@ -891,9 +891,16 @@ void main() {
     // A poster-style floor is a straight world-space mirror plane. The black
     // hole and reflected scene retain their own relativistic ray tracing.
     float planeDirection=dot(floor_camera_ray,floor_n);
-    float planeHit=(floor_d-dot(cam_pos,floor_n))/planeDirection;
-    if(planeDirection < -0.000001 && planeHit>0.0){
-        vec4 fs=floor_shade(cam_pos+floor_camera_ray*planeHit,floor_camera_ray,planeHit,PIX_ANGLE);
+    float planeHeight=dot(cam_pos,floor_n)-floor_d;
+    // Cover the pixel's intersection with the plane, including the vanishing
+    // row. Evaluate its centre on the floor side instead of dropping nearly
+    // parallel rays at a fixed cutoff (which clipped wide-screen edges).
+    float planePixel=max(fwidth(planeDirection)*0.5,0.0000001);
+    float planeCoverage=clamp(0.5-planeDirection/(2.0*planePixel),0.0,1.0);
+    if(planeHeight>0.0 && planeCoverage>0.0){
+        vec3 floorSample=normalize(floor_camera_ray-floor_n*max(0.0,planeDirection+planePixel*0.5));
+        float planeHit=planeHeight/max(-dot(floorSample,floor_n),0.0000001);
+        vec4 fs=floor_shade(cam_pos+floorSample*planeHit,floorSample,planeHit,PIX_ANGLE)*planeCoverage;
         color.rgb=fs.rgb+color.rgb*(1.0-fs.a);
     }
     {{/look.floor_lensing}}{{/neon_floor}}

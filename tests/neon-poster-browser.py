@@ -3,7 +3,7 @@ from pathlib import Path
 from urllib.parse import urlparse, unquote
 from PIL import Image, ImageChops
 from playwright.sync_api import sync_playwright
-import io, json, mimetypes, zipfile
+import io, json, mimetypes, zipfile, base64
 
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'attached_files/neon-poster-checks'
@@ -28,7 +28,7 @@ with sync_playwright() as p:
     browser=p.chromium.launch(args=['--enable-webgl','--use-angle=swiftshader','--enable-unsafe-swiftshader'])
     page=browser.new_page(viewport={'width':1100,'height':900})
     page.route('**/*',serve)
-    page.add_init_script('''window.drawCount=0;const draw=WebGLRenderingContext.prototype.drawElements;WebGLRenderingContext.prototype.drawElements=function(...args){window.drawCount++;return draw.apply(this,args)};''')
+    page.add_init_script('''window.drawCount=0;window.skyAllocations=[];const draw=WebGLRenderingContext.prototype.drawElements;WebGLRenderingContext.prototype.drawElements=function(...args){window.drawCount++;return draw.apply(this,args)};const tex=WebGLRenderingContext.prototype.texImage2D;WebGLRenderingContext.prototype.texImage2D=function(...args){if(args.length===9&&args[3]>=2048&&args[4]===args[3]/2)skyAllocations.push([args[3],args[4],args[7]]);return tex.apply(this,args)};''')
     errors=[]
     page.on('pageerror',lambda e:errors.append(str(e)))
     page.on('console',lambda m:errors.append(m.text) if m.type=='error' and ('THREE' in m.text or 'GL_' in m.text) else None)
@@ -54,13 +54,34 @@ with sync_playwright() as p:
     assert abs(s['camera']['height']+s['look']['floor_height']-.6)<.00001
     assert s['look']['floor_palette'] and s['look']['floor_color']==s['look']['floor_major_color']
     assert not s['look']['floor_lensing'] and s['caption']['uppercase']
+    assert s['look']['disk_tilt']==17 and s['look']['disk_yaw']==90
+    assert s['look']['nebula_resolution']=='high' and s['look']['nebula_color']=='#85cfa3'
+    assert s['caption']['angular'] and s['caption']['metal']>0 and s['caption']['fuzz']>0
+    assert page.evaluate('''()=>{const gl=document.querySelector('#neon-scene canvas').getContext('webgl'),n=Math.min(4096,gl.getParameter(gl.MAX_TEXTURE_SIZE));return skyAllocations.some(a=>a[0]===n&&a[1]===n/2)}'''),'High gas texture was not allocated'
     s['look'].update(auto_res=False,render_scale=.7,bloom_strength=0)
     apply(page,s)
+    # Isolate the floor in an expanded wide viewport. Its vanishing row must
+    # reach both edges at the same height, including fractional pixel coverage.
+    only_floor=json.loads(json.dumps(s));only_floor['accretion_disk']=False
+    only_floor['look'].update(galaxy_gain=0,floor_reflection=0)
+    page.set_viewport_size({'width':1920,'height':1080});page.locator('[data-window-expand]').click()
+    apply(page,only_floor)
+    raw=page.evaluate('NeonViewer.capture().toDataURL()')
+    wide=Image.open(io.BytesIO(base64.b64decode(raw.split(',')[1]))).convert('RGB')
+    rows=[]
+    for x in [2,wide.width//2,wide.width-3]:
+        rows.append(next(y for y in range(wide.height//3,wide.height*4//5) if (lambda rgb:rgb[0]>40 and rgb[0]>rgb[1]*1.3 and rgb[2]>rgb[1]*1.3)(wide.getpixel((x,y)))))
+    assert max(rows)-min(rows)<=1,('Horizon ends or shifts at edges',rows)
+    wide.save(OUT/'wide-horizon.png')
+    page.locator('[data-window-expand]').click();page.set_viewport_size({'width':1100,'height':900});apply(page,s)
     assert abs(page.evaluate('NeonViewer.observer.position.z')+s['look']['floor_height']-.6)<.00001
     assert page.evaluate('''()=>{const o=NeonViewer.observer,e=o.orientation.elements;return new THREE.Vector3(e[6],e[7],e[8]).dot(o.position.clone().normalize().negate())}''')>.999
     gas=pixels(page);s['look']['nebula_amount']=0;apply(page,s)
     assert ImageChops.difference(gas,pixels(page)).getbbox(),'Extra galaxy gas did not change pixels'
     s['look']['nebula_amount']=1.7;apply(page,s)
+    high_gas=pixels(page);s['look']['nebula_resolution']='standard';apply(page,s)
+    assert ImageChops.difference(high_gas,pixels(page)).getbbox(),'High gas resolution did not change pixels'
+    s['look']['nebula_resolution']='high';apply(page,s)
     flat=pixels(page);s['look']['floor_lensing']=True;apply(page,s)
     assert ImageChops.difference(flat,pixels(page)).getbbox(),'Floor lensing toggle did not change pixels'
     s['look']['floor_lensing']=False;apply(page,s)
@@ -120,6 +141,12 @@ with sync_playwright() as p:
     page.locator('#setting-caption-grid').fill('0');page.locator('#setting-caption-grid').press('Tab')
     assert ImageChops.difference(detail,lettering_pixels()).convert('RGB').getbbox(),'Reflected lettering grid did not change pixels'
     page.locator('#setting-caption-grid').fill('.85');page.locator('#setting-caption-grid').press('Tab')
+    edged=lettering_pixels();page.locator('#setting-caption-angular').uncheck()
+    assert ImageChops.difference(edged,lettering_pixels()).convert('RGB').getbbox(),'Pointed terminals did not change lettering'
+    page.locator('#setting-caption-angular').check()
+    metal=lettering_pixels();page.locator('#setting-caption-metal').fill('0');page.locator('#setting-caption-metal').press('Tab')
+    assert ImageChops.difference(metal,lettering_pixels()).convert('RGB').getbbox(),'Metal surface detail did not change lettering'
+    page.locator('#setting-caption-metal').fill('.65');page.locator('#setting-caption-metal').press('Tab')
     page.keyboard.press('Escape')
     s=page.evaluate('NeonViewer.settings()');s['look'].update(auto_res=False,render_scale=.85,bloom_strength=.35)
     apply(page,s);page.screenshot(path=str(OUT/'warm-chrome.png'))

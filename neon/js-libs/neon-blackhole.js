@@ -34,7 +34,7 @@ window.createNeonBlackhole = function (options) {
     n_steps: 60,
     quality: 'medium',
     accretion_disk: true,
-    caption:{enabled:false,text:'',style:'chrome',font:'block',size:12,x:50,y:78,width:90,uppercase:false,bevel:1,grid:.65,stretch:1,line_gap:1.13},
+    caption:{enabled:false,text:'',style:'chrome',font:'block',size:12,x:50,y:78,width:90,uppercase:false,bevel:1,grid:.65,stretch:1,line_gap:1.13,angular:false,metal:0,glow:0,fuzz:0},
     planet: { enabled:false, distance:7.0, radius:0.4, eccentricity:0, inclination:0, node:0, periapsis:0, phase:0, speed:1, spin:15, axial_tilt:30, texture_offset:0, texture:'' },
     lorentz_contraction: true,
     gravitational_time_dilation: true,
@@ -88,6 +88,7 @@ window.createNeonBlackhole = function (options) {
       floor_concentration:18, floor_reflection:0, floor_roughness:.15,
       floor_palette:false, floor_color:'#bf00ff', floor_major_color:'#00ffff',
       nebula_amount:0, nebula_scale:3, nebula_color:'#df81ed',
+      nebula_resolution:'standard',
       gas_tint:0, gas_color:'#ffbb88', gas_texture:'',
       disk_temp: 8075.0,
       disk_tilt: 0, disk_yaw: 0,
@@ -372,9 +373,11 @@ window.createNeonBlackhole = function (options) {
   ].join('\n');
 
   function bakeSky() {
-    var target = new THREE.WebGLRenderTarget(2048, 1024, {
+    var skySize=P.look.nebula_resolution==='high'?4096:2048;
+    skySize=Math.min(skySize,renderer.getContext().getParameter(renderer.getContext().MAX_TEXTURE_SIZE));
+    var target = new THREE.WebGLRenderTarget(skySize, skySize/2, {
       minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
-      format: THREE.RGBAFormat, type: THREE.UnsignedByteType,
+      format: THREE.RGBAFormat, type: P.look.nebula_resolution==='high'?rtType:THREE.UnsignedByteType,
       depthBuffer: false, stencilBuffer: false
     });
     var mat = new THREE.ShaderMaterial({ vertexShader: QUAD_VS, fragmentShader: SKY_FS,uniforms:{cloud_amount:{type:'f',value:P.look.nebula_amount},cloud_scale:{type:'f',value:P.look.nebula_scale},cloud_color:{type:'v3',value:hexVector(P.look.nebula_color)}} });
@@ -387,7 +390,7 @@ window.createNeonBlackhole = function (options) {
   var skyKey='';
   function syncSky(){
     if(!renderer||!uniforms)return;
-    var key=JSON.stringify([P.look.nebula_amount,P.look.nebula_scale,P.look.nebula_color]);
+    var key=JSON.stringify([P.look.nebula_amount,P.look.nebula_scale,P.look.nebula_color,P.look.nebula_resolution]);
     if(key===skyKey)return;skyKey=key;
     var old=galaxyTexture;galaxyTexture=bakeSky();if(old)old.dispose();
     uniforms.galaxy_texture.value=ORIG&&origGalaxy?origGalaxy:galaxyTexture;dirty=true;
@@ -562,7 +565,7 @@ window.createNeonBlackhole = function (options) {
     camera = new THREE.PerspectiveCamera(45, 1, 1, 80000);
 
     galaxyTexture = bakeSky();
-    skyKey=JSON.stringify([P.look.nebula_amount,P.look.nebula_scale,P.look.nebula_color]);
+    skyKey=JSON.stringify([P.look.nebula_amount,P.look.nebula_scale,P.look.nebula_color,P.look.nebula_resolution]);
     if (ORIG) origGalaxy = makeOrigGalaxy();
 
     uniforms = {
