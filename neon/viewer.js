@@ -8,28 +8,52 @@
   const $=id=>document.getElementById(id),status=$('neon-status');
   const controls=new Map(),reduced=matchMedia('(prefers-reduced-motion: reduce)');
   let viewer,feedbackTimer,movingCamera=false;
+  let posterFontPromise=null,posterFontReady=false;
+  function loadPosterFont(){
+    if(!posterFontPromise){const font=new FontFace('Neon Teko',`url("${new URL('fonts/Teko.ttf',base).href}")`,{weight:'300 700'});document.fonts.add(font);posterFontPromise=font.load().then(()=>{posterFontReady=true;drawLettering();}).catch(()=>message('Poster font could not load. Using fallback lettering.'));}
+    return posterFontPromise;
+  }
   const lettering=document.createElement('canvas');lettering.className='neon-lettering';lettering.setAttribute('aria-hidden','true');scene.after(lettering);
+  let letteringKey=null;
   function drawLettering(){
     if(!viewer)return;
     const c=viewer.params.caption,w=Math.max(1,scene.clientWidth),h=Math.max(1,scene.clientHeight),dpr=Math.min(devicePixelRatio,2);
+    const key=JSON.stringify([c,w,h,dpr,posterFontReady,document.fonts.status]);
+    if(key===letteringKey)return;letteringKey=key;
     lettering.width=Math.round(w*dpr);lettering.height=Math.round(h*dpr);
     const ctx=lettering.getContext('2d');ctx.scale(dpr,dpr);
     lettering.hidden=!c.enabled||!c.text;
     if(lettering.hidden)return;
-    const lines=c.text.split(/[|\n]/).slice(0,6),size=h*c.size/100,lineHeight=size*1.13;
-    ctx.font=`900 ${size}px ${c.font==='Orbitron'?'Orbitron':'Impact, "Arial Black"'}, sans-serif`;
-    const measured=Math.max(...lines.map(line=>ctx.measureText(line).width),1),scale=Math.min(1,w*c.width/100/measured);
-    ctx.translate(w*c.x/100,h*c.y/100);ctx.scale(scale,1);ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='round';
+    if(c.font==='Teko'&&!posterFontReady)loadPosterFont();
+    const lines=(c.uppercase?c.text.toUpperCase():c.text).split(/[|\n]/).slice(0,6),size=h*c.size/100,lineHeight=size*c.line_gap;
+    ctx.font=`${c.font==='Teko'?700:900} ${size}px ${c.font==='Teko'?'"Neon Teko"':c.font==='Orbitron'?'Orbitron':'Impact, "Arial Black"'}, sans-serif`;
+    const measured=Math.max(...lines.map(line=>ctx.measureText(line).width),1),scale=Math.min(c.stretch,w*c.width/100/measured);
+    ctx.translate(w*c.x/100,h*c.y/100);ctx.scale(scale,1);ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='miter';ctx.miterLimit=2;
     lines.forEach((line,index)=>{
       const y=(index-(lines.length-1)/2)*lineHeight;
-      // Extruded bronze bevel beneath a reflective, banded face.
-      ctx.lineWidth=size*.055;ctx.strokeStyle='#241021';
-      for(let i=6;i>0;i--)ctx.strokeText(line,i*size*.012,y+i*size*.012);
-      ctx.strokeStyle='#d1a066';ctx.strokeText(line,0,y);
-      const gradient=ctx.createLinearGradient(0,y-size*.5,0,y+size*.5);
-      const stops=c.style==='chrome'?[[0,'#f7dfb0'],[.22,'#9a6139'],[.45,'#fff6dc'],[.49,'#e4bd81'],[.51,'#302438'],[.7,'#a7724a'],[1,'#f4d399']]:[[0,'#fff5c3'],[.2,'#9b76c8'],[.45,'#b7ffc1'],[.49,'#ecffe7'],[.51,'#30164c'],[.73,'#db56ce'],[1,'#e6d9ff']];
-      stops.forEach(([at,color])=>gradient.addColorStop(at,color));ctx.fillStyle=gradient;ctx.fillText(line,0,y);
-      ctx.lineWidth=size*.008;ctx.strokeStyle='#fff2d8';ctx.strokeText(line,0,y-size*.012);
+      // Narrow layered metal bevels, with a dark face reflecting a horizon
+      // and perspective grid rather than a thick, rounded pastel outline.
+      const bevel=size*.04*c.bevel;
+      ctx.fillStyle='#211b24';ctx.strokeStyle='#20121b';ctx.lineWidth=Math.max(1,bevel);
+      for(let i=4;i>0;i--){ctx.fillText(line,i*size*.008,y+i*size*.008);if(bevel)ctx.strokeText(line,i*size*.008,y+i*size*.008);}
+      if(bevel){
+        const edge=ctx.createLinearGradient(0,y-size*.5,0,y+size*.5);[[0,'#ffdfac'],[.25,'#68412e'],[.48,'#f8ddb4'],[.53,'#483125'],[1,'#dba575']].forEach(([at,color])=>edge.addColorStop(at,color));
+        ctx.strokeStyle=edge;ctx.lineWidth=bevel*1.7;ctx.shadowColor='#d478db';ctx.shadowBlur=size*.045;ctx.strokeText(line,0,y);ctx.shadowBlur=0;
+        ctx.strokeStyle='#281c21';ctx.lineWidth=bevel;ctx.strokeText(line,0,y);
+        ctx.strokeStyle='#f2cda0';ctx.lineWidth=bevel*.34;ctx.strokeText(line,-size*.003,y-size*.003);
+      }
+      const face=document.createElement('canvas'),fw=Math.ceil(ctx.measureText(line).width+size*.16),fh=Math.ceil(size*1.3);
+      face.width=Math.ceil(fw*dpr);face.height=Math.ceil(fh*dpr);
+      const fc=face.getContext('2d');fc.scale(dpr,dpr);fc.font=ctx.font;fc.textAlign='center';fc.textBaseline='middle';
+      const gradient=fc.createLinearGradient(0,fh*.12,0,fh*.88);
+      const iridescent=c.style==='iridescent'||c.style==='mixed'&&index>0;
+      const stops=!iridescent?[[0,'#563324'],[.2,'#a66c42'],[.43,'#eac395'],[.49,'#fff4d5'],[.53,'#16291f'],[.69,'#101a20'],[.8,'#643d71'],[1,'#c49b77']]:[[0,'#184738'],[.27,'#397957'],[.47,'#ffe2bb'],[.53,'#162820'],[.66,'#121b28'],[.82,'#965490'],[1,'#eed1a5']];
+      stops.forEach(([at,color])=>gradient.addColorStop(at,color));fc.fillStyle=gradient;fc.fillText(line,fw/2,fh/2);
+      if(c.grid){fc.globalCompositeOperation='source-atop';fc.strokeStyle=`rgba(231,161,244,${c.grid*.72})`;fc.lineWidth=Math.max(.5,size*.006);const horizon=fh*.56;
+        fc.beginPath();for(let i=0;i<=9;i++){const gy=horizon+(fh-horizon)*Math.pow(i/9,1.7);fc.moveTo(0,gy);fc.lineTo(fw,gy);}
+        for(let i=-12;i<=12;i++){fc.moveTo(fw*.5+i*size*.055,horizon);fc.lineTo(fw*.5+i*size*.6,fh);}fc.stroke();
+      }
+      ctx.drawImage(face,-fw/2,y-fh/2,fw,fh);
     });
   }
   new ResizeObserver(drawLettering).observe(scene);
@@ -43,7 +67,8 @@
   function syncFields(){
     const values=viewer.settings();for(const [path,input] of controls){const value=NeonSettings.get(values,path);if(input.type==='checkbox')input.checked=value;else input.value=value;}
     const height=controls.get('camera.height');if(height)height.disabled=values.observer.motion;
-    for(const path of ['look.sky_motion','look.sky_speed','look.sky_axis_tilt']){const input=controls.get(path);if(input)input.disabled=values.renderer!=='neon';}
+    for(const path of ['look.sky_motion','look.sky_speed','look.sky_axis_tilt','look.nebula_amount','look.nebula_scale','look.nebula_color']){const input=controls.get(path);if(input)input.disabled=values.renderer!=='neon';}
+    for(const path of ['look.floor_color','look.floor_major_color']){const input=controls.get(path);if(input)input.disabled=!values.look.floor_palette;}
     for(const [name,path,asset] of [['planet','planet.texture','beach-ball.png'],['gas','look.gas_texture','accretion-disk.png']]){const preview=$('neon-'+name+'-preview');if(preview){const src=NeonSettings.get(values,path)||new URL('img/'+asset,base).href;if(preview.getAttribute('src')!==src)preview.src=src;}}
     drawLettering();
     $('neon-grid').setAttribute('aria-pressed',String(values.neon_grid));
@@ -138,10 +163,10 @@
     const lowView=document.createElement('button');lowView.type='button';lowView.className='acidburn-button';lowView.id='neon-camera-low';lowView.textContent='Near floor · look up';groups.get('Camera').append(lowView);
     lowView.addEventListener('click',()=>{stopCamera();const next=viewer.settings();next.observer.motion=false;next.observer.elevation=0;next.observer.distance=Math.max(next.observer.distance,Math.min(30,next.look.disk_outer+5));next.camera.height=Math.max(-100,Math.min(100,.5-next.look.floor_height));next.camera.pitch=next.camera.yaw=0;next.camera.offset_x=next.camera.offset_y=next.camera.offset_z=0;next.neon_floor=true;next.look.floor_follow_camera=false;viewer.applySettings(next,true);syncFields();message('Low view: adjust Camera height to raise or lower your viewpoint.');});
     const cameraHelp=document.createElement('p');cameraHelp.textContent='Stationary camera height raises or lowers the viewpoint while aiming at the black hole. Negative values move below it; Near floor gives a low starting view with the grid visible. Free move translates the camera. WASD moves sideways/forward, Q/E moves down/up. Shift keys or Alt-drag gives 10× finer control. On touch devices, lower sensitivity or movement speed for fine adjustments.';groups.get('Camera').append(cameraHelp);
-    const floorHelp=document.createElement('p');floorHelp.textContent='With Floor follows camera off, the plane stays fixed in world space. Height places the black hole above or below it; X/Y offsets move the grid independently.';groups.get('Floor').append(floorHelp);
+    const floorHelp=document.createElement('p');floorHelp.textContent='With Floor follows camera off, the plane stays fixed in world space. Height places the black hole above or below it; X/Y offsets move the grid independently. Turn floor lensing off for a straight poster horizon. Custom grid colors apply to nearby wires and their distant glow.';groups.get('Floor').append(floorHelp);
     const skyHelp=document.createElement('p');skyHelp.textContent='Neon mode: move the stars and galaxies while the grid stays fixed. Use Stationary and set camera rotation and wobble to zero to hold the view still. Sky speed uses real seconds; Pause freezes it. Turn motion off or set speed to zero to stop in place.';groups.get('Sky').append(skyHelp);
     const poster=document.createElement('button');poster.type='button';poster.className='acidburn-button';poster.id='neon-poster-preset';poster.textContent='Warm chrome scene';groups.get('View').append(poster);
-    poster.addEventListener('click',()=>{const s=viewer.settings();Object.assign(s.observer,{motion:false,azimuth:0,elevation:6,distance:24,rotation_speed:0});Object.assign(s.camera,{height:0,pitch:0,yaw:0,offset_x:0,offset_y:0,offset_z:0,wobble_pitch:0,wobble_yaw:0});s.neon_floor=true;s.neon_grid=false;Object.assign(s.look,{floor_follow_camera:false,floor_tilt:0,floor_height:5.9,floor_infinite:true,floor_strength:.975,floor_concentration:18,floor_reflection:.45,floor_roughness:.1,floor_speed:0,floor_sway:0,gas_tint:.75,gas_color:'#ffbd87',disk_tilt:0,disk_yaw:0,disk_temp:5500});Object.assign(s.caption,{enabled:true,text:s.caption.text||'BEYOND|HUMAN',style:'iridescent'});load(s);message('Warm chrome starting scene. Adjust Disk, Floor and Poster text to customize.');});
+    poster.addEventListener('click',()=>{const s=viewer.settings();Object.assign(s.observer,{motion:false,azimuth:0,elevation:0,distance:30,rotation_speed:0});Object.assign(s.camera,{height:-5.4,pitch:0,yaw:0,offset_x:0,offset_y:0,offset_z:0,wobble_pitch:0,wobble_yaw:0});s.neon_floor=true;s.neon_grid=false;Object.assign(s.look,{floor_follow_camera:false,floor_tilt:0,floor_height:6,floor_lensing:false,floor_infinite:true,floor_strength:.975,floor_concentration:18,floor_palette:true,floor_color:'#e879ef',floor_major_color:'#e879ef',floor_reflection:.45,floor_roughness:.1,floor_speed:0,floor_sway:0,gas_tint:.75,gas_color:'#ffbd87',disk_tilt:0,disk_yaw:0,disk_temp:5500,nebula_amount:1.7,nebula_scale:3,nebula_color:'#df81ed'});Object.assign(s.caption,{enabled:true,text:s.caption.text||'BEYOND|HUMAN',style:'mixed',font:'Teko',uppercase:true,bevel:1,grid:.85,size:24,y:75,width:90,stretch:1.15,line_gap:.85});load(s);message('Warm chrome starting scene: low camera looking up. Adjust Disk, Floor, Sky and Poster text to customize.');});
     syncFields();
   }
   async function copy(){
@@ -155,7 +180,7 @@
     const snapshot=viewer.settings();
     try{
       message('Preparing ZIP…');
-      const neonFiles=['index.html','settings.js','zip.js','viewer.js','NOTICE.txt','raytracer-neon.glsl','raytracer-orig.glsl','js-libs/three.min.js','js-libs/Detector.js','js-libs/mustache.min.js','js-libs/three-js-monkey-patch.js','js-libs/acidburn-galaxy.js','js-libs/neon-blackhole.js','img/accretion-disk.png','img/beach-ball.png','img/spectra.png','img/stars.png'];
+      const neonFiles=['index.html','settings.js','zip.js','viewer.js','NOTICE.txt','fonts/Teko.ttf','fonts/OFL.txt','raytracer-neon.glsl','raytracer-orig.glsl','js-libs/three.min.js','js-libs/Detector.js','js-libs/mustache.min.js','js-libs/three-js-monkey-patch.js','js-libs/acidburn-galaxy.js','js-libs/neon-blackhole.js','img/accretion-disk.png','img/beach-ball.png','img/spectra.png','img/stars.png'];
       const sharedFiles=['css/acidburn.css','css/map-window.css','css/neon-viewer.css'];
       const requests=[...neonFiles.map(name=>({name,url:new URL(name,base)})),...sharedFiles.map(name=>({name,url:new URL(name,siteBase)})),{name:'map-window.js',url:new URL(window.NEON_PACKAGED?'map-window.js':'js/map-window.js',siteBase)}];
       const entries=await Promise.all(requests.map(async item=>{
@@ -194,7 +219,7 @@
     $('neon-copy').addEventListener('click',copy);
     $('neon-zip').addEventListener('click',download);
     const imageButton=document.createElement('button');imageButton.type='button';imageButton.className='acidburn-button';imageButton.id='neon-image';imageButton.textContent='Download PNG';$('neon-zip').parentElement.append(imageButton);
-    imageButton.addEventListener('click',async()=>{try{await viewer.ready;await viewer.textureReady;await document.fonts.ready;drawLettering();const rendered=viewer.capture(),canvas=document.createElement('canvas');canvas.width=rendered.width;canvas.height=rendered.height;const ctx=canvas.getContext('2d');ctx.drawImage(rendered,0,0);if(!lettering.hidden)ctx.drawImage(lettering,0,0,canvas.width,canvas.height);canvas.toBlob(blob=>{if(!blob){message('PNG export failed.');return;}const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='neon-black-hole.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);message('PNG downloaded with scene and poster text.');},'image/png');}catch(error){message(error.message);}});
+    imageButton.addEventListener('click',async()=>{try{await viewer.ready;await viewer.textureReady;await posterFontPromise;await document.fonts.ready;drawLettering();const rendered=viewer.capture(),canvas=document.createElement('canvas');canvas.width=rendered.width;canvas.height=rendered.height;const ctx=canvas.getContext('2d');ctx.drawImage(rendered,0,0);if(!lettering.hidden)ctx.drawImage(lettering,0,0,canvas.width,canvas.height);canvas.toBlob(blob=>{if(!blob){message('PNG export failed.');return;}const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='neon-black-hole.png';a.click();setTimeout(()=>URL.revokeObjectURL(url),30000);message('PNG downloaded with scene and poster text.');},'image/png');}catch(error){message(error.message);}});
     $('neon-load').addEventListener('click',()=>{try{load(JSON.parse($('neon-json').value));}catch(error){message('Could not load JSON: '+error.message);}});
     $('neon-file').addEventListener('change',async()=>{const file=$('neon-file').files[0];if(!file)return;try{if(file.size>6400000)throw new Error('Settings files must be under 6.4 MB.');load(JSON.parse(await file.text()));}catch(error){message('Could not load file: '+error.message);}finally{$('neon-file').value='';}});
     reduced.addEventListener('change',()=>{if(reduced.matches)pause(true);});

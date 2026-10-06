@@ -48,9 +48,25 @@ with sync_playwright() as p:
     page.locator('[data-pane-toggle=neon-settings]').click()
     page.locator('#neon-poster-preset').click()
     page.keyboard.press('Escape')
+    page.wait_for_function('''[...document.fonts].some(f=>f.family.replaceAll('"','')==='Neon Teko'&&f.status==='loaded')''')
     s=page.evaluate('NeonViewer.settings()')
+    assert s['observer']['elevation']==0 and s['camera']['height']<0
+    assert abs(s['camera']['height']+s['look']['floor_height']-.6)<.00001
+    assert s['look']['floor_palette'] and s['look']['floor_color']==s['look']['floor_major_color']
+    assert not s['look']['floor_lensing'] and s['caption']['uppercase']
     s['look'].update(auto_res=False,render_scale=.7,bloom_strength=0)
     apply(page,s)
+    assert abs(page.evaluate('NeonViewer.observer.position.z')+s['look']['floor_height']-.6)<.00001
+    assert page.evaluate('''()=>{const o=NeonViewer.observer,e=o.orientation.elements;return new THREE.Vector3(e[6],e[7],e[8]).dot(o.position.clone().normalize().negate())}''')>.999
+    gas=pixels(page);s['look']['nebula_amount']=0;apply(page,s)
+    assert ImageChops.difference(gas,pixels(page)).getbbox(),'Extra galaxy gas did not change pixels'
+    s['look']['nebula_amount']=1.7;apply(page,s)
+    flat=pixels(page);s['look']['floor_lensing']=True;apply(page,s)
+    assert ImageChops.difference(flat,pixels(page)).getbbox(),'Floor lensing toggle did not change pixels'
+    s['look']['floor_lensing']=False;apply(page,s)
+    s['look']['floor_color']=s['look']['floor_major_color']='#20ff80';apply(page,s);green_floor=pixels(page)
+    s['look']['floor_color']=s['look']['floor_major_color']='#e879ef';apply(page,s)
+    assert ImageChops.difference(green_floor,pixels(page)).getbbox(),'Custom grid pigment did not change pixels'
     reflected=pixels(page);with_reflection=draws(page)
     assert page.locator('#neon-scene canvas').evaluate("e=>e.getContext('webgl').getError()") == 0
     s['look']['floor_reflection']=0;apply(page,s)
@@ -94,8 +110,23 @@ with sync_playwright() as p:
     page.set_viewport_size({'width':1100,'height':900})
     page.locator('[data-pane-toggle=neon-settings]').click()
     page.locator('#neon-poster-preset').click();page.keyboard.press('Escape')
+    page.locator('[data-pane-toggle=neon-settings]').click()
+    page.get_by_text('Poster text',exact=True).click()
+    def lettering_pixels():
+        import base64
+        src=page.locator('.neon-lettering').evaluate('e=>e.toDataURL()')
+        return Image.open(io.BytesIO(base64.b64decode(src.split(',')[1]))).convert('RGBA')
+    detail=lettering_pixels()
+    page.locator('#setting-caption-grid').fill('0');page.locator('#setting-caption-grid').press('Tab')
+    assert ImageChops.difference(detail,lettering_pixels()).convert('RGB').getbbox(),'Reflected lettering grid did not change pixels'
+    page.locator('#setting-caption-grid').fill('.85');page.locator('#setting-caption-grid').press('Tab')
+    page.keyboard.press('Escape')
     s=page.evaluate('NeonViewer.settings()');s['look'].update(auto_res=False,render_scale=.85,bloom_strength=.35)
     apply(page,s);page.screenshot(path=str(OUT/'warm-chrome.png'))
+    page.set_viewport_size({'width':390,'height':844});page.wait_for_timeout(150)
+    page.screenshot(path=str(OUT/'warm-phone.png'))
+    assert page.evaluate('document.documentElement.scrollWidth<=innerWidth+1')
+    page.set_viewport_size({'width':1100,'height':900});apply(page,s)
     page.locator('[data-pane-toggle=neon-share]').click()
     with page.expect_download() as png:page.locator('#neon-image').click()
     png.value.save_as(OUT/'poster.png')
@@ -112,9 +143,12 @@ with sync_playwright() as p:
     archive.value.save_as(OUT/'poster.zip')
     with zipfile.ZipFile(OUT/'poster.zip') as z:
         assert z.testzip() is None and json.loads(z.read('settings.json'))==s
+        assert z.read('fonts/Teko.ttf').startswith(b'\x00\x01\x00\x00')
+        assert b'SIL OPEN FONT LICENSE' in z.read('fonts/OFL.txt')
         z.extractall(OUT/'standalone')
     page.goto('https://poster.test/attached_files/neon-poster-checks/standalone/index.html')
     page.wait_for_function('window.NeonViewer && NeonViewer.frames>0')
+    page.wait_for_function('''[...document.fonts].some(f=>f.family.replaceAll('"','')==='Neon Teko'&&f.status==='loaded')''')
     assert page.evaluate('NeonViewer.settings()')==s
     assert page.locator('.neon-lettering').is_visible()
     page.locator('#neon-reset').click()
@@ -124,5 +158,5 @@ with sync_playwright() as p:
     archive.value.save_as(OUT/'reexport.zip')
     with zipfile.ZipFile(OUT/'reexport.zip') as z:assert json.loads(z.read('settings.json'))==s
     assert not errors,errors
-    print('PASS integrated wires, tint/map, reflection pass/roughness, atomic old/new JSON, five sizes, composed PNG and standalone ZIP re-export.')
+    print('PASS low camera aim, consistent grid pigments/lensing, nebula gas, beveled lettering grid, tint/map, reflection pass/roughness, atomic JSON, five sizes, PNG and standalone ZIP re-export.')
     browser.close()

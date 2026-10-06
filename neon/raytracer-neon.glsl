@@ -61,6 +61,9 @@ uniform float galaxy_gain;
 uniform float floor_concentration, floor_reflection, floor_roughness, reflection_pass, gas_tint;
 uniform vec3 gas_color, reflect_pos, reflect_x, reflect_y, reflect_z;
 uniform sampler2D reflection_tex;
+{{#floorTint}}
+uniform vec3 floor_color, floor_major_color;
+{{/floorTint}}
 
 // lastnpcalex.agency palette: --cyan #00ffff, --purple #bf00ff, deep #4a1868
 const vec3 SITE_CYAN   = vec3(0.000, 1.000, 1.000);
@@ -394,6 +397,22 @@ vec4 floor_shade(vec3 fp, vec3 dir, float dist, float pix_angle) {
     float mean4 = 2.0 * W4 / S4;
     float mcore = mix(2.0 * mean4 - mean4 * mean4,
                       mx.x + my.x - mx.x * my.x, dens4);
+    {{#look.floor_infinite}}
+    // Filter each family separately. A receding line is sharp in one axis
+    // even when the footprint along the plane is enormous in the other.
+    vec2 along = vec2(dot(dir,floor_e1),dot(dir,floor_e2));
+    vec2 footprint = dist * pix_angle * sqrt(vec2(1.0) + along*along / max(cosi*cosi,0.000001));
+    // Keep resolved wires at a fraction of a pixel, rather than dimming them
+    // away. Once spacing is subpixel, their actual coverage fills the pixel.
+    vec2 width = max(min(vec2(W),footprint*0.55),min(footprint*0.32,vec2(S*0.08)));
+    vec2 majorWidth = max(min(vec2(W4),footprint*0.55),min(footprint*0.32,vec2(S4*0.08)));
+    vec2 density = smoothstep(1.5,4.0,S/footprint);
+    vec2 majorDensity = smoothstep(1.5,4.0,S4/footprint);
+    vec2 wires = mix(min(2.0*width/S,vec2(1.0)),vec2(neon_line(gd.x,width.x,footprint.x,0.0).x,neon_line(gd.y,width.y,footprint.y,0.0).x),density);
+    vec2 majorWires = mix(min(2.0*majorWidth/S4,vec2(1.0)),vec2(neon_line(gm.x,majorWidth.x,footprint.x,0.0).x,neon_line(gm.y,majorWidth.y,footprint.y,0.0).x),majorDensity);
+    core = wires.x+wires.y-wires.x*wires.y;
+    mcore = majorWires.x+majorWires.y-majorWires.x*majorWires.y;
+    {{/look.floor_infinite}}
 
     {{#look.floor_infinite}}
     // An infinite emitting plane has no arbitrary radial cutoff.
@@ -409,6 +428,10 @@ vec4 floor_shade(vec3 fp, vec3 dir, float dist, float pix_angle) {
     vec3 fc = SITE_PURPLE * (1.3 * minor)
             + SITE_CYAN * (1.8 * mcore)
             + vec3(0.85, 1.0, 1.0) * mcore * mx.x * my.x * 1.5;
+    {{#floorTint}}
+    // The same pigments shade both nearby wires and their integrated light.
+    fc = floor_color * (1.3 * minor) + floor_major_color * (1.8 * major);
+    {{/floorTint}}
     // Only the wires occlude the scene. No surface sheen or haze fills cells.
     float opac = clamp((minor + major) * floor_strength, 0.0, 1.0) * fade;
     {{#look.floor_infinite}}
@@ -419,7 +442,7 @@ vec4 floor_shade(vec3 fp, vec3 dir, float dist, float pix_angle) {
     // footprint used to filter individual wires. That confines the integrated
     // glow to the furthest subpixel cells instead of brightening a broad band.
     float horizonDensity = clamp(S4 / max(6.0 * dist * pix_angle, 0.0001), 0.0, 1.0);
-    fc *= 1.0 + floor_concentration * pow(1.0 - horizonDensity, 3.0);
+    fc *= 1.0 + 0.15 * floor_concentration * pow(1.0 - horizonDensity, 3.0);
     {{/look.floor_infinite}}
     vec3 reflected = vec3(0.0);
     if (floor_reflection > 0.0) {
@@ -456,6 +479,9 @@ void main() {
 
     vec3 pos = cam_pos;
     vec3 ray = normalize(p.x*cam_x + p.y*cam_y + FOV_MULT*cam_z);
+    {{#neon_floor}}{{^look.floor_lensing}}
+    vec3 floor_camera_ray=ray;
+    {{/look.floor_lensing}}{{/neon_floor}}
 
     {{#aberration}}
     ray = lorentz_velocity_transformation(ray, cam_vel);
@@ -724,6 +750,7 @@ void main() {
         {{/accretion_disk}}
 
         {{#neon_floor}}
+        {{#look.floor_lensing}}
         {
             float h0 = dot(old_pos, floor_n) - floor_d;
             float h1 = dot(pos, floor_n) - floor_d;
@@ -740,6 +767,7 @@ void main() {
                 }
             }
         }
+        {{/look.floor_lensing}}
         {{/neon_floor}}
         path_len += ray_l;
 
@@ -766,7 +794,7 @@ void main() {
         esc = normalize(cos(pa) * normal_vec + sin(pa) * tangent_vec);
     }
 
-    {{#neon_floor}}
+    {{#neon_floor}}{{#look.floor_lensing}}
     if (u < 1.0) {
         float h = dot(pos, floor_n) - floor_d;
         float dn = dot(esc, floor_n);
@@ -778,7 +806,7 @@ void main() {
             trans *= 1.0 - fs.a;
         }
     }
-    {{/neon_floor}}
+    {{/look.floor_lensing}}{{/neon_floor}}
     vec3 gdir = esc * BG_COORDS;
     {{#neon_grid}}
     // Analytic celestial grid on the escape direction: exact lensing, crisp at
@@ -859,5 +887,15 @@ void main() {
         {{/neon_grid}}
     }
 
+    {{#neon_floor}}{{^look.floor_lensing}}
+    // A poster-style floor is a straight world-space mirror plane. The black
+    // hole and reflected scene retain their own relativistic ray tracing.
+    float planeDirection=dot(floor_camera_ray,floor_n);
+    float planeHit=(floor_d-dot(cam_pos,floor_n))/planeDirection;
+    if(planeDirection < -0.000001 && planeHit>0.0){
+        vec4 fs=floor_shade(cam_pos+floor_camera_ray*planeHit,floor_camera_ray,planeHit,PIX_ANGLE);
+        color.rgb=fs.rgb+color.rgb*(1.0-fs.a);
+    }
+    {{/look.floor_lensing}}{{/neon_floor}}
     gl_FragColor = color*ray_intensity;
 }
