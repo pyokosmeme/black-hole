@@ -35,40 +35,51 @@
       function terminals(target,cx,cy){
         if(!c.angular||index===0||!line.trim())return;
         const left=cx-metrics.actualBoundingBoxLeft,right=cx+metrics.actualBoundingBoxRight,bottom=cy+base;
-        target.moveTo(left,bottom-size*.035);target.lineTo(left,bottom+size*.2);target.lineTo(left+size*.14,bottom-size*.035);target.closePath();
-        target.moveTo(right,bottom-size*.035);target.lineTo(right,bottom+size*.2);target.lineTo(right-size*.14,bottom-size*.035);target.closePath();
-      }
-      function strokeLetters(){ctx.strokeText(line,0,y);ctx.beginPath();terminals(ctx,0,y);ctx.stroke();}
-      // Narrow layered metal bevels, with a dark face reflecting a horizon
-      // and perspective grid rather than a thick, rounded pastel outline.
-      const bevel=size*.04*c.bevel;
-      ctx.fillStyle='#211b24';ctx.strokeStyle='#20121b';ctx.lineWidth=Math.max(1,bevel);
-      for(let i=4;i>0;i--){ctx.fillText(line,i*size*.008,y+i*size*.008);if(bevel)ctx.strokeText(line,i*size*.008,y+i*size*.008);}
-      if(bevel){
-        const edge=ctx.createLinearGradient(0,y-size*.5,0,y+size*.5);[[0,'#ffdfac'],[.25,'#68412e'],[.48,'#f8ddb4'],[.53,'#483125'],[1,'#dba575']].forEach(([at,color])=>edge.addColorStop(at,color));
-        const neon=viewer.params.look.floor_palette?viewer.params.look.floor_color:'#e879ef';
-        if(c.glow){ctx.strokeStyle=neon;ctx.lineWidth=bevel*2.1;ctx.shadowColor=neon;ctx.shadowBlur=size*.045*c.glow;strokeLetters();ctx.shadowBlur=size*.12*c.glow;ctx.globalAlpha=.2;strokeLetters();ctx.globalAlpha=1;ctx.shadowBlur=0;}
-        ctx.strokeStyle=edge;ctx.lineWidth=bevel*1.7;ctx.shadowColor=neon;ctx.shadowBlur=size*.02;strokeLetters();ctx.shadowBlur=0;
-        ctx.strokeStyle='#281c21';ctx.lineWidth=bevel;strokeLetters();
-        ctx.strokeStyle='#f2cda0';ctx.lineWidth=bevel*.24;strokeLetters();
+        target.moveTo(left,bottom-size*.035);target.lineTo(left,bottom+size*.2);target.lineTo(left+size*.09,bottom-size*.035);target.closePath();
+        target.moveTo(right,bottom-size*.035);target.lineTo(right,bottom+size*.2);target.lineTo(right-size*.09,bottom-size*.035);target.closePath();
       }
       const face=document.createElement('canvas'),fw=Math.ceil(lineWidth+size*.16),fh=Math.ceil(size*1.8);
       face.width=Math.ceil(fw*dpr);face.height=Math.ceil(fh*dpr);
       const fc=face.getContext('2d');fc.scale(dpr,dpr);fc.font=ctx.font;fc.textAlign='center';fc.textBaseline='middle';
-      const gradient=fc.createLinearGradient(0,fh/2-size*.5,0,fh/2+size*.5);
+      // One alpha silhouette joins the pointed feet to the glyphs before
+      // beveling. Separate strokes left visible seams across their joins.
+      fc.fillStyle='#fff';fc.fillText(line,fw/2,fh/2);fc.beginPath();terminals(fc,fw/2,fh/2);fc.fill();
+      const mask=document.createElement('canvas');mask.width=face.width;mask.height=face.height;mask.getContext('2d').drawImage(face,0,0);
+      const top=fh/2-metrics.actualBoundingBoxAscent,bottom=fh/2+base,inkHeight=bottom-top;
+      const bevel=size*.028*c.bevel,neon=viewer.params.look.floor_palette?viewer.params.look.floor_color:'#e879ef';
+      function metalGradient(stops){const g=fc.createLinearGradient(0,top,0,bottom);stops.forEach(([at,color])=>g.addColorStop(at,color));return g;}
+      function silhouette(radius,fill,dx=0,dy=0,blur=0){
+        const layer=document.createElement('canvas');layer.width=face.width;layer.height=face.height;const lc=layer.getContext('2d');
+        lc.drawImage(mask,0,0);
+        if(radius)for(let i=0;i<24;i++){const a=i*Math.PI/12;lc.drawImage(mask,Math.cos(a)*radius*dpr,Math.sin(a)*radius*dpr);}
+        lc.scale(dpr,dpr);lc.globalCompositeOperation='source-in';lc.fillStyle=fill;lc.fillRect(0,0,fw,fh);
+        ctx.shadowColor=neon;ctx.shadowBlur=blur;ctx.drawImage(layer,-fw/2+dx,y-fh/2+dy,fw,fh);ctx.shadowBlur=0;
+      }
+      // Directional extrusion and alternating light/dark bevel bands give
+      // depth without a wide flat outline. Masks include internal counters.
+      const side=metalGradient([[0,'#221910'],[.45,'#31483b'],[.65,'#121915'],[1,'#7b4931']]);
+      for(let i=5;i>0;i--)silhouette(bevel,side,size*.005*i,size*.007*i);
+      if(c.glow){silhouette(bevel*1.1,neon,0,0,size*.045*c.glow);ctx.globalAlpha=.18;silhouette(bevel*1.1,neon,0,0,size*.12*c.glow);ctx.globalAlpha=1;}
+      if(bevel){
+        silhouette(bevel,metalGradient([[0,'#fff0cf'],[.25,'#b87351'],[.5,'#ffdeb5'],[.7,'#79402d'],[1,'#efbf8c']]));
+        silhouette(bevel*.74,'#48291f');
+        silhouette(bevel*.44,metalGradient([[0,'#fff0d0'],[.48,'#f4cba1'],[.55,'#a15e43'],[1,'#ffe3bb']]));
+        silhouette(bevel*.15,'#44291e');
+      }
       const iridescent=c.style==='iridescent'||c.style==='mixed'&&index>0;
-      const stops=!iridescent?[[0,'#563324'],[.2,'#a66c42'],[.43,'#eac395'],[.49,'#fff4d5'],[.53,'#16291f'],[.69,'#101a20'],[.8,'#643d71'],[1,'#c49b77']]:[[0,'#184738'],[.27,'#397957'],[.47,'#ffe2bb'],[.53,'#162820'],[.66,'#121b28'],[.82,'#965490'],[1,'#eed1a5']];
-      stops.forEach(([at,color])=>gradient.addColorStop(at,color));fc.fillStyle=gradient;fc.fillText(line,fw/2,fh/2);
-      fc.beginPath();terminals(fc,fw/2,fh/2);fc.fill();
+      const stops=!iridescent?[[0,'#5d3022'],[.24,'#a86242'],[.44,'#e7ad78'],[.51,'#fff4d2'],[.55,'#fff7da'],[.59,'#1a3427'],[.69,'#17291f'],[.84,'#46344c'],[1,'#c38b92']]:[[0,'#0e3026'],[.25,'#224a35'],[.44,'#87a568'],[.53,'#eef0ba'],[.58,'#f7f8d8'],[.62,'#182b24'],[.77,'#252535'],[.92,'#aa759d'],[1,'#e2a87b']];
+      fc.clearRect(0,0,fw,fh);fc.globalCompositeOperation='source-over';
+      // The reflected skyline undulates gently across the metal face; its
+      // shading is anchored to actual ink bounds, not the font's em box.
+      for(let x=0;x<fw;x+=2){const wave=inkHeight*.014*(Math.sin(x/fw*12)+.45*Math.sin(x/fw*29));const g=fc.createLinearGradient(0,top+wave,0,bottom+wave);stops.forEach(([at,color])=>g.addColorStop(at,color));fc.fillStyle=g;fc.fillRect(x,0,2,fh);}
+      fc.globalCompositeOperation='destination-in';fc.drawImage(mask,0,0,fw,fh);
       fc.globalCompositeOperation='source-atop';
       if(c.metal){
-        fc.lineWidth=Math.max(.35,size*.003);fc.strokeStyle=`rgba(255,245,222,${c.metal*.22})`;
-        for(let i=0;i<38;i++){const sy=fh*.18+i*size*.009;fc.beginPath();fc.moveTo(0,sy);fc.bezierCurveTo(fw*.3,sy+Math.sin(i*1.37)*size*.012,fw*.7,sy-Math.cos(i*.91)*size*.009,fw,sy+size*.004);fc.stroke();}
         const shine=fc.createLinearGradient(0,0,fw,fh*.6);[[0,'rgba(255,250,223,0)'],[.38,`rgba(255,250,223,${c.metal*.03})`],[.47,`rgba(255,250,223,${c.metal*.23})`],[.52,'rgba(255,250,223,0)'],[1,'rgba(255,250,223,0)']].forEach(([at,color])=>shine.addColorStop(at,color));fc.fillStyle=shine;fc.fillRect(0,0,fw,fh);
       }
-      if(c.grid){const rgb=parseInt((viewer.params.look.floor_palette?viewer.params.look.floor_color:'#e879ef').slice(1),16);fc.strokeStyle=`rgba(${rgb>>16&255},${rgb>>8&255},${rgb&255},${c.grid*.72})`;fc.lineWidth=Math.max(.5,size*.006);const horizon=fh*.53;
-        fc.beginPath();for(let i=0;i<=9;i++){const gy=horizon+(fh-horizon)*Math.pow(i/9,1.7);fc.moveTo(0,gy);fc.lineTo(fw,gy);}
-        for(let i=-12;i<=12;i++){fc.moveTo(fw*.5+i*size*.055,horizon);fc.lineTo(fw*.5+i*size*.6,fh);}fc.stroke();
+      if(c.grid&&!iridescent){const rgb=parseInt(neon.slice(1),16);fc.strokeStyle=`rgba(${rgb>>16&255},${rgb>>8&255},${rgb&255},${c.grid*.55})`;fc.lineWidth=Math.max(.4,size*.004);const horizon=top+inkHeight*.68;
+        fc.beginPath();for(let i=1;i<=5;i++){const gy=horizon+(bottom-horizon)*Math.pow(i/5,1.7);fc.moveTo(0,gy);fc.lineTo(fw,gy);}
+        for(let i=-9;i<=9;i++){fc.moveTo(fw*.5+i*size*.035,horizon);fc.lineTo(fw*.5+i*size*.48,bottom+size*.2);}fc.stroke();
       }
       if(c.fuzz){const grain=document.createElement('canvas');grain.width=grain.height=64;const gc=grain.getContext('2d'),pixels=gc.createImageData(64,64);let seed=9217;
         for(let i=0;i<pixels.data.length;i+=4){seed=(Math.imul(seed,1664525)+1013904223)|0;const value=seed>>>24;pixels.data[i]=pixels.data[i+1]=pixels.data[i+2]=value;pixels.data[i+3]=Math.round(c.fuzz*32);}
@@ -187,7 +198,7 @@
     const floorHelp=document.createElement('p');floorHelp.textContent='With Floor follows camera off, the plane stays fixed in world space. Height places the black hole above or below it; X/Y offsets move the grid independently. Turn floor lensing off for a straight poster horizon. Custom grid colors apply to nearby wires and their distant glow.';groups.get('Floor').append(floorHelp);
     const skyHelp=document.createElement('p');skyHelp.textContent='Neon mode: move the stars and galaxies while the grid stays fixed. Use Stationary and set camera rotation and wobble to zero to hold the view still. Sky speed uses real seconds; Pause freezes it. Turn motion off or set speed to zero to stop in place.';groups.get('Sky').append(skyHelp);
     const poster=document.createElement('button');poster.type='button';poster.className='acidburn-button';poster.id='neon-poster-preset';poster.textContent='Warm chrome scene';groups.get('View').append(poster);
-    poster.addEventListener('click',()=>{const s=viewer.settings();Object.assign(s.observer,{motion:false,azimuth:0,elevation:0,distance:30,rotation_speed:0});Object.assign(s.camera,{height:-5.4,pitch:0,yaw:0,offset_x:0,offset_y:0,offset_z:0,wobble_pitch:0,wobble_yaw:0});s.neon_floor=true;s.neon_grid=false;Object.assign(s.look,{floor_follow_camera:false,floor_tilt:0,floor_height:6,floor_lensing:false,floor_infinite:true,floor_strength:.975,floor_concentration:18,floor_palette:true,floor_color:'#e879ef',floor_major_color:'#e879ef',floor_reflection:.45,floor_roughness:.1,floor_speed:0,floor_sway:0,gas_tint:.75,gas_color:'#ffbd87',disk_tilt:17,disk_yaw:90,disk_temp:5500,nebula_amount:1.7,nebula_scale:3,nebula_color:'#85cfa3',nebula_resolution:'high',render_scale:1,auto_res:false,antialiasing:true});Object.assign(s.caption,{enabled:true,text:s.caption.text||'BEYOND|HUMAN',style:'mixed',font:'Teko',uppercase:true,bevel:1,grid:.85,size:24,y:75,width:90,stretch:1.15,line_gap:.85,angular:true,metal:.65,glow:.85,fuzz:.22});load(s);message('Warm chrome starting scene: low camera looking up. Adjust Disk, Floor, Sky and Poster text to customize.');});
+    poster.addEventListener('click',()=>{const s=viewer.settings();Object.assign(s.observer,{motion:false,azimuth:0,elevation:0,distance:30,rotation_speed:0});Object.assign(s.camera,{height:-5.4,pitch:0,yaw:0,offset_x:0,offset_y:0,offset_z:0,wobble_pitch:0,wobble_yaw:0});s.neon_floor=true;s.neon_grid=false;Object.assign(s.look,{floor_follow_camera:false,floor_tilt:0,floor_height:6,floor_lensing:false,floor_infinite:true,floor_strength:.975,floor_concentration:18,floor_palette:true,floor_color:'#e879ef',floor_major_color:'#e879ef',floor_reflection:.45,floor_roughness:.1,floor_speed:0,floor_sway:0,gas_tint:.75,gas_color:'#ffbd87',disk_tilt:17,disk_yaw:90,disk_temp:5500,nebula_amount:1.7,nebula_scale:3,nebula_color:'#85cfa3',nebula_resolution:'high',render_scale:1,auto_res:false,antialiasing:true});Object.assign(s.caption,{enabled:true,text:s.caption.text||'BEYOND|HUMAN',style:'mixed',font:'Teko',uppercase:true,bevel:1,grid:.85,size:25,y:73,width:90,stretch:.95,line_gap:.8,angular:true,metal:.65,glow:.85,fuzz:.22});load(s);message('Warm chrome starting scene: low camera looking up. Adjust Disk, Floor, Sky and Poster text to customize.');});
     syncFields();
   }
   async function copy(){
