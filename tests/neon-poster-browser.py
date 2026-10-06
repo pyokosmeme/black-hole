@@ -1,0 +1,128 @@
+"""Rendered grid integration, reflected scene, gas maps, poster and portable exports."""
+from pathlib import Path
+from urllib.parse import urlparse, unquote
+from PIL import Image, ImageChops
+from playwright.sync_api import sync_playwright
+import io, json, mimetypes, zipfile
+
+ROOT=Path(__file__).resolve().parents[1]
+OUT=ROOT/'attached_files/neon-poster-checks'
+OUT.mkdir(parents=True,exist_ok=True)
+
+def serve(route):
+    path=(ROOT/unquote(urlparse(route.request.url).path).lstrip('/')).resolve()
+    if path.is_dir():path=path/'index.html'
+    if path.is_relative_to(ROOT) and path.is_file():
+        route.fulfill(body=path.read_bytes(),content_type=mimetypes.guess_type(path)[0] or 'application/octet-stream')
+    else:route.abort()
+
+def pixels(page):return Image.open(io.BytesIO(page.locator('#neon-scene canvas').screenshot())).convert('RGB')
+def apply(page,s):
+    frame=page.evaluate('NeonViewer.frames')
+    page.evaluate('(s)=>NeonViewer.applySettings(s)',s)
+    page.wait_for_function('(f)=>NeonViewer.frames>f',arg=frame)
+def draws(page):
+    return page.evaluate('()=>{window.drawCount=0;NeonViewer.capture();return window.drawCount}')
+
+with sync_playwright() as p:
+    browser=p.chromium.launch(args=['--enable-webgl','--use-angle=swiftshader','--enable-unsafe-swiftshader'])
+    page=browser.new_page(viewport={'width':1100,'height':900})
+    page.route('**/*',serve)
+    page.add_init_script('''window.drawCount=0;const draw=WebGLRenderingContext.prototype.drawElements;WebGLRenderingContext.prototype.drawElements=function(...args){window.drawCount++;return draw.apply(this,args)};''')
+    errors=[]
+    page.on('pageerror',lambda e:errors.append(str(e)))
+    page.on('console',lambda m:errors.append(m.text) if m.type=='error' and ('THREE' in m.text or 'GL_' in m.text) else None)
+    page.goto('https://poster.test/neon-black-hole.html')
+    page.wait_for_function('window.NeonViewer && NeonViewer.frames>0')
+    page.locator('#neon-pause').click()
+    initial=page.evaluate('NeonViewer.settings()')
+    assert initial['look']['gas_tint']==initial['look']['floor_reflection']==0 and not initial['caption']['enabled']
+    # Old saved files acquire all new defaults; bad values fail atomically.
+    old=json.loads(json.dumps(initial));del old['caption']
+    for key in ['gas_color','gas_texture','gas_tint','floor_concentration','floor_reflection','floor_roughness']:del old['look'][key]
+    apply(page,old)
+    assert page.evaluate('NeonViewer.settings()')==initial
+    for bad in [{'look':{'gas_color':'red'}},{'caption':{'text':'x'*121}},{'caption':{'enabled':'yes'}},{'look':{'floor_reflection':2}},{'caption':{'unknown':True}}]:
+        assert page.evaluate('s=>{try{NeonViewer.applySettings(s);return false}catch{return true}}',bad)
+        assert page.evaluate('NeonViewer.settings()')==initial
+    page.locator('[data-pane-toggle=neon-settings]').click()
+    page.locator('#neon-poster-preset').click()
+    page.keyboard.press('Escape')
+    s=page.evaluate('NeonViewer.settings()')
+    s['look'].update(auto_res=False,render_scale=.7,bloom_strength=0)
+    apply(page,s)
+    reflected=pixels(page);with_reflection=draws(page)
+    assert page.locator('#neon-scene canvas').evaluate("e=>e.getContext('webgl').getError()") == 0
+    s['look']['floor_reflection']=0;apply(page,s)
+    unreflected=pixels(page);without_reflection=draws(page)
+    assert with_reflection==without_reflection+1,(with_reflection,without_reflection)
+    assert ImageChops.difference(reflected,unreflected).getbbox(),'Reflection did not change pixels'
+    s['look']['floor_reflection']=.45;s['look']['floor_roughness']=.7;apply(page,s)
+    assert ImageChops.difference(reflected,pixels(page)).getbbox(),'Roughness did not change pixels'
+    # Integrated glow is a property of projected wires and vanishes with them.
+    s['look'].update(floor_reflection=0,floor_concentration=0);apply(page,s);no_concentration=pixels(page)
+    s['look']['floor_concentration']=30;apply(page,s)
+    assert ImageChops.difference(no_concentration,pixels(page)).getbbox(),'Wire concentration did not change pixels'
+    s['look']['floor_strength']=0;apply(page,s);invisible=pixels(page)
+    s['neon_floor']=False;apply(page,s)
+    assert ImageChops.difference(invisible,pixels(page)).getbbox() is None,'Horizon remains when wires are invisible'
+    # Gas color affects the raytraced disk independently of temperature.
+    s['look']['gas_tint']=1;s['look']['gas_color']='#20ffaa';apply(page,s);green=pixels(page)
+    s['look']['gas_color']='#ff5020';apply(page,s)
+    assert ImageChops.difference(green,pixels(page)).getbbox(),'Gas tint did not change disk pixels'
+    page.locator('[data-pane-toggle=neon-settings]').click()
+    page.get_by_text('Disk',exact=True).click()
+    buf=io.BytesIO();Image.new('RGB',(128,256),(60,30,15)).save(buf,format='PNG')
+    page.locator('#neon-gas-texture').set_input_files({'name':'gas.png','mimeType':'image/png','buffer':buf.getvalue()})
+    page.wait_for_function("NeonViewer.settings().look.gas_texture.startsWith('data:image/jpeg;base64,')")
+    page.evaluate('async()=>await NeonViewer.textureReady')
+    embedded=page.evaluate('NeonViewer.settings().look.gas_texture')
+    page.keyboard.press('Escape')
+    custom=page.evaluate('NeonViewer.settings()');apply(page,custom)
+    mapped=pixels(page)
+    custom['look']['gas_texture']='';apply(page,custom)
+    assert ImageChops.difference(mapped,pixels(page)).getbbox(),'Custom gas map did not change disk pixels'
+    # A distinct text overlay never intercepts navigation or adds a scene canvas.
+    assert page.locator('#neon-scene canvas').count()==1
+    assert page.locator('.neon-lettering').evaluate('e=>getComputedStyle(e).pointerEvents')=='none'
+    for width,height in [(320,568),(390,844),(568,320),(768,1024),(1366,768)]:
+        page.set_viewport_size({'width':width,'height':height})
+        page.wait_for_timeout(100)
+        page.locator('[data-pane-toggle=neon-settings]').click()
+        assert page.locator('#neon-settings').evaluate('e=>e.scrollWidth<=e.clientWidth+1'),(width,height)
+        page.keyboard.press('Escape')
+    page.set_viewport_size({'width':1100,'height':900})
+    page.locator('[data-pane-toggle=neon-settings]').click()
+    page.locator('#neon-poster-preset').click();page.keyboard.press('Escape')
+    s=page.evaluate('NeonViewer.settings()');s['look'].update(auto_res=False,render_scale=.85,bloom_strength=.35)
+    apply(page,s);page.screenshot(path=str(OUT/'warm-chrome.png'))
+    page.locator('[data-pane-toggle=neon-share]').click()
+    with page.expect_download() as png:page.locator('#neon-image').click()
+    png.value.save_as(OUT/'poster.png')
+    image=Image.open(OUT/'poster.png').convert('RGB')
+    assert image.size==tuple(page.locator('#neon-scene canvas').evaluate('e=>[e.width,e.height]'))
+    assert len(image.getcolors(image.width*image.height))>100,'PNG is blank'
+    # PNG includes text but no controls; compare it with the raw renderer capture.
+    raw=page.evaluate('NeonViewer.capture().toDataURL()')
+    import base64
+    raw_image=Image.open(io.BytesIO(base64.b64decode(raw.split(',')[1]))).convert('RGB')
+    assert ImageChops.difference(image,raw_image).getbbox(),'Poster text missing from PNG'
+    s['look']['gas_texture']=embedded;apply(page,s)
+    with page.expect_download(timeout=60000) as archive:page.locator('#neon-zip').click()
+    archive.value.save_as(OUT/'poster.zip')
+    with zipfile.ZipFile(OUT/'poster.zip') as z:
+        assert z.testzip() is None and json.loads(z.read('settings.json'))==s
+        z.extractall(OUT/'standalone')
+    page.goto('https://poster.test/attached_files/neon-poster-checks/standalone/index.html')
+    page.wait_for_function('window.NeonViewer && NeonViewer.frames>0')
+    assert page.evaluate('NeonViewer.settings()')==s
+    assert page.locator('.neon-lettering').is_visible()
+    page.locator('#neon-reset').click()
+    assert page.evaluate('NeonViewer.settings()')==s
+    page.locator('[data-pane-toggle=neon-share]').click()
+    with page.expect_download(timeout=60000) as archive:page.locator('#neon-zip').click()
+    archive.value.save_as(OUT/'reexport.zip')
+    with zipfile.ZipFile(OUT/'reexport.zip') as z:assert json.loads(z.read('settings.json'))==s
+    assert not errors,errors
+    print('PASS integrated wires, tint/map, reflection pass/roughness, atomic old/new JSON, five sizes, composed PNG and standalone ZIP re-export.')
+    browser.close()

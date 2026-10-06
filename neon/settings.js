@@ -35,6 +35,20 @@
   number('Disk','look.disk_tilt','Disk tilt (°)',-90,90);
   number('Disk','look.disk_yaw','Disk tilt direction (°)',-180,180);
   check('Floor','look.floor_infinite','Infinite floor / horizon');
+  number('Floor','look.floor_concentration','Distant wire concentration',0,40);
+  number('Floor','look.floor_reflection','Floor reflectivity (extra render pass)',0,1);
+  number('Floor','look.floor_roughness','Reflection roughness',0,1);
+  number('Disk','look.gas_tint','Gas color blend',0,1);
+  fields.push({group:'Disk',path:'look.gas_color',label:'Gas color',type:'color'});
+  fields.push({group:'Disk',path:'look.gas_texture',label:'Gas texture',type:'texture'});
+  check('Poster text','caption.enabled','Show poster text');
+  fields.push({group:'Poster text',path:'caption.text',label:'Text (use | for a new line)',type:'text',maxLength:120});
+  choice('Poster text','caption.style','Finish',['chrome','iridescent']);
+  choice('Poster text','caption.font','Lettering',['block','Orbitron']);
+  number('Poster text','caption.size','Letter height (% of view)',2,25);
+  number('Poster text','caption.x','Horizontal center (%)',0,100);
+  number('Poster text','caption.y','Vertical center (%)',0,100);
+  number('Poster text','caption.width','Maximum text width (%)',10,100);
   number('Disk','look.disk_temp','Peak temperature (K)',2000,20000,1);
   number('Disk','look.disk_outer','Outer radius (rₛ)',3,30);
   number('Disk','look.disk_speed','Gas speed (1 = Keplerian)',0,10);
@@ -69,7 +83,7 @@
     const output=JSON.parse(JSON.stringify(defaults));
     const allowed=new Set(['version','t','r','v','render_scale_now',...fields.map(f=>f.path.split('.')[0])]);
     for(const key of Object.keys(input)) if(!allowed.has(key)) throw new Error('Unknown setting: '+key);
-    for(const group of ['camera','observer','look','planet']){
+    for(const group of ['camera','observer','look','planet','caption']){
       if(!Object.hasOwn(input,group)) continue;
       if(!input[group]||typeof input[group]!=='object'||Array.isArray(input[group])) throw new Error(group+' must be an object.');
       const keys=new Set(fields.filter(f=>f.path.startsWith(group+'.')).map(f=>f.path.split('.')[1]));
@@ -81,7 +95,9 @@
       if(field.type==='checkbox'&&typeof value!=='boolean') throw new Error(field.label+' must be true or false.');
       if(field.type==='select'&&!field.values.includes(value)) throw new Error('Invalid '+field.label.toLowerCase()+'.');
       if(field.type==='number'&&(typeof value!=='number'||!Number.isFinite(value)||value<field.min||value>field.max||field.step===1&&!Number.isInteger(value))) throw new Error(field.label+' must be between '+field.min+' and '+field.max+'.');
-      if(field.type==='texture'&&(typeof value!=='string'||value.length>3000000||(value!==''&&!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(value)))) throw new Error('Planet texture must be an embedded PNG, JPEG or WebP under 3 MB.');
+      if(field.type==='texture'&&(typeof value!=='string'||value.length>3000000||(value!==''&&!/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(value)))) throw new Error(field.label+' must be an embedded PNG, JPEG or WebP under 3 MB.');
+      if(field.type==='color'&&(typeof value!=='string'||!/^#[0-9a-f]{6}$/i.test(value))) throw new Error(field.label+' must be a six-digit hex color.');
+      if(field.type==='text'&&(typeof value!=='string'||value.length>field.maxLength)) throw new Error(field.label+' must be at most '+field.maxLength+' characters.');
       set(output,field.path,value);
     }
     const o=output.observer;

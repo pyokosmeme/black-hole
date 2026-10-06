@@ -34,6 +34,7 @@ window.createNeonBlackhole = function (options) {
     n_steps: 60,
     quality: 'medium',
     accretion_disk: true,
+    caption:{enabled:false,text:'',style:'chrome',font:'block',size:12,x:50,y:78,width:90},
     planet: { enabled:false, distance:7.0, radius:0.4, eccentricity:0, inclination:0, node:0, periapsis:0, phase:0, speed:1, spin:15, axial_tilt:30, texture_offset:0, texture:'' },
     lorentz_contraction: true,
     gravitational_time_dilation: true,
@@ -83,6 +84,8 @@ window.createNeonBlackhole = function (options) {
       floor_sway: 6.0,             // side-to-side drift amplitude (r_s)
       floor_sway_period: 34.0,     // seconds at time_scale 1
       floor_extent: 14.0,
+      floor_concentration:18, floor_reflection:0, floor_roughness:.15,
+      gas_tint:0, gas_color:'#ffbb88', gas_texture:'',
       disk_temp: 8075.0,
       disk_tilt: 0, disk_yaw: 0,
       floor_infinite: false,
@@ -105,6 +108,7 @@ window.createNeonBlackhole = function (options) {
     observerMotion: function () { return this.observer.motion; },
     diskTilt: function () { return this.look.disk_tilt !== 0 || this.look.disk_yaw !== 0; },
     gridPulse: function () { return this.look.grid_pulse !== 0; },
+    gasTint: function () { return this.look.gas_tint !== 0; },
     viewerSky: function () { return !!options.skyMotion; }
   };
 
@@ -279,6 +283,18 @@ window.createNeonBlackhole = function (options) {
     texturePromise.catch(function(){});
   }
   var texLoader = new THREE.TextureLoader();
+  var gasKey='',gasTexture=null,gasRequest=0,gasPromise=Promise.resolve();
+  function syncGasTexture(){
+    if(!uniforms||gasKey===P.look.gas_texture)return;
+    gasKey=P.look.gas_texture;var request=++gasRequest;
+    if(!gasKey){uniforms.accretion_disk_texture.value=textures.accretion_disk;if(gasTexture)gasTexture.dispose();gasTexture=null;dirty=true;gasPromise=Promise.resolve();return;}
+    gasPromise=new Promise(function(resolve,reject){var img=new Image();
+      img.onload=function(){if(request!==gasRequest){resolve();return;}if(img.width>2048||img.height>2048){reject(new Error('Gas maps must be at most 2048 pixels per side.'));return;}
+        var tex=new THREE.Texture(img);tex.minFilter=tex.magFilter=THREE.LinearFilter;tex.generateMipmaps=false;tex.needsUpdate=true;
+        if(gasTexture)gasTexture.dispose();gasTexture=tex;uniforms.accretion_disk_texture.value=tex;dirty=true;resolve();};
+      img.onerror=function(){reject(new Error('Could not decode the gas texture.'));};img.src=gasKey;
+    });gasPromise.catch(function(){});
+  }
 
   function loadTexture(key, url, filter) {
     pending++;
@@ -504,7 +520,8 @@ window.createNeonBlackhole = function (options) {
 
   var UNIFORM_LOOK = ['grid_strength', 'grid_glow', 'grid_pulse', 'floor_strength', 'floor_height',
     'floor_tilt', 'floor_cell', 'floor_extent', 'disk_temp', 'disk_outer', 'disk_speed',
-    'spot_strength', 'galaxy_gain'];
+    'spot_strength', 'galaxy_gain','floor_concentration','floor_reflection','floor_roughness','gas_tint'];
+  var rtReflection=null;
 
   function ready() {
     if (!templates.neon || renderer) return;
@@ -554,6 +571,10 @@ window.createNeonBlackhole = function (options) {
       spectrum_texture: { type: 't', value: textures.spectra }
     };
     UNIFORM_LOOK.forEach(function (k) { uniforms[k] = { type: 'f', value: 0 }; });
+    uniforms.gas_color={type:'v3',value:new THREE.Vector3()};
+    uniforms.reflection_pass={type:'f',value:0};
+    uniforms.reflection_tex={type:'t',value:textures.moon};
+    ['pos','x','y','z'].forEach(function(k){uniforms['reflect_'+k]={type:'v3',value:new THREE.Vector3()};});
 
     mainMat = new THREE.ShaderMaterial({
       uniforms: uniforms,
@@ -572,6 +593,7 @@ window.createNeonBlackhole = function (options) {
 
     observer.resetOrbit();
     syncPlanetTexture();
+    syncGasTexture();
     lastT = performance.now();
     readyResolve(api);
     setActive(active);
@@ -677,6 +699,8 @@ window.createNeonBlackhole = function (options) {
     uniforms.floor_x.value=L.floor_x;uniforms.floor_y.value=L.floor_y;
     UNIFORM_LOOK.forEach(function (k) { uniforms[k].value = L[k]; });
     uniforms.floor_tilt.value = degToRad(L.floor_tilt);
+    var rgb=parseInt(L.gas_color.slice(1),16);
+    uniforms.gas_color.value.set(((rgb>>16)&255)/255,((rgb>>8)&255)/255,(rgb&255)/255);
     // p.x spans [-1,1] horizontally in the shader; pick the horizontal FOV so
     // the vertical one never exceeds L.vfov (original: fixed 90 deg horizontal)
     var aspect = rtMain.width / rtMain.height;
@@ -742,6 +766,17 @@ window.createNeonBlackhole = function (options) {
 
   function renderOnce() {
     var L = P.look;
+    if(!ORIG && P.neon_floor && L.floor_reflection>0){
+      // Trace the scene from the camera mirrored in the actual floor plane.
+      if(!rtReflection||rtReflection.width!==rtMain.width||rtReflection.height!==rtMain.height){if(rtReflection)rtReflection.dispose();rtReflection=makeTarget(rtMain.width,rtMain.height,rtType);}
+      var normal=uniforms.floor_by.value.clone().multiplyScalar(Math.cos(uniforms.floor_tilt.value)).add(uniforms.floor_bz.value.clone().multiplyScalar(Math.sin(uniforms.floor_tilt.value))).normalize();
+      var planeD=L.floor_follow_camera?uniforms.cam_pos.value.dot(normal)-L.floor_height:-L.floor_height;
+      var saved={};['pos','x','y','z','vel'].forEach(function(k){var v=uniforms['cam_'+k].value;saved[k]=v.clone();v.add(normal.clone().multiplyScalar(-2*(v.dot(normal)-(k==='pos'?planeD:0))));if(k!=='vel')uniforms['reflect_'+k].value.copy(v);});
+      uniforms.reflection_pass.value=1;uniforms.reflection_tex.value=textures.moon;
+      pass(mainScene,rtReflection);
+      ['pos','x','y','z','vel'].forEach(function(k){uniforms['cam_'+k].value.copy(saved[k]);});
+      uniforms.reflection_pass.value=0;uniforms.reflection_tex.value=rtReflection;
+    }else if(rtReflection){rtReflection.dispose();rtReflection=null;uniforms.reflection_tex.value=textures.moon;}
     pass(mainScene, rtMain);
 
     var bloom = !ORIG && L.bloom_strength !== 0;
@@ -816,6 +851,7 @@ window.createNeonBlackhole = function (options) {
     needsCompile=true; dirty=true;
     if (renderer) buildTargets(P.look.auto_res && curScale ? Math.min(curScale,P.look.render_scale) : P.look.render_scale);
     syncPlanetTexture();
+    syncGasTexture();
     return settings();
   }
   function setActive(on) {
@@ -835,7 +871,8 @@ window.createNeonBlackhole = function (options) {
     get isReady() { return !!renderer; },
     get frames() { return frameCount; },
     get active() { return active; },
-    get textureReady() { return texturePromise; },
+    get textureReady() { return Promise.all([texturePromise,gasPromise]); },
+    capture:function(){if(!renderer)throw new Error('Wait for the viewer to finish loading.');if(needsCompile){var source=compile();if(mainMat.fragmentShader!==source){mainMat.fragmentShader=source;mainMat.needsUpdate=true;}needsCompile=false;}updateCamera();updateUniforms();renderOnce();return renderer.domElement;},
     setActive:setActive, applySettings:applySettings,
     defaults:function () { return JSON.parse(JSON.stringify(defaults)); },
     recompile: function () { needsCompile = true; },

@@ -58,6 +58,9 @@ uniform float floor_extent;     // radial fade length around the hole's foot
 uniform float disk_temp;        // peak disk temperature (K) for NT profile
 uniform float disk_outer;       // outer disk radius (r_s units)
 uniform float galaxy_gain;
+uniform float floor_concentration, floor_reflection, floor_roughness, reflection_pass, gas_tint;
+uniform vec3 gas_color, reflect_pos, reflect_x, reflect_y, reflect_z;
+uniform sampler2D reflection_tex;
 
 // lastnpcalex.agency palette: --cyan #00ffff, --purple #bf00ff, deep #4a1868
 const vec3 SITE_CYAN   = vec3(0.000, 1.000, 1.000);
@@ -361,6 +364,7 @@ float floor_d;
 // unit direction dir after travelling dist. PIX_ANGLE*dist/cos(i) is the
 // pixel footprint on the plane, used for analytic anti-aliasing.
 vec4 floor_shade(vec3 fp, vec3 dir, float dist, float pix_angle) {
+    if (reflection_pass > 0.5) return vec4(0.0);
     vec3 rel = fp - floor_o;
     float rad = length(rel);
     vec2 st = vec2(dot(rel, floor_e1), dot(rel, floor_e2));
@@ -392,8 +396,8 @@ vec4 floor_shade(vec3 fp, vec3 dir, float dist, float pix_angle) {
                       mx.x + my.x - mx.x * my.x, dens4);
 
     {{#look.floor_infinite}}
-    // Continue to the horizon while fading unresolved lines smoothly.
-    float fade = 1.0 / (1.0 + rad / (8.0 * floor_extent));
+    // An infinite emitting plane has no arbitrary radial cutoff.
+    float fade = 1.0;
     {{/look.floor_infinite}}
     {{^look.floor_infinite}}
     float fade = exp(-rad / floor_extent);
@@ -408,13 +412,30 @@ vec4 floor_shade(vec3 fp, vec3 dir, float dist, float pix_angle) {
     // Only the wires occlude the scene. No surface sheen or haze fills cells.
     float opac = clamp((minor + major) * floor_strength, 0.0, 1.0) * fade;
     {{#look.floor_infinite}}
-    // Unresolved wires merge into the horizon emitter below, rather than
-    // spreading a faint solid surface across the distant cells.
-    float resolved = smoothstep(0.0, 0.4, dens4);
-    fc *= resolved;
-    opac *= resolved;
+    // Keep the filtered mean wire emission as projected cells shrink. Their
+    // integrated light concentrates toward the vanishing line, only where
+    // this ray actually intersects the plane; there is no horizon stripe.
+    // Use distance's angular footprint here, rather than the grazing-angle
+    // footprint used to filter individual wires. That confines the integrated
+    // glow to the furthest subpixel cells instead of brightening a broad band.
+    float horizonDensity = clamp(S4 / max(6.0 * dist * pix_angle, 0.0001), 0.0, 1.0);
+    fc *= 1.0 + floor_concentration * pow(1.0 - horizonDensity, 3.0);
     {{/look.floor_infinite}}
-    return vec4(fc * floor_strength * fade, opac);
+    vec3 reflected = vec3(0.0);
+    if (floor_reflection > 0.0) {
+        vec3 v = fp - reflect_pos;
+        float depth = dot(v, reflect_z);
+        vec2 uv = 0.5 + 0.5 * fov_mult * vec2(dot(v, reflect_x), dot(v, reflect_y) * resolution.x / resolution.y) / max(depth, 0.0001);
+        if (depth > 0.0 && min(uv.x,uv.y)>=0.0 && max(uv.x,uv.y)<=1.0) {
+            vec2 blur = vec2(1.0, resolution.x/resolution.y) * floor_roughness * 0.015;
+            reflected = texture2D(reflection_tex,uv).rgb * 0.4;
+            reflected += (texture2D(reflection_tex,uv+vec2(blur.x,0.0)).rgb + texture2D(reflection_tex,uv-vec2(blur.x,0.0)).rgb + texture2D(reflection_tex,uv+vec2(0.0,blur.y)).rgb + texture2D(reflection_tex,uv-vec2(0.0,blur.y)).rgb) * 0.15;
+        }
+        float mirror = floor_reflection * fade;
+        reflected *= mirror * (1.0-opac);
+        opac = opac + mirror * (1.0-opac);
+    }
+    return vec4(fc * floor_strength * fade + reflected, opac);
 }
 {{/neon_floor}}
 
@@ -692,9 +713,11 @@ void main() {
                     temperature /= ray_doppler_factor*doppler_factor;
                     {{/doppler_shift}}
 
-                    color += disk_tex
-                        * accretion_intensity
-                        * BLACK_BODY_COLOR(temperature) * trans;
+                    vec4 spectrum = BLACK_BODY_COLOR(temperature);
+                    {{#gasTint}}
+                    spectrum.rgb = mix(spectrum.rgb, gas_color * max(spectrum.r,max(spectrum.g,spectrum.b)), gas_tint);
+                    {{/gasTint}}
+                    color += disk_tex * accretion_intensity * spectrum * trans;
                 }
             }
         }
@@ -757,23 +780,6 @@ void main() {
     }
     {{/neon_floor}}
     vec3 gdir = esc * BG_COORDS;
-    {{#neon_floor}}
-    {{#look.floor_infinite}}
-    // Integrate the subpixel minor/major wires at the plane's vanishing line.
-    // Use the lensed escape direction so the horizon bends with the grid.
-    float horizonPixel = max(PIX_ANGLE, length(fwidth(esc)));
-    float horizonDistance = abs(dot(esc, floor_n));
-    float horizonCore = exp2(-SQ(horizonDistance / (0.6 * horizonPixel)));
-    float horizonGlow = exp2(-SQ(horizonDistance / (2.5 * horizonPixel)));
-    float wireCoverage = 4.0 * 0.006 + 4.0 * (1.4 * 0.006 / 4.0);
-    vec3 horizonColor = (SITE_CYAN * 1.8 + SITE_PURPLE * 1.3) * wireCoverage * 24.0;
-    color.rgb += (horizonColor * (1.6 * horizonCore + 0.3 * horizonGlow)
-                 + vec3(0.85, 1.0, 1.0) * horizonCore * 0.6)
-                 * floor_strength * trans * smoothstep(0.08, 0.02, u)
-                 * (dot(cam_pos, floor_n) >= floor_d ? 1.0 : 0.0);
-    {{/look.floor_infinite}}
-    {{/neon_floor}}
-
     {{#neon_grid}}
     // Analytic celestial grid on the escape direction: exact lensing, crisp at
     // any resolution, no texture filtering. fwidth of the unit vector is the

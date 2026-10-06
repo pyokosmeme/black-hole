@@ -1,6 +1,10 @@
 /* Shared map windows and Acid Burn own the chrome; only viewer layout lives here. */
 .neon-scene { position:absolute; inset:0; }
 .neon-scene canvas { display:block; width:100%; height:100%; }
+.neon-viewport .neon-lettering { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1; }
+.neon-viewport .neon-lettering[hidden] { display:none; }
+.neon-viewer .neon-wide-control { grid-template-columns:minmax(0,1fr); }
+.neon-wide-control input { min-width:0; width:100%; }
 .neon-viewer .neon-viewport { background:#030508; }
 .neon-status { position:absolute; bottom:var(--hud-inset); left:var(--hud-inset); right:var(--hud-inset); margin:0; max-width:calc(100% - var(--hud-controls-w,220px)); font-size:var(--text-xs); color:#fff; pointer-events:none; text-shadow:0 1px 4px #000; }
 .neon-viewport.has-pane .neon-status { display:none; }
