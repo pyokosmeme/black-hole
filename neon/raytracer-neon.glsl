@@ -366,28 +366,47 @@ vec3 floor_n, floor_e1, floor_e2, floor_o;
 float floor_d;
 
 {{#look.floor_snow}}
+// Multi-scale procedural dune elevation with wind-carved sharp crests
 float dune_elevation(vec2 st) {
-    float depth = max(0.0, 30.0 - st.x);
-    float lateral = st.y;
-    float nearRamp = smoothstep(1.5, 6.0, depth);
-    float distFade = smoothstep(44.0, 18.0, depth);
+    float lateral = st.x;
+    float depth = max(0.0, st.y);
+    float nearRamp = smoothstep(1.0, 4.5, depth);
+    float distFade = smoothstep(65.0, 36.0, depth);
     
-    // Sweeping mountain bank on left, lower bank on right, framed valley dip in center
-    float bankLeft = smoothstep(-2.0, 16.0, lateral) * 1.6;
-    float bankRight = smoothstep(1.0, -14.0, lateral) * 0.75;
-    float centerDip = (1.0 - smoothstep(0.0, 8.5, abs(lateral))) * 0.35;
+    // Curved mountain dune ridge on left framing the sky
+    float ridgeLeft = exp(-pow((lateral + 8.5) / 6.0, 2.0)) * 3.8 + smoothstep(1.0, -14.0, lateral) * 1.5;
+    // Rolling dune ridge on right
+    float ridgeRight = exp(-pow((lateral - 9.0) / 7.0, 2.0)) * 2.2 + smoothstep(-2.0, 15.0, lateral) * 0.9;
+    // Valley dip in center framing the black hole
+    float centerSaddle = smoothstep(7.5, 0.0, abs(lateral)) * 0.65;
     
-    // Wind-swept wave ridges with sharp crest shaping
-    float w1 = sin(depth * 0.52 + sin(lateral * 0.14) * 1.4);
-    float ridge1 = pow(clamp(w1 * 0.5 + 0.5, 0.0, 1.0), 1.8) * 0.65;
+    // Sweeping wind-carved dune crests curving across the dunes
+    float d1 = lateral * 0.35 + depth * 0.32 + sin(lateral * 0.16 + depth * 0.12) * 1.6;
+    float crest1 = pow(clamp(0.5 + 0.5 * sin(d1 - 0.42 * cos(d1)), 0.0, 1.0), 2.2) * 1.5;
     
-    float w2 = sin(depth * 1.25 + lateral * 0.22);
-    float ridge2 = pow(clamp(w2 * 0.5 + 0.5, 0.0, 1.0), 1.6) * 0.32;
+    float d2 = -lateral * 0.32 + depth * 0.55 + cos(lateral * 0.20 + depth * 0.15) * 1.3;
+    float crest2 = pow(clamp(0.5 + 0.5 * sin(d2 - 0.38 * cos(d2)), 0.0, 1.0), 2.0) * 1.0;
     
-    float w3 = sin(depth * 2.6 - lateral * 0.45) * 0.08;
+    float d3 = lateral * 0.55 + depth * 0.95 + sin(depth * 0.28) * 0.8;
+    float crest3 = pow(clamp(0.5 + 0.5 * sin(d3 - 0.32 * cos(d3)), 0.0, 1.0), 1.8) * 0.55;
     
-    float h = max(0.0, (bankLeft + bankRight + ridge1 + ridge2 + w3 - centerDip) * 0.95 * floor_dunes);
+    float d4 = -lateral * 0.45 + depth * 1.7;
+    float sastrugi = pow(clamp(0.5 + 0.5 * sin(d4), 0.0, 1.0), 1.5) * 0.25;
+    
+    float baseH = 1.3;
+    float h = max(0.0, (baseH + ridgeLeft + ridgeRight + crest1 + crest2 + crest3 + sastrugi - centerSaddle) * floor_dunes);
     return h * nearRamp * distFade;
+}
+
+// Organic diagonal wind ripples (sastrugi striations)
+float dune_ripples(vec2 st) {
+    float lateral = st.x;
+    float depth = st.y;
+    float w1 = lateral * 1.3 + depth * 1.9 + sin(lateral * 0.5 + depth * 0.35) * 1.2;
+    float w2 = -lateral * 0.85 + depth * 3.2 + sin(depth * 0.75) * 0.75;
+    float r1 = sin(w1);
+    float r2 = sin(w2) * 0.45;
+    return pow(clamp(0.5 + 0.5 * (r1 + r2) / 1.45, 0.0, 1.0), 1.6);
 }
 {{/look.floor_snow}}
 
@@ -932,84 +951,113 @@ void main() {
     float planeCoverage=clamp(0.5-planeDirection/(2.0*planePixel),0.0,1.0);
     // Captured rays and solid hits already terminate on an opaque scene
     // surface. The final straight-floor pass must not paint over that surface.
+    {{#look.floor_snow}}
+    float snowReach = 0.22 * floor_dunes;
+    float snowCoverage = clamp((snowReach - planeDirection) / max(planePixel * 2.5, 0.005), 0.0, 1.0);
+    if(planeHeight > 0.0 && snowCoverage > 0.0 && u < 1.0) {
+        vec3 floorRay = floor_camera_ray;
+        bool hitDune = false;
+        float hitT = 48.0;
+        float t_prev = 0.5;
+        vec3 p_prev = cam_pos + floorRay * t_prev;
+        vec3 r_prev = p_prev - floor_o;
+        vec2 st_prev = vec2(dot(r_prev, floor_e1), dot(r_prev, floor_e2)) + floor_offset;
+        float h_diff_prev = (planeHeight + planeDirection * t_prev) - dune_elevation(st_prev);
+        
+        for (int m = 1; m <= 24; m++) {
+            float frac = float(m) / 24.0;
+            float t_curr = 0.8 + 44.0 * pow(frac, 1.35);
+            vec3 pm = cam_pos + floorRay * t_curr;
+            vec3 rm = pm - floor_o;
+            vec2 stm = vec2(dot(rm, floor_e1), dot(rm, floor_e2)) + floor_offset;
+            float h_ray = planeHeight + planeDirection * t_curr;
+            float h_dune = dune_elevation(stm);
+            float h_diff = h_ray - h_dune;
+            if (h_diff <= 0.0) {
+                float f = clamp(h_diff_prev / max(0.0001, h_diff_prev - h_diff), 0.0, 1.0);
+                hitT = mix(t_prev, t_curr, f);
+                hitDune = true;
+                break;
+            }
+            t_prev = t_curr;
+            h_diff_prev = h_diff;
+        }
+        
+        if (hitDune) {
+            vec3 hitPos = cam_pos + floorRay * hitT;
+            vec3 relHit = hitPos - floor_o;
+            vec2 stHit = vec2(dot(relHit, floor_e1), dot(relHit, floor_e2)) + floor_offset;
+            float eps = 0.05;
+            float dhx = (dune_elevation(stHit + vec2(eps, 0.0)) - dune_elevation(stHit - vec2(eps, 0.0))) / (2.0 * eps);
+            float dhy = (dune_elevation(stHit + vec2(0.0, eps)) - dune_elevation(stHit - vec2(0.0, eps))) / (2.0 * eps);
+            vec3 macroN = normalize(floor_n - dhx * floor_e1 - dhy * floor_e2);
+            
+            float reps = 0.022;
+            float drx = (dune_ripples(stHit + vec2(reps, 0.0)) - dune_ripples(stHit - vec2(reps, 0.0))) / (2.0 * reps);
+            float dry = (dune_ripples(stHit + vec2(0.0, reps)) - dune_ripples(stHit - vec2(0.0, reps))) / (2.0 * reps);
+            float ripFade = smoothstep(32.0, 6.0, stHit.y);
+            vec3 N = normalize(macroN - (drx * floor_e1 + dry * floor_e2) * (0.32 * ripFade));
+            
+            vec3 V = -floorRay;
+            vec3 L = normalize(-hitPos);
+            float NdotV = clamp(dot(N, V), 0.0, 1.0);
+            float slopeUp = clamp(dot(N, floor_n), 0.0, 1.0);
+            float slopeToLight = dot(N, floor_e2); // positive faces black hole, negative faces camera
+            float ripVal = dune_ripples(stHit);
+            
+            // Deep midnight indigo in shadow troughs, frosted periwinkle blue on lit slopes
+            vec3 shadowCol = floor_shadow_color;
+            // Troughs between ripples get deeper shadowing for rich tactile striations
+            float troughDarken = mix(0.65, 1.15, pow(ripVal, 1.4));
+            vec3 snowAmbient = mix(shadowCol * 0.8, shadowCol * 1.25, slopeUp);
+            vec3 frostedBlue = mix(vec3(0.26, 0.36, 0.58), vec3(0.52, 0.65, 0.88), slopeUp * 0.7 + slopeToLight * 0.3);
+            vec3 snowLit = mix(snowAmbient, frostedBlue, clamp(slopeToLight * 0.8 + slopeUp * 0.4, 0.0, 1.0)) * troughDarken;
+            
+            // Razor-sharp crimson rim lighting on dune crests and wind ripple edges
+            // Edge glow on silhouettes and crest ridges facing the backlit black hole
+            float ridgeSilhouette = pow(1.0 - NdotV, 4.0) * smoothstep(-0.15, 0.35, slopeToLight);
+            float directBacklight = pow(clamp(dot(reflect(-L, N), V), 0.0, 1.0), 18.0) * 0.45;
+            // Only the very peak of the wind ripples catches vivid neon coral/crimson
+            float ripCrest = pow(ripVal, 3.2) * smoothstep(-0.1, 0.45, slopeToLight) * 1.5 * ripFade;
+            float totalCrest = ridgeSilhouette * 2.2 + directBacklight + ripCrest;
+            vec3 crimsonRim = floor_rim_color * totalCrest;
+            vec3 snowCol = snowLit + crimsonRim;
+            
+            // Micro-crystalline diamond sparkles across snow surface
+            vec3 sc = floor(hitPos * 28.0);
+            float h1 = vhash(sc);
+            float h2 = vhash(sc + vec3(17.3, 31.7, 5.1));
+            vec3 facetN = normalize(N + (vec3(h1, h2, vhash(sc + 41.2)) - 0.5) * 1.6);
+            float glint1 = pow(max(0.0, dot(reflect(-L, facetN), V)), 26.0) * (h1 > 0.7 ? 3.0 : 0.0);
+            float glint2 = pow(max(0.0, dot(facetN, V)), 16.0) * (h2 > 0.8 ? 1.6 : 0.0);
+            float sparkle = (glint1 + glint2) * floor_sparkle;
+            vec3 sparkleCol = mix(vec3(0.95, 0.98, 1.0), vec3(1.0, 0.82, 0.92), h1);
+            snowCol += sparkleCol * sparkle;
+
+            if (floor_reflection > 0.0) {
+                vec3 v = hitPos - reflect_pos;
+                float depth = dot(v, reflect_z);
+                vec2 uv = 0.5 + 0.5 * fov_mult * vec2(dot(v, reflect_x), dot(v, reflect_y) * resolution.x / resolution.y) / max(depth, 0.0001);
+                if (depth > 0.0 && min(uv.x,uv.y)>=0.0 && max(uv.x,uv.y)<=1.0) {
+                    vec2 blur = vec2(1.0, resolution.x/resolution.y) * floor_roughness * 0.015;
+                    vec3 refl = texture2D(reflection_tex,uv).rgb * 0.4;
+                    refl += (texture2D(reflection_tex,uv+vec2(blur.x,0.0)).rgb + texture2D(reflection_tex,uv-vec2(blur.x,0.0)).rgb + texture2D(reflection_tex,uv+vec2(0.0,blur.y)).rgb + texture2D(reflection_tex,uv-vec2(0.0,blur.y)).rgb) * 0.15;
+                    snowCol += refl * floor_reflection * 0.5;
+                }
+            }
+            vec4 fs = vec4(snowCol * floor_strength, 1.0) * snowCoverage;
+            color.rgb = fs.rgb + color.rgb * (1.0 - fs.a);
+        }
+    }
+    {{/look.floor_snow}}
+    {{^look.floor_snow}}
     if(planeHeight>0.0 && planeCoverage>0.0 && u<1.0){
         vec3 floorSample=normalize(floor_camera_ray-floor_n*max(0.0,planeDirection+planePixel*0.5));
         float planeHit=planeHeight/max(-dot(floorSample,floor_n),0.0000001);
-        {{#look.floor_snow}}
-        float cosi = max(-dot(floorSample, floor_n), 0.000001);
-        float hitT = planeHit;
-        float dt_step = planeHit / 18.0;
-        float t_march = 0.0;
-        for (int m = 0; m < 18; m++) {
-            t_march += dt_step;
-            vec3 pm = cam_pos + floorSample * t_march;
-            vec3 rm = pm - floor_o;
-            vec2 stm = vec2(dot(rm, floor_e1), dot(rm, floor_e2)) + floor_offset;
-            float h_plane = planeHeight - cosi * t_march;
-            float h_dune = dune_elevation(stm);
-            if (h_plane <= h_dune) {
-                float h_plane_prev = h_plane + cosi * dt_step;
-                vec3 pm_prev = pm - floorSample * dt_step;
-                vec3 rm_prev = pm_prev - floor_o;
-                vec2 stm_prev = vec2(dot(rm_prev, floor_e1), dot(rm_prev, floor_e2)) + floor_offset;
-                float h_dune_prev = dune_elevation(stm_prev);
-                float frac = clamp((h_plane_prev - h_dune_prev) / max(0.0001, (h_plane_prev - h_dune_prev) - (h_plane - h_dune)), 0.0, 1.0);
-                hitT = (t_march - dt_step) + dt_step * frac;
-                break;
-            }
-        }
-        vec3 hitPos = cam_pos + floorSample * hitT;
-        vec3 relHit = hitPos - floor_o;
-        vec2 stHit = vec2(dot(relHit, floor_e1), dot(relHit, floor_e2)) + floor_offset;
-        float eps = 0.08;
-        float dhx = (dune_elevation(stHit + vec2(eps, 0.0)) - dune_elevation(stHit - vec2(eps, 0.0))) / (2.0 * eps);
-        float dhy = (dune_elevation(stHit + vec2(0.0, eps)) - dune_elevation(stHit - vec2(0.0, eps))) / (2.0 * eps);
-        vec3 N = normalize(floor_n - dhx * floor_e1 - dhy * floor_e2);
-        vec3 V = -floorSample;
-        vec3 L = normalize(-hitPos);
-        float NdotV = clamp(dot(N, V), 0.0, 1.0);
-        float NdotL = clamp(dot(N, L), 0.0, 1.0);
-        
-        // Deep indigo ambient in shadow troughs, frosted blue-white on lit slopes
-        vec3 shadowCol = floor_shadow_color;
-        vec3 snowAmbient = mix(shadowCol, vec3(0.18, 0.28, 0.52), clamp(N.z * 0.85, 0.0, 1.0));
-        vec3 snowLit = mix(snowAmbient, vec3(0.62, 0.74, 0.92), pow(NdotL, 1.4) * 0.7);
-        
-        // Crimson rim lighting on backlit dune crests and horizon silhouettes
-        float crestRim = pow(1.0 - NdotV, 3.5) * smoothstep(0.02, 0.55, NdotL);
-        float directRim = pow(NdotL, 3.0) * smoothstep(0.25, 0.02, NdotV);
-        vec3 crimsonRim = floor_rim_color * (crestRim * 1.8 + directRim * 1.2);
-        vec3 snowCol = snowLit + crimsonRim;
-        
-        // Micro-crystalline diamond sparkles across snow surface
-        vec3 sc = floor(hitPos * 24.0);
-        float h1 = vhash(sc);
-        float h2 = vhash(sc + vec3(17.3, 31.7, 5.1));
-        vec3 facetN = normalize(N + (vec3(h1, h2, vhash(sc + 43.1)) - 0.5) * 1.8);
-        float glint = pow(max(0.0, dot(reflect(-L, facetN), V)), 30.0) * (h1 > 0.72 ? 2.8 : 0.0);
-        float viewSparkle = pow(max(0.0, dot(facetN, V)), 18.0) * (h2 > 0.82 ? 1.6 : 0.0);
-        float sparkle = (glint + viewSparkle) * floor_sparkle;
-        vec3 sparkleCol = mix(vec3(0.95, 0.98, 1.0), vec3(1.0, 0.82, 0.92), h1);
-        snowCol += sparkleCol * sparkle;
-
-        if (floor_reflection > 0.0) {
-            vec3 v = hitPos - reflect_pos;
-            float depth = dot(v, reflect_z);
-            vec2 uv = 0.5 + 0.5 * fov_mult * vec2(dot(v, reflect_x), dot(v, reflect_y) * resolution.x / resolution.y) / max(depth, 0.0001);
-            if (depth > 0.0 && min(uv.x,uv.y)>=0.0 && max(uv.x,uv.y)<=1.0) {
-                vec2 blur = vec2(1.0, resolution.x/resolution.y) * floor_roughness * 0.015;
-                vec3 refl = texture2D(reflection_tex,uv).rgb * 0.4;
-                refl += (texture2D(reflection_tex,uv+vec2(blur.x,0.0)).rgb + texture2D(reflection_tex,uv-vec2(blur.x,0.0)).rgb + texture2D(reflection_tex,uv+vec2(0.0,blur.y)).rgb + texture2D(reflection_tex,uv-vec2(0.0,blur.y)).rgb) * 0.15;
-                snowCol += refl * floor_reflection * 0.5;
-            }
-        }
-        vec4 fs = vec4(snowCol * floor_strength, 1.0) * planeCoverage;
-        {{/look.floor_snow}}
-        {{^look.floor_snow}}
         vec4 fs=floor_shade(cam_pos+floorSample*planeHit,floorSample,planeHit,PIX_ANGLE)*planeCoverage;
-        {{/look.floor_snow}}
         color.rgb=fs.rgb+color.rgb*(1.0-fs.a);
     }
+    {{/look.floor_snow}}
     {{/look.floor_lensing}}{{/neon_floor}}
     gl_FragColor = color*ray_intensity;
 }
