@@ -672,7 +672,7 @@ window.createNeonBlackhole = function (options) {
     "const vec3 PURPLE = vec3(0.749, 0.0, 1.0);",
     "const vec3 DEEP = vec3(0.290, 0.094, 0.408);",
     "const vec3 PINK = vec3(1.0, 0.0, 0.6);",
-    "float hash(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }",
+    "float hash(vec3 p) { vec3 q = fract(p * 0.1031); q += dot(q, q.zyx + 31.32); return fract((q.x + q.y) * q.z); }",
     "vec3 hash33(vec3 p) { p = fract(p * vec3(0.1031, 0.1030, 0.0973)); p += dot(p, p.yxz + 33.33); return fract((p.xxy + p.yxx) * p.zyx); }",
     "float noise(vec3 x) {",
     "  vec3 i = floor(x), f = fract(x); f = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);",
