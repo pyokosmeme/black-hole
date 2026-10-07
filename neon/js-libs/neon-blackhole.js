@@ -183,7 +183,7 @@ window.createNeonBlackhole = function (options) {
 
       floor_extent: 14.0,
 
-      floor_concentration:18, floor_reflection:0, floor_roughness:.15, floor_opaque:false,
+      floor_concentration:18, floor_reflection:0, floor_roughness:.15, floor_opaque:true,
 
       floor_snow:false, floor_sparkle:1.0, floor_dunes:1.0, floor_rim_color:'#ff4477', floor_shadow_color:'#121b38',
 
