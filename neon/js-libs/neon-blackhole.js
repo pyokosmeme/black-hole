@@ -930,6 +930,39 @@ window.createNeonBlackhole = function (options) {
     get active() { return active; },
     get textureReady() { return Promise.all([texturePromise,gasPromise]); },
     capture:function(){if(!renderer)throw new Error('Wait for the viewer to finish loading.');if(needsCompile){var source=compile();if(mainMat.fragmentShader!==source){mainMat.fragmentShader=source;mainMat.needsUpdate=true;}needsCompile=false;}updateCamera();updateUniforms();renderOnce();return renderer.domElement;},
+    captureAt: function (width, height) {
+      if (!renderer) throw new Error('Wait for the viewer to finish loading.');
+      if (!width || !height || (width === renderer.domElement.width && height === renderer.domElement.height)) {
+        return this.capture();
+      }
+      if (needsCompile) {
+        var source = compile();
+        if (mainMat.fragmentShader !== source) { mainMat.fragmentShader = source; mainMat.needsUpdate = true; }
+        needsCompile = false;
+      }
+      var prevW = renderer.domElement.width;
+      var prevH = renderer.domElement.height;
+      var prevRatio = renderer.getPixelRatio();
+
+      renderer.setPixelRatio(1);
+      renderer.setSize(width, height, false);
+      buildTargets(1.0);
+      updateCamera();
+      updateUniforms();
+      renderOnce();
+
+      var copyCanvas = document.createElement('canvas');
+      copyCanvas.width = width;
+      copyCanvas.height = height;
+      var copyCtx = copyCanvas.getContext('2d');
+      copyCtx.drawImage(renderer.domElement, 0, 0);
+
+      renderer.setPixelRatio(prevRatio);
+      resize();
+      dirty = true;
+
+      return copyCanvas;
+    },
     setActive:setActive, applySettings:applySettings,
     defaults:function () { return JSON.parse(JSON.stringify(defaults)); },
     recompile: function () { needsCompile = true; },
@@ -963,16 +996,25 @@ window.createNeonBlackhole = function (options) {
     isOrbitValid: function () { return !observer.invalid; }
   };
   if (options.settings) applySettings(options.settings);
-  loadTexture('spectra',BASE+'img/spectra.png',THREE.LinearFilter);
-  loadTexture('moon',BASE+'img/beach-ball.png',THREE.LinearFilter);
-  loadTexture('stars',BASE+'img/stars.png',THREE.LinearFilter);
-  loadTexture('accretion_disk',BASE+'img/accretion-disk.png',THREE.LinearFilter);
-  pending++;
-  Promise.all(['raytracer-neon.glsl','raytracer-orig.glsl'].map(function (u) {
-    return fetch(BASE+u).then(function (r) { if (!r.ok) throw new Error('Could not load '+u); return r.text(); });
-  })).then(function (t) {
-    templates.neon=t[0]; templates.orig=t[1];
-    if (--pending===0) ready();
-  }).catch(readyReject);
+  var texMap = (options.textures) || (window.NEON_TEXTURES) || {};
+  loadTexture('spectra', texMap.spectra || BASE+'img/spectra.png', THREE.LinearFilter);
+  loadTexture('moon', texMap.moon || BASE+'img/beach-ball.png', THREE.LinearFilter);
+  loadTexture('stars', texMap.stars || BASE+'img/stars.png', THREE.LinearFilter);
+  loadTexture('accretion_disk', texMap.accretion_disk || BASE+'img/accretion-disk.png', THREE.LinearFilter);
+
+  var shaderMap = (options.shaders) || (window.NEON_SHADERS) || null;
+  if (shaderMap && shaderMap.neon && shaderMap.orig) {
+    templates.neon = shaderMap.neon;
+    templates.orig = shaderMap.orig;
+    if (pending === 0) ready();
+  } else {
+    pending++;
+    Promise.all(['raytracer-neon.glsl','raytracer-orig.glsl'].map(function (u) {
+      return fetch(BASE+u).then(function (r) { if (!r.ok) throw new Error('Could not load '+u); return r.text(); });
+    })).then(function (t) {
+      templates.neon=t[0]; templates.orig=t[1];
+      if (--pending===0) ready();
+    }).catch(readyReject);
+  }
   return api;
 };

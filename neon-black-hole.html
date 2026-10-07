@@ -43,6 +43,7 @@
   <script defer src="neon/crimson-snow.js"></script>
   <script defer src="neon/js-libs/neon-blackhole.js"></script>
   <script defer src="neon/zip.js"></script>
+  <script defer src="neon/capture.js"></script>
   <script defer src="neon/viewer.js"></script>
   <script defer src="js/acidburn-mode.js"></script>
   <script defer src="js/acidburn-blackhole.js"></script>
@@ -78,16 +79,92 @@
           <button type="button" class="acidburn-button" id="neon-stationary" aria-pressed="false">Stationary</button>
           <button type="button" class="acidburn-button" id="neon-warm">Warm chrome scene</button>
           <button type="button" class="acidburn-button" id="neon-snow">Crimson snow scene</button>
+          <button type="button" class="acidburn-button" id="neon-quick-snap" title="Take immediate PNG still">Still</button>
+          <button type="button" class="acidburn-button" id="neon-quick-rec" title="Start/stop recording video">Record</button>
+          <div id="neon-rec-pill" class="neon-rec-pill" hidden><span class="neon-rec-dot"></span><span id="neon-rec-timer">00:00</span><button type="button" id="neon-rec-stop-btn" class="acidburn-button neon-rec-stop">Stop</button></div>
           <button type="button" class="acidburn-button" id="neon-link">Share link</button>
           <button type="button" class="acidburn-button" id="neon-camera-free" aria-pressed="false" hidden>Free move</button>
         </div></div>
         <div class="map-hud map-hud-br"><div class="map-controls">
           <button type="button" class="acidburn-button" data-pane-toggle="neon-settings" aria-expanded="false">Settings</button>
+          <button type="button" class="acidburn-button" data-pane-toggle="neon-capture" aria-expanded="false" id="neon-capture-toggle">Record / Still</button>
           <button type="button" class="acidburn-button" data-pane-toggle="neon-share" aria-expanded="false">Share / ZIP</button>
         </div></div>
         <section class="author-card map-pane" id="neon-settings" data-map-pane hidden aria-labelledby="settings-title">
           <div class="section-header window-toolbar"><h2 id="settings-title">Settings</h2><div class="section-line"></div><div class="window-actions"><button type="button" class="acidburn-button" data-pane-close aria-label="Close settings">×</button></div></div>
           <div class="map-pane-body"><p>Change the view, then copy or download your settings.</p><div id="neon-fields"></div></div>
+        </section>
+                <section class="author-card map-pane" id="neon-capture" data-map-pane hidden aria-labelledby="capture-title">
+          <div class="section-header window-toolbar"><h2 id="capture-title">Record / Capture</h2><div class="section-line"></div><div class="window-actions"><button type="button" class="acidburn-button" data-pane-close aria-label="Close capture">×</button></div></div>
+          <div class="map-pane-body">
+            <p>Capture video clips, high-resolution stills, or download this visualizer as a single offline HTML file.</p>
+            <details open class="neon-capture-section">
+              <summary>Record Video</summary>
+              <div class="neon-capture-controls">
+                <label class="acidburn-field neon-control">
+                  <span>Resolution</span>
+                  <select id="neon-video-res" class="acidburn-select">
+                    <option value="current">Current Viewport</option>
+                    <option value="1080p" selected>1080p FHD (1920×1080)</option>
+                    <option value="720p">720p HD (1280×720)</option>
+                    <option value="square">Square (1080×1080)</option>
+                  </select>
+                </label>
+                <label class="acidburn-field neon-control">
+                  <span>Clip Length</span>
+                  <select id="neon-video-len" class="acidburn-select">
+                    <option value="2">2 seconds</option>
+                    <option value="3">3 seconds</option>
+                    <option value="5" selected>5 seconds</option>
+                    <option value="10">10 seconds</option>
+                    <option value="15">15 seconds</option>
+                    <option value="30">30 seconds</option>
+                    <option value="0">Manual (Start / Stop)</option>
+                  </select>
+                </label>
+                <label class="acidburn-field neon-control">
+                  <span>Frame Rate</span>
+                  <select id="neon-video-fps" class="acidburn-select">
+                    <option value="30" selected>30 FPS</option>
+                    <option value="60">60 FPS</option>
+                  </select>
+                </label>
+                <label class="acidburn-field neon-control">
+                  <span>Include poster text</span>
+                  <input type="checkbox" id="neon-video-caption" checked>
+                </label>
+                <button type="button" class="acidburn-button neon-action-btn" id="neon-start-record">Start Recording</button>
+              </div>
+            </details>
+            <details open class="neon-capture-section">
+              <summary>Take PNG Still</summary>
+              <div class="neon-capture-controls">
+                <label class="acidburn-field neon-control">
+                  <span>Resolution</span>
+                  <select id="neon-still-res" class="acidburn-select">
+                    <option value="current">Current Viewport</option>
+                    <option value="1080p" selected>1080p FHD (1920×1080)</option>
+                    <option value="4k">4K UHD (3840×2160)</option>
+                    <option value="720p">720p HD (1280×720)</option>
+                    <option value="square">Square (1080×1080)</option>
+                    <option value="portrait">Portrait (1080×1920)</option>
+                  </select>
+                </label>
+                <label class="acidburn-field neon-control">
+                  <span>Include poster text</span>
+                  <input type="checkbox" id="neon-still-caption" checked>
+                </label>
+                <button type="button" class="acidburn-button neon-action-btn" id="neon-capture-still">Download PNG Still</button>
+              </div>
+            </details>
+            <details open class="neon-capture-section">
+              <summary>Standalone Visualizer HTML</summary>
+              <div class="neon-capture-controls">
+                <p class="neon-help-note">Download a single self-contained HTML file of this exact visualizer with your active settings, shaders, and textures baked in. Runs anywhere offline with no web server required.</p>
+                <button type="button" class="acidburn-button neon-action-btn" id="neon-export-html">Download Standalone HTML</button>
+              </div>
+            </details>
+          </div>
         </section>
         <section class="author-card map-pane" id="neon-share" data-map-pane hidden aria-labelledby="share-title">
           <div class="section-header window-toolbar"><h2 id="share-title">Share / ZIP</h2><div class="section-line"></div><div class="window-actions"><button type="button" class="acidburn-button" data-pane-close aria-label="Close sharing">×</button></div></div>
@@ -96,6 +173,7 @@
             <div class="neon-share-actions">
               <button type="button" class="acidburn-button" id="neon-copy">Copy settings</button>
               <button type="button" class="acidburn-button" id="neon-copy-link">Copy scene link</button>
+              <button type="button" class="acidburn-button" id="neon-share-html">Download HTML</button>
               <button type="button" class="acidburn-button" id="neon-zip">Download ZIP</button>
             </div>
             <label class="acidburn-field" for="neon-json">Settings JSON<textarea id="neon-json" rows="6" spellcheck="false" placeholder="Paste copied settings here"></textarea></label>

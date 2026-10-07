@@ -39,3 +39,70 @@
   .neon-viewer .neon-camera-pad { width:56px; height:56px; }
   .neon-camera-controls p { display:none; }
 }
+
+/* Capture, video recording, and standalone export controls */
+.neon-rec-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(220, 20, 60, 0.2);
+  border: 1px solid #ff2a55;
+  color: #ffedf0;
+  padding: 4px 10px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: var(--text-xs);
+  letter-spacing: 0.05em;
+  text-shadow: 0 0 6px rgba(255, 42, 85, 0.8);
+}
+.neon-rec-dot {
+  width: 8px;
+  height: 8px;
+  background: #ff2a55;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #ff2a55;
+  animation: neon-blink 1s infinite alternate;
+}
+@keyframes neon-blink {
+  from { opacity: 0.3; }
+  to { opacity: 1; }
+}
+.neon-rec-stop {
+  min-height: 24px !important;
+  padding: 2px 8px !important;
+  font-size: 11px !important;
+  background: rgba(255, 42, 85, 0.3) !important;
+}
+.acidburn-button.is-recording {
+  background: rgba(255, 42, 85, 0.35) !important;
+  border-color: #ff2a55 !important;
+  color: #fff !important;
+  box-shadow: 0 0 10px rgba(255, 42, 85, 0.5) !important;
+}
+.neon-capture-section {
+  border-bottom: 1px solid rgba(191, 0, 255, 0.15);
+  padding-bottom: var(--space-xs);
+}
+.neon-capture-controls {
+  padding: var(--space-xs) 0 var(--space-sm);
+}
+.neon-capture-controls .acidburn-select {
+  background: #0d1222;
+  color: #00ffff;
+  border: 1px solid #00ffff;
+  padding: 6px 8px;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: var(--text-xs);
+  width: 100%;
+}
+.neon-action-btn {
+  width: 100%;
+  margin-top: var(--space-xs);
+  justify-content: center;
+}
+.neon-help-note {
+  font-size: var(--text-xs);
+  color: #8da3cf;
+  margin: var(--space-xs) 0 var(--space-sm);
+  line-height: 1.4;
+}
+

@@ -1,7 +1,7 @@
 /* Viewer settings never change the site-wide BH preference or background parameters. */
 (function () {
   'use strict';
-  const base=new URL('./',document.currentScript.src);
+  const base=new URL('./', (document.currentScript && document.currentScript.src) || location.href);
   const siteBase=new URL(window.NEON_SITE_ASSETS||'../',base);
   const scene=document.getElementById('neon-scene');
   if(!scene) return;
@@ -10,7 +10,7 @@
   let viewer,feedbackTimer,movingCamera=false;
   let posterFontPromise=null,posterFontReady=false;
   function loadPosterFont(){
-    if(!posterFontPromise){const font=new FontFace('Neon Teko',`url("${new URL('fonts/Teko.ttf',base).href}")`,{weight:'300 700'});document.fonts.add(font);posterFontPromise=font.load().then(()=>{posterFontReady=true;drawLettering();}).catch(()=>message('Poster font could not load. Using fallback lettering.'));}
+    if(!posterFontPromise){const font=new FontFace('Neon Teko',window.NEON_FONT_URL||`url("${new URL('fonts/Teko.ttf',base).href}")`,{weight:'300 700'});document.fonts.add(font);posterFontPromise=font.load().then(()=>{posterFontReady=true;drawLettering();}).catch(()=>message('Poster font could not load. Using fallback lettering.'));}
     return posterFontPromise;
   }
   const lettering=document.createElement('canvas');lettering.className='neon-lettering';lettering.setAttribute('aria-hidden','true');scene.after(lettering);
@@ -316,7 +316,7 @@
     const snapshot=viewer.settings();
     try{
       message('Preparing ZIP…');
-      const neonFiles=['index.html','settings.js','warm-chrome.js','crimson-snow.js','zip.js','viewer.js','NOTICE.txt','fonts/Teko.ttf','fonts/OFL.txt','raytracer-neon.glsl','raytracer-orig.glsl','js-libs/three.min.js','js-libs/Detector.js','js-libs/mustache.min.js','js-libs/three-js-monkey-patch.js','js-libs/acidburn-galaxy.js','js-libs/neon-blackhole.js','img/accretion-disk.png','img/beach-ball.png','img/spectra.png','img/stars.png'];
+      const neonFiles=['index.html','settings.js','warm-chrome.js','crimson-snow.js','zip.js','capture.js','viewer.js','NOTICE.txt','fonts/Teko.ttf','fonts/OFL.txt','raytracer-neon.glsl','raytracer-orig.glsl','js-libs/three.min.js','js-libs/Detector.js','js-libs/mustache.min.js','js-libs/three-js-monkey-patch.js','js-libs/acidburn-galaxy.js','js-libs/neon-blackhole.js','img/accretion-disk.png','img/beach-ball.png','img/spectra.png','img/stars.png'];
       const sharedFiles=['css/acidburn.css','css/map-window.css','css/neon-viewer.css'];
       const requests=[...neonFiles.map(name=>({name,url:new URL(name,base)})),...sharedFiles.map(name=>({name,url:new URL(name,siteBase)})),{name:'map-window.js',url:new URL(window.NEON_PACKAGED?'map-window.js':'js/map-window.js',siteBase)}];
       const entries=await Promise.all(requests.map(async item=>{
