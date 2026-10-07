@@ -379,7 +379,7 @@ float dune_elevation(vec2 st) {
     float lateral = st.x;
     float depth = max(0.0, st.y);
     float nearRamp = smoothstep(0.8, 3.5, depth);
-    float distFade = smoothstep(40.0, 24.0, depth);
+    float distFade = mix(0.34, 1.0, smoothstep(90.0, 22.0, depth));
 
     // central valley cradling the hole; both flanks climb and roll over
     float flank = smoothstep(2.0, 17.0, abs(lateral)) * 0.95
@@ -396,7 +396,11 @@ float dune_elevation(vec2 st) {
     float swell = dn2(st * 0.045 + 21.0) * 0.55;
 
     float total = (0.30 + flank + d1 + d2 + cres + swell) * floor_dunes;
-    return min(2.7, total * nearRamp * distFade);
+    // distant ridgelines that climb past eye level, so the horizon is a broken silhouette, not a flat line
+    float farK = smoothstep(24.0, 78.0, depth);
+    float ridge = pow(1.0 - abs(2.0 * dn2(q * vec2(0.045, 0.10) + 31.0) - 1.0), 1.5);
+    float mount = (0.15 + 0.85 * ridge) * pow(dn2(st * vec2(0.035, 0.02) + 9.0), 1.6) * 1.0 * 9.0 * farK;
+    return min(12.0, total * nearRamp * distFade + mount * floor_dunes);
 }
 
 // Fine wind ripples that follow the flow of the dunes (the long crest lines).
@@ -978,12 +982,13 @@ void main() {
     // Captured rays and solid hits already terminate on an opaque scene
     // surface. The final straight-floor pass must not paint over that surface.
     {{#look.floor_snow}}
-    if(planeHeight > 0.0 && (planeDirection < 0.05 || planeCoverage > 0.0) && u < 1.0) {
+    if(planeHeight > 0.0 && (planeDirection < 0.3 || planeCoverage > 0.0) && u < 1.0) {
         vec3 floorRay = floor_camera_ray;
         bool hitDune = false;
-        float hitT = 48.0;
-        float t_base = planeDirection < -0.0001 ? planeHeight / (-planeDirection) : 48.0;
-        float t_max = min(48.0, t_base);
+        float hitT = 110.0;
+        float t_base = planeDirection < -0.0001 ? planeHeight / (-planeDirection) : 110.0;
+        float t_max = min(110.0, t_base);
+        if (planeDirection > 0.0) t_max = min(t_max, max(12.0 - planeHeight, 0.0) / planeDirection);
         float t_min = 0.3;
         float t_prev = t_min;
         vec3 p_prev = cam_pos + floorRay * t_prev;
@@ -993,9 +998,9 @@ void main() {
         vec2 st_prev = vec2(lat_prev, dep_prev) + floor_offset;
         float h_diff_prev = (planeHeight + planeDirection * t_prev) - dune_elevation(st_prev);
         
-        for (int m = 1; m <= 38; m++) {
-            float frac = float(m) / 38.0;
-            float t_curr = t_min + (t_max - t_min) * pow(frac, 1.25);
+        for (int m = 1; m <= 52; m++) {
+            float frac = float(m) / 52.0;
+            float t_curr = t_min + (t_max - t_min) * pow(frac, 1.45);
             vec3 pm = cam_pos + floorRay * t_curr;
             vec3 rm = pm - floor_o;
             float lat_m = dot(rm, floor_e2);
@@ -1143,6 +1148,10 @@ void main() {
                     snowCol += redSheen * (floor_reflection * reflMult);
                 }
             }
+            // aerial haze: far dunes dissolve into the horizon glow instead of ending on a hard line
+            float hazeAmt = 1.0 - exp(-hitT * 0.021);
+            vec3 hazeCol = hole_glow_color * vec3(0.85, 0.75, 1.0) * 0.85 + vec3(0.16, 0.09, 0.22);
+            snowCol = mix(snowCol, hazeCol * (0.7 + 0.3 * slopeUp), smoothstep(0.1, 0.95, hazeAmt) * 0.92);
             vec4 fs = vec4(snowCol * floor_strength, 1.0) * coverage;
             color.rgb = fs.rgb + color.rgb * (1.0 - fs.a);
         }
