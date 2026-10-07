@@ -61,7 +61,7 @@ uniform float galaxy_gain;
 uniform float floor_concentration, floor_reflection, floor_roughness, reflection_pass, gas_tint;
 uniform vec3 gas_color, reflect_pos, reflect_x, reflect_y, reflect_z;
 uniform sampler2D reflection_tex;
-uniform float floor_sparkle, floor_dunes, hole_glow;
+uniform float floor_sparkle, floor_dunes, hole_glow, snowfall;
 uniform vec3 hole_glow_color;
 uniform vec3 floor_rim_color, floor_shadow_color;
 {{#floorTint}}
@@ -101,6 +101,14 @@ float disk_gas(float r, float ang, float dt_epoch, float seed) {
 }
 
 float hash11(float x) { return fract(sin(x * 127.1) * 43758.5453); }
+
+// Falling snow: layered crystal flakes (six-armed dendrites with side branches) composited
+// over the finished frame. Arms pointing at the hole catch its crimson light; flakes glint.
+vec3 sfh(vec2 id, float s) {
+    vec3 p3 = fract(vec3(id.xyx) * vec3(0.1031, 0.1030, 0.0973) + s);
+    p3 += dot(p3, p3.yxz + 33.33);
+    return fract((p3.xxy + p3.yzz) * p3.zyx);
+}
 
 float ray_acceleration(float u) {
     {{#photon_eq_fix}}
@@ -1166,5 +1174,63 @@ void main() {
     }
     {{/look.floor_snow}}
     {{/look.floor_lensing}}{{/neon_floor}}
+    if (snowfall > 0.0 && reflection_pass < 0.5) {
+        vec3 hv = normalize(-cam_pos);
+        float hz = max(dot(hv, cam_z), 0.05);
+        vec2 hole_s = FOV_MULT * vec2(dot(hv, cam_x), dot(hv, cam_y)) / hz;
+        float pix_p = 2.0 / resolution.x;
+        float flake_density = clamp(0.30 * snowfall, 0.0, 0.85);
+        for (int sl = 0; sl < 4; sl++) {
+            float fl = float(sl);
+            float depthK = fl / 3.0;
+            float cells = mix(40.0, 9.0, depthK);
+            vec2 g = p * cells;
+            g += vec2(fl * 17.3 + time * mix(0.02, 0.06, depthK) + sin(time * 0.07 + fl * 2.0) * 0.5,
+                      fl * 9.1 + time * mix(0.06, 0.17, depthK));
+            vec2 id = floor(g);
+            vec2 f = fract(g) - 0.5;
+            vec3 h1 = sfh(id, fl * 3.7);
+            if (h1.x < flake_density) {
+                vec3 h2 = sfh(id + 41.0, fl * 5.3);
+                vec2 cen = (h1.yz - 0.5) * 0.46 + vec2(sin(time * 0.4 + h2.z * 30.0), cos(time * 0.33 + h2.y * 30.0)) * 0.04;
+                vec2 v = f - cen;
+                float rs = (0.09 + 0.15 * h2.x) * (0.8 + 0.4 * depthK);
+                float rot = h2.y * 6.2832 + time * (h2.z - 0.5) * 0.5;
+                float cr = cos(rot), sr = sin(rot);
+                vec2 vr = vec2(cr * v.x + sr * v.y, -sr * v.x + cr * v.y);
+                float r = length(vr);
+                float a = atan(vr.y, vr.x);
+                float pixC = cells * pix_p;
+                float tw = max(rs * 0.055, pixC * 0.75);
+                float ang = abs(fract(a / (M_PI / 3.0) + 0.5) - 0.5) * (M_PI / 3.0);
+                float perp = r * sin(ang), ax = r * cos(ang);
+                float arm = smoothstep(tw * 1.5, tw * 0.3, perp) * (1.0 - smoothstep(rs * 0.88, rs, ax));
+                float brOn = (ax > rs * 0.3 && ax < rs * 0.68) ? 1.0 : 0.0;
+                float br = smoothstep(tw * 1.3, tw * 0.3, abs(perp - (ax - rs * 0.3) * 0.8)) * brOn * 0.8;
+                float core = smoothstep(rs * 0.22, rs * 0.12, r);
+                float shape = max(max(arm, br), core);
+                float blurK = smoothstep(0.6, 1.0, depthK);
+                float bokeh = smoothstep(rs * 1.2, rs * 0.2, r) * 0.16;
+                shape = mix(shape, bokeh, blurK);
+                shape *= smoothstep(0.0, 0.5, min(pixC > 0.0 ? rs / pixC : 1.0, 1.0) * 1.2 + 0.2);
+
+                vec2 toHole = hole_s - p;
+                float dh = length(toHole);
+                float back = 1.0 / (1.0 + dh * dh * 2.6);
+                vec2 th = vec2(cr * toHole.x + sr * toHole.y, -sr * toHole.x + cr * toHole.y);
+                float ath = atan(th.y, th.x);
+                float pointing = pow(abs(cos(3.0 * ath)), 8.0);
+                float facing = 0.5 + 0.5 * dot(normalize(vr + vec2(1e-5)), normalize(th + vec2(1e-5)));
+                float glint = pow(0.5 + 0.5 * sin(time * (1.2 + 2.5 * h2.z) + h2.x * 50.0), 22.0);
+                vec3 disp = 0.55 + 0.45 * cos(6.2832 * (h2.y + vec3(0.0, 0.33, 0.67)));
+                vec3 flake = vec3(0.80, 0.88, 1.0) * (0.35 + 0.65 * facing)
+                           + hole_glow_color * back * (0.3 + 1.2 * facing) * 1.0
+                           + vec3(1.0, 0.92, 0.95) * back * pow(facing, 3.0) * 0.9
+                           + mix(vec3(1.0), disp, 0.55) * glint * (0.4 + 2.2 * pointing) * 1.8;
+                float al = clamp(shape * mix(0.5, 1.0, depthK) * 0.95, 0.0, 0.92);
+                color.rgb = color.rgb * (1.0 - al) + flake * al;
+            }
+        }
+    }
     gl_FragColor = color*ray_intensity;
 }

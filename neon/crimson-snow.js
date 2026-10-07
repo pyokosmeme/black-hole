@@ -24,7 +24,7 @@ window.NEON_CRIMSON_SNOW = {
 
     sky_plume:1.8,sky_plume_color:'#ff2855',
 
-    hole_glow:1.1,hole_glow_color:'#ff2c4a',grain:.06,
+    hole_glow:1.1,hole_glow_color:'#ff2c4a',grain:.06,snowfall:1.2,
 
     neon_nebula:false,nebula_amount:1.2,nebula_scale:6,nebula_color:'#3d4d8c',nebula_resolution:'high',
 

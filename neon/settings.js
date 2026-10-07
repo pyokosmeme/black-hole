@@ -51,6 +51,7 @@
   number('Disk','look.hole_glow','Photon ring glow',0,3);
   fields.push({group:'Disk',path:'look.hole_glow_color',label:'Photon ring color',type:'color'});
   number('Post / performance','look.grain','Film grain',0,.3);
+  number('Sky','look.snowfall','Falling snow (crystal flakes)',0,3);
   number('Disk','look.gas_tint','Gas color blend',0,1);
   fields.push({group:'Disk',path:'look.gas_color',label:'Gas color',type:'color'});
   fields.push({group:'Disk',path:'look.gas_texture',label:'Gas texture',type:'texture'});

@@ -182,7 +182,7 @@ window.createNeonBlackhole = function (options) {
 
       sky_plume:0, sky_plume_color:'#ff3366',
 
-      hole_glow:0, hole_glow_color:'#ff2c4a', grain:0,
+      hole_glow:0, hole_glow_color:'#ff2c4a', grain:0, snowfall:0,
 
       nebula_resolution:'standard',
 
@@ -771,10 +771,6 @@ window.createNeonBlackhole = function (options) {
     "                  + hot * (k1 * (h1 > 0.9 ? 1.0 : 0.0) + k2 * (h2 > 0.88 ? 1.0 : 0.0)) * 1.6;",
     "      col += (grains * 1.35 + plume_color * haze * 0.06 + plume_color * dens * 0.05) * plume_amount;",
     "    }",
-    "    vec3 bgSpk = d * 36.0;",
-    "    float bgH = hash(floor(bgSpk));",
-    "    float bgD = length(fract(bgSpk) - 0.5);",
-    "    col += vec3(0.95, 0.97, 1.0) * smoothstep(0.32, 0.06, bgD) * (bgH > 0.965 ? 1.0 : 0.0) * (0.5 + 0.5 * bgH) * plume_amount * 0.35;",
     "  }",
     "  gl_FragColor = vec4(col, 1.0);",
     "}"
@@ -1152,7 +1148,7 @@ window.createNeonBlackhole = function (options) {
 
     'floor_tilt', 'floor_cell', 'floor_extent', 'disk_temp', 'disk_outer', 'disk_speed',
 
-    'spot_strength', 'galaxy_gain','floor_concentration','floor_reflection','floor_roughness','gas_tint','floor_sparkle','floor_dunes','hole_glow'];
+    'spot_strength', 'galaxy_gain','floor_concentration','floor_reflection','floor_roughness','gas_tint','floor_sparkle','floor_dunes','hole_glow','snowfall'];
 
   var rtReflection=null;
 
