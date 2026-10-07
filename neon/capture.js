@@ -56,6 +56,7 @@
   let recordTimerInterval = null;
   let recordTimeout = null;
   let compositingRaf = null;
+  let activeFrameHandler = null;
   let recordingStartTime = 0;
   let activeRecordingRes = null;
 
@@ -93,8 +94,20 @@
     const lettering = document.querySelector('.neon-lettering');
     const hasCaption = includeCaption && viewer.params && viewer.params.caption && viewer.params.caption.enabled && viewer.params.caption.text;
     if (hasCaption && typeof window.renderLettering === 'function') {
-      window.renderLettering(out, targetW, targetH);
+      // Draw the poster text at 2x and downsample with smoothing, so beveled
+      // edges and the "Sculpted" glyph paths get real antialiasing in stills
+      // instead of the single-sample edges a direct same-size draw leaves.
+      const ssScale = 2;
+      const ss = document.createElement('canvas');
+      ss.width = targetW * ssScale;
+      ss.height = targetH * ssScale;
+      window.renderLettering(ss, ss.width, ss.height);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(ss, 0, 0, targetW, targetH);
     } else if (includeCaption && lettering && !lettering.hidden) {
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(lettering, 0, 0, targetW, targetH);
     }
 
@@ -132,8 +145,8 @@
     const liveCanvas = sceneEl ? sceneEl.querySelector('canvas') : null;
     if (!liveCanvas) throw new Error('Scene canvas not found.');
 
-    let targetW = res.width || liveCanvas.width;
-    let targetH = res.height || liveCanvas.height;
+    let targetW = opts.width || res.width || liveCanvas.width;
+    let targetH = opts.height || res.height || liveCanvas.height;
 
     const compCanvas = document.createElement('canvas');
     compCanvas.width = targetW;
@@ -144,7 +157,7 @@
     recordedChunks = [];
 
     try {
-      mediaRecorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: 12000000 });
+      mediaRecorder = new MediaRecorder(stream, { mimeType, videoBitsPerSecond: Math.max(12000000, Math.min(60000000, targetW * targetH * fps * 0.4)) });
     } catch {
       mediaRecorder = new MediaRecorder(stream);
     }
@@ -157,8 +170,13 @@
 
     mediaRecorder.onstop = () => {
       if (compositingRaf) cancelAnimationFrame(compositingRaf);
+      if (activeFrameHandler) {
+        if (typeof viewer.removeFrameListener === 'function') viewer.removeFrameListener(activeFrameHandler);
+        activeFrameHandler = null;
+      }
       if (recordTimerInterval) clearInterval(recordTimerInterval);
       if (recordTimeout) clearTimeout(recordTimeout);
+      stream.getTracks().forEach(track => track.stop());
       updateRecordingUI(false);
 
       if (recordedChunks.length === 0) {
@@ -181,13 +199,28 @@
     if (hasCaption && typeof window.renderLettering === 'function') {
       window.renderLettering(captionCanvas, targetW, targetH);
     }
-    function pump() {
-      compCtx.drawImage(liveCanvas, 0, 0, targetW, targetH);
+    let lastComposite = -Infinity;
+    function compositeFrame() {
+      const now = performance.now();
+      if (now - lastComposite < 1000 / fps) return;
+      lastComposite = now;
+      const rendered = targetW === liveCanvas.width && targetH === liveCanvas.height
+        ? liveCanvas : viewer.captureAt(targetW, targetH);
+      // Draw straight from the live canvas, called synchronously right after the
+      // viewer renders it (see addFrameListener below). Without this, reading the
+      // canvas from a second, independent requestAnimationFrame loop could land
+      // after the browser silently clears the WebGL buffer (preserveDrawingBuffer
+      // is off for performance), grabbing a blank or half-composited frame —
+      // the source of the flicker/garbage-block artifacts in recorded video.
+      compCtx.drawImage(rendered, 0, 0, targetW, targetH);
       if (hasCaption && typeof window.renderLettering === 'function') {
         compCtx.drawImage(captionCanvas, 0, 0);
       } else if (includeCaption && lettering && !lettering.hidden) {
         compCtx.drawImage(lettering, 0, 0, targetW, targetH);
       }
+    }
+    function pump() {
+      compositeFrame();
       if (mediaRecorder && mediaRecorder.state === 'recording') {
         compositingRaf = requestAnimationFrame(pump);
       }
@@ -195,7 +228,14 @@
 
     mediaRecorder.start(200);
     recordingStartTime = performance.now();
-    pump();
+    if (typeof viewer.addFrameListener === 'function') {
+      activeFrameHandler = compositeFrame;
+      viewer.addFrameListener(activeFrameHandler);
+      viewer.capture();
+      compositeFrame();
+    } else {
+      pump();
+    }
     updateRecordingUI(true, durationSec);
 
     if (durationSec > 0) {
@@ -426,7 +466,16 @@ ${combinedCss}
                     <option value="1080p" selected>1080p FHD (1920×1080)</option>
                     <option value="720p">720p HD (1280×720)</option>
                     <option value="square">Square (1080×1080)</option>
+                    <option value="custom">Custom aspect ratio…</option>
                   </select>
+                </label>
+                <label class="acidburn-field neon-control" id="neon-video-custom-w-field" hidden>
+                  <span>Width (px)</span>
+                  <input type="number" id="neon-video-custom-w" min="160" max="7680" step="2" value="1920">
+                </label>
+                <label class="acidburn-field neon-control" id="neon-video-custom-h-field" hidden>
+                  <span>Height (px)</span>
+                  <input type="number" id="neon-video-custom-h" min="160" max="7680" step="2" value="1080">
                 </label>
                 <label class="acidburn-field neon-control">
                   <span>Clip Length</span>
@@ -466,7 +515,16 @@ ${combinedCss}
                     <option value="720p">720p HD (1280×720)</option>
                     <option value="square">Square (1080×1080)</option>
                     <option value="portrait">Portrait (1080×1920)</option>
+                    <option value="custom">Custom aspect ratio…</option>
                   </select>
+                </label>
+                <label class="acidburn-field neon-control" id="neon-still-custom-w-field" hidden>
+                  <span>Width (px)</span>
+                  <input type="number" id="neon-still-custom-w" min="160" max="7680" step="2" value="1920">
+                </label>
+                <label class="acidburn-field neon-control" id="neon-still-custom-h-field" hidden>
+                  <span>Height (px)</span>
+                  <input type="number" id="neon-still-custom-h" min="160" max="7680" step="2" value="1080">
                 </label>
                 <label class="acidburn-field neon-control">
                   <span>Include poster text</span>
@@ -555,8 +613,30 @@ ${combinedCss}
     return { blob, filename };
   }
 
+  function clampDim(v, fallback) {
+    const n = parseInt(v, 10);
+    return Number.isFinite(n) && n >= 160 && n <= 7680 ? n : fallback;
+  }
+
+  function wireCustomResField(selectId, wFieldId, hFieldId) {
+    const select = document.getElementById(selectId);
+    const wField = document.getElementById(wFieldId);
+    const hField = document.getElementById(hFieldId);
+    if (!select || !wField || !hField) return;
+    const sync = () => {
+      const isCustom = select.value === 'custom';
+      wField.hidden = !isCustom;
+      hField.hidden = !isCustom;
+    };
+    select.addEventListener('change', sync);
+    sync();
+  }
+
   function initUI() {
     function getViewer() { return window.NeonViewer; }
+
+    wireCustomResField('neon-video-res', 'neon-video-custom-w-field', 'neon-video-custom-h-field');
+    wireCustomResField('neon-still-res', 'neon-still-custom-w-field', 'neon-still-custom-h-field');
 
     const quickSnap = document.getElementById('neon-quick-snap');
     if (quickSnap) {
@@ -593,7 +673,12 @@ ${combinedCss}
         const captionCheck = document.getElementById('neon-still-caption');
         const resKey = resSelect ? resSelect.value : '1080p';
         const includeCap = captionCheck ? captionCheck.checked : true;
-        takeStill(v, { resolution: resKey, caption: includeCap }).catch(err => notify(err.message));
+        const opts = { resolution: resKey, caption: includeCap };
+        if (resKey === 'custom') {
+          opts.width = clampDim(document.getElementById('neon-still-custom-w')?.value, 1920);
+          opts.height = clampDim(document.getElementById('neon-still-custom-h')?.value, 1080);
+        }
+        takeStill(v, opts).catch(err => notify(err.message));
       });
     }
 
@@ -609,12 +694,18 @@ ${combinedCss}
           const lenSelect = document.getElementById('neon-video-len');
           const fpsSelect = document.getElementById('neon-video-fps');
           const capCheck = document.getElementById('neon-video-caption');
-          startRecording(v, {
-            resolution: resSelect ? resSelect.value : '1080p',
+          const resKey = resSelect ? resSelect.value : '1080p';
+          const recOpts = {
+            resolution: resKey,
             duration: lenSelect ? parseFloat(lenSelect.value) : 5,
             fps: fpsSelect ? parseInt(fpsSelect.value, 10) : 30,
             caption: capCheck ? capCheck.checked : true
-          });
+          };
+          if (resKey === 'custom') {
+            recOpts.width = clampDim(document.getElementById('neon-video-custom-w')?.value, 1920);
+            recOpts.height = clampDim(document.getElementById('neon-video-custom-h')?.value, 1080);
+          }
+          startRecording(v, recOpts);
         }
       });
     }

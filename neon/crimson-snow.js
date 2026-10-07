@@ -24,7 +24,7 @@ window.NEON_CRIMSON_SNOW = {
 
     sky_plume:1.8,sky_plume_color:'#ff2855',
 
-    hole_glow:1.1,hole_glow_color:'#ff2c4a',grain:.06,snow_enabled:true,snow_density:.36,snow_brightness:1,snow_size:1,snow_speed:1,snow_angle:0,snow_pull:0,
+    hole_glow:1.1,hole_glow_color:'#ff2c4a',grain:.06,snow_enabled:true,snow_density:.01,snow_brightness:1,snow_size:1,snow_speed:1,snow_angle:0,snow_pull:0,
 
     neon_nebula:false,nebula_amount:1.2,nebula_scale:6,nebula_color:'#3d4d8c',nebula_resolution:'high',
 
@@ -34,7 +34,7 @@ window.NEON_CRIMSON_SNOW = {
 
     floor_extent:14,floor_concentration:18,
 
-    floor_reflection:0,floor_roughness:.18,floor_opaque:true,
+    floor_reflection:.12,floor_roughness:.18,floor_opaque:true,
 
     floor_snow:true,floor_sparkle:1.5,floor_dunes:1.7,
 
@@ -46,7 +46,7 @@ window.NEON_CRIMSON_SNOW = {
 
     disk_temp:4800,disk_tilt:20,disk_yaw:75,floor_infinite:true,
 
-    disk_outer:13,disk_speed:4.06,spot_strength:4,galaxy_gain:2.8,
+    disk_outer:13,disk_speed:4.06,spot_strength:0,galaxy_gain:2.8,
 
     vfov:72,exposure:1.35,bloom_strength:.75,bloom_threshold:.48,bloom_radius:1.8,
 
@@ -57,4 +57,3 @@ window.NEON_CRIMSON_SNOW = {
   version:1,renderer:'neon'
 
 };
-

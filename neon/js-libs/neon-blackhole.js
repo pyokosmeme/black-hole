@@ -40,6 +40,17 @@ window.createNeonBlackhole = function (options) {
 
   var active = options.active !== false, animationFrame = null, frameCount = 0;
 
+  // Listeners fired synchronously right after a frame is drawn to renderer.domElement,
+  // before the browser gets a chance to composite/clear the (non-preserved) WebGL buffer.
+  // Video capture hooks into this instead of reading the canvas on its own rAF, which
+  // raced the live render loop and intermittently grabbed a cleared or half-drawn buffer.
+  var frameListeners = [];
+  function fireFrameListeners() {
+    for (var i = 0; i < frameListeners.length; i++) {
+      try { frameListeners[i](); } catch (e) { /* one bad listener should not break rendering */ }
+    }
+  }
+
   var readyResolve, readyReject;
 
   var readyPromise = new Promise(function (resolve,reject) { readyResolve=resolve; readyReject=reject; });
@@ -1652,6 +1663,8 @@ window.createNeonBlackhole = function (options) {
 
     if (paused) lastPausedRender = now;
 
+    fireFrameListeners();
+
   }
 
 
@@ -1943,6 +1956,10 @@ window.createNeonBlackhole = function (options) {
       return copyCanvas;
 
     },
+
+    addFrameListener: function (cb) { frameListeners.push(cb); },
+
+    removeFrameListener: function (cb) { var i = frameListeners.indexOf(cb); if (i >= 0) frameListeners.splice(i, 1); },
 
     setActive:setActive, applySettings:applySettings,
 

@@ -83,7 +83,16 @@
                     <option value="1080p" selected>1080p FHD (1920×1080)</option>
                     <option value="720p">720p HD (1280×720)</option>
                     <option value="square">Square (1080×1080)</option>
+                    <option value="custom">Custom aspect ratio…</option>
                   </select>
+                </label>
+                <label class="acidburn-field neon-control" id="neon-video-custom-w-field" hidden>
+                  <span>Width (px)</span>
+                  <input type="number" id="neon-video-custom-w" min="160" max="7680" step="2" value="1920">
+                </label>
+                <label class="acidburn-field neon-control" id="neon-video-custom-h-field" hidden>
+                  <span>Height (px)</span>
+                  <input type="number" id="neon-video-custom-h" min="160" max="7680" step="2" value="1080">
                 </label>
                 <label class="acidburn-field neon-control">
                   <span>Clip Length</span>
@@ -123,7 +132,16 @@
                     <option value="720p">720p HD (1280×720)</option>
                     <option value="square">Square (1080×1080)</option>
                     <option value="portrait">Portrait (1080×1920)</option>
+                    <option value="custom">Custom aspect ratio…</option>
                   </select>
+                </label>
+                <label class="acidburn-field neon-control" id="neon-still-custom-w-field" hidden>
+                  <span>Width (px)</span>
+                  <input type="number" id="neon-still-custom-w" min="160" max="7680" step="2" value="1920">
+                </label>
+                <label class="acidburn-field neon-control" id="neon-still-custom-h-field" hidden>
+                  <span>Height (px)</span>
+                  <input type="number" id="neon-still-custom-h" min="160" max="7680" step="2" value="1080">
                 </label>
                 <label class="acidburn-field neon-control">
                   <span>Include poster text</span>
