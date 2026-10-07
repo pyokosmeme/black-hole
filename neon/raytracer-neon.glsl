@@ -61,7 +61,7 @@ uniform float galaxy_gain;
 uniform float floor_concentration, floor_reflection, floor_roughness, reflection_pass, gas_tint;
 uniform vec3 gas_color, reflect_pos, reflect_x, reflect_y, reflect_z;
 uniform sampler2D reflection_tex;
-uniform float floor_sparkle, floor_dunes, hole_glow, snowfall;
+uniform float floor_sparkle, floor_dunes, hole_glow, snow_density, snow_brightness, snow_size, snow_speed, snow_angle, snow_pull;
 uniform vec3 hole_glow_color;
 uniform vec3 floor_rim_color, floor_shadow_color;
 {{#floorTint}}
@@ -1174,23 +1174,31 @@ void main() {
     }
     {{/look.floor_snow}}
     {{/look.floor_lensing}}{{/neon_floor}}
-    if (snowfall > 0.0 && reflection_pass < 0.5) {
+{{#look.snow_enabled}}
+    if (reflection_pass < 0.5) {
         vec3 hv = normalize(-cam_pos);
         float hz = max(dot(hv, cam_z), 0.05);
         vec2 hole_s = FOV_MULT * vec2(dot(hv, cam_x), dot(hv, cam_y)) / hz;
         float pix_p = 2.0 / resolution.x;
-        float flake_density = clamp(0.30 * snowfall, 0.0, 0.85);
+        float sang = snow_angle * DEG_TO_RAD;
+        vec2 mdir = vec2(sin(sang), -cos(sang));
+        vec2 hd = p - hole_s;
+        float hrho = max(length(hd), 1e-3);
+        float hth = atan(hd.y, hd.x);
         for (int sl = 0; sl < 4; sl++) {
             float fl = float(sl);
             float depthK = fl / 3.0;
-            float cells = mix(40.0, 9.0, depthK);
-            vec2 g = p * cells;
-            g += vec2(fl * 17.3 + time * mix(0.02, 0.06, depthK) + sin(time * 0.07 + fl * 2.0) * 0.5,
-                      fl * 9.1 + time * mix(0.06, 0.17, depthK));
+            float cells = mix(40.0, 9.0, depthK) / max(snow_size, 0.2);
+            float spd = mix(0.06, 0.17, depthK) * snow_speed;
+            float sway = sin(time * 0.07 + fl * 2.0) * 0.5;
+            vec2 g_lin = p * cells - mdir * spd * time + vec2(mdir.y, -mdir.x) * sway;
+            float cl = cells * 0.5;
+            vec2 g_pol = vec2(log(hrho) * cl + spd * time, hth * cl + sway);
+            vec2 g = mix(g_lin, g_pol, snow_pull) + vec2(fl * 17.3, fl * 9.1);
             vec2 id = floor(g);
             vec2 f = fract(g) - 0.5;
             vec3 h1 = sfh(id, fl * 3.7);
-            if (h1.x < flake_density) {
+            if (h1.x < snow_density) {
                 vec3 h2 = sfh(id + 41.0, fl * 5.3);
                 vec2 cen = (h1.yz - 0.5) * 0.46 + vec2(sin(time * 0.4 + h2.z * 30.0), cos(time * 0.33 + h2.y * 30.0)) * 0.04;
                 vec2 v = f - cen;
@@ -1213,11 +1221,14 @@ void main() {
                 float bokeh = smoothstep(rs * 1.2, rs * 0.2, r) * 0.16;
                 shape = mix(shape, bokeh, blurK);
                 shape *= smoothstep(0.0, 0.5, min(pixC > 0.0 ? rs / pixC : 1.0, 1.0) * 1.2 + 0.2);
+                shape *= mix(1.0, smoothstep(0.03, 0.22, hrho), snow_pull);
 
-                vec2 toHole = hole_s - p;
+                vec2 toHole = -hd;
                 float dh = length(toHole);
                 float back = 1.0 / (1.0 + dh * dh * 2.6);
-                vec2 th = vec2(cr * toHole.x + sr * toHole.y, -sr * toHole.x + cr * toHole.y);
+                float lrot = rot + snow_pull * hth;
+                float lc = cos(lrot), ls = sin(lrot);
+                vec2 th = vec2(lc * toHole.x + ls * toHole.y, -ls * toHole.x + lc * toHole.y);
                 float ath = atan(th.y, th.x);
                 float pointing = pow(abs(cos(3.0 * ath)), 8.0);
                 float facing = 0.5 + 0.5 * dot(normalize(vr + vec2(1e-5)), normalize(th + vec2(1e-5)));
@@ -1227,10 +1238,11 @@ void main() {
                            + hole_glow_color * back * (0.3 + 1.2 * facing) * 1.0
                            + vec3(1.0, 0.92, 0.95) * back * pow(facing, 3.0) * 0.9
                            + mix(vec3(1.0), disp, 0.55) * glint * (0.4 + 2.2 * pointing) * 1.8;
-                float al = clamp(shape * mix(0.5, 1.0, depthK) * 0.95, 0.0, 0.92);
-                color.rgb = color.rgb * (1.0 - al) + flake * al;
+                float al = clamp(shape * mix(0.5, 1.0, depthK) * 0.95 * min(snow_brightness, 1.0), 0.0, 0.92);
+                color.rgb = color.rgb * (1.0 - al) + flake * snow_brightness * al;
             }
         }
     }
+{{/look.snow_enabled}}
     gl_FragColor = color*ray_intensity;
 }

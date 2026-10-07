@@ -182,7 +182,7 @@ window.createNeonBlackhole = function (options) {
 
       sky_plume:0, sky_plume_color:'#ff3366',
 
-      hole_glow:0, hole_glow_color:'#ff2c4a', grain:0, snowfall:0,
+      hole_glow:0, hole_glow_color:'#ff2c4a', grain:0, snow_enabled:false, snow_density:.36, snow_brightness:1, snow_size:1, snow_speed:1, snow_angle:0, snow_pull:0,
 
       nebula_resolution:'standard',
 
@@ -1148,7 +1148,7 @@ window.createNeonBlackhole = function (options) {
 
     'floor_tilt', 'floor_cell', 'floor_extent', 'disk_temp', 'disk_outer', 'disk_speed',
 
-    'spot_strength', 'galaxy_gain','floor_concentration','floor_reflection','floor_roughness','gas_tint','floor_sparkle','floor_dunes','hole_glow','snowfall'];
+    'spot_strength', 'galaxy_gain','floor_concentration','floor_reflection','floor_roughness','gas_tint','floor_sparkle','floor_dunes','hole_glow','snow_density','snow_brightness','snow_size','snow_speed','snow_angle','snow_pull'];
 
   var rtReflection=null;
 
