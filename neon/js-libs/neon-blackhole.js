@@ -182,6 +182,8 @@ window.createNeonBlackhole = function (options) {
 
       sky_plume:0, sky_plume_color:'#ff3366',
 
+      hole_glow:0, hole_glow_color:'#ff2c4a', grain:0,
+
       nebula_resolution:'standard',
 
       gas_tint:0, gas_color:'#ffbb88', gas_texture:'',
@@ -663,122 +665,119 @@ window.createNeonBlackhole = function (options) {
   // pole pinch, and it costs nothing per frame. Colors: site palette.
 
   var SKY_FS = [
-
-    'varying vec2 vUv;',
-
-    'uniform float base_nebula, cloud_amount, cloud_scale, plume_amount; uniform vec3 cloud_color, plume_color;',
-
-    'const float PI = 3.141592653589793;',
-
-    'const vec3 CYAN = vec3(0.0, 1.0, 1.0);',
-
-    'const vec3 PURPLE = vec3(0.749, 0.0, 1.0);',
-
-    'const vec3 DEEP = vec3(0.290, 0.094, 0.408);',
-
-    'const vec3 PINK = vec3(1.0, 0.0, 0.6);',
-
-    'float hash(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }',
-
-    'float noise(vec3 x) {',
-
-    '  vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * f);',
-
-    '  return mix(mix(mix(hash(i), hash(i + vec3(1,0,0)), f.x), mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),',
-
-    '             mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x), mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y), f.z);',
-
-    '}',
-
-    'float fbm(vec3 p) { float a = 0.5, s = 0.0; for (int i = 0; i < 6; i++) { s += a * noise(p); p = p * 2.03 + 11.7; a *= 0.5; } return s; }',
-
-    'void main() {',
-
-    '  float lon = (vUv.x - 0.5) * 2.0 * PI, lat = (vUv.y - 0.5) * PI;',
-
-    '  vec3 d = vec3(sin(lon) * cos(lat), cos(lon) * cos(lat), sin(lat));',
-
-    '  vec3 col = vec3(0.0);',
-
-    '  vec3 w = vec3(fbm(d * 2.0 + 1.7), fbm(d * 2.0 + 9.2), fbm(d * 2.0 + 4.4));',
-
-    '  if(base_nebula > 0.0){',
-
-    '    vec3 q = d * 2.0;',
-
-    '    vec3 w_q = vec3(fbm(q + 1.7), fbm(q + 9.2), fbm(q + 4.4));',
-
-    '    float n = fbm(q + 2.2 * w_q);',
-
-    '    float neb = smoothstep(0.42, 0.8, n);',
-
-    '    col += mix(DEEP * 0.6, PURPLE, smoothstep(0.55, 0.85, n)) * neb * (0.22 * base_nebula);',
-
-    '    float wisp = pow(smoothstep(0.5, 0.9, fbm(q * 3.1 + 1.6 * w_q)), 3.0);',
-
-    '    col += CYAN * wisp * neb * (0.16 * base_nebula);',
-
-    '    col += PINK * pow(smoothstep(0.62, 0.9, fbm(d * 7.0 + 3.0 * w)), 4.0) * (0.12 * base_nebula);',
-
-    '  }',
-
-    '  vec3 nb = normalize(vec3(0.35, -0.55, 0.76));',      // galactic band: tilted great circle
-
-    '  float bl = dot(d, nb);',
-
-    '  float band = exp(-bl * bl / 0.018) + 0.35 * exp(-bl * bl / 0.12);',
-
-    '  float dust = smoothstep(0.45, 0.7, fbm(d * 7.0 + 2.0 * w));',
-
-    '  float glow = (0.45 + 0.55 * fbm(d * 18.0)) * band * (1.0 - 0.85 * dust * exp(-bl * bl / 0.01));',
-
-    '  col += mix(vec3(0.4, 0.35, 0.65), vec3(0.8, 0.7, 0.95), fbm(d * 5.0)) * glow * 0.14;',
-
-    '  if(cloud_amount>0.0){',
-
-    '    vec3 cq=d*cloud_scale+2.6*w;',
-
-    '    float body=smoothstep(0.32,0.7,fbm(cq));',
-
-    '    float filaments=pow(1.0-abs(2.0*fbm(cq*3.7+2.0*w)-1.0),5.0);',
-
-    '    float dustLane=smoothstep(0.38,0.68,fbm(cq*1.9+7.3));',
-
-    '    col+=cloud_color*cloud_amount*body*(0.045+0.13*filaments)*(1.0-0.65*dustLane);',
-
-    '    col+=mix(cloud_color,vec3(0.72,0.86,1.0),0.6)*cloud_amount*pow(filaments,3.0)*body*0.035;',
-
-    '  }',
-
-    '  if(plume_amount>0.0){',
-    '    vec3 plume_dir = normalize(vec3(0.35, 0.78, 0.52));',
-    '    float pdot = dot(d, plume_dir);',
-    '    if(pdot > 0.10) {',
-    '      float pdist = 1.0 - pdot;',
-    '      float pnoise = fbm(d * 7.5 + 2.5 * w);',
-    '      float pfilaments = pow(1.0 - abs(2.0 * fbm(d * 15.0 + 1.8 * w) - 1.0), 3.0);',
-    '      float core = exp(-pdist * 9.5) * (0.65 + 0.35 * pnoise);',
-    '      float spray = exp(-pdist * 4.5) * pow(pnoise, 1.6) * pfilaments;',
-    '      vec3 sparkCoord = d * 48.0;',
-    '      vec3 sCell = floor(sparkCoord);',
-    '      float sHash = hash(sCell);',
-    '      float sDist = length(fract(sparkCoord) - 0.5);',
-    '      float snowSpeck = smoothstep(0.35, 0.05, sDist) * (sHash > 0.82 ? 1.0 : 0.0) * pow(sHash, 2.5);',
-    '      snowSpeck *= exp(-pdist * 5.2) * (0.8 + 0.2 * pnoise);',
-    '      vec3 pcol = mix(plume_color, vec3(1.0, 0.85, 0.92), 0.35);',
-    '      col += (pcol * (core * 0.65 + spray * 0.85) + vec3(1.0, 0.94, 0.98) * (snowSpeck * 2.2)) * plume_amount;',
-    '    }',
-    '    vec3 bgSpk = d * 36.0;',
-    '    float bgH = hash(floor(bgSpk));',
-    '    float bgD = length(fract(bgSpk) - 0.5);',
-    '    float spaceSnow = smoothstep(0.32, 0.06, bgD) * (bgH > 0.965 ? 1.0 : 0.0) * (0.5 + 0.5 * bgH);',
-    '    col += vec3(0.95, 0.97, 1.0) * spaceSnow * (plume_amount * 0.35);',
-    '  }',
-
-    '  gl_FragColor = vec4(col, 1.0);',
-
-    '}'
-
+    "varying vec2 vUv;",
+    "uniform float base_nebula, cloud_amount, cloud_scale, plume_amount; uniform vec3 cloud_color, plume_color;",
+    "const float PI = 3.141592653589793;",
+    "const vec3 CYAN = vec3(0.0, 1.0, 1.0);",
+    "const vec3 PURPLE = vec3(0.749, 0.0, 1.0);",
+    "const vec3 DEEP = vec3(0.290, 0.094, 0.408);",
+    "const vec3 PINK = vec3(1.0, 0.0, 0.6);",
+    "float hash(vec3 p) { p = fract(p * 0.3183099 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }",
+    "vec3 hash33(vec3 p) { p = fract(p * vec3(0.1031, 0.1030, 0.0973)); p += dot(p, p.yxz + 33.33); return fract((p.xxy + p.yxx) * p.zyx); }",
+    "float noise(vec3 x) {",
+    "  vec3 i = floor(x), f = fract(x); f = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);",
+    "  return mix(mix(mix(hash(i), hash(i + vec3(1,0,0)), f.x), mix(hash(i + vec3(0,1,0)), hash(i + vec3(1,1,0)), f.x), f.y),",
+    "             mix(mix(hash(i + vec3(0,0,1)), hash(i + vec3(1,0,1)), f.x), mix(hash(i + vec3(0,1,1)), hash(i + vec3(1,1,1)), f.x), f.y), f.z);",
+    "}",
+    "float fbm(vec3 p) { float a = 0.5, s = 0.0; for (int i = 0; i < 6; i++) { s += a * noise(p); p = p * 2.03 + 11.7; a *= 0.5; } return s; }",
+    "float fbm4(vec3 p) { float a = 0.5, s = 0.0; for (int i = 0; i < 4; i++) { s += a * noise(p); p = p * 2.03 + 11.7; a *= 0.5; } return s; }",
+    "vec3 starLayer(vec3 d, float scale, float density, float radius) {",
+    "  vec3 sp = d * scale, id = floor(sp);",
+    "  float h = hash(id);",
+    "  if (h < density) return vec3(0.0);",
+    "  vec3 off = (hash33(id) - 0.5) * 0.6;",
+    "  float r = length(fract(sp) - 0.5 - off);",
+    "  float core = smoothstep(radius, 0.0, r);",
+    "  float t = fract(h * 91.7);",
+    "  vec3 tint = t < 0.15 ? vec3(1.0, 0.62, 0.52) : (t < 0.65 ? vec3(0.86, 0.9, 1.0) : vec3(0.62, 0.74, 1.0));",
+    "  float mag = pow((h - density) / (1.0 - density), 2.2);",
+    "  return tint * core * (0.25 + 2.4 * mag);",
+    "}",
+    "void main() {",
+    "  float lon = (vUv.x - 0.5) * 2.0 * PI, lat = (vUv.y - 0.5) * PI;",
+    "  vec3 d = vec3(sin(lon) * cos(lat), cos(lon) * cos(lat), sin(lat));",
+    "  vec3 w = vec3(fbm4(d * 2.0 + 1.7), fbm4(d * 2.0 + 9.2), fbm4(d * 2.0 + 4.4));",
+    "  vec3 col = vec3(0.013, 0.017, 0.045) * (0.7 + 0.6 * fbm4(d * 3.0 + 7.0));",
+    "  float starVis = 1.0;",
+    "  if (base_nebula > 0.0) {",
+    "    vec3 q = d * 2.0;",
+    "    float n = fbm(q + 2.2 * w);",
+    "    float neb = smoothstep(0.42, 0.8, n);",
+    "    col += mix(DEEP * 0.6, PURPLE, smoothstep(0.55, 0.85, n)) * neb * (0.22 * base_nebula);",
+    "    float wisp = pow(smoothstep(0.5, 0.9, fbm(q * 3.1 + 1.6 * w)), 3.0);",
+    "    col += CYAN * wisp * neb * (0.16 * base_nebula);",
+    "    col += PINK * pow(smoothstep(0.62, 0.9, fbm(d * 7.0 + 3.0 * w)), 4.0) * (0.12 * base_nebula);",
+    "  }",
+    "  vec3 nb = normalize(vec3(0.35, -0.55, 0.76));",
+    "  float bl = dot(d, nb);",
+    "  float band = exp(-bl * bl / 0.018) + 0.35 * exp(-bl * bl / 0.12);",
+    "  float dust0 = smoothstep(0.45, 0.7, fbm(d * 7.0 + 2.0 * w));",
+    "  float glow = (0.45 + 0.55 * fbm(d * 18.0)) * band * (1.0 - 0.85 * dust0 * exp(-bl * bl / 0.01));",
+    "  col += mix(vec3(0.4, 0.35, 0.65), vec3(0.8, 0.7, 0.95), fbm(d * 5.0)) * glow * 0.14;",
+    "  starVis *= 1.0 - 0.6 * dust0 * exp(-bl * bl / 0.03);",
+    "  if (cloud_amount > 0.0) {",
+    "    vec3 L1 = normalize(vec3(-0.30, 0.58, 0.76));",
+    "    vec3 L2 = normalize(vec3(0.72, -0.18, 0.67));",
+    "    vec3 t1 = normalize(L1 - d * dot(L1, d)), t2 = normalize(L2 - d * dot(L2, d));",
+    "    float sc = cloud_scale * 0.55;",
+    "    vec3 q = d * sc + 2.6 * w;",
+    "    float n0 = fbm(q);",
+    "    float body = smoothstep(0.30, 0.74, n0);",
+    "    float s1 = fbm(q + t1 * 0.30), s2 = fbm(q + t2 * 0.30);",
+    "    float lit1 = clamp(0.5 + (n0 - s1) * 5.5, 0.0, 1.0);",
+    "    float lit2 = clamp(0.5 + (n0 - s2) * 5.5, 0.0, 1.0);",
+    "    float a1 = acos(clamp(dot(d, L1), -1.0, 1.0)), a2 = acos(clamp(dot(d, L2), -1.0, 1.0));",
+    "    float att1 = 0.22 + 1.2 / (1.0 + a1 * a1 * 2.2);",
+    "    float att2 = 0.18 + 1.0 / (1.0 + a2 * a2 * 2.6);",
+    "    vec3 warm = mix(plume_color, vec3(1.0, 0.78, 0.62), 0.38);",
+    "    vec3 cool = mix(cloud_color, vec3(0.45, 0.72, 1.0), 0.55);",
+    "    float fil = pow(1.0 - abs(2.0 * fbm(q * 3.4 + 2.0 * w) - 1.0), 6.0);",
+    "    float dust = smoothstep(0.40, 0.70, fbm(q * 1.7 + 7.3)) * body;",
+    "    float core = smoothstep(0.55, 0.9, n0);",
+    "    vec3 shade = cloud_color * (0.09 + 0.16 * core)",
+    "               + warm * pow(lit1, 1.6) * att1 * 0.55",
+    "               + cool * pow(lit2, 1.6) * att2 * 0.30;",
+    "    shade += mix(warm, vec3(1.0), 0.45) * fil * (0.12 + 0.35 * lit1) * att1 * 0.55;",
+    "    shade += cool * fil * fil * lit2 * 0.10;",
+    "    shade *= 1.0 - 0.78 * dust;",
+    "    col += shade * body * cloud_amount * 0.85;",
+    "    float edge = body * (1.0 - smoothstep(0.55, 0.9, n0));",
+    "    col += mix(warm, cool, 0.35) * edge * edge * fil * 0.06 * cloud_amount * att1;",
+    "    starVis *= 1.0 - 0.9 * dust * smoothstep(0.0, 0.5, body);",
+    "  }",
+    "  col += (starLayer(d, 330.0, 0.915, 0.30) * 0.8 + starLayer(d, 150.0, 0.94, 0.26) * 1.1 + starLayer(d, 62.0, 0.975, 0.22) * 1.9) * starVis;",
+    "  if (plume_amount > 0.0) {",
+    "    vec3 P = normalize(vec3(0.35, 0.78, 0.52));",
+    "    float pdot = dot(d, P);",
+    "    if (pdot > 0.55) {",
+    "      vec3 e1 = normalize(cross(P, vec3(0.0, 0.0, 1.0))), e2 = cross(P, e1);",
+    "      float ca = cos(0.95), sa = sin(0.95);",
+    "      vec3 al = e1 * ca + e2 * sa, ac = -e1 * sa + e2 * ca;",
+    "      vec2 pc = vec2(dot(d, al), dot(d, ac));",
+    "      pc += (vec2(fbm4(d * 6.0 + 2.0), fbm4(d * 6.0 + 8.0)) - 0.5) * 0.20;",
+    "      float widthAt = 0.035 + 0.075 * clamp(pc.x + 0.45, 0.0, 1.0);",
+    "      float across = exp(-pow(pc.y / widthAt, 2.0));",
+    "      float along = smoothstep(-0.55, -0.05, pc.x) * smoothstep(0.55, 0.05, pc.x);",
+    "      float clump = smoothstep(0.30, 0.78, fbm4(d * 22.0 + 4.0 * w));",
+    "      float dens = across * along * (0.35 + 0.65 * clump);",
+    "      float haze = across * along * 0.5;",
+    "      vec3 g1 = d * 230.0, g2 = d * 95.0, g3 = d * 520.0;",
+    "      float h1 = hash(floor(g1)), h2 = hash(floor(g2)), h3 = hash(floor(g3));",
+    "      float k1 = smoothstep(0.34, 0.06, length(fract(g1) - 0.5)) * (h1 > 1.0 - dens * 0.85 ? 1.0 : 0.0);",
+    "      float k2 = smoothstep(0.38, 0.08, length(fract(g2) - 0.5)) * (h2 > 1.0 - dens * 0.55 ? 1.0 : 0.0);",
+    "      float k3 = smoothstep(0.40, 0.12, length(fract(g3) - 0.5)) * (h3 > 1.0 - dens * 0.95 ? 1.0 : 0.0);",
+    "      vec3 hot = mix(plume_color, vec3(1.0, 0.86, 0.9), 0.55);",
+    "      vec3 grains = plume_color * (k1 * (0.8 + 1.4 * h1) + k2 * (1.0 + 1.6 * h2) + k3 * 0.7)",
+    "                  + hot * (k1 * (h1 > 0.9 ? 1.0 : 0.0) + k2 * (h2 > 0.88 ? 1.0 : 0.0)) * 1.6;",
+    "      col += (grains * 1.35 + plume_color * haze * 0.06 + plume_color * dens * 0.05) * plume_amount;",
+    "    }",
+    "    vec3 bgSpk = d * 36.0;",
+    "    float bgH = hash(floor(bgSpk));",
+    "    float bgD = length(fract(bgSpk) - 0.5);",
+    "    col += vec3(0.95, 0.97, 1.0) * smoothstep(0.32, 0.06, bgD) * (bgH > 0.965 ? 1.0 : 0.0) * (0.5 + 0.5 * bgH) * plume_amount * 0.35;",
+    "  }",
+    "  gl_FragColor = vec4(col, 1.0);",
+    "}"
   ].join('\n');
 
 
@@ -1019,7 +1018,7 @@ window.createNeonBlackhole = function (options) {
 
         scene: { type: 't', value: null }, bloom1: { type: 't', value: null }, bloom2: { type: 't', value: null },
 
-        strength: { type: 'f', value: 1.0 }, exposure: { type: 'f', value: 1.0 }, tonemap: { type: 'f', value: 1.0 }
+        strength: { type: 'f', value: 1.0 }, exposure: { type: 'f', value: 1.0 }, tonemap: { type: 'f', value: 1.0 }, grain: { type: 'f', value: 0.0 }
 
       },
 
@@ -1027,7 +1026,7 @@ window.createNeonBlackhole = function (options) {
 
       fragmentShader: [
 
-        'uniform sampler2D scene, bloom1, bloom2; uniform float strength, exposure, tonemap;',
+        'uniform sampler2D scene, bloom1, bloom2; uniform float strength, exposure, tonemap, grain;',
 
         'varying vec2 vUv;',
 
@@ -1066,6 +1065,12 @@ window.createNeonBlackhole = function (options) {
         '  vec2 q = vUv - 0.5; float vig = 1.0 - 0.35 * dot(q, q) * 2.0;',
 
         '  c *= mix(1.0, scan * vig, tonemap);',
+
+        '  // fine particulate film grain, brightest in the mid-tones',
+
+        '  vec2 gp = gl_FragCoord.xy; float gn = fract(sin(dot(gp, vec2(12.9898, 78.233))) * 43758.5453) + fract(sin(dot(gp + 17.3, vec2(39.346, 11.135))) * 24634.6345) - 1.0;',
+
+        '  c *= 1.0 + grain * gn * (0.35 + 0.65 * smoothstep(0.0, 0.5, max(c.r, max(c.g, c.b))));',
 
         '  gl_FragColor = vec4(c, 1.0);',
 
@@ -1147,7 +1152,7 @@ window.createNeonBlackhole = function (options) {
 
     'floor_tilt', 'floor_cell', 'floor_extent', 'disk_temp', 'disk_outer', 'disk_speed',
 
-    'spot_strength', 'galaxy_gain','floor_concentration','floor_reflection','floor_roughness','gas_tint','floor_sparkle','floor_dunes'];
+    'spot_strength', 'galaxy_gain','floor_concentration','floor_reflection','floor_roughness','gas_tint','floor_sparkle','floor_dunes','hole_glow'];
 
   var rtReflection=null;
 
@@ -1260,6 +1265,8 @@ window.createNeonBlackhole = function (options) {
     uniforms.floor_rim_color={type:'v3',value:new THREE.Vector3()};
 
     uniforms.floor_shadow_color={type:'v3',value:new THREE.Vector3()};
+
+    uniforms.hole_glow_color={type:'v3',value:new THREE.Vector3()};
 
     uniforms.reflection_pass={type:'f',value:0};
 
@@ -1525,6 +1532,8 @@ window.createNeonBlackhole = function (options) {
 
     if(L.floor_shadow_color)setHexVector(uniforms.floor_shadow_color.value,L.floor_shadow_color);
 
+    if(L.hole_glow_color)setHexVector(uniforms.hole_glow_color.value,L.hole_glow_color);
+
     // p.x spans [-1,1] horizontally in the shader; pick the horizontal FOV so
 
     // the vertical one never exceeds L.vfov (original: fixed 90 deg horizontal)
@@ -1726,6 +1735,8 @@ window.createNeonBlackhole = function (options) {
     C.exposure.value = L.exposure;
 
     C.tonemap.value = ORIG ? 0.0 : 1.0;
+
+    C.grain.value = ORIG ? 0.0 : (L.grain || 0);
 
     if (options.antialiasing && L.antialiasing) {
 

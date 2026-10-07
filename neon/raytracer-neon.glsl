@@ -61,7 +61,8 @@ uniform float galaxy_gain;
 uniform float floor_concentration, floor_reflection, floor_roughness, reflection_pass, gas_tint;
 uniform vec3 gas_color, reflect_pos, reflect_x, reflect_y, reflect_z;
 uniform sampler2D reflection_tex;
-uniform float floor_sparkle, floor_dunes;
+uniform float floor_sparkle, floor_dunes, hole_glow;
+uniform vec3 hole_glow_color;
 uniform vec3 floor_rim_color, floor_shadow_color;
 {{#floorTint}}
 uniform vec3 floor_color, floor_major_color;
@@ -366,46 +367,45 @@ vec3 floor_n, floor_e1, floor_e2, floor_o;
 float floor_d;
 
 {{#look.floor_snow}}
-// Multi-scale continuous dune topography with sweeping wave crests and polar sastrugi
+float dh21(vec2 p) { vec3 p3 = fract(vec3(p.xyx) * 0.1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
+float dn2(vec2 p) {
+    vec2 i = floor(p), f = fract(p); f = f * f * f * (f * (f * 6.0 - 15.0) + 10.0);
+    return mix(mix(dh21(i), dh21(i + vec2(1.0, 0.0)), f.x), mix(dh21(i + vec2(0.0, 1.0)), dh21(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+
+// Flowing wind-swept dunes: sinuous crests whose phase is warped by low-frequency
+// noise, so ridges meander, split and merge instead of repeating as sine bands.
 float dune_elevation(vec2 st) {
     float lateral = st.x;
     float depth = max(0.0, st.y);
     float nearRamp = smoothstep(0.8, 3.5, depth);
-    float distFade = smoothstep(38.0, 22.0, depth);
-    
-    // Natural valley cradle in the center framing the black hole
-    // Flanks rise symmetrically on both left and right
-    float flankRise = (smoothstep(2.5, 16.0, abs(lateral)) * 0.85
-                     + exp(-pow((abs(lateral) - 9.5) / 5.5, 2.0)) * 0.65);
-    
-    // Primary rolling transverse dune waves spanning across the landscape
-    float wavePhase1 = depth * 0.38 + sin(lateral * 0.11 + depth * 0.08) * 1.5 + lateral * 0.05;
-    float dune1 = pow(clamp(0.5 + 0.5 * sin(wavePhase1 - 0.45 * cos(wavePhase1)), 0.0, 1.0), 2.2) * 0.58;
-    
-    float wavePhase2 = depth * 0.68 + cos(lateral * 0.14 + depth * 0.12) * 1.2 - lateral * 0.07;
-    float dune2 = pow(clamp(0.5 + 0.5 * sin(wavePhase2 - 0.38 * cos(wavePhase2)), 0.0, 1.0), 2.0) * 0.40;
-    
-    float wavePhase3 = depth * 1.15 + sin(lateral * 0.20) * 0.85;
-    float dune3 = pow(clamp(0.5 + 0.5 * sin(wavePhase3), 0.0, 1.0), 1.8) * 0.24;
-    
-    // Fine polar sastrugi drift crests
-    float sastrugi = pow(clamp(0.5 + 0.5 * sin(depth * 2.2 + lateral * 0.35 + sin(depth * 0.8) * 0.6), 0.0, 1.0), 1.6) * 0.10;
-    
-    float totalDunes = (0.35 + flankRise + dune1 + dune2 + dune3 + sastrugi) * floor_dunes;
-    return min(2.5, totalDunes * nearRamp * distFade);
+    float distFade = smoothstep(40.0, 24.0, depth);
+
+    // central valley cradling the hole; both flanks climb and roll over
+    float flank = smoothstep(2.0, 17.0, abs(lateral)) * 0.95
+                + exp(-pow((abs(lateral) - 10.0) / 5.0, 2.0)) * 0.55;
+
+    vec2 w = vec2(dn2(st * 0.07 + 3.1), dn2(st * 0.07 + 8.7)) - 0.5;
+    vec2 q = st + w * 16.0;
+
+    float ph1 = q.y * 0.34 + (dn2(q * vec2(0.10, 0.14)) - 0.5) * 6.5 + q.x * 0.06;
+    float d1 = pow(0.5 + 0.5 * sin(ph1 - 0.5 * cos(ph1)), 2.0) * 0.62;
+    float ph2 = q.y * 0.71 + (dn2(q * vec2(0.16, 0.24) + 5.0) - 0.5) * 5.0 - q.x * 0.09;
+    float d2 = pow(0.5 + 0.5 * sin(ph2 - 0.4 * cos(ph2)), 2.2) * 0.34;
+    float cres = pow(1.0 - abs(2.0 * dn2(q * vec2(0.34, 0.62) + 11.0) - 1.0), 3.0) * 0.14;
+    float swell = dn2(st * 0.045 + 21.0) * 0.55;
+
+    float total = (0.30 + flank + d1 + d2 + cres + swell) * floor_dunes;
+    return min(2.7, total * nearRamp * distFade);
 }
 
-// Organic diagonal wind ripples (multi-octave polar sastrugi)
+// Fine wind ripples that follow the flow of the dunes (the long crest lines).
 float dune_ripples(vec2 st) {
-    float lx = st.x;
-    float ly = st.y;
-    // Katabatic wind sweep across the terrain
-    float u = lx * 0.82 + ly * 1.28;
-    float v = -lx * 1.28 + ly * 0.82;
-    float r1 = sin(u * 2.4 + sin(v * 1.2) * 0.8);
-    float r2 = pow(clamp(0.5 + 0.5 * sin(u * 4.8 + r1 * 0.7), 0.0, 1.0), 2.0);
-    float r3 = sin(v * 7.5 + u * 3.0) * 0.35;
-    return clamp(0.38 * r1 + 0.48 * r2 + 0.14 * r3 + 0.35, 0.0, 1.0);
+    vec2 q = st + (vec2(dn2(st * 0.45 + 1.3), dn2(st * 0.45 + 7.7)) - 0.5) * 2.4;
+    float r1 = 0.5 + 0.5 * sin(q.y * 6.0 + q.x * 0.7 + 2.6 * dn2(q * vec2(0.30, 1.0)));
+    float r2 = 0.5 + 0.5 * sin(q.y * 13.0 - q.x * 1.5 + 3.4 * dn2(q * vec2(0.7, 2.2) + 4.0));
+    float r3 = dn2(q * vec2(2.0, 6.0));
+    return clamp(pow(r1, 1.7) * 0.55 + pow(r2, 2.2) * 0.30 + r3 * 0.15, 0.0, 1.0);
 }
 {{/look.floor_snow}}
 
@@ -562,6 +562,12 @@ void main() {
 
     float du = -dot(ray,normal_vec) / dot(ray,tangent_vec) * u;
     float du0 = du;
+
+    // Schwarzschild impact parameter of this ray (critical b = 3*sqrt(3)/2 r_s);
+    // drives the photon-ring glow, which is lensed light from the thin gas that
+    // orbits at the photon sphere.
+    float sin_psi = clamp(length(cross(normal_vec, normalize(ray))), 0.0, 1.0);
+    float impact_b = sin_psi / (u0 * sqrt(max(1.0 - u0 * sin_psi * sin_psi, 1e-4)));
 
     float phi = 0.0;
     float t = time;
@@ -938,6 +944,27 @@ void main() {
         {{/neon_grid}}
     }
 
+
+    if (hole_glow > 0.0) {
+        float bx = (impact_b - 2.598076) / 2.598076;
+        float outside = max(bx, 0.0), inside = max(-bx, 0.0);
+        // white-hot hairline on the outer edge of the shadow, then a crimson halo
+        float hair = exp(-outside / 0.006) * smoothstep(-0.01, 0.0, bx);
+        float ring = exp(-outside / 0.03) * smoothstep(-0.03, 0.0, bx);
+        float halo = exp(-outside / 0.28) * smoothstep(-0.05, 0.0, bx);
+        float haze = exp(-outside / 1.1) * smoothstep(-0.05, 0.0, bx);
+        // inside the shadow: banded crimson gradient that fades to void
+        float grad = exp(-inside / 0.16) * smoothstep(0.85, 0.0, inside);
+        float banded = mix(grad, floor(grad * 7.0 + 0.5) / 7.0, 0.55);
+        vec3 hot = vec3(1.0, 0.93, 0.94);
+        vec3 gcol = hole_glow_color;
+        vec3 g = hot * (hair * 2.6 + ring * 0.7)
+               + mix(gcol, hot, 0.25) * ring * 1.4
+               + gcol * (halo * 0.55 + haze * 0.10)
+               + gcol * vec3(0.9, 0.55, 0.7) * banded * 0.5 * (bx < 0.0 ? 1.0 : 0.0);
+        color.rgb += g * hole_glow * (1.0 - smoothstep(0.55, 0.9, u0 * 2.6));
+    }
+
     {{#neon_floor}}{{^look.floor_lensing}}
     // A poster-style floor is a straight world-space mirror plane. The black
     // hole and reflected scene retain their own relativistic ray tracing.
@@ -1025,22 +1052,22 @@ void main() {
             vec3 snowAmbient = mix(shadowCol * 0.8, shadowCol * 1.15, slopeUp);
             vec3 frostedIndigo = mix(snowAmbient, vec3(0.11, 0.17, 0.33), clamp(slopeUp * 0.7, 0.0, 1.0));
             // Gentle cool lavender on slopes catching diffuse ambient
-            vec3 snowLit = mix(frostedIndigo, vec3(0.20, 0.27, 0.46), clamp(slopeToLight * 0.5 + slopeUp * 0.35, 0.0, 1.0)) * troughDarken;
+            vec3 snowLit = mix(frostedIndigo, vec3(0.30, 0.38, 0.62), clamp(slopeToLight * 0.5 + slopeUp * 0.35, 0.0, 1.0)) * troughDarken * 0.95;
             
             // Slope tilt: dunes and ripples have tilt; flat ground does not
             float slopeTilt = smoothstep(0.015, 0.22, 1.0 - slopeUp);
             // Razor-sharp glowing crimson/coral rim on dune ridges facing the black hole
-            float ridgeSilhouette = pow(1.0 - NdotV, 3.5) * (0.15 + 0.85 * slopeTilt) * smoothstep(-0.15, 0.35, slopeToLight);
-            float directBacklight = pow(clamp(dot(reflect(-L, N), V), 0.0, 1.0), 14.0) * 0.65 * (0.2 + 0.8 * slopeTilt);
-            float ripCrest = pow(ripVal, 3.2) * slopeTilt * smoothstep(0.0, 0.45, slopeToLight) * 1.8 * ripFade;
-            float totalCrest = ridgeSilhouette * 2.4 + directBacklight + ripCrest;
-            vec3 crimsonRim = floor_rim_color * totalCrest;
+            float ridgeSilhouette = pow(1.0 - NdotV, 3.5) * (0.01 + 0.99 * slopeTilt) * smoothstep(-0.15, 0.35, slopeToLight);
+            float directBacklight = pow(clamp(dot(reflect(-L, N), V), 0.0, 1.0), 14.0) * 0.65 * (0.04 + 0.96 * slopeTilt);
+            float ripCrest = pow(ripVal, 3.6) * slopeTilt * smoothstep(0.0, 0.45, slopeToLight) * 0.85 * ripFade;
+            float totalCrest = ridgeSilhouette * 1.7 + directBacklight * 0.7 + ripCrest;
+            vec3 crimsonRim = mix(floor_rim_color, vec3(1.0, 0.86, 0.92), clamp(totalCrest * 0.45, 0.0, 0.75)) * totalCrest;
             vec3 snowCol = snowLit + crimsonRim;
             
             // Backlit translucent rim on dune ridges facing black hole (SSS forward scattering)
             float sssForward = pow(clamp(dot(V, -L), 0.0, 1.0), 3.2);
             float sssCrest = pow(slopeTilt, 1.6) * smoothstep(-0.05, 0.40, slopeToLight);
-            vec3 sssCol = mix(floor_rim_color, vec3(1.0, 0.45, 0.62), 0.4) * (sssForward * sssCrest * 2.6);
+            vec3 sssCol = mix(floor_rim_color, vec3(1.0, 0.45, 0.62), 0.4) * (sssForward * sssCrest * 1.1);
             snowCol += sssCol;
             
             // Diamond micro-sparkles (stardust crystalline facets)
@@ -1093,12 +1120,12 @@ void main() {
             // Reddish light reflection: diffuse bounce & specular highlights only on faces lit by accretion disk
             float litFacing = smoothstep(-0.05, 0.45, slopeToLight);
             float NdotL = clamp(dot(N, L), 0.0, 1.0);
-            float redBounce = pow(NdotL, 2.0) * 0.48 * litFacing;
+            float redBounce = pow(NdotL, 2.4) * 0.16 * litFacing;
             vec3 redBounceCol = mix(floor_rim_color, vec3(1.0, 0.38, 0.52), 0.4);
             snowCol += redBounceCol * redBounce;
 
             float NdotH = clamp(dot(N, H), 0.0, 1.0);
-            float specRed = (pow(NdotH, 22.0) * 0.75 + pow(NdotH, 6.0) * 0.22) * litFacing;
+            float specRed = (pow(NdotH, 48.0) * 0.55 + pow(NdotH, 10.0) * 0.07) * litFacing;
             vec3 redSpecCol = mix(floor_rim_color * 1.35, vec3(1.0, 0.88, 0.93), 0.35);
             snowCol += redSpecCol * specRed;
 

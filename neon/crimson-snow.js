@@ -10,9 +10,9 @@ window.NEON_CRIMSON_SNOW = {
 
   lorentz_contraction:true,gravitational_time_dilation:true,aberration:true,beaming:true,doppler_shift:true,light_travel_time:true,time_scale:3.18,
 
-  observer:{motion:false,orbit:'eccentric',periapsis:3.2,apoapsis:22.6,distance:30,orbital_inclination:4.27,azimuth:0,elevation:0,rotation_speed:0},
+  observer:{motion:false,orbit:'eccentric',periapsis:3.2,apoapsis:22.6,distance:13,orbital_inclination:4.27,azimuth:0,elevation:0,rotation_speed:0},
 
-  camera:{navigation:'orbit',sensitivity:.18,move_speed:1,offset_x:0,offset_y:0,offset_z:0,height:-4.2,pitch:0.0,yaw:0,wobble_pitch:0,wobble_yaw:0,wobble_period:89.5},
+  camera:{navigation:'orbit',sensitivity:.18,move_speed:1,offset_x:0,offset_y:0,offset_z:0,height:-1.0,pitch:0.0,yaw:0,wobble_pitch:0,wobble_yaw:0,wobble_period:89.5},
 
   neon_grid:false,neon_floor:true,neon_sky:true,photon_eq_fix:true,disk_flow:true,disk_profile:true,grav_redshift:true,
 
@@ -24,17 +24,19 @@ window.NEON_CRIMSON_SNOW = {
 
     sky_plume:1.8,sky_plume_color:'#ff2855',
 
-    neon_nebula:false,nebula_amount:0.0,nebula_scale:6,nebula_color:'#3d4d8c',nebula_resolution:'high',
+    hole_glow:1.1,hole_glow_color:'#ff2c4a',grain:.06,
 
-    floor_strength:1.0,floor_height:6.0,floor_follow_camera:false,floor_x:0,floor_y:0,floor_yaw:0,
+    neon_nebula:false,nebula_amount:1.2,nebula_scale:6,nebula_color:'#3d4d8c',nebula_resolution:'high',
+
+    floor_strength:1.0,floor_height:3.6,floor_follow_camera:false,floor_x:0,floor_y:0,floor_yaw:0,
 
     floor_lensing:false,floor_tilt:0,floor_cell:2.5,floor_speed:0,floor_sway:0,floor_sway_period:34,
 
     floor_extent:14,floor_concentration:18,
 
-    floor_reflection:.12,floor_roughness:.18,floor_opaque:true,
+    floor_reflection:.03,floor_roughness:.18,floor_opaque:true,
 
-    floor_snow:true,floor_sparkle:1.5,floor_dunes:1.0,
+    floor_snow:true,floor_sparkle:1.5,floor_dunes:1.7,
 
     floor_rim_color:'#ff3a65',floor_shadow_color:'#081024',
 
