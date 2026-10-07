@@ -18,7 +18,7 @@ window.NEON_CRIMSON_SNOW = {
 
   look:{
 
-    grid_strength:.45,grid_glow:0,grid_pulse:0,
+    grid_strength:0.0,grid_glow:0,grid_pulse:0,
 
     sky_motion:true,sky_speed:1,sky_axis_tilt:0,
 

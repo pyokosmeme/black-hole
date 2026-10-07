@@ -751,29 +751,28 @@ window.createNeonBlackhole = function (options) {
     '  }',
 
     '  if(plume_amount>0.0){',
-
-    '    vec3 plume_dir = normalize(vec3(0.28, -0.42, 0.86));',
-
+    '    vec3 plume_dir = normalize(vec3(0.35, 0.78, 0.52));',
     '    float pdot = dot(d, plume_dir);',
-
-    '    if(pdot > 0.15) {',
-
+    '    if(pdot > 0.10) {',
     '      float pdist = 1.0 - pdot;',
-
-    '      float pnoise = fbm(d * 9.0 + 3.0 * w);',
-
-    '      float pfilaments = pow(1.0 - abs(2.0 * fbm(d * 18.0 + 1.5 * w) - 1.0), 3.0);',
-
-    '      float core = exp(-pdist * 14.0) * (0.6 + 0.4 * pnoise);',
-
-    '      float spray = exp(-pdist * 6.5) * pow(pnoise, 1.8) * pfilaments;',
-
-    '      vec3 pcol = mix(plume_color, vec3(1.0, 0.82, 0.88), 0.35);',
-
-    '      col += pcol * plume_amount * (core * 0.45 + spray * 0.7);',
-
+    '      float pnoise = fbm(d * 7.5 + 2.5 * w);',
+    '      float pfilaments = pow(1.0 - abs(2.0 * fbm(d * 15.0 + 1.8 * w) - 1.0), 3.0);',
+    '      float core = exp(-pdist * 9.5) * (0.65 + 0.35 * pnoise);',
+    '      float spray = exp(-pdist * 4.5) * pow(pnoise, 1.6) * pfilaments;',
+    '      vec3 sparkCoord = d * 48.0;',
+    '      vec3 sCell = floor(sparkCoord);',
+    '      float sHash = hash(sCell);',
+    '      float sDist = length(fract(sparkCoord) - 0.5);',
+    '      float snowSpeck = smoothstep(0.35, 0.05, sDist) * (sHash > 0.82 ? 1.0 : 0.0) * pow(sHash, 2.5);',
+    '      snowSpeck *= exp(-pdist * 5.2) * (0.8 + 0.2 * pnoise);',
+    '      vec3 pcol = mix(plume_color, vec3(1.0, 0.85, 0.92), 0.35);',
+    '      col += (pcol * (core * 0.65 + spray * 0.85) + vec3(1.0, 0.94, 0.98) * (snowSpeck * 2.2)) * plume_amount;',
     '    }',
-
+    '    vec3 bgSpk = d * 36.0;',
+    '    float bgH = hash(floor(bgSpk));',
+    '    float bgD = length(fract(bgSpk) - 0.5);',
+    '    float spaceSnow = smoothstep(0.32, 0.06, bgD) * (bgH > 0.965 ? 1.0 : 0.0) * (0.5 + 0.5 * bgH);',
+    '    col += vec3(0.95, 0.97, 1.0) * spaceSnow * (plume_amount * 0.35);',
     '  }',
 
     '  gl_FragColor = vec4(col, 1.0);',

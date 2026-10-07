@@ -57,23 +57,34 @@
     });}
     return units*size/100;
   }
-  function drawLettering(){
+  function drawLettering(targetCanvas, targetW, targetH){
     if(!viewer)return;
-    const c=viewer.params.caption,w=Math.max(1,scene.clientWidth),h=Math.max(1,scene.clientHeight),dpr=Math.min(devicePixelRatio,2);
-    const key=JSON.stringify([c,w,h,dpr,posterFontReady,document.fonts.status,viewer.params.look.floor_palette,viewer.params.look.floor_color]);
-    if(key===letteringKey)return;letteringKey=key;
-    lettering.width=Math.round(w*dpr);lettering.height=Math.round(h*dpr);
-    const ctx=lettering.getContext('2d');ctx.scale(dpr,dpr);
-    lettering.hidden=!c.enabled||!c.text;
-    if(lettering.hidden)return;
+    const isCustom = targetCanvas && typeof targetCanvas.getContext === 'function';
+    const canvas = isCustom ? targetCanvas : lettering;
+    const c=viewer.params.caption;
+    const w=(isCustom && targetW) ? targetW : Math.max(1,scene.clientWidth);
+    const h=(isCustom && targetH) ? targetH : Math.max(1,scene.clientHeight);
+    const dpr=isCustom?1:Math.min(devicePixelRatio,2);
+    if(!isCustom){
+      const key=JSON.stringify([c,w,h,dpr,posterFontReady,document.fonts.status,viewer.params.look.floor_palette,viewer.params.look.floor_color]);
+      if(key===letteringKey)return;letteringKey=key;
+      lettering.width=Math.round(w*dpr);lettering.height=Math.round(h*dpr);
+      lettering.hidden=!c.enabled||!c.text;
+      if(lettering.hidden)return;
+    }
+    const ctx=canvas.getContext('2d');
+    ctx.save();
+    if(!isCustom)ctx.scale(dpr,dpr);
     if((c.font==='Teko'||c.font==='Sculpted')&&!posterFontReady)loadPosterFont();
     const lines=(c.uppercase?c.text.toUpperCase():c.text).split(/[|\n]/).slice(0,6),size=h*c.size/100,lineHeight=size*c.line_gap;
     const sculpted=c.font==='Sculpted';
     ctx.font=`${c.font==='Teko'||sculpted?700:900} ${size}px ${c.font==='Teko'||sculpted?'"Neon Teko"':c.font==='Orbitron'?'Orbitron':'Impact, "Arial Black"'}, sans-serif`;
-    const measured=Math.max(...lines.map(line=>sculpted?artifactLine(line,size):ctx.measureText(line).width),1),scale=Math.min(c.stretch,w*c.width/100/measured);
-    // Fit long sculpted rows uniformly on narrow screens. The explicit width
-    // multiplier still works, but automatic fitting does not crush the glyphs.
-    ctx.translate(w*c.x/100,h*c.y/100);ctx.scale(scale,sculpted?Math.min(1,scale/c.stretch):1);ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='miter';ctx.miterLimit=2;
+    const measured=Math.max(...lines.map(line=>sculpted?artifactLine(line,size):ctx.measureText(line).width),1);
+    const maxW=w*c.width/100;
+    const fit=Math.min(1.0,maxW/Math.max(measured*c.stretch,1));
+    const scaleX=fit*c.stretch;
+    const scaleY=fit;
+    ctx.translate(w*c.x/100,h*c.y/100);ctx.scale(scaleX,scaleY);ctx.textAlign='center';ctx.textBaseline='middle';ctx.lineJoin='miter';ctx.miterLimit=2;
     lines.forEach((line,index)=>{
       const y=(index-(lines.length-1)/2)*lineHeight;
       const lineWidth=sculpted?artifactLine(line,size):ctx.measureText(line).width;
@@ -155,7 +166,11 @@
       }
       ctx.drawImage(face,-fw/2,y-fh/2,fw,fh);
     });
+    ctx.restore();
   }
+  window.renderLettering=function(targetCanvas,targetW,targetH){
+    drawLettering(targetCanvas,targetW,targetH);
+  };
   new ResizeObserver(drawLettering).observe(scene);
   document.fonts.ready.then(drawLettering);
   function message(text){

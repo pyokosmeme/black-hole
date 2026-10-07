@@ -51,15 +51,13 @@
           <button type="button" class="acidburn-button" id="neon-stationary" aria-pressed="false">Stationary</button>
           <button type="button" class="acidburn-button" id="neon-warm">Warm chrome scene</button>
           <button type="button" class="acidburn-button" id="neon-snow">Crimson snow scene</button>
-          <button type="button" class="acidburn-button" id="neon-quick-snap" title="Take immediate PNG still">Still</button>
-          <button type="button" class="acidburn-button" id="neon-quick-rec" title="Start/stop recording video">Record</button>
           <div id="neon-rec-pill" class="neon-rec-pill" hidden><span class="neon-rec-dot"></span><span id="neon-rec-timer">00:00</span><button type="button" id="neon-rec-stop-btn" class="acidburn-button neon-rec-stop">Stop</button></div>
           <button type="button" class="acidburn-button" id="neon-link">Share link</button>
           <button type="button" class="acidburn-button" id="neon-camera-free" aria-pressed="false" hidden>Free move</button>
         </div></div>
         <div class="map-hud map-hud-br"><div class="map-controls">
           <button type="button" class="acidburn-button" data-pane-toggle="neon-settings" aria-expanded="false">Settings</button>
-          <button type="button" class="acidburn-button" data-pane-toggle="neon-capture" aria-expanded="false" id="neon-capture-toggle">Record / Still</button>
+          <button type="button" class="acidburn-button" data-pane-toggle="neon-capture" aria-expanded="false" id="neon-capture-toggle">Capture</button>
           <button type="button" class="acidburn-button" data-pane-toggle="neon-share" aria-expanded="false">Share / ZIP</button>
         </div></div>
         <section class="author-card map-pane" id="neon-settings" data-map-pane hidden aria-labelledby="settings-title">
@@ -67,9 +65,13 @@
           <div class="map-pane-body"><p>Change the view, then copy or download your settings.</p><div id="neon-fields"></div></div>
         </section>
                 <section class="author-card map-pane" id="neon-capture" data-map-pane hidden aria-labelledby="capture-title">
-          <div class="section-header window-toolbar"><h2 id="capture-title">Record / Capture</h2><div class="section-line"></div><div class="window-actions"><button type="button" class="acidburn-button" data-pane-close aria-label="Close capture">×</button></div></div>
+          <div class="section-header window-toolbar"><h2 id="capture-title">Capture Studio</h2><div class="section-line"></div><div class="window-actions"><button type="button" class="acidburn-button" data-pane-close aria-label="Close capture">×</button></div></div>
           <div class="map-pane-body">
-            <p>Capture video clips, high-resolution stills, or download this visualizer as a single offline HTML file.</p>
+            <p>Capture high-resolution stills, record clips, or export this visualizer offline.</p>
+            <div class="neon-capture-quick-bar" style="display:flex;gap:8px;margin-bottom:12px;">
+              <button type="button" class="acidburn-button neon-action-btn" id="neon-quick-snap" style="flex:1;">📸 Save PNG Still</button>
+              <button type="button" class="acidburn-button neon-action-btn" id="neon-quick-rec" style="flex:1;">⏺️ Record Video</button>
+            </div>
             <details open class="neon-capture-section">
               <summary>Record Video</summary>
               <div class="neon-capture-controls">

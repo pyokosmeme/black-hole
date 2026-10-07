@@ -30,14 +30,12 @@ with sync_playwright() as p:
     page.goto('https://capture.test/neon-black-hole.html')
     page.wait_for_function('window.NeonViewer && NeonViewer.frames>0', timeout=60000)
 
-    # 1. Check HUD and Pane elements exist
-    assert page.locator('#neon-quick-snap').is_visible()
-    assert page.locator('#neon-quick-rec').is_visible()
+    # 1. Check Capture button in HUD and open Capture Studio
     assert page.locator('#neon-capture-toggle').is_visible()
-
-    # Open Capture Pane
     page.locator('#neon-capture-toggle').click()
     page.wait_for_selector('#neon-capture', state='visible')
+    assert page.locator('#neon-quick-snap').is_visible()
+    assert page.locator('#neon-quick-rec').is_visible()
 
     # 2. Test PNG Still capture at 1080p
     page.locator('#neon-still-res').select_option('1080p')
@@ -98,13 +96,15 @@ with sync_playwright() as p:
     print('PASS: Download HTML button in Share pane works')
     page.keyboard.press('Escape')  # close share pane
 
-    # 7. Verify Quick Snap button in HUD
+    # 7. Verify Quick Snap button in Capture Studio
+    page.locator('#neon-capture-toggle').click()
+    page.wait_for_selector('#neon-capture', state='visible')
     with page.expect_download(timeout=30000) as quick_dl:
         page.locator('#neon-quick-snap').click()
     quick_path = OUT / 'quick-snap.png'
     quick_dl.value.save_as(str(quick_path))
     assert quick_path.stat().st_size > 10000
-    print('PASS: Quick snap HUD button works')
+    print('PASS: Quick snap button works')
 
     assert not errors, f'Console/page errors: {errors}'
     browser.close()

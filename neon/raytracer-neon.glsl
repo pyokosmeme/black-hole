@@ -366,41 +366,35 @@ vec3 floor_n, floor_e1, floor_e2, floor_o;
 float floor_d;
 
 {{#look.floor_snow}}
-// Multi-scale procedural dune elevation with sweeping mountain flank, rolling transverse crests, and wind-carved slipfaces
+// Multi-scale continuous dune topography with sweeping wave crests and organic sastrugi
 float dune_elevation(vec2 st) {
     float lateral = st.x;
     float depth = max(0.0, st.y);
-    float nearRamp = smoothstep(0.6, 3.2, depth);
-    float distFade = smoothstep(34.0, 18.0, depth);
+    float nearRamp = smoothstep(0.8, 3.5, depth);
+    float distFade = smoothstep(36.0, 20.0, depth);
     
-    // Sweeping left mountain/dune ridge rising high into the sky (as in reference art)
-    float leftShoulder = smoothstep(2.0, -11.0, lateral);
-    float leftRidgeShape = exp(-pow((lateral + 7.5 + sin(depth * 0.22) * 1.6) / 5.2, 2.0));
-    float ridgeLeft = leftShoulder * leftRidgeShape * 1.65;
+    // Gentle natural valley cradle in the center framing the black hole
+    // Elevation gently rises on BOTH left and right flanks
+    float flankRise = (smoothstep(2.0, 16.0, abs(lateral)) * 0.75
+                     + exp(-pow((lateral + 9.0) / 6.5, 2.0)) * 0.65
+                     + exp(-pow((lateral - 9.0) / 6.5, 2.0)) * 0.55);
     
-    // Right framing shoulder
-    float rightShoulder = smoothstep(-1.0, 9.0, lateral);
-    float rightRidgeShape = exp(-pow((lateral - 8.0 + cos(depth * 0.18) * 1.4) / 4.8, 2.0));
-    float ridgeRight = rightShoulder * rightRidgeShape * 1.15;
+    // Primary rolling transverse dune waves spanning across the ENTIRE view
+    // Organic curved wave fronts driven by wind
+    float wavePhase1 = depth * 0.42 + sin(lateral * 0.12 + depth * 0.1) * 1.4 + lateral * 0.06;
+    float dune1 = pow(clamp(0.5 + 0.5 * sin(wavePhase1 - 0.4 * cos(wavePhase1)), 0.0, 1.0), 2.2) * 0.55;
     
-    // Center dip / cradle that frames the black hole horizon
-    float centerCradle = smoothstep(5.5, 0.0, abs(lateral)) * 0.35;
+    float wavePhase2 = depth * 0.72 + cos(lateral * 0.15 + depth * 0.14) * 1.1 - lateral * 0.08;
+    float dune2 = pow(clamp(0.5 + 0.5 * sin(wavePhase2 - 0.35 * cos(wavePhase2)), 0.0, 1.0), 2.0) * 0.38;
     
-    // Transverse rolling dune crests with sharp windward/leeward slipfaces
-    float d1 = lateral * 0.18 + depth * 0.38 + sin(lateral * 0.12 + depth * 0.15) * 1.4;
-    float crest1 = pow(clamp(0.5 + 0.5 * sin(d1 - 0.45 * cos(d1)), 0.0, 1.0), 2.4) * 0.48;
+    float wavePhase3 = depth * 1.2 + sin(lateral * 0.22) * 0.8;
+    float dune3 = pow(clamp(0.5 + 0.5 * sin(wavePhase3), 0.0, 1.0), 1.8) * 0.22;
     
-    float d2 = -lateral * 0.22 + depth * 0.65 + cos(lateral * 0.15 + depth * 0.12) * 1.1;
-    float crest2 = pow(clamp(0.5 + 0.5 * sin(d2 - 0.4 * cos(d2)), 0.0, 1.0), 2.2) * 0.36;
+    // Fine wind ripples / sastrugi
+    float sastrugi = pow(clamp(0.5 + 0.5 * sin(depth * 2.0 + lateral * 0.3), 0.0, 1.0), 1.5) * 0.08;
     
-    float d3 = lateral * 0.32 + depth * 1.05 + sin(depth * 0.28) * 0.8;
-    float crest3 = pow(clamp(0.5 + 0.5 * sin(d3 - 0.35 * cos(d3)), 0.0, 1.0), 2.0) * 0.24;
-    
-    float d4 = -lateral * 0.28 + depth * 1.6;
-    float sastrugi = pow(clamp(0.5 + 0.5 * sin(d4), 0.0, 1.0), 1.6) * 0.12;
-    
-    float h = max(0.0, (ridgeLeft + ridgeRight + crest1 + crest2 + crest3 + sastrugi - centerCradle) * floor_dunes);
-    return min(2.4, h * nearRamp * distFade);
+    float totalDunes = (0.35 + flankRise + dune1 + dune2 + dune3 + sastrugi) * floor_dunes;
+    return min(2.5, totalDunes * nearRamp * distFade);
 }
 
 // Organic diagonal wind ripples (sastrugi striations)
@@ -826,33 +820,6 @@ void main() {
         }
         {{/look.floor_lensing}}
         {{/neon_floor}}
-        {{#look.floor_snow}}
-        // Luminous stardust stream drawn inward towards the black hole
-        float r_cur = 1.0 / max(u, 0.001);
-        if (r_cur > 1.25 && r_cur < 13.0 && trans > 0.05) {
-            vec3 dp = pos;
-            {{#diskTilt}}
-            dp = vec3(dot(pos, disk_bx), dot(pos, disk_by), dot(pos, disk_n));
-            {{/diskTilt}}
-            float h_disk = abs(dp.z);
-            if (h_disk < 0.22 * r_cur) {
-                float ang = atan(dp.y, dp.x);
-                float infallTime = t * 1.2;
-                float spiralArm1 = ang + 3.4 * sqrt(13.0 / r_cur) - infallTime * (0.8 + 1.8 / sqrt(r_cur));
-                float armDist1 = abs(fract(spiralArm1 / (2.0 * M_PI) + 0.5) - 0.5) * (2.0 * M_PI * r_cur);
-                float armGlow = exp(-armDist1 * 1.8) * smoothstep(0.22 * r_cur, 0.0, h_disk);
-                
-                if (armGlow > 0.015) {
-                    float flakeHash = fract(sin(dot(floor(dp * 12.0), vec3(27.1, 71.7, 43.3))) * 43758.5453);
-                    float spark = (flakeHash > 0.82 ? 1.0 : 0.0) * pow(flakeHash, 3.0) * (0.7 + 0.3 * sin(t * 8.0 + flakeHash * 20.0));
-                    float redHeat = clamp((9.0 - r_cur) / 6.5, 0.0, 1.0);
-                    vec3 flakeCol = mix(vec3(0.92, 0.96, 1.0), floor_rim_color * 1.7, redHeat);
-                    color.rgb += flakeCol * (armGlow * 0.15 + spark * 0.4) * trans;
-                    trans *= 1.0 - (armGlow * 0.03 + spark * 0.05);
-                }
-            }
-        }
-        {{/look.floor_snow}}
         path_len += ray_l;
 
         {{#light_travel_time}}
@@ -986,6 +953,8 @@ void main() {
     {{#look.floor_snow}}
     if(planeHeight > 0.0 && (planeDirection < 0.05 || planeCoverage > 0.0) && u < 1.0) {
         vec3 floorRay = floor_camera_ray;
+        vec3 floor_fwd = normalize(cam_z - dot(cam_z, floor_n) * floor_n);
+        vec3 floor_side = normalize(cam_x - dot(cam_x, floor_n) * floor_n);
         bool hitDune = false;
         float hitT = 48.0;
         float t_base = planeDirection < -0.0001 ? planeHeight / (-planeDirection) : 48.0;
@@ -993,16 +962,16 @@ void main() {
         float t_min = 0.3;
         float t_prev = t_min;
         vec3 p_prev = cam_pos + floorRay * t_prev;
-        vec3 r_prev = p_prev - floor_o;
-        vec2 st_prev = vec2(dot(r_prev, floor_e1), dot(r_prev, floor_e2)) + floor_offset;
+        vec3 d_prev = p_prev - cam_pos;
+        vec2 st_prev = vec2(dot(d_prev, floor_side), dot(d_prev, floor_fwd)) + floor_offset;
         float h_diff_prev = (planeHeight + planeDirection * t_prev) - dune_elevation(st_prev);
         
         for (int m = 1; m <= 38; m++) {
             float frac = float(m) / 38.0;
             float t_curr = t_min + (t_max - t_min) * pow(frac, 1.25);
             vec3 pm = cam_pos + floorRay * t_curr;
-            vec3 rm = pm - floor_o;
-            vec2 stm = vec2(dot(rm, floor_e1), dot(rm, floor_e2)) + floor_offset;
+            vec3 dm = pm - cam_pos;
+            vec2 stm = vec2(dot(dm, floor_side), dot(dm, floor_fwd)) + floor_offset;
             float h_ray = planeHeight + planeDirection * t_curr;
             float h_dune = dune_elevation(stm);
             float h_diff = h_ray - h_dune;
@@ -1025,33 +994,34 @@ void main() {
         
         if (hitDune) {
             vec3 hitPos = cam_pos + floorRay * hitT;
-            vec3 relHit = hitPos - floor_o;
-            vec2 stHit = vec2(dot(relHit, floor_e1), dot(relHit, floor_e2)) + floor_offset;
+            vec3 dHit = hitPos - cam_pos;
+            vec2 stHit = vec2(dot(dHit, floor_side), dot(dHit, floor_fwd)) + floor_offset;
             float eps = max(0.02, hitT * 0.002);
             float dhx = (dune_elevation(stHit + vec2(eps, 0.0)) - dune_elevation(stHit - vec2(eps, 0.0))) / (2.0 * eps);
             float dhy = (dune_elevation(stHit + vec2(0.0, eps)) - dune_elevation(stHit - vec2(0.0, eps))) / (2.0 * eps);
-            vec3 macroN = normalize(floor_n - dhx * floor_e1 - dhy * floor_e2);
+            vec3 macroN = normalize(floor_n - dhx * floor_side - dhy * floor_fwd);
             
             float reps = 0.015;
             float drx = (dune_ripples(stHit + vec2(reps, 0.0)) - dune_ripples(stHit - vec2(reps, 0.0))) / (2.0 * reps);
             float dry = (dune_ripples(stHit + vec2(0.0, reps)) - dune_ripples(stHit - vec2(0.0, reps))) / (2.0 * reps);
             float ripFade = smoothstep(26.0, 3.0, stHit.y);
-            vec3 N = normalize(macroN - (drx * floor_e1 + dry * floor_e2) * (0.28 * ripFade));
+            vec3 N = normalize(macroN - (drx * floor_side + dry * floor_fwd) * (0.28 * ripFade));
             
             vec3 V = -floorRay;
             vec3 L = normalize(-hitPos);
             float NdotV = clamp(dot(N, V), 0.0, 1.0);
             float slopeUp = clamp(dot(N, floor_n), 0.0, 1.0);
-            float slopeToLight = dot(N, floor_e2); // positive faces black hole (backlight)
+            float slopeToLight = dot(N, floor_fwd); // positive faces black hole (backlight)
             float ripVal = dune_ripples(stHit);
             
+
             // Velvety deep indigo/midnight shadows on camera-facing flanks
             vec3 shadowCol = floor_shadow_color;
-            float troughDarken = mix(0.65, 1.1, pow(ripVal, 1.4));
-            vec3 snowAmbient = mix(shadowCol * 0.7, shadowCol * 1.1, slopeUp);
-            vec3 frostedIndigo = mix(snowAmbient, vec3(0.12, 0.18, 0.36), clamp(slopeUp * 0.65, 0.0, 1.0));
+            float troughDarken = mix(0.70, 1.05, pow(ripVal, 1.4));
+            vec3 snowAmbient = mix(shadowCol * 0.75, shadowCol * 1.1, slopeUp);
+            vec3 frostedIndigo = mix(snowAmbient, vec3(0.12, 0.18, 0.34), clamp(slopeUp * 0.65, 0.0, 1.0));
             // Gentle cool lavender on slopes catching diffuse ambient
-            vec3 snowLit = mix(frostedIndigo, vec3(0.24, 0.32, 0.52), clamp(slopeToLight * 0.5 + slopeUp * 0.3, 0.0, 1.0)) * troughDarken;
+            vec3 snowLit = mix(frostedIndigo, vec3(0.22, 0.28, 0.48), clamp(slopeToLight * 0.5 + slopeUp * 0.3, 0.0, 1.0)) * troughDarken;
             
             // Slope tilt: dunes and ripples have tilt; flat ground does not
             float slopeTilt = smoothstep(0.015, 0.22, 1.0 - slopeUp);
