@@ -366,47 +366,52 @@ vec3 floor_n, floor_e1, floor_e2, floor_o;
 float floor_d;
 
 {{#look.floor_snow}}
-// Multi-scale procedural dune elevation with wind-carved sharp crests
+// Multi-scale procedural dune elevation with sweeping mountain flank, rolling transverse crests, and wind-carved slipfaces
 float dune_elevation(vec2 st) {
     float lateral = st.x;
     float depth = max(0.0, st.y);
-    float nearRamp = smoothstep(0.1, 1.2, depth);
-    float distFade = smoothstep(65.0, 36.0, depth);
+    float nearRamp = smoothstep(0.6, 3.2, depth);
+    float distFade = smoothstep(34.0, 18.0, depth);
     
-    // Curved mountain dune ridge on left framing the sky
-    float ridgeLeft = exp(-pow((lateral + 8.5) / 6.0, 2.0)) * 3.8 + smoothstep(1.0, -14.0, lateral) * 1.5;
-    // Rolling dune ridge on right
-    float ridgeRight = exp(-pow((lateral - 9.0) / 7.0, 2.0)) * 2.2 + smoothstep(-2.0, 15.0, lateral) * 0.9;
-    // Valley dip in center framing the black hole
-    float centerSaddle = smoothstep(7.5, 0.0, abs(lateral)) * 0.65;
+    // Sweeping left mountain/dune ridge rising high into the sky (as in reference art)
+    float leftShoulder = smoothstep(2.0, -11.0, lateral);
+    float leftRidgeShape = exp(-pow((lateral + 7.5 + sin(depth * 0.22) * 1.6) / 5.2, 2.0));
+    float ridgeLeft = leftShoulder * leftRidgeShape * 1.65;
     
-    // Sweeping wind-carved dune crests curving across the dunes
-    float d1 = lateral * 0.35 + depth * 0.32 + sin(lateral * 0.16 + depth * 0.12) * 1.6;
-    float crest1 = pow(clamp(0.5 + 0.5 * sin(d1 - 0.42 * cos(d1)), 0.0, 1.0), 2.2) * 1.5;
+    // Right framing shoulder
+    float rightShoulder = smoothstep(-1.0, 9.0, lateral);
+    float rightRidgeShape = exp(-pow((lateral - 8.0 + cos(depth * 0.18) * 1.4) / 4.8, 2.0));
+    float ridgeRight = rightShoulder * rightRidgeShape * 1.15;
     
-    float d2 = -lateral * 0.32 + depth * 0.55 + cos(lateral * 0.20 + depth * 0.15) * 1.3;
-    float crest2 = pow(clamp(0.5 + 0.5 * sin(d2 - 0.38 * cos(d2)), 0.0, 1.0), 2.0) * 1.0;
+    // Center dip / cradle that frames the black hole horizon
+    float centerCradle = smoothstep(5.5, 0.0, abs(lateral)) * 0.35;
     
-    float d3 = lateral * 0.55 + depth * 0.95 + sin(depth * 0.28) * 0.8;
-    float crest3 = pow(clamp(0.5 + 0.5 * sin(d3 - 0.32 * cos(d3)), 0.0, 1.0), 1.8) * 0.55;
+    // Transverse rolling dune crests with sharp windward/leeward slipfaces
+    float d1 = lateral * 0.18 + depth * 0.38 + sin(lateral * 0.12 + depth * 0.15) * 1.4;
+    float crest1 = pow(clamp(0.5 + 0.5 * sin(d1 - 0.45 * cos(d1)), 0.0, 1.0), 2.4) * 0.48;
     
-    float d4 = -lateral * 0.45 + depth * 1.7;
-    float sastrugi = pow(clamp(0.5 + 0.5 * sin(d4), 0.0, 1.0), 1.5) * 0.25;
+    float d2 = -lateral * 0.22 + depth * 0.65 + cos(lateral * 0.15 + depth * 0.12) * 1.1;
+    float crest2 = pow(clamp(0.5 + 0.5 * sin(d2 - 0.4 * cos(d2)), 0.0, 1.0), 2.2) * 0.36;
     
-    float baseH = 1.3;
-    float h = max(0.0, (baseH + ridgeLeft + ridgeRight + crest1 + crest2 + crest3 + sastrugi - centerSaddle) * floor_dunes);
-    return h * nearRamp * distFade;
+    float d3 = lateral * 0.32 + depth * 1.05 + sin(depth * 0.28) * 0.8;
+    float crest3 = pow(clamp(0.5 + 0.5 * sin(d3 - 0.35 * cos(d3)), 0.0, 1.0), 2.0) * 0.24;
+    
+    float d4 = -lateral * 0.28 + depth * 1.6;
+    float sastrugi = pow(clamp(0.5 + 0.5 * sin(d4), 0.0, 1.0), 1.6) * 0.12;
+    
+    float h = max(0.0, (ridgeLeft + ridgeRight + crest1 + crest2 + crest3 + sastrugi - centerCradle) * floor_dunes);
+    return min(2.4, h * nearRamp * distFade);
 }
 
 // Organic diagonal wind ripples (sastrugi striations)
 float dune_ripples(vec2 st) {
     float lateral = st.x;
     float depth = st.y;
-    float w1 = lateral * 1.3 + depth * 1.9 + sin(lateral * 0.5 + depth * 0.35) * 1.2;
-    float w2 = -lateral * 0.85 + depth * 3.2 + sin(depth * 0.75) * 0.75;
+    float w1 = lateral * 1.6 + depth * 2.4 + sin(lateral * 0.6 + depth * 0.4) * 1.1;
+    float w2 = -lateral * 0.9 + depth * 3.8 + sin(depth * 0.8) * 0.7;
     float r1 = sin(w1);
-    float r2 = sin(w2) * 0.45;
-    return pow(clamp(0.5 + 0.5 * (r1 + r2) / 1.45, 0.0, 1.0), 1.6);
+    float r2 = sin(w2) * 0.5;
+    return pow(clamp(0.5 + 0.5 * (r1 + r2) / 1.5, 0.0, 1.0), 1.6);
 }
 {{/look.floor_snow}}
 
@@ -822,38 +827,28 @@ void main() {
         {{/look.floor_lensing}}
         {{/neon_floor}}
         {{#look.floor_snow}}
-        // Spiral crystalline snow particles drawn into the black hole
+        // Luminous stardust stream drawn inward towards the black hole
         float r_cur = 1.0 / max(u, 0.001);
-        if (r_cur > 1.25 && r_cur < 13.5 && trans > 0.05) {
+        if (r_cur > 1.25 && r_cur < 13.0 && trans > 0.05) {
             vec3 dp = pos;
             {{#diskTilt}}
             dp = vec3(dot(pos, disk_bx), dot(pos, disk_by), dot(pos, disk_n));
             {{/diskTilt}}
             float h_disk = abs(dp.z);
-            if (h_disk < 0.45 * r_cur) {
+            if (h_disk < 0.22 * r_cur) {
                 float ang = atan(dp.y, dp.x);
                 float infallTime = t * 1.2;
-                float rFlow = r_cur + 0.35 * infallTime;
-                float spiralPhase = ang + 2.8 * sqrt(13.5 / r_cur) - infallTime * (0.85 + 2.0 / sqrt(r_cur));
-                vec3 cellId = floor(vec3(rFlow * 2.2, spiralPhase * 4.5, dp.z * 3.5));
-                float h_flake = vhash(cellId);
-                if (h_flake > 0.83) {
-                    float jR = (cellId.x + 0.5 + 0.3 * (vhash(cellId + 1.1) - 0.5)) / 2.2 - 0.35 * infallTime;
-                    if (jR > 1.2) {
-                        float jPhi = (cellId.y + 0.5 + 0.3 * (vhash(cellId + 2.3) - 0.5)) / 4.5 - 2.8 * sqrt(13.5 / max(jR, 0.5)) + infallTime * (0.85 + 2.0 / sqrt(max(jR, 0.5)));
-                        float jZ = (cellId.z + 0.5 + 0.3 * (vhash(cellId + 3.7) - 0.5)) / 3.5;
-                        vec3 pFlake = vec3(jR * cos(jPhi), jR * sin(jPhi), jZ);
-                        float d2 = dot(dp - pFlake, dp - pFlake);
-                        float radius = 0.09 + 0.04 * vhash(cellId + 4.9);
-                        if (d2 < radius * radius) {
-                            float core = 1.0 - sqrt(d2) / radius;
-                            float spark = pow(core, 2.0) * (0.65 + 0.35 * sin(h_flake * 30.0 + infallTime * 4.0));
-                            float redHeat = clamp((8.5 - r_cur) / 6.0, 0.0, 1.0);
-                            vec3 redFlake = mix(vec3(0.92, 0.96, 1.0), floor_rim_color * 1.7, redHeat);
-                            color.rgb += redFlake * (spark * 0.5) * trans;
-                            trans *= 1.0 - spark * 0.2;
-                        }
-                    }
+                float spiralArm1 = ang + 3.4 * sqrt(13.0 / r_cur) - infallTime * (0.8 + 1.8 / sqrt(r_cur));
+                float armDist1 = abs(fract(spiralArm1 / (2.0 * M_PI) + 0.5) - 0.5) * (2.0 * M_PI * r_cur);
+                float armGlow = exp(-armDist1 * 1.8) * smoothstep(0.22 * r_cur, 0.0, h_disk);
+                
+                if (armGlow > 0.015) {
+                    float flakeHash = fract(sin(dot(floor(dp * 12.0), vec3(27.1, 71.7, 43.3))) * 43758.5453);
+                    float spark = (flakeHash > 0.82 ? 1.0 : 0.0) * pow(flakeHash, 3.0) * (0.7 + 0.3 * sin(t * 8.0 + flakeHash * 20.0));
+                    float redHeat = clamp((9.0 - r_cur) / 6.5, 0.0, 1.0);
+                    vec3 flakeCol = mix(vec3(0.92, 0.96, 1.0), floor_rim_color * 1.7, redHeat);
+                    color.rgb += flakeCol * (armGlow * 0.15 + spark * 0.4) * trans;
+                    trans *= 1.0 - (armGlow * 0.03 + spark * 0.05);
                 }
             }
         }
@@ -989,21 +984,22 @@ void main() {
     // Captured rays and solid hits already terminate on an opaque scene
     // surface. The final straight-floor pass must not paint over that surface.
     {{#look.floor_snow}}
-    float snowReach = 0.28 * max(floor_dunes, 0.1);
-    if(planeHeight > 0.0 && (planeDirection < snowReach || planeCoverage > 0.0) && u < 1.0) {
+    if(planeHeight > 0.0 && (planeDirection < 0.05 || planeCoverage > 0.0) && u < 1.0) {
         vec3 floorRay = floor_camera_ray;
         bool hitDune = false;
         float hitT = 48.0;
-        float t_max = planeDirection < -0.005 ? min(52.0, (planeHeight + 0.1) / (-planeDirection)) : 48.0;
-        float t_prev = 0.2;
+        float t_base = planeDirection < -0.0001 ? planeHeight / (-planeDirection) : 48.0;
+        float t_max = min(48.0, t_base);
+        float t_min = 0.3;
+        float t_prev = t_min;
         vec3 p_prev = cam_pos + floorRay * t_prev;
         vec3 r_prev = p_prev - floor_o;
         vec2 st_prev = vec2(dot(r_prev, floor_e1), dot(r_prev, floor_e2)) + floor_offset;
         float h_diff_prev = (planeHeight + planeDirection * t_prev) - dune_elevation(st_prev);
         
-        for (int m = 1; m <= 32; m++) {
-            float frac = float(m) / 32.0;
-            float t_curr = 0.3 + (t_max - 0.3) * pow(frac, 1.35);
+        for (int m = 1; m <= 38; m++) {
+            float frac = float(m) / 38.0;
+            float t_curr = t_min + (t_max - t_min) * pow(frac, 1.25);
             vec3 pm = cam_pos + floorRay * t_curr;
             vec3 rm = pm - floor_o;
             vec2 stm = vec2(dot(rm, floor_e1), dot(rm, floor_e2)) + floor_offset;
@@ -1022,7 +1018,7 @@ void main() {
 
         float coverage = 1.0;
         if (!hitDune && planeDirection < -0.0005) {
-            hitT = planeHeight / max(-planeDirection, 0.00001);
+            hitT = t_base;
             hitDune = true;
             coverage = planeCoverage;
         }
@@ -1031,56 +1027,59 @@ void main() {
             vec3 hitPos = cam_pos + floorRay * hitT;
             vec3 relHit = hitPos - floor_o;
             vec2 stHit = vec2(dot(relHit, floor_e1), dot(relHit, floor_e2)) + floor_offset;
-            float eps = 0.05;
+            float eps = max(0.02, hitT * 0.002);
             float dhx = (dune_elevation(stHit + vec2(eps, 0.0)) - dune_elevation(stHit - vec2(eps, 0.0))) / (2.0 * eps);
             float dhy = (dune_elevation(stHit + vec2(0.0, eps)) - dune_elevation(stHit - vec2(0.0, eps))) / (2.0 * eps);
             vec3 macroN = normalize(floor_n - dhx * floor_e1 - dhy * floor_e2);
             
-            float reps = 0.022;
+            float reps = 0.015;
             float drx = (dune_ripples(stHit + vec2(reps, 0.0)) - dune_ripples(stHit - vec2(reps, 0.0))) / (2.0 * reps);
             float dry = (dune_ripples(stHit + vec2(0.0, reps)) - dune_ripples(stHit - vec2(0.0, reps))) / (2.0 * reps);
-            float ripFade = smoothstep(32.0, 6.0, stHit.y);
-            vec3 N = normalize(macroN - (drx * floor_e1 + dry * floor_e2) * (0.32 * ripFade));
+            float ripFade = smoothstep(26.0, 3.0, stHit.y);
+            vec3 N = normalize(macroN - (drx * floor_e1 + dry * floor_e2) * (0.28 * ripFade));
             
             vec3 V = -floorRay;
             vec3 L = normalize(-hitPos);
             float NdotV = clamp(dot(N, V), 0.0, 1.0);
             float slopeUp = clamp(dot(N, floor_n), 0.0, 1.0);
-            float slopeToLight = dot(N, floor_e2); // positive faces black hole, negative faces camera
+            float slopeToLight = dot(N, floor_e2); // positive faces black hole (backlight)
             float ripVal = dune_ripples(stHit);
             
-            // Deep midnight indigo in shadow troughs, frosted periwinkle blue on lit slopes
+            // Velvety deep indigo/midnight shadows on camera-facing flanks
             vec3 shadowCol = floor_shadow_color;
-            // Troughs between ripples get deeper shadowing for rich tactile striations
-            float troughDarken = mix(0.55, 1.1, pow(ripVal, 1.4));
-            vec3 snowAmbient = mix(shadowCol * 0.7, shadowCol * 1.2, slopeUp);
-            vec3 frostedBlue = mix(vec3(0.18, 0.28, 0.48), vec3(0.38, 0.52, 0.75), slopeUp * 0.6 + slopeToLight * 0.4);
-            vec3 snowLit = mix(snowAmbient, frostedBlue, clamp(slopeToLight * 0.75 + slopeUp * 0.35, 0.0, 1.0)) * troughDarken;
+            float troughDarken = mix(0.65, 1.1, pow(ripVal, 1.4));
+            vec3 snowAmbient = mix(shadowCol * 0.7, shadowCol * 1.1, slopeUp);
+            vec3 frostedIndigo = mix(snowAmbient, vec3(0.12, 0.18, 0.36), clamp(slopeUp * 0.65, 0.0, 1.0));
+            // Gentle cool lavender on slopes catching diffuse ambient
+            vec3 snowLit = mix(frostedIndigo, vec3(0.24, 0.32, 0.52), clamp(slopeToLight * 0.5 + slopeUp * 0.3, 0.0, 1.0)) * troughDarken;
             
-            // Razor-sharp crimson rim lighting on dune crests and wind ripple edges
-            // Edge glow on silhouettes and crest ridges facing the backlit black hole
-            float ridgeSilhouette = pow(1.0 - NdotV, 3.5) * smoothstep(-0.15, 0.35, slopeToLight);
-            float directBacklight = pow(clamp(dot(reflect(-L, N), V), 0.0, 1.0), 16.0) * 0.4;
-            // Only the very peak of the wind ripples catches vivid neon coral/crimson
-            float ripCrest = pow(ripVal, 3.2) * smoothstep(-0.1, 0.45, slopeToLight) * 1.4 * ripFade;
-            float totalCrest = ridgeSilhouette * 1.8 + directBacklight + ripCrest;
+            // Slope tilt: dunes and ripples have tilt; flat ground does not
+            float slopeTilt = smoothstep(0.015, 0.22, 1.0 - slopeUp);
+            // Razor-sharp glowing crimson/coral rim on dune ridges facing the black hole
+            float ridgeSilhouette = pow(1.0 - NdotV, 3.5) * (0.15 + 0.85 * slopeTilt) * smoothstep(-0.15, 0.35, slopeToLight);
+            float directBacklight = pow(clamp(dot(reflect(-L, N), V), 0.0, 1.0), 14.0) * 0.65 * (0.2 + 0.8 * slopeTilt);
+            float ripCrest = pow(ripVal, 3.2) * slopeTilt * smoothstep(0.0, 0.45, slopeToLight) * 1.8 * ripFade;
+            float totalCrest = ridgeSilhouette * 2.4 + directBacklight + ripCrest;
             vec3 crimsonRim = floor_rim_color * totalCrest;
             vec3 snowCol = snowLit + crimsonRim;
             
-            // Micro-crystalline diamond sparkles across snow surface
-            vec3 sc = floor(hitPos * 28.0);
-            float h1 = vhash(sc);
-            float h2 = vhash(sc + vec3(17.3, 31.7, 5.1));
-            vec3 facetN = normalize(N + (vec3(h1, h2, vhash(sc + 41.2)) - 0.5) * 1.6);
-            float glint1 = pow(max(0.0, dot(reflect(-L, facetN), V)), 26.0) * (h1 > 0.7 ? 2.5 : 0.0);
-            float glint2 = pow(max(0.0, dot(facetN, V)), 16.0) * (h2 > 0.8 ? 1.4 : 0.0);
-            float sparkle = (glint1 + glint2) * floor_sparkle;
-            vec3 sparkleCol = mix(vec3(0.95, 0.98, 1.0), vec3(1.0, 0.82, 0.92), h1);
+            // Micro-crystalline diamond sparkles (stardust crystals)
+            vec2 sparkUV = stHit * 26.0;
+            vec2 sparkCell = floor(sparkUV);
+            float h1 = fract(sin(dot(sparkCell, vec2(127.1, 311.7))) * 43758.5453);
+            vec2 cellFrac = fract(sparkUV) - 0.5;
+            float sparkDist = length(cellFrac);
+            float sparkMask = smoothstep(0.38, 0.05, sparkDist) * (h1 > 0.70 ? 1.0 : 0.0);
+            vec3 facetN = normalize(N + (vec3(fract(h1 * 13.7), fract(h1 * 29.3), fract(h1 * 47.1)) - 0.5) * 1.6);
+            float glint1 = pow(max(0.0, dot(reflect(-L, facetN), V)), 28.0) * 3.2;
+            float glint2 = pow(max(0.0, dot(facetN, V)), 16.0) * 1.6;
+            float sparkle = (glint1 + glint2) * sparkMask * floor_sparkle * smoothstep(30.0, 2.0, stHit.y);
+            vec3 sparkleCol = mix(vec3(0.98, 0.98, 1.0), vec3(1.0, 0.85, 0.92), h1);
             snowCol += sparkleCol * sparkle;
 
             if (grid_strength > 0.0) {
                 float S = floor_cell;
-                float W = 0.007 * S;
+                float W = 0.008 * S;
                 vec2 gd = abs(fract(stHit / S + 0.5) - 0.5) * S;
                 float cosi = max(abs(dot(V, N)), 0.02);
                 float fw = hitT * PIX_ANGLE / cosi;
@@ -1094,43 +1093,44 @@ void main() {
                 vec2 my = neon_line(gm.y, 1.4 * W, fw, 0.0);
                 float majorGrid = mx.x + my.x - mx.x * my.x;
 
+                // Elevation contour lines draping across dunes:
+                float contourStep = 0.12;
                 float hElev = dune_elevation(stHit);
-                float contourStep = 0.6;
-                float hGrad = length(vec2(dhx, dhy));
-                float hFw = max(hGrad * fw, 0.004);
                 float hMod = abs(fract(hElev / contourStep + 0.5) - 0.5) * contourStep;
-                vec2 hLine = neon_line(hMod, 0.008 * contourStep, hFw, 0.0);
+                float hFw = max(length(vec2(dhx, dhy)) * fw, 0.002);
+                vec2 hLine = neon_line(hMod, 0.006 * contourStep, hFw, 0.0);
                 float topoContour = hLine.x;
 
-                float gridDistFade = smoothstep(55.0, 6.0, stHit.y);
-                vec3 topoGrid = mix(vec3(0.75, 0.0, 1.0) * (1.6 * minorGrid) + SITE_CYAN * (2.4 * majorGrid) + vec3(0.85, 1.0, 1.0) * (2.8 * majorGrid * mx.x * my.x), floor_rim_color * (2.0 * minorGrid + 1.4 * topoContour) + SITE_CYAN * (2.2 * majorGrid), 0.45);
-                snowCol += topoGrid * (grid_strength * 1.5 * gridDistFade);
+                float gridDistFade = smoothstep(42.0, 3.0, stHit.y);
+                vec3 topoGrid = mix(vec3(0.0, 0.9, 1.0) * (2.2 * majorGrid), floor_rim_color * (1.8 * minorGrid + 1.3 * topoContour), 0.6);
+                snowCol += topoGrid * (grid_strength * 1.3 * gridDistFade);
             }
 
-            // Reddish light reflection: diffuse bounce & specular highlights from accretion disk
+            // Reddish light reflection: diffuse bounce & specular highlights only on faces lit by accretion disk
+            float litFacing = smoothstep(-0.05, 0.45, slopeToLight);
             float NdotL = clamp(dot(N, L), 0.0, 1.0);
-            float redBounce = pow(NdotL, 2.0) * 0.45;
-            vec3 redBounceCol = mix(floor_rim_color, vec3(1.0, 0.3, 0.48), 0.45);
+            float redBounce = pow(NdotL, 2.0) * 0.45 * litFacing;
+            vec3 redBounceCol = mix(floor_rim_color, vec3(1.0, 0.35, 0.5), 0.4);
             snowCol += redBounceCol * redBounce;
 
             vec3 H = normalize(L + V);
             float NdotH = clamp(dot(N, H), 0.0, 1.0);
-            float specRed = pow(NdotH, 24.0) * 0.75 + pow(NdotH, 6.0) * 0.2;
-            vec3 redSpecCol = mix(floor_rim_color * 1.5, vec3(1.0, 0.85, 0.92), 0.35);
+            float specRed = (pow(NdotH, 20.0) * 0.7 + pow(NdotH, 5.0) * 0.2) * litFacing;
+            vec3 redSpecCol = mix(floor_rim_color * 1.4, vec3(1.0, 0.88, 0.92), 0.35);
             snowCol += redSpecCol * specRed;
 
             if (floor_reflection > 0.0) {
                 vec3 v = hitPos - reflect_pos;
                 float depth = dot(v, reflect_z);
                 vec2 uv = 0.5 + 0.5 * fov_mult * vec2(dot(v, reflect_x), dot(v, reflect_y) * resolution.x / resolution.y) / max(depth, 0.0001);
-                if (depth > 0.0 && min(uv.x,uv.y)>=0.0 && max(uv.x,uv.y)<=1.0) {
-                    vec2 blur = vec2(1.0, resolution.x/resolution.y) * floor_roughness * 0.015;
-                    vec3 refl = texture2D(reflection_tex,uv).rgb * 0.4;
-                    refl += (texture2D(reflection_tex,uv+vec2(blur.x,0.0)).rgb + texture2D(reflection_tex,uv-vec2(blur.x,0.0)).rgb + texture2D(reflection_tex,uv+vec2(0.0,blur.y)).rgb + texture2D(reflection_tex,uv-vec2(0.0,blur.y)).rgb) * 0.15;
+                if (depth > 0.0 && min(uv.x, uv.y) >= 0.0 && max(uv.x, uv.y) <= 1.0) {
+                    vec2 blur = vec2(1.0, resolution.x / resolution.y) * floor_roughness * 0.015;
+                    vec3 refl = texture2D(reflection_tex, uv).rgb * 0.4;
+                    refl += (texture2D(reflection_tex, uv + vec2(blur.x, 0.0)).rgb + texture2D(reflection_tex, uv - vec2(blur.x, 0.0)).rgb + texture2D(reflection_tex, uv + vec2(0.0, blur.y)).rgb + texture2D(reflection_tex, uv - vec2(0.0, blur.y)).rgb) * 0.15;
                     float fresnel = pow(1.0 - NdotV, 3.0);
-                    float reflMult = mix(0.6, 1.35, fresnel);
-                    vec3 redSheen = mix(refl, refl * floor_rim_color * 1.5, 0.4);
-                    snowCol += redSheen * (floor_reflection * reflMult * 1.2);
+                    float reflMult = mix(0.5, 1.3, fresnel);
+                    vec3 redSheen = mix(refl, refl * floor_rim_color * 1.5, 0.35);
+                    snowCol += redSheen * (floor_reflection * reflMult);
                 }
             }
             vec4 fs = vec4(snowCol * floor_strength, 1.0) * coverage;
