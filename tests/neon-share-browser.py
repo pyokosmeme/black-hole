@@ -33,8 +33,8 @@ with sync_playwright() as p:
     assert not preset['observer']['motion'] and preset['look']['sky_motion']
     assert page.locator('#neon-stationary').get_attribute('aria-pressed')=='true'
     assert page.locator('#neon-camera-controls').is_visible()
-    page.locator('#neon-link').click();page.wait_for_function('window.copiedScene')
-    warm_link=page.evaluate('copiedScene');assert len(warm_link)<5000
+    page.locator('#neon-link').click();page.wait_for_selector('#neon-toast.is-visible');page.wait_for_function('window.copiedScene')
+    warm_link=page.evaluate('copiedScene');assert len(warm_link)<200
     reopened=context.new_page();ready(reopened,warm_link);loaded(reopened)
     assert reopened.evaluate('NeonViewer.settings()')==preset
     reopened.close()

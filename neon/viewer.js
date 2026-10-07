@@ -245,8 +245,53 @@
   function load(input){viewer.applySettings(input);viewer.textureReady.catch(error=>message(error.message));syncFields();message('Settings loaded.');}
   function warmScene(){stopCamera();movingCamera=false;load(window.NEON_WARM_CHROME);$('neon-camera-move').setAttribute('aria-pressed','false');if(reduced.matches)pause(true);message('Warm chrome scene loaded. Stationary camera; moving sky.');}
   function crimsonSnowScene(){stopCamera();movingCamera=false;load(window.NEON_CRIMSON_SNOW);$('neon-camera-move').setAttribute('aria-pressed','false');if(reduced.matches)pause(true);message('Crimson snow scene loaded. Stationary camera; crystalline dunes and stardust plume.');}
+  let toastTimer=null;
+  function showToast(text,duration=2400){
+    let toast=$('neon-toast');
+    if(!toast){toast=document.createElement('div');toast.id='neon-toast';toast.className='neon-toast';toast.setAttribute('role','status');toast.setAttribute('aria-live','polite');toast.hidden=true;scene.parentElement.append(toast);}
+    clearTimeout(toastTimer);
+    toast.textContent=text;
+    toast.hidden=false;
+    requestAnimationFrame(()=>toast.classList.add('is-visible'));
+    toastTimer=setTimeout(()=>{toast.classList.remove('is-visible');setTimeout(()=>{if(!toast.classList.contains('is-visible'))toast.hidden=true;},250);},duration);
+  }
+  function deepDiff(target,base){
+    if(typeof target!=='object'||target===null||typeof base!=='object'||base===null)return target===base?undefined:target;
+    const diff={};let hasDiff=false;
+    for(const k of Object.keys(target)){
+      if(k in base){const d=deepDiff(target[k],base[k]);if(d!==undefined){diff[k]=d;hasDiff=true;}}
+      else{diff[k]=target[k];hasDiff=true;}
+    }
+    return hasDiff?diff:undefined;
+  }
+  function deepMerge(target,src){
+    if(!src)return target;
+    for(const k of Object.keys(src)){
+      if(src[k]&&typeof src[k]==='object'&&!Array.isArray(src[k])){
+        if(!target[k]||typeof target[k]!=='object')target[k]={};
+        deepMerge(target[k],src[k]);
+      }else{target[k]=src[k];}
+    }
+    return target;
+  }
   async function scenePayload(snapshot){
-    let bytes=new TextEncoder().encode(JSON.stringify(snapshot)),kind='j';
+    let payloadObj=snapshot;
+    const snow=window.NEON_CRIMSON_SNOW,warm=window.NEON_WARM_CHROME;
+    const def=window.NEON_DEFAULT_SETTINGS||(typeof viewer?.defaults==='function'?viewer.defaults():viewer?.defaults);
+    const dSnow=snow?deepDiff(snapshot,snow):undefined,dWarm=warm?deepDiff(snapshot,warm):undefined,dDef=def?deepDiff(snapshot,def):undefined;
+    if(dSnow===undefined&&snow){payloadObj={base:'snow'};}
+    else if(dWarm===undefined&&warm){payloadObj={base:'warm'};}
+    else if(dDef===undefined&&def){payloadObj={base:'default'};}
+    else{
+      const candidates=[
+        {base:'snow',diff:dSnow,len:dSnow?JSON.stringify(dSnow).length:Infinity},
+        {base:'warm',diff:dWarm,len:dWarm?JSON.stringify(dWarm).length:Infinity},
+        {base:'default',diff:dDef,len:dDef?JSON.stringify(dDef).length:Infinity}
+      ].sort((a,b)=>a.len-b.len);
+      const best=candidates[0],fullLen=JSON.stringify(snapshot).length;
+      if(best.diff&&best.len<fullLen*0.75){payloadObj={base:best.base,diff:best.diff};}
+    }
+    let bytes=new TextEncoder().encode(JSON.stringify(payloadObj)),kind='j';
     if(typeof CompressionStream==='function'){bytes=new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());kind='g';}
     let binary='';for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));
     const encoded='1'+kind+'.'+btoa(binary).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,'');
@@ -261,7 +306,15 @@
     const reader=stream.getReader(),chunks=[];let length=0;
     while(true){const {done,value}=await reader.read();if(done)break;length+=value.length;if(length>6400000){await reader.cancel();throw new Error('Scene link settings are too large.');}chunks.push(value);}
     const decoded=new Uint8Array(length);let offset=0;for(const chunk of chunks){decoded.set(chunk,offset);offset+=chunk.length;}
-    return JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(decoded));
+    const parsed=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(decoded));
+    if(parsed&&typeof parsed==='object'&&parsed.base){
+      const basePreset=parsed.base==='snow'?window.NEON_CRIMSON_SNOW:parsed.base==='warm'?window.NEON_WARM_CHROME:(window.NEON_DEFAULT_SETTINGS||(typeof viewer?.defaults==='function'?viewer.defaults():viewer?.defaults));
+      if(basePreset){
+        const full=JSON.parse(JSON.stringify(basePreset));
+        return parsed.diff?deepMerge(full,parsed.diff):full;
+      }
+    }
+    return parsed;
   }
   async function openSceneLink(){
     const hash=location.hash;if(!hash.startsWith('#scene='))return false;
@@ -273,7 +326,7 @@
     const snapshot=viewer.settings(),buttons=[$('neon-link'),$('neon-copy-link')];buttons.forEach(b=>b.disabled=true);
     try{const url=new URL(window.NEON_PACKAGED?'https://lastnpcalex.agency/neon-black-hole':location.href);url.hash='scene='+await scenePayload(snapshot);url.search='';
       const input=$('neon-link-url');input.value=url.href;input.parentElement.hidden=false;
-      try{await navigator.clipboard.writeText(url.href);message('Scene link copied. It opens with your current settings.');}
+      try{await navigator.clipboard.writeText(url.href);message('Scene link copied. It opens with your current settings.');showToast('🔗 Link copied to clipboard!');}
       catch{if($('neon-share').hidden)document.querySelector('[data-pane-toggle="neon-share"]').click();input.focus();input.select();message('Select and copy the scene link below.');}
     }catch(error){message(error.message);}finally{buttons.forEach(b=>b.disabled=false);}
   }
@@ -322,7 +375,7 @@
   }
   async function copy(){
     const text=JSON.stringify(viewer.settings(),null,2);$('neon-json').value=text;
-    try{await navigator.clipboard.writeText(text);message('Settings copied.');}
+    try{await navigator.clipboard.writeText(text);message('Settings copied.');showToast('📋 Settings copied to clipboard!');}
     catch{message('Select and copy the JSON below.');$('neon-json').focus();$('neon-json').select();}
   }
   async function download(){
