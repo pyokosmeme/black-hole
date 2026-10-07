@@ -34,7 +34,7 @@ window.NEON_CRIMSON_SNOW = {
 
     floor_extent:14,floor_concentration:18,
 
-    floor_reflection:.03,floor_roughness:.18,floor_opaque:true,
+    floor_reflection:0,floor_roughness:.18,floor_opaque:true,
 
     floor_snow:true,floor_sparkle:1.5,floor_dunes:1.7,
 

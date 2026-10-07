@@ -990,7 +990,7 @@ void main() {
     // Captured rays and solid hits already terminate on an opaque scene
     // surface. The final straight-floor pass must not paint over that surface.
     {{#look.floor_snow}}
-    if(planeHeight > 0.0 && (planeDirection < 0.3 || planeCoverage > 0.0) && u < 1.0) {
+    if(planeHeight > 0.0 && (planeDirection < 0.3 || planeCoverage > 0.0)) {
         vec3 floorRay = floor_camera_ray;
         bool hitDune = false;
         float hitT = 110.0;
@@ -1006,9 +1006,9 @@ void main() {
         vec2 st_prev = vec2(lat_prev, dep_prev) + floor_offset;
         float h_diff_prev = (planeHeight + planeDirection * t_prev) - dune_elevation(st_prev);
         
-        for (int m = 1; m <= 52; m++) {
-            float frac = float(m) / 52.0;
-            float t_curr = t_min + (t_max - t_min) * pow(frac, 1.45);
+        for (int m = 1; m <= 96; m++) {
+            // step by the vertical clearance over the terrain (bounded slope), so thin ridges and cliff edges are never skipped
+            float t_curr = min(t_prev + clamp(h_diff_prev / (1.6 + abs(planeDirection)), 0.04 + 0.006 * t_prev, 4.0), t_max);
             vec3 pm = cam_pos + floorRay * t_curr;
             vec3 rm = pm - floor_o;
             float lat_m = dot(rm, floor_e2);
@@ -1018,13 +1018,20 @@ void main() {
             float h_dune = dune_elevation(stm);
             float h_diff = h_ray - h_dune;
             if (h_diff <= 0.0) {
-                float f = clamp(h_diff_prev / max(0.0001, h_diff_prev - h_diff), 0.0, 1.0);
-                hitT = mix(t_prev, t_curr, f);
+                float t_lo = t_prev, t_hi = t_curr;
+                for (int bi = 0; bi < 7; bi++) {
+                    float t_mid = 0.5 * (t_lo + t_hi);
+                    vec3 rb = cam_pos + floorRay * t_mid - floor_o;
+                    vec2 stb = vec2(dot(rb, floor_e2), 30.0 - dot(rb, floor_e1)) + floor_offset;
+                    if (planeHeight + planeDirection * t_mid - dune_elevation(stb) <= 0.0) t_hi = t_mid; else t_lo = t_mid;
+                }
+                hitT = 0.5 * (t_lo + t_hi);
                 hitDune = true;
                 break;
             }
             t_prev = t_curr;
             h_diff_prev = h_diff;
+            if (t_curr >= t_max) break;
         }
 
         float coverage = 1.0;
@@ -1034,7 +1041,8 @@ void main() {
             coverage = planeCoverage;
         }
         
-        if (hitDune) {
+        // dunes nearer than the hole hide it (and its glow); farther ridges only paint over uncaptured rays
+        if (hitDune && (u < 1.0 || hitT < length(cam_pos))) {
             vec3 hitPos = cam_pos + floorRay * hitT;
             vec3 rHit = hitPos - floor_o;
             float latHit = dot(rHit, floor_e2);
