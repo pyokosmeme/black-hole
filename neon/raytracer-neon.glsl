@@ -1041,8 +1041,8 @@ void main() {
             coverage = planeCoverage;
         }
         
-        // dunes nearer than the hole hide it (and its glow); farther ridges only paint over uncaptured rays
-        if (hitDune && (u < 1.0 || hitT < length(cam_pos))) {
+        // terrain always hides the hole and its glow, so the hole sinks behind the ridgelines
+        if (hitDune) {
             vec3 hitPos = cam_pos + floorRay * hitT;
             vec3 rHit = hitPos - floor_o;
             float latHit = dot(rHit, floor_e2);
