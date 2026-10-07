@@ -1174,7 +1174,10 @@ void main() {
     }
     {{/look.floor_snow}}
     {{^look.floor_snow}}
-    if(planeHeight>0.0 && planeCoverage>0.0 && u<1.0){
+    // Terrain/floor occludes the hole whenever it's physically in front of it,
+    // same as the dune path: being captured by the hole (u>=1) doesn't mean
+    // anything actually sits in front of the floor at this pixel.
+    if(planeHeight>0.0 && planeCoverage>0.0){
         vec3 floorSample=normalize(floor_camera_ray-floor_n*max(0.0,planeDirection+planePixel*0.5));
         float planeHit=planeHeight/max(-dot(floorSample,floor_n),0.0000001);
         vec4 fs=floor_shade(cam_pos+floorSample*planeHit,floorSample,planeHit,PIX_ANGLE)*planeCoverage;
