@@ -34,7 +34,7 @@ window.createNeonBlackhole = function (options) {
     n_steps: 60,
     quality: 'medium',
     accretion_disk: true,
-    caption:{enabled:false,text:'',style:'chrome',font:'block',size:12,x:50,y:78,width:90,uppercase:false,bevel:1,grid:.65,stretch:1,line_gap:1.13,angular:false,metal:0,glow:0,fuzz:0},
+    caption:{enabled:false,text:'',style:'chrome',font:'block',size:12,x:50,y:78,width:90,uppercase:false,bevel:1,grid:.65,stretch:1,line_gap:1.13,angular:false,metal:0,glow:0,fuzz:0,tint_color:'#ffffff'},
     planet: { enabled:false, distance:7.0, radius:0.4, eccentricity:0, inclination:0, node:0, periapsis:0, phase:0, speed:1, spin:15, axial_tilt:30, texture_offset:0, texture:'' },
     lorentz_contraction: true,
     gravitational_time_dilation: true,
@@ -86,8 +86,10 @@ window.createNeonBlackhole = function (options) {
       floor_sway_period: 34.0,     // seconds at time_scale 1
       floor_extent: 14.0,
       floor_concentration:18, floor_reflection:0, floor_roughness:.15, floor_opaque:false,
+      floor_snow:false, floor_sparkle:1.0, floor_dunes:1.0, floor_rim_color:'#ff4477', floor_shadow_color:'#121b38',
       floor_palette:false, floor_color:'#bf00ff', floor_major_color:'#00ffff',
       nebula_amount:0, nebula_scale:3, nebula_color:'#df81ed',
+      sky_plume:0, sky_plume_color:'#ff3366',
       nebula_resolution:'standard',
       gas_tint:0, gas_color:'#ffbb88', gas_texture:'',
       disk_temp: 8075.0,
@@ -330,7 +332,7 @@ window.createNeonBlackhole = function (options) {
   // pole pinch, and it costs nothing per frame. Colors: site palette.
   var SKY_FS = [
     'varying vec2 vUv;',
-    'uniform float cloud_amount, cloud_scale; uniform vec3 cloud_color;',
+    'uniform float cloud_amount, cloud_scale, plume_amount; uniform vec3 cloud_color, plume_color;',
     'const float PI = 3.141592653589793;',
     'const vec3 CYAN = vec3(0.0, 1.0, 1.0);',
     'const vec3 PURPLE = vec3(0.749, 0.0, 1.0);',
@@ -368,6 +370,19 @@ window.createNeonBlackhole = function (options) {
     '    col+=cloud_color*cloud_amount*body*(0.045+0.13*filaments)*(1.0-0.65*dustLane);',
     '    col+=mix(cloud_color,vec3(0.72,0.86,1.0),0.6)*cloud_amount*pow(filaments,3.0)*body*0.035;',
     '  }',
+    '  if(plume_amount>0.0){',
+    '    vec3 plume_dir = normalize(vec3(0.28, -0.42, 0.86));',
+    '    float pdot = dot(d, plume_dir);',
+    '    if(pdot > 0.15) {',
+    '      float pdist = 1.0 - pdot;',
+    '      float pnoise = fbm(d * 9.0 + 3.0 * w);',
+    '      float pfilaments = pow(1.0 - abs(2.0 * fbm(d * 18.0 + 1.5 * w) - 1.0), 3.0);',
+    '      float core = exp(-pdist * 14.0) * (0.6 + 0.4 * pnoise);',
+    '      float spray = exp(-pdist * 6.5) * pow(pnoise, 1.8) * pfilaments;',
+    '      vec3 pcol = mix(plume_color, vec3(1.0, 0.82, 0.88), 0.35);',
+    '      col += pcol * plume_amount * (core * 0.45 + spray * 0.7);',
+    '    }',
+    '  }',
     '  gl_FragColor = vec4(col, 1.0);',
     '}'
   ].join('\n');
@@ -380,7 +395,13 @@ window.createNeonBlackhole = function (options) {
       format: THREE.RGBAFormat, type: P.look.nebula_resolution==='high'?rtType:THREE.UnsignedByteType,
       depthBuffer: false, stencilBuffer: false
     });
-    var mat = new THREE.ShaderMaterial({ vertexShader: QUAD_VS, fragmentShader: SKY_FS,uniforms:{cloud_amount:{type:'f',value:P.look.nebula_amount},cloud_scale:{type:'f',value:P.look.nebula_scale},cloud_color:{type:'v3',value:hexVector(P.look.nebula_color)}} });
+    var mat = new THREE.ShaderMaterial({ vertexShader: QUAD_VS, fragmentShader: SKY_FS,uniforms:{
+      cloud_amount:{type:'f',value:P.look.nebula_amount},
+      cloud_scale:{type:'f',value:P.look.nebula_scale},
+      cloud_color:{type:'v3',value:hexVector(P.look.nebula_color)},
+      plume_amount:{type:'f',value:P.look.sky_plume||0},
+      plume_color:{type:'v3',value:hexVector(P.look.sky_plume_color||'#ff3366')}
+    } });
     var skyScene=quad(mat);renderer.render(skyScene, camera, target, true);
     mat.dispose();skyScene.children[0].geometry.dispose();
     return target;
@@ -390,7 +411,7 @@ window.createNeonBlackhole = function (options) {
   var skyKey='';
   function syncSky(){
     if(!renderer||!uniforms)return;
-    var key=JSON.stringify([P.look.nebula_amount,P.look.nebula_scale,P.look.nebula_color,P.look.nebula_resolution]);
+    var key=JSON.stringify([P.look.nebula_amount,P.look.nebula_scale,P.look.nebula_color,P.look.nebula_resolution,P.look.sky_plume,P.look.sky_plume_color]);
     if(key===skyKey)return;skyKey=key;
     var old=galaxyTexture;galaxyTexture=bakeSky();if(old)old.dispose();
     uniforms.galaxy_texture.value=ORIG&&origGalaxy?origGalaxy:galaxyTexture;dirty=true;
@@ -547,7 +568,7 @@ window.createNeonBlackhole = function (options) {
 
   var UNIFORM_LOOK = ['grid_strength', 'grid_glow', 'grid_pulse', 'floor_strength', 'floor_height',
     'floor_tilt', 'floor_cell', 'floor_extent', 'disk_temp', 'disk_outer', 'disk_speed',
-    'spot_strength', 'galaxy_gain','floor_concentration','floor_reflection','floor_roughness','gas_tint'];
+    'spot_strength', 'galaxy_gain','floor_concentration','floor_reflection','floor_roughness','gas_tint','floor_sparkle','floor_dunes'];
   var rtReflection=null;
 
   function ready() {
@@ -565,7 +586,7 @@ window.createNeonBlackhole = function (options) {
     camera = new THREE.PerspectiveCamera(45, 1, 1, 80000);
 
     galaxyTexture = bakeSky();
-    skyKey=JSON.stringify([P.look.nebula_amount,P.look.nebula_scale,P.look.nebula_color,P.look.nebula_resolution]);
+    skyKey=JSON.stringify([P.look.nebula_amount,P.look.nebula_scale,P.look.nebula_color,P.look.nebula_resolution,P.look.sky_plume,P.look.sky_plume_color]);
     if (ORIG) origGalaxy = makeOrigGalaxy();
 
     uniforms = {
@@ -602,6 +623,8 @@ window.createNeonBlackhole = function (options) {
     uniforms.gas_color={type:'v3',value:new THREE.Vector3()};
     uniforms.floor_color={type:'v3',value:new THREE.Vector3()};
     uniforms.floor_major_color={type:'v3',value:new THREE.Vector3()};
+    uniforms.floor_rim_color={type:'v3',value:new THREE.Vector3()};
+    uniforms.floor_shadow_color={type:'v3',value:new THREE.Vector3()};
     uniforms.reflection_pass={type:'f',value:0};
     uniforms.reflection_tex={type:'t',value:textures.moon};
     ['pos','x','y','z'].forEach(function(k){uniforms['reflect_'+k]={type:'v3',value:new THREE.Vector3()};});
@@ -732,6 +755,8 @@ window.createNeonBlackhole = function (options) {
     var rgb=parseInt(L.gas_color.slice(1),16);
     uniforms.gas_color.value.set(((rgb>>16)&255)/255,((rgb>>8)&255)/255,(rgb&255)/255);
     if(L.floor_palette){setHexVector(uniforms.floor_color.value,L.floor_color);setHexVector(uniforms.floor_major_color.value,L.floor_major_color);}
+    if(L.floor_rim_color)setHexVector(uniforms.floor_rim_color.value,L.floor_rim_color);
+    if(L.floor_shadow_color)setHexVector(uniforms.floor_shadow_color.value,L.floor_shadow_color);
     // p.x spans [-1,1] horizontally in the shader; pick the horizontal FOV so
     // the vertical one never exceeds L.vfov (original: fixed 90 deg horizontal)
     var aspect = rtMain.width / rtMain.height;

@@ -101,29 +101,51 @@
         lc.scale(dpr,dpr);lc.globalCompositeOperation='source-in';lc.fillStyle=fill;lc.fillRect(0,0,fw,fh);
         ctx.shadowColor=neon;ctx.shadowBlur=blur;ctx.drawImage(layer,-fw/2+dx,y-fh/2+dy,fw,fh);ctx.shadowBlur=0;
       }
-      // Directional extrusion and alternating light/dark bevel bands give
-      // depth without a wide flat outline. Masks include internal counters.
-      const side=metalGradient([[0,'#221910'],[.45,'#31483b'],[.65,'#121915'],[1,'#7b4931']]);
+      const style=c.style==='mixed'?(index===0?'chrome':'iridescent'):c.style;
+      let sideColors,bevel1,bevel2,stops;
+      if(style==='ice'){
+        sideColors=[[0,'#0d1527'],[.45,'#182844'],[.65,'#0a101e'],[1,'#2c4568']];
+        bevel1=[[0,'#f2f8ff'],[.25,'#5b7ea6'],[.5,'#d9ebfc'],[.7,'#334c69'],[1,'#b5d5f2']];
+        bevel2=[[0,'#e6f2ff'],[.48,'#a6cbed'],[.55,'#41638a'],[1,'#e0f0ff']];
+        stops=[[0,'#151d38'],[.24,'#354c73'],[.44,'#9ec8ed'],[.51,'#ffffff'],[.55,'#f0f7ff'],[.59,'#0f1c30'],[.69,'#16233d'],[.84,'#384870'],[1,'#8da3cf']];
+      }else if(style==='ruby'){
+        sideColors=[[0,'#24060d'],[.45,'#420d18'],[.65,'#180308'],[1,'#5c1422']];
+        bevel1=[[0,'#ffedf0'],[.25,'#99243d'],[.5,'#ffb8c6'],[.7,'#591322'],[1,'#e8728a']];
+        bevel2=[[0,'#ffe6eb'],[.48,'#f0899d'],[.55,'#7d1a2e'],[1,'#ffccd6']];
+        stops=[[0,'#380a14'],[.24,'#8c162f'],[.44,'#f2687f'],[.51,'#fff0f3'],[.55,'#ffe0e6'],[.59,'#24060d'],[.69,'#3b0a16'],[.84,'#521436'],[1,'#c93c68']];
+      }else if(style==='iridescent'){
+        sideColors=[[0,'#221910'],[.45,'#31483b'],[.65,'#121915'],[1,'#7b4931']];
+        bevel1=[[0,'#fff0cf'],[.25,'#b87351'],[.5,'#ffdeb5'],[.7,'#79402d'],[1,'#efbf8c']];
+        bevel2=[[0,'#fff0d0'],[.48,'#f4cba1'],[.55,'#a15e43'],[1,'#ffe3bb']];
+        stops=[[0,'#0e3026'],[.25,'#224a35'],[.44,'#87a568'],[.53,'#eef0ba'],[.58,'#f7f8d8'],[.62,'#182b24'],[.77,'#252535'],[.92,'#aa759d'],[1,'#e2a87b']];
+      }else{
+        sideColors=[[0,'#221910'],[.45,'#31483b'],[.65,'#121915'],[1,'#7b4931']];
+        bevel1=[[0,'#fff0cf'],[.25,'#b87351'],[.5,'#ffdeb5'],[.7,'#79402d'],[1,'#efbf8c']];
+        bevel2=[[0,'#fff0d0'],[.48,'#f4cba1'],[.55,'#a15e43'],[1,'#ffe3bb']];
+        stops=[[0,'#5d3022'],[.24,'#a86242'],[.44,'#e7ad78'],[.51,'#fff4d2'],[.55,'#fff7da'],[.59,'#1a3427'],[.69,'#17291f'],[.84,'#46344c'],[1,'#c38b92']];
+      }
+      const side=metalGradient(sideColors);
       for(let i=5;i>0;i--)silhouette(bevel,side,size*.005*i,size*.007*i);
       if(c.glow){silhouette(bevel*1.1,neon,0,0,size*.045*c.glow);ctx.globalAlpha=.18;silhouette(bevel*1.1,neon,0,0,size*.12*c.glow);ctx.globalAlpha=1;}
       if(bevel){
-        silhouette(bevel,metalGradient([[0,'#fff0cf'],[.25,'#b87351'],[.5,'#ffdeb5'],[.7,'#79402d'],[1,'#efbf8c']]));
-        silhouette(bevel*.74,'#48291f');
-        silhouette(bevel*.44,metalGradient([[0,'#fff0d0'],[.48,'#f4cba1'],[.55,'#a15e43'],[1,'#ffe3bb']]));
-        silhouette(bevel*.15,'#44291e');
+        silhouette(bevel,metalGradient(bevel1));
+        silhouette(bevel*.74,style==='ice'?'#1b283d':style==='ruby'?'#3d0c15':'#48291f');
+        silhouette(bevel*.44,metalGradient(bevel2));
+        silhouette(bevel*.15,style==='ice'?'#182436':style==='ruby'?'#330810':'#44291e');
       }
-      const iridescent=c.style==='iridescent'||c.style==='mixed'&&index>0;
-      const stops=!iridescent?[[0,'#5d3022'],[.24,'#a86242'],[.44,'#e7ad78'],[.51,'#fff4d2'],[.55,'#fff7da'],[.59,'#1a3427'],[.69,'#17291f'],[.84,'#46344c'],[1,'#c38b92']]:[[0,'#0e3026'],[.25,'#224a35'],[.44,'#87a568'],[.53,'#eef0ba'],[.58,'#f7f8d8'],[.62,'#182b24'],[.77,'#252535'],[.92,'#aa759d'],[1,'#e2a87b']];
       fc.clearRect(0,0,fw,fh);fc.globalCompositeOperation='source-over';
       // The reflected skyline undulates gently across the metal face; its
       // shading is anchored to actual ink bounds, not the font's em box.
       for(let x=0;x<fw;x+=2){const wave=inkHeight*.022*(Math.sin(x/fw*32)+.45*Math.sin(x/fw*61));const g=fc.createLinearGradient(0,top+wave,0,bottom+wave);stops.forEach(([at,color])=>g.addColorStop(at,color));fc.fillStyle=g;fc.fillRect(x,0,2,fh);}
       fc.globalCompositeOperation='destination-in';fc.drawImage(mask,0,0,fw,fh);
+      if(c.tint_color&&c.tint_color.toLowerCase()!=='#ffffff'){
+        fc.save();fc.globalCompositeOperation='color';fc.fillStyle=c.tint_color;fc.globalAlpha=.5;fc.fillRect(0,0,fw,fh);fc.restore();
+      }
       fc.globalCompositeOperation='source-atop';
       if(c.metal){
         const shine=fc.createLinearGradient(0,0,fw,fh*.6);[[0,'rgba(255,250,223,0)'],[.38,`rgba(255,250,223,${c.metal*.03})`],[.47,`rgba(255,250,223,${c.metal*.23})`],[.52,'rgba(255,250,223,0)'],[1,'rgba(255,250,223,0)']].forEach(([at,color])=>shine.addColorStop(at,color));fc.fillStyle=shine;fc.fillRect(0,0,fw,fh);
       }
-      if(c.grid&&!iridescent){const rgb=parseInt(neon.slice(1),16);fc.strokeStyle=`rgba(${rgb>>16&255},${rgb>>8&255},${rgb&255},${c.grid*.55})`;fc.lineWidth=Math.max(.4,size*.004);const horizon=top+inkHeight*.68;
+      if(c.grid&&style!=='iridescent'){const rgb=parseInt(neon.slice(1),16);fc.strokeStyle=`rgba(${rgb>>16&255},${rgb>>8&255},${rgb&255},${c.grid*.55})`;fc.lineWidth=Math.max(.4,size*.004);const horizon=top+inkHeight*.68;
         fc.beginPath();for(let i=1;i<=5;i++){const gy=horizon+(bottom-horizon)*Math.pow(i/5,1.7);fc.moveTo(0,gy);fc.lineTo(fw,gy);}
         for(let i=-9;i<=9;i++){fc.moveTo(fw*.5+i*size*.11,horizon);fc.lineTo(fw*.5+i*size*.48,bottom+size*.2);}fc.stroke();
       }
@@ -207,6 +229,7 @@
   function pause(on){viewer.setPaused(on);$('neon-pause').setAttribute('aria-pressed',String(on));$('neon-pause').textContent=on?'Resume':'Pause';}
   function load(input){viewer.applySettings(input);viewer.textureReady.catch(error=>message(error.message));syncFields();message('Settings loaded.');}
   function warmScene(){stopCamera();movingCamera=false;load(window.NEON_WARM_CHROME);$('neon-camera-move').setAttribute('aria-pressed','false');if(reduced.matches)pause(true);message('Warm chrome scene loaded. Stationary camera; moving sky.');}
+  function crimsonSnowScene(){stopCamera();movingCamera=false;load(window.NEON_CRIMSON_SNOW);$('neon-camera-move').setAttribute('aria-pressed','false');if(reduced.matches)pause(true);message('Crimson snow scene loaded. Stationary camera; crystalline dunes and stardust plume.');}
   async function scenePayload(snapshot){
     let bytes=new TextEncoder().encode(JSON.stringify(snapshot)),kind='j';
     if(typeof CompressionStream==='function'){bytes=new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());kind='g';}
@@ -278,6 +301,8 @@
     const skyHelp=document.createElement('p');skyHelp.textContent='Neon mode: move the stars and galaxies while the grid stays fixed. Use Stationary and set camera rotation and wobble to zero to hold the view still. Sky speed uses real seconds; Pause freezes it. Turn motion off or set speed to zero to stop in place.';groups.get('Sky').append(skyHelp);
     const poster=document.createElement('button');poster.type='button';poster.className='acidburn-button';poster.id='neon-poster-preset';poster.textContent='Warm chrome scene';groups.get('View').append(poster);
     poster.addEventListener('click',warmScene);
+    const snowPreset=document.createElement('button');snowPreset.type='button';snowPreset.className='acidburn-button';snowPreset.id='neon-snow-preset';snowPreset.textContent='Crimson snow scene';groups.get('View').append(snowPreset);
+    snowPreset.addEventListener('click',crimsonSnowScene);
     syncFields();
   }
   async function copy(){
@@ -291,7 +316,7 @@
     const snapshot=viewer.settings();
     try{
       message('Preparing ZIP…');
-      const neonFiles=['index.html','settings.js','warm-chrome.js','zip.js','viewer.js','NOTICE.txt','fonts/Teko.ttf','fonts/OFL.txt','raytracer-neon.glsl','raytracer-orig.glsl','js-libs/three.min.js','js-libs/Detector.js','js-libs/mustache.min.js','js-libs/three-js-monkey-patch.js','js-libs/acidburn-galaxy.js','js-libs/neon-blackhole.js','img/accretion-disk.png','img/beach-ball.png','img/spectra.png','img/stars.png'];
+      const neonFiles=['index.html','settings.js','warm-chrome.js','crimson-snow.js','zip.js','viewer.js','NOTICE.txt','fonts/Teko.ttf','fonts/OFL.txt','raytracer-neon.glsl','raytracer-orig.glsl','js-libs/three.min.js','js-libs/Detector.js','js-libs/mustache.min.js','js-libs/three-js-monkey-patch.js','js-libs/acidburn-galaxy.js','js-libs/neon-blackhole.js','img/accretion-disk.png','img/beach-ball.png','img/spectra.png','img/stars.png'];
       const sharedFiles=['css/acidburn.css','css/map-window.css','css/neon-viewer.css'];
       const requests=[...neonFiles.map(name=>({name,url:new URL(name,base)})),...sharedFiles.map(name=>({name,url:new URL(name,siteBase)})),{name:'map-window.js',url:new URL(window.NEON_PACKAGED?'map-window.js':'js/map-window.js',siteBase)}];
       const entries=await Promise.all(requests.map(async item=>{
@@ -319,6 +344,12 @@
   try{
     viewer=createNeonBlackhole({container:scene,base:base.href,skyMotion:true,antialiasing:true,settings:window.NEON_DEFAULT_SETTINGS||{look:{floor_infinite:true,floor_follow_camera:false}}});
     window.NeonViewer=viewer;
+    const rawApply=viewer.applySettings.bind(viewer);
+    viewer.applySettings=function(next,silent){
+      const res=rawApply(next,silent);
+      drawLettering();
+      return res;
+    };
     if(reduced.matches)pause(true);
     const initial=viewer.settings();
     buildFields();
@@ -329,6 +360,7 @@
     $('neon-reset').addEventListener('click',()=>{load(initial);pause(reduced.matches);message('Default settings restored.');});
     $('neon-copy').addEventListener('click',copy);
     $('neon-warm').addEventListener('click',warmScene);
+    const snowBtn=$('neon-snow');if(snowBtn)snowBtn.addEventListener('click',crimsonSnowScene);
     $('neon-link').addEventListener('click',copySceneLink);
     $('neon-copy-link').addEventListener('click',copySceneLink);
     $('neon-zip').addEventListener('click',download);
@@ -342,6 +374,6 @@
   }catch(error){
     document.body.classList.add('no-webgl');
     message(error.message);
-    for(const id of ['neon-pause','neon-reset','neon-copy','neon-zip','neon-load','neon-file','neon-grid','neon-floor','neon-stationary','neon-camera-free','neon-warm','neon-link','neon-copy-link'])$(id).disabled=true;
+    for(const id of ['neon-pause','neon-reset','neon-copy','neon-zip','neon-load','neon-file','neon-grid','neon-floor','neon-stationary','neon-camera-free','neon-warm','neon-snow','neon-link','neon-copy-link'])$(id).disabled=true;
   }
 })();

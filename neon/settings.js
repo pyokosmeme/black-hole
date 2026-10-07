@@ -43,6 +43,11 @@
   number('Floor','look.floor_reflection','Floor reflectivity (extra render pass)',0,1);
   check('Floor','look.floor_opaque','Opaque floor surface');
   number('Floor','look.floor_roughness','Reflection roughness',0,1);
+  check('Floor','look.floor_snow','Crystalline snow dunes');
+  number('Floor','look.floor_sparkle','Crystal sparkle',0,3);
+  number('Floor','look.floor_dunes','Dune height',0,3);
+  fields.push({group:'Floor',path:'look.floor_rim_color',label:'Snow crest rim color',type:'color'});
+  fields.push({group:'Floor',path:'look.floor_shadow_color',label:'Snow shadow color',type:'color'});
   number('Disk','look.gas_tint','Gas color blend',0,1);
   fields.push({group:'Disk',path:'look.gas_color',label:'Gas color',type:'color'});
   fields.push({group:'Disk',path:'look.gas_texture',label:'Gas texture',type:'texture'});
@@ -55,7 +60,8 @@
   number('Poster text','caption.glow','Neon edge glow',0,2);
   number('Poster text','caption.fuzz','Fine surface grain',0,1);
   fields.push({group:'Poster text',path:'caption.text',label:'Text (use | for a new line)',type:'text',maxLength:120});
-  choice('Poster text','caption.style','Finish',['chrome','iridescent','mixed']);
+  choice('Poster text','caption.style','Finish',['chrome','ice','ruby','iridescent','mixed']);
+  fields.push({group:'Poster text',path:'caption.tint_color',label:'Custom text tint',type:'color'});
   choice('Poster text','caption.font','Lettering',['block','Orbitron','Teko','Sculpted']);
   number('Poster text','caption.size','Letter height (% of view)',2,25);
   number('Poster text','caption.x','Horizontal center (%)',0,100);
@@ -74,6 +80,8 @@
   number('Sky','look.nebula_scale','Gas cloud detail',1,8);
   choice('Sky','look.nebula_resolution','Gas texture resolution',['standard','high']);
   fields.push({group:'Sky',path:'look.nebula_color',label:'Gas cloud color',type:'color'});
+  number('Sky','look.sky_plume','Stardust plume intensity',0,3);
+  fields.push({group:'Sky',path:'look.sky_plume_color',label:'Stardust plume color',type:'color'});
   for(const [key,label,min,max] of [['galaxy_gain','Galaxy brightness',0,6],['grid_strength','Grid brightness',0,3],['grid_glow','Grid glow (px)',0,12],['grid_pulse','Grid pulse',0,3],['vfov','Maximum vertical FOV (°)',30,120]]) number('Sky','look.'+key,label,min,max);
   for(const [key,label,min,max] of [['exposure','Exposure',.2,4],['bloom_strength','Bloom strength',0,3],['bloom_threshold','Bloom threshold',0,1.5],['bloom_radius','Bloom radius',.25,4],['render_scale','Maximum render scale',.25,1]]) number('Post / performance','look.'+key,label,min,max);
   check('Post / performance','look.auto_res','Automatic resolution');
