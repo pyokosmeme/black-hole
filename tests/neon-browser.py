@@ -107,6 +107,18 @@ with sync_playwright() as p:
     assert page.evaluate('NeonViewer.settings()')==initial
     page.locator('#neon-pause').click()
     page.locator('[data-pane-toggle=neon-settings]').click()
+    assert page.locator('#neon-fields .neon-help-button').count()==page.evaluate('NeonSettings.fields.length')
+    assert page.evaluate('''()=>NeonSettings.fields.filter(f=>f.type==='number').every(f=>{const e=document.getElementById('setting-'+f.path.replaceAll('.','-'));return e.getAttribute('aria-description').includes('Allowed range: '+f.min+' to '+f.max+' (inclusive).')})''')
+    help_button=page.get_by_role('button',name='Allowed values for Raytrace steps',exact=True)
+    help_button.hover()
+    assert page.locator('#neon-field-help').is_visible()
+    assert '20 to 300 (inclusive). Whole numbers only.' in page.locator('#neon-field-help').inner_text()
+    help_button.focus()
+    page.keyboard.press('Escape')
+    assert not page.locator('#neon-field-help').is_visible()
+    assert page.locator('#neon-settings').is_visible()
+    help_button.click()
+    assert page.locator('#neon-field-help').is_visible()
     page.locator('#setting-time_scale').fill('2.5')
     page.locator('#setting-time_scale').press('Tab')
     assert page.evaluate('NeonViewer.settings().time_scale')==2.5
@@ -128,6 +140,15 @@ with sync_playwright() as p:
             assert page.locator('#'+pane).evaluate('e=>{const r=e.getBoundingClientRect(),v=e.closest(".map-viewport").getBoundingClientRect();return r.left>=v.left&&r.right<=v.right+1&&r.top>=v.top&&r.bottom<=v.bottom+1&&e.scrollWidth<=e.clientWidth+1}'),(width,height,pane)
             if pane=='neon-share':
                 page.screenshot(path=str(SHOTS/f'viewer-share-{width}x{height}.png'))
+            else:
+                help_button.hover()
+                help_button.focus()
+                page.wait_for_timeout(150)
+                help_button.click()
+                assert page.locator('#neon-field-help').evaluate('e=>{const r=e.getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.top>=0&&r.bottom<=innerHeight}')
+                assert page.locator('#neon-field-help').evaluate('e=>getComputedStyle(e).color===getComputedStyle(document.body).color')
+                page.screenshot(path=str(SHOTS/f'help-{width}x{height}.png'))
+                page.keyboard.press('Escape')
             page.keyboard.press('Escape')
             assert not page.locator('#'+pane).is_visible()
         page.screenshot(path=str(SHOTS/f'viewer-{width}x{height}.png'))
@@ -156,6 +177,7 @@ with sync_playwright() as p:
     page.wait_for_function('window.NeonViewer && NeonViewer.frames>0', timeout=60000)
     assert page.evaluate('NeonViewer.settings()')==changed
     assert page.locator('header,#nav-menu,#blackhole-container').count()==0
+    assert page.locator('#neon-fields .neon-help-button').count()==page.evaluate('NeonSettings.fields.length')
     page.locator('#neon-reset').click()
     assert page.evaluate('NeonViewer.settings()')==changed
     page.locator('[data-pane-toggle=neon-share]').click()

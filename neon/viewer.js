@@ -330,15 +330,41 @@
       catch{if($('neon-share').hidden)document.querySelector('[data-pane-toggle="neon-share"]').click();input.focus();input.select();message('Select and copy the scene link below.');}
     }catch(error){message(error.message);}finally{buttons.forEach(b=>b.disabled=false);}
   }
+  function setupFieldHelp(){
+    const tooltip=document.createElement('div');tooltip.id='neon-field-help';tooltip.className='author-card neon-field-help';tooltip.setAttribute('popover','manual');tooltip.setAttribute('role','tooltip');document.body.append(tooltip);
+    let active=null;
+    const hide=()=>{tooltip.hidePopover();active=null;};
+    const show=(button,text)=>{active=button;tooltip.textContent=text;tooltip.showPopover();const r=button.getBoundingClientRect(),t=tooltip.getBoundingClientRect();tooltip.style.left=Math.max(8,Math.min(r.left,innerWidth-t.width-8))+'px';tooltip.style.top=Math.max(8,r.bottom+t.height+8<innerHeight?r.bottom+4:r.top-t.height-4)+'px';};
+    for(const input of document.querySelectorAll('#neon-fields input,#neon-fields select,#neon-capture input,#neon-capture select')){
+      const field=NeonSettings.fields.find(f=>'setting-'+f.path.replaceAll('.','-')===input.id);
+      let text;
+      if(input.type==='number')text='Allowed range: '+input.min+' to '+input.max+' (inclusive).'+(field?.step===1?' Whole numbers only.':'')+(field?.path==='observer.apoapsis'?' Must be at least periapsis and form a bound orbit.':'')+(field?.path==='observer.periapsis'?' Must form a bound orbit with apoapsis.':'')+(field?.path.startsWith('planet.')?' The entire planet must stay outside 1.5 rₛ at periapsis.':'')+(!field?' Use even pixel dimensions.':'');
+      else if(input.tagName==='SELECT')text='Allowed values: '+[...input.options].map(o=>o.textContent).join(', ')+'.';
+      else if(input.type==='checkbox')text='Allowed values: on or off.';
+      else if(input.type==='color')text='Allowed values: any six-digit hex color (#000000 to #ffffff).';
+      else if(input.type==='text')text='Allowed: up to '+input.maxLength+' characters. Use | for a new line.';
+      else if(input.type==='file')text='Allowed: PNG, JPEG or WebP, up to 8 MB. Converted and embedded in settings (under 3 MB).';
+      if(!text)continue;
+      let row=input.closest('.neon-control');
+      // Keep the help button separate from the input label, including static capture markup.
+      if(row.tagName==='LABEL'){const replacement=document.createElement('div');replacement.className=row.className;replacement.id=row.id;replacement.hidden=row.hidden;const caption=row.querySelector('span');const label=document.createElement('label');label.htmlFor=input.id;label.textContent=caption.textContent;caption.replaceWith(label);replacement.append(...row.childNodes);row.replaceWith(replacement);row=replacement;}
+      const label=row.querySelector('label'),heading=document.createElement('span');heading.className='neon-field-heading';label.before(heading);heading.append(label);
+      const help=document.createElement('button');help.type='button';help.className='acidburn-button neon-help-button';help.textContent='?';help.setAttribute('aria-label','Allowed values for '+label.textContent);help.setAttribute('aria-describedby',tooltip.id);input.setAttribute('aria-description',text);heading.append(help);
+      help.addEventListener('mouseenter',()=>show(help,text));help.addEventListener('mouseleave',()=>{if(document.activeElement!==help)hide();});help.addEventListener('focus',()=>show(help,text));help.addEventListener('blur',hide);help.addEventListener('click',()=>show(help,text));
+    }
+    document.addEventListener('keydown',event=>{if(event.key==='Escape'&&active){event.preventDefault();event.stopImmediatePropagation();hide();}},true);
+    document.addEventListener('pointerdown',event=>{if(active&&!active.contains(event.target)&&!tooltip.contains(event.target))hide();});
+    document.addEventListener('scroll',hide,true);window.addEventListener('resize',hide);
+  }
   function buildFields(){
     const groups=new Map();
     for(const field of NeonSettings.fields){
       if(!groups.has(field.group)){const details=document.createElement('details'),summary=document.createElement('summary');summary.textContent=field.group;details.append(summary);details.open=field.group==='View';$('neon-fields').append(details);groups.set(field.group,details);}
-      const label=document.createElement('label');label.className='acidburn-field neon-control';
-      const caption=document.createElement('span');caption.textContent=field.label;label.append(caption);
+      const label=document.createElement('div');label.className='acidburn-field neon-control';
+      const caption=document.createElement('label');caption.textContent=field.label;label.append(caption);
       if(field.type==='texture'){
         const name=field.path==='planet.texture'?'planet':'gas';label.classList.add('neon-wide-control');
-        const file=document.createElement('input');file.type='file';file.id='neon-'+name+'-texture';file.accept='image/png,image/jpeg,image/webp';label.append(file);groups.get(field.group).append(label);
+        const file=document.createElement('input');file.type='file';file.id='neon-'+name+'-texture';file.accept='image/png,image/jpeg,image/webp';caption.htmlFor=file.id;label.append(file);groups.get(field.group).append(label);
         const preview=document.createElement('img');preview.id='neon-'+name+'-preview';preview.className='neon-planet-preview';preview.alt=field.label+' map';groups.get(field.group).append(preview);
         const reset=document.createElement('button');reset.type='button';reset.className='acidburn-button';reset.id='neon-'+name+'-texture-reset';reset.textContent='Default '+name+' map';groups.get(field.group).append(reset);
         const note=document.createElement('p');note.textContent='Upload PNG, JPEG or WebP (up to 8 MB). '+(name==='planet'?'Images wrap as a 2:1 longitude / latitude map.':'Gas maps use horizontal radius and vertical angle around the disk; brightness controls emission.')+' Your map is embedded in copied settings and ZIPs.';groups.get(field.group).append(note);
@@ -353,6 +379,7 @@
         });continue;
       }
       const input=document.createElement(field.type==='select'?'select':'input');input.id='setting-'+field.path.replaceAll('.','-');
+      caption.htmlFor=input.id;
       if(field.type==='select')for(const value of field.values){const option=document.createElement('option');option.value=value;option.textContent=value;input.append(option);}
       else{input.type=field.type;if(field.type==='number'){input.min=field.min;input.max=field.max;input.step=field.step;}if(field.type==='text'){input.maxLength=field.maxLength;label.classList.add('neon-wide-control');}}
       label.append(input);groups.get(field.group).append(label);controls.set(field.path,input);
@@ -421,6 +448,7 @@
     if(reduced.matches)pause(true);
     const initial=viewer.settings();
     buildFields();
+    setupFieldHelp();
     setupCamera();
     for(const [id,key] of [['neon-grid','neon_grid'],['neon-floor','neon_floor']])$(id).addEventListener('click',()=>{viewer.params[key]=!viewer.params[key];viewer.recompile();syncFields();message((key==='neon_grid'?'Grid':'Floor')+(viewer.params[key]?' on.':' off.'));});
     $('neon-stationary').addEventListener('click',()=>{try{const next=viewer.settings();next.observer.motion=!next.observer.motion;if(!next.observer.motion){next.camera.pitch=0;next.camera.yaw=0;}load(next);message(next.observer.motion?'Automatic orbit.':'Stationary camera. Drag to look around.');}catch(error){message(error.message);}});
