@@ -59,6 +59,87 @@
   let activeFrameHandler = null;
   let recordingStartTime = 0;
   let activeRecordingRes = null;
+  let fixedRecording = null;
+
+  // Minimal WebM muxer for timestamped VP8 frames. Fixed clips do not depend on
+  // captureStream's wall clock or the speed of the user's GPU.
+  function makeWebM(frames, width, height, duration) {
+    const bytes = (...parts) => {
+      const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
+      let offset = 0; for (const p of parts) { out.set(p, offset); offset += p.length; } return out;
+    };
+    const id = n => { const a = []; do { a.unshift(n & 255); n = Math.floor(n / 256); } while (n); return new Uint8Array(a); };
+    const size = n => {
+      let length = 1; while (n >= 2 ** (7 * length) - 1) length++;
+      const a = new Uint8Array(length);
+      for (let i = length - 1; i >= 0; i--) { a[i] = n % 256; n = Math.floor(n / 256); }
+      a[0] |= 1 << (8 - length); return a;
+    };
+    const element = (key, data) => bytes(id(key), size(data.length), data);
+    const uint = (key, n) => element(key, id(n));
+    const str = (key, s) => element(key, new TextEncoder().encode(s));
+    const float = (key, n) => { const a = new Uint8Array(8); new DataView(a.buffer).setFloat64(0, n); return element(key, a); };
+    const header = element(0x1a45dfa3, bytes(uint(0x4286, 1), uint(0x42f7, 1), uint(0x42f2, 4), uint(0x42f3, 8), str(0x4282, 'webm'), uint(0x4287, 2), uint(0x4285, 2)));
+    const info = element(0x1549a966, bytes(uint(0x2ad7b1, 1000000), float(0x4489, duration * 1000), str(0x4d80, 'Neon'), str(0x5741, 'Neon')));
+    const track = element(0x1654ae6b, element(0xae, bytes(uint(0xd7, 1), uint(0x73c5, 1), uint(0x83, 1), str(0x86, 'V_VP8'), element(0xe0, bytes(uint(0xb0, width), uint(0xba, height))))));
+    const clusters = frames.map(f => element(0x1f43b675, bytes(uint(0xe7, Math.round(f.timestamp / 1000)), element(0xa3, bytes(new Uint8Array([0x81, 0, 0, f.key ? 0x80 : 0]), f.data)))));
+    return new Blob([header, element(0x18538067, bytes(info, track, ...clusters))], { type: 'video/webm' });
+  }
+
+  async function renderFixedClip(viewer, opts, width, height, duration, fps) {
+    if (!window.VideoEncoder || !window.VideoFrame) throw new Error('Fixed clips require a browser with VideoEncoder support. Use Manual recording in this browser.');
+    const config = { codec: 'vp8', width, height, bitrate: Math.max(12000000, Math.min(60000000, width * height * fps * .4)), framerate: fps };
+    if (!(await VideoEncoder.isConfigSupported(config)).supported) throw new Error('This browser cannot encode VP8 at the chosen dimensions. Choose a smaller resolution or Manual recording.');
+    const job = fixedRecording;
+    let timeline, encoder, failure;
+    try {
+      await viewer.ready; await viewer.textureReady;
+      if (document.fonts) await document.fonts.ready;
+      if (job.cancelled) return;
+      timeline = viewer.beginCaptureTimeline();
+      const sceneSettings = JSON.stringify(viewer.settings());
+      const canvas = document.createElement('canvas'); canvas.width = width; canvas.height = height;
+      const ctx = canvas.getContext('2d'), caption = document.createElement('canvas'); caption.width = width; caption.height = height;
+      const lettering = document.querySelector('.neon-lettering');
+      if (opts.caption !== false) {
+        if (typeof window.renderLettering === 'function') window.renderLettering(caption, width, height);
+        else if (lettering && !lettering.hidden) caption.getContext('2d').drawImage(lettering, 0, 0, width, height);
+      }
+      const frames = [];
+      encoder = new VideoEncoder({ output: chunk => { const data = new Uint8Array(chunk.byteLength); chunk.copyTo(data); frames.push({ data, timestamp: chunk.timestamp, key: chunk.type === 'key' }); }, error: error => { failure = error; } });
+      encoder.configure(config);
+      const count = Math.round(duration * fps);
+      recordingStartTime = performance.now(); updateRecordingUI(true, duration);
+      // Frame count determines completion, even if rendering takes minutes.
+      for (let i = 0; i < count && !job.cancelled; i++) {
+        if (JSON.stringify(viewer.settings()) !== sceneSettings) throw new Error('Scene settings changed. Video cancelled; record again with the new settings.');
+        const elapsed = i / fps;
+        const sample = opts.loop ? duration / (2 * Math.PI) * (1 - Math.cos(2 * Math.PI * elapsed / duration)) : elapsed;
+        ctx.drawImage(timeline.captureAtTime(sample, width, height), 0, 0);
+        ctx.drawImage(caption, 0, 0);
+        const frame = new VideoFrame(canvas, { timestamp: Math.round(i * 1000000 / fps), duration: Math.round(1000000 / fps) });
+        try { encoder.encode(frame, { keyFrame: i % (fps * 2) === 0 }); } finally { frame.close(); }
+        if (encoder.encodeQueueSize > 4) await encoder.flush();
+        if (failure) throw failure;
+        notify(`Rendering video: ${i + 1} / ${count} frames`);
+        const timerText = document.getElementById('neon-rec-timer');
+        if (timerText) timerText.textContent = `${i + 1} / ${count} frames`;
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+      if (job.cancelled) { notify('Video export cancelled.'); return; }
+      await encoder.flush(); if (failure) throw failure;
+      if (job.cancelled) { notify('Video export cancelled.'); return; }
+      const blob = makeWebM(frames, width, height, duration);
+      const filename = opts.filename || `neon-black-hole-${width}x${height}${opts.loop ? '-loop' : ''}.webm`;
+      downloadBlob(blob, filename); notify(`Video saved: ${filename}`);
+      if (typeof opts.onComplete === 'function') opts.onComplete(blob, filename);
+    } finally {
+      if (encoder && encoder.state !== 'closed') encoder.close();
+      if (timeline) timeline.finish();
+      if (recordTimerInterval) clearInterval(recordTimerInterval);
+      fixedRecording = null; updateRecordingUI(false);
+    }
+  }
 
   async function takeStill(viewer, opts = {}) {
     if (!viewer) throw new Error('Visualizer not ready.');
@@ -126,20 +207,21 @@
   }
 
   function startRecording(viewer, opts = {}) {
-    if (mediaRecorder && mediaRecorder.state === 'recording') {
+    if (fixedRecording) { stopRecording(); return; }
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
       stopRecording();
       return;
     }
     if (!viewer) throw new Error('Visualizer not ready.');
-
-    const mimeType = getSupportedVideoMimeType();
-    if (!mimeType) throw new Error('MediaRecorder video recording is not supported in this browser.');
 
     const resKey = opts.resolution || '1080p';
     const res = RESOLUTIONS[resKey] || RESOLUTIONS.current;
     const durationSec = parseFloat(opts.duration ?? 5);
     const fps = parseInt(opts.fps || 30, 10);
     const includeCaption = opts.caption !== false;
+    const loop = opts.loop === true;
+    if (loop && (!Number.isFinite(durationSec) || durationSec <= 0)) throw new Error('Choose a fixed clip length for a loop.');
+    if (loop && typeof viewer.beginCaptureTimeline !== 'function') throw new Error('This viewer does not support loop recording.');
 
     const sceneEl = document.getElementById('neon-scene');
     const liveCanvas = sceneEl ? sceneEl.querySelector('canvas') : null;
@@ -148,11 +230,23 @@
     let targetW = opts.width || res.width || liveCanvas.width;
     let targetH = opts.height || res.height || liveCanvas.height;
 
+    if (durationSec > 0) {
+      if (![30, 60].includes(fps) || !Number.isFinite(durationSec) || durationSec > 30) throw new Error('Choose 30 or 60 FPS and a clip length up to 30 seconds.');
+      fixedRecording = { cancelled: false };
+      return renderFixedClip(viewer, opts, targetW, targetH, durationSec, fps).catch(error => { fixedRecording = null; notify(error.message); });
+    }
+
+    const mimeType = getSupportedVideoMimeType();
+    if (!mimeType) throw new Error('MediaRecorder video recording is not supported in this browser.');
+
     const compCanvas = document.createElement('canvas');
     compCanvas.width = targetW;
     compCanvas.height = targetH;
     const compCtx = compCanvas.getContext('2d');
 
+    // Seed the canvas before recording: captureStream can otherwise encode its
+    // initial transparent frame as a black flash at the start of every repeat.
+    compCtx.drawImage(viewer.captureAt(targetW, targetH), 0, 0, targetW, targetH);
     const stream = compCanvas.captureStream(fps);
     recordedChunks = [];
 
@@ -162,7 +256,7 @@
       mediaRecorder = new MediaRecorder(stream);
     }
 
-    activeRecordingRes = { width: targetW, height: targetH, mimeType };
+    activeRecordingRes = { width: targetW, height: targetH, mimeType: mediaRecorder.mimeType || mimeType };
 
     mediaRecorder.ondataavailable = e => {
       if (e.data && e.data.size > 0) recordedChunks.push(e.data);
@@ -185,7 +279,7 @@
       }
       const blob = new Blob(recordedChunks, { type: activeRecordingRes.mimeType });
       const ext = activeRecordingRes.mimeType.includes('mp4') ? 'mp4' : 'webm';
-      const filename = opts.filename || `neon-black-hole-${activeRecordingRes.width}x${activeRecordingRes.height}.${ext}`;
+      const filename = opts.filename || `neon-black-hole-${activeRecordingRes.width}x${activeRecordingRes.height}${loop ? '-loop' : ''}.${ext}`;
       downloadBlob(blob, filename);
       notify(`Video saved: ${filename}`);
       if (typeof opts.onComplete === 'function') opts.onComplete(blob, filename);
@@ -198,6 +292,9 @@
     captionCanvas.height = targetH;
     if (hasCaption && typeof window.renderLettering === 'function') {
       window.renderLettering(captionCanvas, targetW, targetH);
+      compCtx.drawImage(captionCanvas, 0, 0);
+    } else if (includeCaption && lettering && !lettering.hidden) {
+      compCtx.drawImage(lettering, 0, 0, targetW, targetH);
     }
     let lastComposite = -Infinity;
     function compositeFrame() {
@@ -205,7 +302,7 @@
       if (now - lastComposite < 1000 / fps) return;
       lastComposite = now;
       const rendered = targetW === liveCanvas.width && targetH === liveCanvas.height
-        ? liveCanvas : viewer.captureAt(targetW, targetH);
+          ? liveCanvas : viewer.captureAt(targetW, targetH);
       // Draw straight from the live canvas, called synchronously right after the
       // viewer renders it (see addFrameListener below). Without this, reading the
       // canvas from a second, independent requestAnimationFrame loop could land
@@ -246,6 +343,7 @@
   }
 
   function stopRecording() {
+    if (fixedRecording) { fixedRecording.cancelled = true; return; }
     if (mediaRecorder && mediaRecorder.state === 'recording') {
       mediaRecorder.stop();
     }
@@ -273,6 +371,7 @@
 
       if (recordTimerInterval) clearInterval(recordTimerInterval);
       recordTimerInterval = setInterval(() => {
+        if (fixedRecording) return; // Fixed exports report rendered frames, not wall-clock time.
         const elapsed = (performance.now() - recordingStartTime) / 1000;
         const txt = totalSec > 0
           ? `${formatTime(elapsed)} / ${formatTime(totalSec)}`
@@ -500,6 +599,11 @@ ${combinedCss}
                   <span>Include poster text</span>
                   <input type="checkbox" id="neon-video-caption" checked>
                 </label>
+                <label class="acidburn-field neon-control">
+                  <span>Smooth back-and-forth loop</span>
+                  <input type="checkbox" id="neon-video-loop" aria-describedby="neon-loop-note">
+                </label>
+                <p id="neon-loop-note">Eases forward, then reverses to the starting scene. Choose a fixed clip length. Keep scene settings unchanged during recording.</p>
                 <button type="button" class="acidburn-button neon-action-btn" id="neon-start-record">Start Recording</button>
               </div>
             </details>
@@ -634,6 +738,14 @@ ${combinedCss}
 
   function initUI() {
     function getViewer() { return window.NeonViewer; }
+    const loopCheck = document.getElementById('neon-video-loop');
+    const clipLength = document.getElementById('neon-video-len');
+    if (loopCheck && clipLength) {
+      loopCheck.addEventListener('change', () => {
+        clipLength.querySelector('option[value="0"]').disabled = loopCheck.checked;
+        if (loopCheck.checked && clipLength.value === '0') clipLength.value = '5';
+      });
+    }
 
     wireCustomResField('neon-video-res', 'neon-video-custom-w-field', 'neon-video-custom-h-field');
     wireCustomResField('neon-still-res', 'neon-still-custom-w-field', 'neon-still-custom-h-field');
@@ -649,13 +761,7 @@ ${combinedCss}
     const quickRec = document.getElementById('neon-quick-rec');
     if (quickRec) {
       quickRec.addEventListener('click', () => {
-        const v = getViewer();
-        if (!v) return;
-        if (mediaRecorder && mediaRecorder.state === 'recording') {
-          stopRecording();
-        } else {
-          startRecording(v, { resolution: '1080p', duration: 5, fps: 30, caption: true });
-        }
+        document.getElementById('neon-start-record')?.click();
       });
     }
 
@@ -687,7 +793,7 @@ ${combinedCss}
       startRecBtn.addEventListener('click', () => {
         const v = getViewer();
         if (!v) return;
-        if (mediaRecorder && mediaRecorder.state === 'recording') {
+        if (fixedRecording || (mediaRecorder && mediaRecorder.state === 'recording')) {
           stopRecording();
         } else {
           const resSelect = document.getElementById('neon-video-res');
@@ -699,13 +805,14 @@ ${combinedCss}
             resolution: resKey,
             duration: lenSelect ? parseFloat(lenSelect.value) : 5,
             fps: fpsSelect ? parseInt(fpsSelect.value, 10) : 30,
-            caption: capCheck ? capCheck.checked : true
+            caption: capCheck ? capCheck.checked : true,
+            loop: document.getElementById('neon-video-loop')?.checked === true
           };
           if (resKey === 'custom') {
             recOpts.width = clampDim(document.getElementById('neon-video-custom-w')?.value, 1920);
             recOpts.height = clampDim(document.getElementById('neon-video-custom-h')?.value, 1080);
           }
-          startRecording(v, recOpts);
+          try { startRecording(v, recOpts); } catch (err) { notify(err.message); }
         }
       });
     }

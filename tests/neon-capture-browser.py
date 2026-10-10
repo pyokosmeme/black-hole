@@ -51,7 +51,7 @@ with sync_playwright() as p:
     # 3. Test Video Recording clip (2 seconds)
     page.locator('#neon-video-len').select_option('2')
     page.locator('#neon-video-res').select_option('720p')
-    with page.expect_download(timeout=30000) as video_dl:
+    with page.expect_download(timeout=180000) as video_dl:
         page.locator('#neon-start-record').click()
         # Verify recording pill is visible
         page.wait_for_selector('#neon-rec-pill.is-recording', state='visible', timeout=5000)

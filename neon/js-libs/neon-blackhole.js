@@ -1959,6 +1959,41 @@ window.createNeonBlackhole = function (options) {
 
     addFrameListener: function (cb) { frameListeners.push(cb); },
 
+    // A bounded capture timeline replays from one observer state, including all
+    // shader clocks. No frame buffer cache or negative orbit integration needed.
+    beginCaptureTimeline: function () {
+      var saved = {}, wasPaused = paused, finished = false;
+      Object.keys(observer).forEach(function (key) {
+        var value = observer[key]; saved[key] = value && value.clone ? value.clone() : value;
+      });
+      function restore() {
+        Object.keys(saved).forEach(function (key) {
+          if (saved[key] && saved[key].clone) observer[key].copy(saved[key]);
+          else observer[key] = saved[key];
+        });
+      }
+      paused = true; dirty = false;
+      return {
+        captureAtTime: function (seconds, width, height) {
+          if (finished) throw new Error('Capture timeline has finished.');
+          restore();
+          // Keep incremental simulation bounded; large single updates distort
+          // floor sway and make the result depend on the requested sample time.
+          var remaining = Math.max(0, seconds);
+          while (remaining > 1e-9) {
+            var step = Math.min(remaining, 1 / 120);
+            observer.update(step); remaining -= step;
+          }
+          observer.update(0);
+          return api.captureAt(width, height);
+        },
+        finish: function () {
+          if (finished) return;
+          finished = true; restore(); paused = wasPaused; lastT = performance.now(); dirty = true;
+        }
+      };
+    },
+
     removeFrameListener: function (cb) { var i = frameListeners.indexOf(cb); if (i >= 0) frameListeners.splice(i, 1); },
 
     setActive:setActive, applySettings:applySettings,
