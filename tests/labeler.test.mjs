@@ -34,7 +34,7 @@ async function adminSession() {
     crypto.subtle.exportKey('jwk', keyPair.publicKey),
   ]);
   return {
-    did: 'did:plc:owner', handle: 'lastnpcalex.agency', pds: 'https://pds.example',
+    authVersion: 2, did: 'did:plc:owner', handle: 'lastnpcalex.agency', pds: 'https://pds.example',
     authServer: 'https://auth.example', privateKeyJwk, publicKeyJwk, createdAt: Date.now(),
   };
 }

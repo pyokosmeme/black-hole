@@ -34,9 +34,9 @@ The complete test excerpt.
     ADMIN_DIDS: 'did:plc:owner, did:plc:co-owner',
     SESSIONS: new MemoryKv({
       ...Object.fromEntries(PUBLIC_PREFIXES.map(prefix => [indexKey(prefix), '[]'])),
-      'session:owner-session': JSON.stringify({ did: 'did:plc:owner', handle: 'lastnpcalex.agency' }),
-      'session:co-owner-session': JSON.stringify({ did: 'did:plc:co-owner', handle: 'spin.pyokosmeme.group' }),
-      'session:reader-session': JSON.stringify({ did: 'did:plc:reader', handle: 'reader.test' }),
+      'session:owner-session': JSON.stringify({ authVersion: 2, did: 'did:plc:owner', handle: 'lastnpcalex.agency' }),
+      'session:co-owner-session': JSON.stringify({ authVersion: 2, did: 'did:plc:co-owner', handle: 'spin.pyokosmeme.group' }),
+      'session:reader-session': JSON.stringify({ authVersion: 2, did: 'did:plc:reader', handle: 'reader.test' }),
     }),
     ASSETS: {
       async fetch(request) {

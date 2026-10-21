@@ -15,7 +15,7 @@ function makeEnv(count = 3) {
     ['labeler:signing-key', '1'.padStart(64, '0')],
     ['labeler:seq', String(count)],
     [indexKey('label:'), JSON.stringify(Array.from({ length: count }, (_, i) => record(i + 1)))],
-    ['session:admin', JSON.stringify({ did: 'did:plc:owner' })],
+    ['session:admin', JSON.stringify({ authVersion: 2, did: 'did:plc:owner' })],
     ...Array.from({ length: count }, (_, i) => [`label:${i + 1}`, JSON.stringify(record(i + 1))]),
   ]);
   const calls = { gets: [], puts: [], lists: 0 };

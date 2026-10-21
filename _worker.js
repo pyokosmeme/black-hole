@@ -1,6 +1,7 @@
 import { handleContentRequest } from './worker-content.js';
 import { getLabelerDidKey, handleLabelerRequest, LABELER_DID } from './labeler.js';
 import { PUBLIC_PREFIXES, refreshPublicIndex, patchPublicIndex } from './public-index.js';
+import { AUTH_SESSION_VERSION, oauthUrl, oauthFetch, oauthText, oauthJson, grantedScope } from './oauth-security.js';
 
 // ── Shared helpers ──
 
@@ -60,11 +61,14 @@ function base64url(bytes) {
 
 async function getSession(env, request) {
   const cookie = request.headers.get('Cookie') || '';
-  const match = cookie.match(/session=([^;]+)/);
+  const match = cookie.match(/(?:^|;\s*)session=([^;]+)/);
   if (!match) return null;
   const raw = await env.SESSIONS.get(`session:${match[1]}`);
   if (!raw) return null;
-  return JSON.parse(raw);
+  try {
+    const session = JSON.parse(raw);
+    return session.authVersion === AUTH_SESSION_VERSION ? session : null;
+  } catch { return null; }
 }
 
 async function importKeyPair(privateKeyJwk, publicKeyJwk) {
@@ -119,32 +123,55 @@ async function generatePkce() {
   return { verifier, challenge };
 }
 
-async function resolveHandle(handle) {
-  const res = await fetch(`${BSKY_PUBLIC}/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(handle)}`);
-  if (!res.ok) throw new Error(`Handle resolution failed: ${res.status}`);
-  const { did } = await res.json();
-  let doc = null;
-  if (did.startsWith('did:plc:')) {
-    const r = await fetch(`https://plc.directory/${did}`);
-    if (r.ok) doc = await r.json();
-  } else if (did.startsWith('did:web:')) {
-    const host = did.slice('did:web:'.length);
-    const r = await fetch(`https://${host}/.well-known/did.json`);
-    if (r.ok) doc = await r.json();
+async function oauthPost(privateKey, publicKey, url, body) {
+  const send = async nonce => oauthFetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'DPoP': await createDpopProof(privateKey, publicKey, 'POST', url, null, nonce),
+    },
+    body: body.toString(),
+  });
+  let response = await send();
+  let text = await oauthText(response);
+  const nonce = response.headers.get('dpop-nonce');
+  if (!response.ok && nonce && text.includes('use_dpop_nonce')) {
+    response = await send(nonce);
+    text = await oauthText(response);
   }
+  return { response, text };
+}
+
+async function resolveHandle(handle) {
+  const { did } = await oauthJson(`${BSKY_PUBLIC}/xrpc/com.atproto.identity.resolveHandle?handle=${encodeURIComponent(handle)}`);
+  let doc = null;
+  if (/^did:plc:[a-z0-9]+$/.test(did)) {
+    doc = await oauthJson(`https://plc.directory/${did}`);
+  } else if (typeof did === 'string' && did.startsWith('did:web:')) {
+    const host = did.slice('did:web:'.length);
+    if (host.includes(':') || host.includes('/') || host.includes('%')) throw new Error('Unsupported web DID');
+    doc = await oauthJson(`${oauthUrl(`https://${host}`, { originOnly: true })}/.well-known/did.json`);
+  }
+  if (!doc || doc.id !== did || !doc.alsoKnownAs?.includes(`at://${handle}`)) throw new Error('DID does not confirm this handle');
   const svc = (doc?.service || []).find(s => s.id === '#atproto_pds' || s.type === 'AtprotoPersonalDataServer');
-  const pds = svc?.serviceEndpoint || 'https://bsky.social';
+  const pds = oauthUrl(svc?.serviceEndpoint, { originOnly: true });
   return { did, pds };
 }
 
 async function discoverAuthServer(pds) {
-  try {
-    const res = await fetch(`${pds}/.well-known/oauth-authorization-server`);
-    if (!res.ok) return 'https://bsky.social';
-    return (await res.json()).issuer;
-  } catch {
-    return 'https://bsky.social';
+  const resource = await oauthJson(`${pds}/.well-known/oauth-protected-resource`);
+  if (resource.resource !== pds || !Array.isArray(resource.authorization_servers) || !resource.authorization_servers.length) {
+    throw new Error('Invalid PDS OAuth metadata');
   }
+  const issuer = oauthUrl(resource.authorization_servers[0], { originOnly: true });
+  const metadata = await oauthJson(`${issuer}/.well-known/oauth-authorization-server`);
+  if (metadata.issuer !== issuer || !metadata.scopes_supported?.includes('atproto')) throw new Error('OAuth issuer mismatch');
+  return {
+    issuer,
+    authorizationEndpoint: oauthUrl(metadata.authorization_endpoint),
+    tokenEndpoint: oauthUrl(metadata.token_endpoint),
+    parEndpoint: oauthUrl(metadata.pushed_authorization_request_endpoint),
+  };
 }
 
 function jsonResponse(data, status, request) {
@@ -159,9 +186,11 @@ function jsonResponse(data, status, request) {
 // ── Route handlers ──
 
 async function handleLogin(request, env) {
+  if (request.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405, request);
+  if (!sameOriginMutation(request)) return jsonResponse({ error: 'Origin not allowed' }, 403, request);
   const body = await request.json();
-  const handle = body?.handle;
-  if (!handle) return jsonResponse({ error: 'Handle required' }, 400, request);
+  const handle = typeof body?.handle === 'string' ? body.handle.trim().toLowerCase() : '';
+  if (!handle || handle.length > 253 || !/^[a-z0-9.-]+$/.test(handle)) return jsonResponse({ error: 'Valid handle required' }, 400, request);
   try {
     const { did, pds } = await resolveHandle(handle);
     const identityUpgrade = body?.identityUpgrade === true;
@@ -169,7 +198,8 @@ async function handleLogin(request, env) {
     if (identityUpgrade && !adminDids.includes(did)) {
       return jsonResponse({ error: 'Only an administrator can authorize a labeler identity upgrade' }, 403, request);
     }
-    const authServer = await discoverAuthServer(pds);
+    const discovery = await discoverAuthServer(pds);
+    const authServer = discovery.issuer;
     const { verifier, challenge } = await generatePkce();
     const keyPair = await crypto.subtle.generateKey(
       { name: 'ECDSA', namedCurve: 'P-256' }, true, ['sign', 'verify']
@@ -189,6 +219,7 @@ async function handleLogin(request, env) {
     const state = crypto.randomUUID();
     const stateData = {
       codeVerifier: verifier, privateKeyJwk, publicKeyJwk, authServer,
+      tokenEndpoint: discovery.tokenEndpoint,
       redirectUri: `${new URL(request.url).origin}/api/oauth/callback`,
       handle, did, pds, createdAt: Date.now(),
       returnTo: safeReturnTo(body?.returnTo, request),
@@ -198,8 +229,7 @@ async function handleLogin(request, env) {
     await env.SESSIONS.put(`state:${state}`, JSON.stringify(stateData), { expirationTtl: 900 });
 
     // Pushed Authorization Request (PAR) — bsky.social requires it
-    const parUrl = `${authServer}/oauth/par`;
-    const parDpop = await createDpopProof(keyPair.privateKey, keyPair.publicKey, 'POST', parUrl, null);
+    const parUrl = discovery.parEndpoint;
     const parBody = new URLSearchParams({
       client_id: CLIENT_ID,
       redirect_uri: stateData.redirectUri,
@@ -209,24 +239,17 @@ async function handleLogin(request, env) {
       code_challenge: challenge,
       code_challenge_method: 'S256',
       dpop_jkt: thumbprint,
+      login_hint: handle,
     });
-    const parRes = await fetch(parUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Authorization': `DPoP ${parDpop}`,
-      },
-      body: parBody.toString(),
-    });
+    const { response: parRes, text: parText } = await oauthPost(keyPair.privateKey, keyPair.publicKey, parUrl, parBody);
     if (!parRes.ok) {
-      const err = await parRes.text();
-      throw new Error(`PAR failed (${parRes.status}): ${err.slice(0, 200)}`);
+      throw new Error(`Authorization request failed (${parRes.status})`);
     }
-    const parData = await parRes.json();
-    const authorizeUrl = new URL('/oauth/authorize', authServer);
+    const parData = JSON.parse(parText);
+    if (typeof parData.request_uri !== 'string' || !parData.request_uri.startsWith('urn:ietf:params:oauth:request_uri:')) throw new Error('Invalid pushed authorization response');
+    const authorizeUrl = new URL(discovery.authorizationEndpoint);
     authorizeUrl.searchParams.set('client_id', CLIENT_ID);
     authorizeUrl.searchParams.set('request_uri', parData.request_uri);
-    authorizeUrl.searchParams.set('iss', new URL(CLIENT_ID).origin);
     return jsonResponse({ redirect_url: authorizeUrl.toString() }, 200, request);
   } catch (e) {
     return jsonResponse({ error: e.message }, 500, request);
@@ -265,43 +288,31 @@ async function handleCallback(request, env) {
     });
   }
   if (!code) return jsonResponse({ error: 'Missing code' }, 400, request);
+  if (url.searchParams.get('iss') !== stateData.authServer) return jsonResponse({ error: 'OAuth issuer mismatch' }, 400, request);
   try {
     const { privateKey, publicKey } = await importKeyPair(stateData.privateKeyJwk, stateData.publicKeyJwk);
-    const tokenUrl = `${stateData.authServer}/oauth/token`;
-    const dpopProof = await createDpopProof(privateKey, publicKey, 'POST', tokenUrl, null);
+    const tokenUrl = stateData.tokenEndpoint;
     const tokenBody = new URLSearchParams({
       grant_type: 'authorization_code', code, redirect_uri: stateData.redirectUri,
       client_id: CLIENT_ID, code_verifier: stateData.codeVerifier,
       dpop_jkt: await jwkThumbprint(publicKey),
     });
-    let tokenRes = await fetch(tokenUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'DPoP': dpopProof },
-      body: tokenBody.toString(),
-    });
-    let tokenText = await tokenRes.text();
-    const nonce = tokenRes.headers.get('dpop-nonce');
-    if (!tokenRes.ok && tokenText.includes('use_dpop_nonce') && nonce) {
-      const dpopProofWithNonce = await createDpopProof(privateKey, publicKey, 'POST', tokenUrl, null, nonce);
-      tokenRes = await fetch(tokenUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'DPoP': dpopProofWithNonce },
-        body: tokenBody.toString(),
-      });
-      tokenText = await tokenRes.text();
-    }
+    const { response: tokenRes, text: tokenText } = await oauthPost(privateKey, publicKey, tokenUrl, tokenBody);
     if (!tokenRes.ok) {
       return jsonResponse({ error: 'Token exchange failed' }, 502, request);
     }
     const tokenData = JSON.parse(tokenText);
+    const scope = grantedScope(tokenData, stateData.did, stateData.scope || SCOPE);
     const sessionId = crypto.randomUUID();
     const sessionData = {
       accessToken: tokenData.access_token, refreshToken: tokenData.refresh_token,
       did: stateData.did, handle: stateData.handle, pds: stateData.pds,
       authServer: stateData.authServer,
+      tokenEndpoint: tokenUrl,
+      authVersion: AUTH_SESSION_VERSION,
       privateKeyJwk: stateData.privateKeyJwk, publicKeyJwk: stateData.publicKeyJwk,
-      scope: stateData.scope || SCOPE,
-      identityUpgrade: stateData.identityUpgrade === true,
+      scope,
+      identityUpgrade: stateData.identityUpgrade === true && scope.split(/\s+/).includes(IDENTITY_SCOPE),
       createdAt: Date.now(),
     };
     await env.SESSIONS.put(`session:${sessionId}`, JSON.stringify(sessionData), { expirationTtl: SESSION_MAX_AGE });
@@ -324,7 +335,7 @@ async function handleCallback(request, env) {
 async function handleLogout(request, env) {
   if (request.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405, request);
   const cookie = request.headers.get('Cookie') || '';
-  const match = cookie.match(/session=([^;]+)/);
+  const match = cookie.match(/(?:^|;\s*)session=([^;]+)/);
   if (match) await env.SESSIONS.delete(`session:${match[1]}`);
   return new Response(JSON.stringify({ logged_out: true }), {
     status: 200,
@@ -354,39 +365,35 @@ async function handleSession(request, env) {
 async function refreshAccessToken(env, request, session) {
   if (!session.refreshToken) return null;
   const cookie = request.headers.get('Cookie') || '';
-  const match = cookie.match(/session=([^;]+)/);
+  const match = cookie.match(/(?:^|;\s*)session=([^;]+)/);
   if (!match) return null;
   const sessionId = match[1];
   const { privateKey, publicKey } = await importKeyPair(session.privateKeyJwk, session.publicKeyJwk);
-  const tokenUrl = (session.authServer || 'https://bsky.social') + '/oauth/token';
+  const tokenUrl = session.tokenEndpoint;
   const body = new URLSearchParams({
     grant_type: 'refresh_token',
     refresh_token: session.refreshToken,
     client_id: CLIENT_ID,
   });
-  const doFetch = async (nonce) => fetch(tokenUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'DPoP': await createDpopProof(privateKey, publicKey, 'POST', tokenUrl, null, nonce),
-    },
-    body: body.toString(),
-  });
-  let res = await doFetch();
-  const nonce = res.headers.get('dpop-nonce');
-  if (!res.ok && nonce) res = await doFetch(nonce);
-  if (!res.ok) return null;
+  let result;
+  try { result = await oauthPost(privateKey, publicKey, tokenUrl, body); } catch { return null; }
+  if (!result.response.ok) return null;
   let data;
-  try { data = JSON.parse(await res.text()); } catch { return null; }
-  if (!data.access_token) return null;
+  let scope;
+  try {
+    data = JSON.parse(result.text);
+    scope = grantedScope(data, session.did, session.scope);
+  } catch { return null; }
   session.accessToken = data.access_token;
   session.refreshToken = data.refresh_token || session.refreshToken;
+  session.scope = scope;
   const raw = await env.SESSIONS.get('session:' + sessionId);
   if (raw) {
     try {
       const stored = JSON.parse(raw);
       stored.accessToken = session.accessToken;
       stored.refreshToken = session.refreshToken;
+      stored.scope = scope;
       await env.SESSIONS.put('session:' + sessionId, JSON.stringify(stored), { expirationTtl: SESSION_MAX_AGE });
     } catch { /* keep going with in-memory tokens */ }
   }
@@ -408,7 +415,7 @@ async function authedDpopFetch(request, env, session, method, url, bodyJson) {
 async function dpopFetch(privateKey, publicKey, accessToken, method, url, bodyJson) {
   const doFetch = async (nonce) => {
     const proof = await createDpopProof(privateKey, publicKey, method, url, accessToken, nonce);
-    return fetch(url, {
+    return oauthFetch(url, {
       method,
       headers: {
         'Content-Type': 'application/json',
@@ -468,9 +475,13 @@ async function handleCreateRecord(request, env) {
 async function handleDeleteRecord(request, env) {
   const session = await getSession(env, request);
   if (!session) return jsonResponse({ error: 'Not authenticated' }, 401, request);
-  const { privateKey, publicKey } = await importKeyPair(session.privateKeyJwk, session.publicKeyJwk);
   const body = await request.json();
-  const [repo, collection, rkey] = body.uri.replace('at://', '').split('/');
+  const match = typeof body?.uri === 'string' && body.uri.match(/^at:\/\/([^/]+)\/([^/]+)\/([a-zA-Z0-9._~:-]{1,512})$/);
+  if (!match) return jsonResponse({ error: 'Invalid record URI' }, 400, request);
+  const [, repo, collection, rkey] = match;
+  if (repo !== session.did || !CREATE_TYPES.includes(collection) || rkey === '.' || rkey === '..') {
+    return jsonResponse({ error: 'Only your own site records may be deleted' }, 403, request);
+  }
   const url = `${session.pds}/xrpc/com.atproto.repo.deleteRecord`;
   const result = await authedDpopFetch(request, env, session, 'POST', url, {
     repo, collection, rkey,
@@ -755,6 +766,11 @@ export default {
 
     if (request.method === 'OPTIONS' && path.startsWith('/api/')) {
       return new Response(null, { status: 204, headers: corsHeaders(request) });
+    }
+
+    if (path.startsWith('/api/bsky/')) {
+      if (request.method !== 'POST') return jsonResponse({ error: 'Method not allowed' }, 405, request);
+      if (!sameOriginMutation(request)) return jsonResponse({ error: 'Origin not allowed' }, 403, request);
     }
 
     if (path === '/api/oauth/login') return handleLogin(request, env);

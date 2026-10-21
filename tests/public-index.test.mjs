@@ -139,7 +139,7 @@ test('large collections and a continuous liker backlog stay inside the backgroun
 });
 
 test('manual initialization is authenticated, validates prefixes, and advances only one page', async () => {
-  const env = environment({ 'session:owner': JSON.stringify({ did: 'did:plc:owner' }) });
+  const env = environment({ 'session:owner': JSON.stringify({ authVersion: 2, did: 'did:plc:owner' }) });
   const request = (prefix, cookie, origin = SITE) => new Request(SITE + '/api/admin/public-indexes', {
     method: 'POST', headers: { 'Content-Type': 'application/json', Origin: origin, ...(cookie ? { Cookie: cookie } : {}) }, body: JSON.stringify({ prefix }),
   });

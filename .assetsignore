@@ -45,6 +45,7 @@ package.json
 package-lock.json
 _worker.bundle
 _worker.js
+oauth-security.js
 worker-content.js
 public-index.js
 labeler.js

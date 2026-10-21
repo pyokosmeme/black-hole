@@ -1,6 +1,7 @@
 import { renderDocument } from './transmission-document.js';
 import { invalidateLabelCache } from './labeler.js';
 import { IndexUnavailable, PUBLIC_PREFIXES, readPublicIndex, refreshPublicIndex, refreshAfterMutation } from './public-index.js';
+import { AUTH_SESSION_VERSION } from './oauth-security.js';
 
 const DEFAULT_ADMIN_DIDS = 'did:plc:ccxl3ictrlvtrrgh5swvvg47,did:plc:drrstoxu4to57dhv453ziznq';
 const SITE_ORIGIN = 'https://lastnpcalex.agency';
@@ -121,7 +122,8 @@ async function getSession(request, env) {
   const raw = await env.SESSIONS.get(`session:${sessionId}`);
   if (!raw) return null;
   try {
-    return JSON.parse(raw);
+    const session = JSON.parse(raw);
+    return session.authVersion === AUTH_SESSION_VERSION ? session : null;
   } catch {
     return null;
   }
